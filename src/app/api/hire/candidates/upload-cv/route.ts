@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { uploadToR2 } from "@/lib/r2";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 
 export async function POST(req: Request) {
@@ -17,26 +18,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "cv, candidateId, jobId required" }, { status: 400 });
   }
 
-  // Upload to Supabase Storage
-  const ext = file.name.split(".").pop() ?? "pdf";
-  const path = `cvs/${jobId}/${candidateId}.${ext}`;
-  const bytes = await file.arrayBuffer();
+  // Upload to Cloudflare R2
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "pdf";
+  const key = `cvs/${jobId}/${candidateId}.${ext}`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
 
-  const { error: uploadError } = await supabaseAdmin.storage
-    .from("kazi-cvs")
-    .upload(path, bytes, { contentType: file.type, upsert: true });
-
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  let cvUrl: string;
+  try {
+    cvUrl = await uploadToR2(key, bytes, file.type || "application/octet-stream");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Upload failed";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  const { data: urlData } = supabaseAdmin.storage.from("kazi-cvs").getPublicUrl(path);
-
-  // Extract text — Groq handles plain text; for PDF we send raw bytes as base64
-  // For MVP: treat uploaded file as text (Word/PDF text extraction is a later enhancement)
+  // Extract text for AI parsing (works for plain-text CVs; PDF/Word text extraction is a Phase 2 enhancement)
   const cvText = await file.text().catch(() => "");
 
-  // Parse structured fields from CV text
+  // Parse structured fields from CV text via Groq
   let cvParsed = null;
   if (cvText.length > 50) {
     const prompt = `Extract structured information from this CV text. Return ONLY valid JSON, no explanation.
@@ -76,11 +74,10 @@ Return this exact JSON shape:
     });
   }
 
-  // Update candidate record
   await supabaseAdmin
     .from("candidates")
-    .update({ cv_url: urlData.publicUrl, cv_text: cvText || null, cv_parsed: cvParsed })
+    .update({ cv_url: cvUrl, cv_text: cvText || null, cv_parsed: cvParsed })
     .eq("id", candidateId);
 
-  return NextResponse.json({ cv_url: urlData.publicUrl, cv_parsed: cvParsed });
+  return NextResponse.json({ cv_url: cvUrl, cv_parsed: cvParsed });
 }
