@@ -57,6 +57,39 @@ const NAV: NavItem[] = [
   },
 ];
 
+const PULSE_NAV: NavItem[] = [
+  {
+    label: "Pulse",
+    href: "/pulse",
+    icon: <PulseIcon />,
+    requiredRole: "employee",
+  },
+  {
+    label: "Check-ins",
+    href: "/pulse/checkins",
+    icon: <CheckIcon />,
+    requiredRole: "employee",
+  },
+  {
+    label: "Goals",
+    href: "/pulse/goals",
+    icon: <TargetIcon />,
+    requiredRole: "employee",
+  },
+  {
+    label: "1-on-1s",
+    href: "/pulse/one-on-ones",
+    icon: <ChatIcon />,
+    requiredRole: "employee",
+  },
+  {
+    label: "Feedback",
+    href: "/pulse/feedback",
+    icon: <StarIcon />,
+    requiredRole: "employee",
+  },
+];
+
 export function Sidebar({ role }: { role: UserRole }) {
   const pathname = usePathname();
 
@@ -71,37 +104,42 @@ export function Sidebar({ role }: { role: UserRole }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 space-y-0.5 px-2">
+      <nav className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">
         <p className="px-3 mb-2 text-xs font-semibold text-slate-600 uppercase tracking-widest">
           Kazi Hire
         </p>
-        {visible.map((item) => {
-          const active =
-            item.href === "/dashboard"
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`}
-            >
-              <span className="w-4 h-4 flex-shrink-0">{item.icon}</span>
-              {item.label}
-            </Link>
-          );
-        })}
+        {visible.map((item) => <NavLink key={item.href} item={item} pathname={pathname} />)}
+
+        <p className="px-3 mt-5 mb-2 text-xs font-semibold text-slate-600 uppercase tracking-widest">
+          Kazi Pulse
+        </p>
+        {PULSE_NAV.filter((item) => hasRole(role, item.requiredRole)).map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} />
+        ))}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom — role label */}
       <div className="p-4 border-t border-slate-800 text-xs text-slate-600">
         <span className="capitalize">{role.replace("_", " ")}</span>
       </div>
     </aside>
+  );
+}
+
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active = item.href === "/dashboard" || item.href === "/pulse"
+    ? pathname === item.href
+    : pathname.startsWith(item.href);
+  return (
+    <Link
+      href={item.href}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        active ? "bg-slate-800 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"
+      }`}
+    >
+      <span className="w-4 h-4 shrink-0">{item.icon}</span>
+      {item.label}
+    </Link>
   );
 }
 
@@ -173,6 +211,49 @@ function SettingsIcon() {
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="8" cy="8" r="2" />
       <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" />
+    </svg>
+  );
+}
+
+function PulseIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M1 8h2.5l2-5 2.5 10 2-7 1.5 2H15" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="2" y="2" width="12" height="12" rx="2" />
+      <path d="M5 8l2.5 2.5L11 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TargetIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="8" cy="8" r="6.5" />
+      <circle cx="8" cy="8" r="3.5" />
+      <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V3z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M8 1l1.8 4h4.2l-3.4 2.6 1.3 4L8 9.3 4.1 11.6l1.3-4L2 5h4.2z" strokeLinejoin="round" />
     </svg>
   );
 }

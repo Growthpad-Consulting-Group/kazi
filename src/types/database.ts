@@ -1,6 +1,10 @@
 export type UserRole = "admin" | "hr" | "hiring_manager" | "interviewer" | "manager" | "employee";
 export type JobStatus = "draft" | "open" | "closed";
 export type CandidateStage = "applied" | "screened" | "interview" | "offer" | "hired" | "rejected";
+export type GoalStatus = "not_started" | "in_progress" | "at_risk" | "completed" | "cancelled";
+export type GoalLevel = "company" | "team" | "individual";
+export type CheckinStatus = "draft" | "submitted" | "reviewed";
+export type FeedbackVisibility = "public" | "private";
 
 export interface Database {
   public: {
@@ -15,13 +19,21 @@ export interface Database {
           department: string | null;
           avatar_url: string | null;
           is_active: boolean;
+          manager_id: string | null;
+          job_title: string | null;
+          location: string | null;
+          start_date: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at" | "updated_at" | "department" | "avatar_url" | "is_active"> & {
+        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at" | "updated_at" | "department" | "avatar_url" | "is_active" | "manager_id" | "job_title" | "location" | "start_date"> & {
           department?: string | null;
           avatar_url?: string | null;
           is_active?: boolean;
+          manager_id?: string | null;
+          job_title?: string | null;
+          location?: string | null;
+          start_date?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["users"]["Insert"]>;
         Relationships: [];
@@ -151,6 +163,104 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      // ── Kazi Pulse ──────────────────────────────────────────
+      checkins: {
+        Row: {
+          id: string;
+          user_id: string;
+          week_start: string;
+          wins: string | null;
+          priorities: string | null;
+          blockers: string | null;
+          mood: number | null;
+          status: CheckinStatus;
+          manager_comment: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          ai_summary: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["checkins"]["Row"], "id" | "created_at" | "updated_at" | "status" | "manager_comment" | "reviewed_by" | "reviewed_at" | "ai_summary" | "wins" | "priorities" | "blockers" | "mood"> & {
+          wins?: string | null;
+          priorities?: string | null;
+          blockers?: string | null;
+          mood?: number | null;
+          status?: CheckinStatus;
+          manager_comment?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          ai_summary?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["checkins"]["Row"]>;
+        Relationships: [];
+      };
+      goals: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          level: GoalLevel;
+          owner_id: string | null;
+          parent_id: string | null;
+          status: GoalStatus;
+          progress: number;
+          due_date: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["goals"]["Row"], "id" | "created_at" | "updated_at" | "status" | "progress" | "description" | "owner_id" | "parent_id" | "due_date"> & {
+          description?: string | null;
+          owner_id?: string | null;
+          parent_id?: string | null;
+          due_date?: string | null;
+          status?: GoalStatus;
+          progress?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["goals"]["Row"]>;
+        Relationships: [];
+      };
+      one_on_ones: {
+        Row: {
+          id: string;
+          manager_id: string;
+          report_id: string;
+          scheduled_at: string | null;
+          agenda: string | null;
+          notes: string | null;
+          action_items: { text: string; done: boolean; carried_from?: string }[];
+          ai_talking_points: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["one_on_ones"]["Row"], "id" | "created_at" | "updated_at" | "scheduled_at" | "agenda" | "notes" | "action_items" | "ai_talking_points"> & {
+          scheduled_at?: string | null;
+          agenda?: string | null;
+          notes?: string | null;
+          action_items?: { text: string; done: boolean; carried_from?: string }[];
+          ai_talking_points?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["one_on_ones"]["Row"]>;
+        Relationships: [];
+      };
+      feedback: {
+        Row: {
+          id: string;
+          from_user_id: string;
+          to_user_id: string;
+          message: string;
+          visibility: FeedbackVisibility;
+          emoji: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["feedback"]["Row"], "id" | "created_at" | "visibility" | "emoji"> & {
+          visibility?: FeedbackVisibility;
+          emoji?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -158,15 +268,25 @@ export interface Database {
       user_role: UserRole;
       job_status: JobStatus;
       candidate_stage: CandidateStage;
+      goal_status: GoalStatus;
+      goal_level: GoalLevel;
+      checkin_status: CheckinStatus;
+      feedback_visibility: FeedbackVisibility;
     };
     CompositeTypes: Record<string, never>;
   };
 }
 
-// Convenience type aliases
+// Hire types
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export type Candidate = Database["public"]["Tables"]["candidates"]["Row"];
 export type CandidateNote = Database["public"]["Tables"]["candidate_notes"]["Row"];
 export type InterviewScorecard = Database["public"]["Tables"]["interview_scorecards"]["Row"];
 export type AiLog = Database["public"]["Tables"]["ai_logs"]["Row"];
+
+// Pulse types
+export type Checkin = Database["public"]["Tables"]["checkins"]["Row"];
+export type Goal = Database["public"]["Tables"]["goals"]["Row"];
+export type OneOnOne = Database["public"]["Tables"]["one_on_ones"]["Row"];
+export type Feedback = Database["public"]["Tables"]["feedback"]["Row"];

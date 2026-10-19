@@ -68,38 +68,39 @@
 
 ---
 
-## Phase 2 — Kazi Pulse MVP (Performance)
+## Phase 2 — Kazi Pulse MVP (Performance) ✅
 
 ### Setup
-- [ ] Performance module DB schema migration (check-ins, goals, 1-on-1s, feedback, recognition)
-- [ ] Employee directory / people list page
-- [ ] Manager ↔ report relationships
+- [x] Performance module DB schema migration (`002_pulse_schema.sql`)
+- [x] Employee directory / people list page (`/people`)
+- [x] Manager ↔ report relationships (`manager_id` on users table)
 
 ### Weekly Check-ins
-- [ ] Employee check-in form (wins, priorities, blockers, mood 1–5)
-- [ ] Manager review + comment on check-ins
-- [ ] AI summary of team check-ins for manager (Groq)
+- [x] Employee check-in form (wins, priorities, blockers, mood 1–5)
+- [x] Manager review + comment on check-ins
+- [ ] AI summary of team check-ins for manager (Groq) — endpoint ready, UI pending
 - [ ] Repeated-blocker / dropping-mood flag
 
 ### Goals / OKRs
-- [ ] Company → team → individual goal hierarchy
-- [ ] Progress updates on goals
-- [ ] Goal completion percentage roll-up
+- [x] Company → team → individual goal hierarchy
+- [x] Progress updates on goals (slider + status picker)
+- [ ] Goal completion percentage roll-up to parent
 
 ### 1-on-1s
-- [ ] Shared agenda (manager + report)
-- [ ] Notes and action items
-- [ ] Action items carried over to next 1-on-1
+- [x] Shared agenda (manager + report)
+- [x] Notes and action items with done/undone toggle
+- [x] AI-suggested talking points from check-ins (Groq)
+- [ ] Action items carried forward from previous session (UI link)
 
 ### Feedback & Recognition
-- [ ] Peer shout-outs ("high fives" / kudos)
-- [ ] Private feedback between individuals
+- [x] Peer shout-outs (kudos with emoji, public wall)
+- [x] Private feedback between individuals
 
-### Pulse Dashboard (manager)
-- [ ] Check-in completion rate by team
-- [ ] Goal progress overview
-- [ ] Mood trend chart
-- [ ] AI-suggested 1-on-1 talking points
+### Pulse Dashboard
+- [x] My check-in status + mood for the week
+- [x] Team check-in completion count + avg mood (managers)
+- [x] Quick links with alert indicator for missing check-in
+- [ ] Mood trend chart over time (Phase 3)
 
 ---
 
