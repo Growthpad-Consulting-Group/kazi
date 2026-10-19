@@ -18,8 +18,13 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at" | "updated_at">;
+        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at" | "updated_at" | "department" | "avatar_url" | "is_active"> & {
+          department?: string | null;
+          avatar_url?: string | null;
+          is_active?: boolean;
+        };
         Update: Partial<Database["public"]["Tables"]["users"]["Insert"]>;
+        Relationships: [];
       };
       sessions: {
         Row: {
@@ -31,6 +36,7 @@ export interface Database {
         };
         Insert: Omit<Database["public"]["Tables"]["sessions"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["sessions"]["Insert"]>;
+        Relationships: [];
       };
       jobs: {
         Row: {
@@ -48,6 +54,7 @@ export interface Database {
         };
         Insert: Omit<Database["public"]["Tables"]["jobs"]["Row"], "id" | "created_at" | "updated_at">;
         Update: Partial<Database["public"]["Tables"]["jobs"]["Insert"]>;
+        Relationships: [];
       };
       candidates: {
         Row: {
@@ -77,6 +84,7 @@ export interface Database {
         };
         Insert: Omit<Database["public"]["Tables"]["candidates"]["Row"], "id" | "created_at" | "updated_at">;
         Update: Partial<Database["public"]["Tables"]["candidates"]["Insert"]>;
+        Relationships: [];
       };
       candidate_notes: {
         Row: {
@@ -88,6 +96,7 @@ export interface Database {
         };
         Insert: Omit<Database["public"]["Tables"]["candidate_notes"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["candidate_notes"]["Insert"]>;
+        Relationships: [];
       };
       interview_scorecards: {
         Row: {
@@ -103,6 +112,7 @@ export interface Database {
         };
         Insert: Omit<Database["public"]["Tables"]["interview_scorecards"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["interview_scorecards"]["Insert"]>;
+        Relationships: [];
       };
       ai_logs: {
         Row: {
@@ -118,8 +128,17 @@ export interface Database {
         };
         Insert: Omit<Database["public"]["Tables"]["ai_logs"]["Row"], "id" | "created_at">;
         Update: never;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: {
+      user_role: UserRole;
+      job_status: JobStatus;
+      candidate_stage: CandidateStage;
+    };
+    CompositeTypes: Record<string, never>;
   };
 }
 
