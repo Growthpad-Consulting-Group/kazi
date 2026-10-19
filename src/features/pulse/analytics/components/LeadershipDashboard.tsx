@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import { Icon } from "@iconify/react";
+import PageHeader from "@/components/ui/PageHeader";
 
 type TeamMember = { id: string; name: string; department: string | null; manager_id: string | null };
 type Checkin = { user_id: string; week_start: string; mood: number | null; blockers: string | null; status: string };
@@ -34,7 +36,6 @@ export default async function LeadershipDashboard() {
   const thisWeek = getWeekStart(0);
   const fourWeeksAgo = getWeekStart(4);
 
-  // Fetch all active employees in scope
   const membersQuery = supabaseAdmin.from("users").select("id, name, department, manager_id").eq("is_active", true);
   const { data: allMembers } = isHr
     ? await membersQuery
@@ -45,9 +46,16 @@ export default async function LeadershipDashboard() {
 
   if (memberIds.length === 0) {
     return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Leadership Analytics</h1>
-        <p className="text-slate-500">No team members found.</p>
+      <div className="space-y-6">
+        <PageHeader
+          title="Leadership Analytics"
+          description="Team engagement and performance insights"
+          icon="solar:chart-broken"
+        />
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
+          <Icon icon="solar:users-group-broken" className="mx-auto h-10 w-10 text-[var(--text-lo)] opacity-40" />
+          <p className="mt-3 text-sm text-[var(--text-lo)]">No team members found.</p>
+        </div>
       </div>
     );
   }
@@ -58,35 +66,29 @@ export default async function LeadershipDashboard() {
       .select("user_id, week_start, mood, blockers, status")
       .in("user_id", memberIds)
       .gte("week_start", fourWeeksAgo),
-    supabaseAdmin
-      .from("goals")
-      .select("owner_id, status, progress")
-      .in("owner_id", memberIds),
+    supabaseAdmin.from("goals").select("owner_id, status, progress").in("owner_id", memberIds),
   ]);
 
   const checkins = (rawCheckins ?? []) as Checkin[];
   const goals = (rawGoals ?? []) as Goal[];
 
-  // ── Check-in completion this week ──────────────────────────
   const thisWeekCheckins = checkins.filter((c) => c.week_start === thisWeek);
   const completionRate = members.length > 0
     ? Math.round((thisWeekCheckins.length / members.length) * 100)
     : 0;
 
-  // ── Avg mood this week ──────────────────────────────────────
   const moodsThisWeek = thisWeekCheckins.map((c) => c.mood).filter((m): m is number => m !== null);
   const avgMood = moodsThisWeek.length > 0
     ? (moodsThisWeek.reduce((a, b) => a + b, 0) / moodsThisWeek.length).toFixed(1)
     : null;
 
-  // ── Weekly check-in trend (last 4 weeks) ───────────────────
   const weeklyTrend = Array.from({ length: 4 }, (_, i) => {
     const week = getWeekStart(3 - i);
-    const count = checkins.filter((c) => c.week_start === week).length;
-    return { week, count, pct: members.length > 0 ? Math.round((count / members.length) * 100) : 0 };
+    const submitted = checkins.filter((c) => c.week_start === week).length;
+    const pct = members.length > 0 ? Math.round((submitted / members.length) * 100) : 0;
+    return { week, pct };
   });
 
-  // ── Goal progress distribution ─────────────────────────────
   const goalBuckets = {
     not_started: goals.filter((g) => g.status === "not_started").length,
     in_progress: goals.filter((g) => g.status === "in_progress").length,
@@ -98,10 +100,8 @@ export default async function LeadershipDashboard() {
     ? Math.round(goals.reduce((a, g) => a + g.progress, 0) / goals.length)
     : 0;
 
-  // ── Flight risk signals ────────────────────────────────────
   const flightRisks = members.filter((m) => isFlightRisk(checkins, m.id));
 
-  // ── Department breakdown (HR only) ────────────────────────
   const deptMap: Record<string, { total: number; submitted: number; avgMood: number[]; atRisk: number }> = {};
   if (isHr) {
     for (const m of members) {
@@ -117,75 +117,124 @@ export default async function LeadershipDashboard() {
     }
   }
 
+  const maxTrend = Math.max(...weeklyTrend.map((w) => w.pct), 1);
+
+  const GOAL_COLORS: Record<string, string> = {
+    not_started: "bg-[var(--surface-2)]",
+    in_progress: "bg-blue-500",
+    at_risk: "bg-amber-500",
+    completed: "bg-green-500",
+  };
+
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Leadership Analytics</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          {isHr ? "Organisation-wide" : "Your team"} · {members.length} {members.length === 1 ? "member" : "members"}
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Leadership Analytics"
+        description={`${isHr ? "Organisation-wide" : "Your team"} · ${members.length} ${members.length === 1 ? "member" : "members"}`}
+        icon="solar:chart-broken"
+      />
 
-      {/* KPI cards */}
+      {/* KPI Row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="Check-in Rate" value={`${completionRate}%`} sub="this week"
-          accent={completionRate >= 80 ? "green" : completionRate >= 50 ? "amber" : "red"} />
-        <KpiCard label="Avg Mood" value={avgMood ? `${avgMood}/5` : "—"} sub="this week"
-          accent={avgMood && parseFloat(avgMood) >= 3.5 ? "green" : avgMood ? "amber" : "slate"} />
-        <KpiCard label="Goal Progress" value={`${avgProgress}%`} sub={`across ${totalGoals} goals`}
-          accent={avgProgress >= 70 ? "green" : avgProgress >= 40 ? "amber" : "slate"} />
-        <KpiCard label="Flight Risks" value={String(flightRisks.length)} sub="need attention"
-          accent={flightRisks.length === 0 ? "green" : flightRisks.length <= 2 ? "amber" : "red"} />
+        <KpiCard
+          label="Check-in Rate"
+          value={`${completionRate}%`}
+          sub="this week"
+          icon="solar:checklist-minimalistic-broken"
+          accent={completionRate >= 80 ? "green" : completionRate >= 50 ? "amber" : "red"}
+        />
+        <KpiCard
+          label="Avg Mood"
+          value={avgMood ? `${avgMood}/5` : "—"}
+          sub="this week"
+          icon="solar:emoji-funny-circle-broken"
+          accent={avgMood && parseFloat(avgMood) >= 3.5 ? "green" : avgMood ? "amber" : "slate"}
+        />
+        <KpiCard
+          label="Goal Progress"
+          value={`${avgProgress}%`}
+          sub={`${totalGoals} goals total`}
+          icon="solar:target-broken"
+          accent={avgProgress >= 70 ? "green" : avgProgress >= 40 ? "amber" : "slate"}
+        />
+        <KpiCard
+          label="Flight Risks"
+          value={String(flightRisks.length)}
+          sub="need attention"
+          icon="solar:danger-broken"
+          accent={flightRisks.length === 0 ? "green" : flightRisks.length <= 2 ? "amber" : "red"}
+        />
       </div>
 
-      {/* Trend chart */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-700 mb-4">Check-in Completion — Last 4 Weeks</h2>
-        <div className="flex items-end gap-4 h-32">
-          {weeklyTrend.map(({ week, pct }) => (
-            <div key={week} className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-xs font-medium text-slate-600">{pct}%</span>
-              <div className="w-full rounded-t-md bg-blue-500 transition-all" style={{ height: `${Math.max(pct, 4)}%` }} />
-              <span className="text-xs text-slate-400">
-                {new Date(week).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Goal distribution */}
-      {totalGoals > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-700 mb-4">Goal Status Distribution</h2>
-          <div className="space-y-2.5">
-            {(Object.entries(goalBuckets) as [string, number][]).map(([status, count]) => {
-              const pct = totalGoals > 0 ? Math.round((count / totalGoals) * 100) : 0;
-              const colors: Record<string, string> = {
-                not_started: "bg-slate-300",
-                in_progress: "bg-blue-500",
-                at_risk: "bg-amber-500",
-                completed: "bg-green-500",
-              };
-              return (
-                <div key={status} className="flex items-center gap-3">
-                  <span className="w-24 text-xs text-slate-500 capitalize shrink-0">{status.replace("_", " ")}</span>
-                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${colors[status]}`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="text-xs text-slate-400 w-8 text-right">{count}</span>
+      {/* Trend + Goal Distribution */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Check-in Trend */}
+        <SectionCard
+          icon="solar:graph-up-broken"
+          title="Check-in Completion"
+          description="Last 4 weeks"
+        >
+          <div className="flex items-end gap-3 h-36 pt-2">
+            {weeklyTrend.map(({ week, pct }) => (
+              <div key={week} className="flex-1 flex flex-col items-center gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-lo)] tabular-nums">{pct}%</span>
+                <div className="relative w-full rounded-t-lg overflow-hidden" style={{ height: `${Math.round((pct / maxTrend) * 96) + 4}px` }}>
+                  <div className="absolute inset-0 bg-[#f05d23]/20 rounded-t-lg" />
+                  <div
+                    className="absolute bottom-0 w-full rounded-t-lg transition-all duration-500"
+                    style={{
+                      height: `${Math.max(pct, 4)}%`,
+                      background: "linear-gradient(to top, #f05d23, #ff8c5a)",
+                    }}
+                  />
                 </div>
-              );
-            })}
+                <span className="text-[10px] text-[var(--text-lo)]">
+                  {new Date(week).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        </SectionCard>
 
-      {/* Flight risk signals */}
+        {/* Goal Distribution */}
+        <SectionCard icon="solar:target-broken" title="Goal Status" description={`${totalGoals} goals tracked`}>
+          {totalGoals > 0 ? (
+            <div className="space-y-3 pt-1">
+              {(Object.entries(goalBuckets) as [string, number][]).map(([status, count]) => {
+                const pct = totalGoals > 0 ? Math.round((count / totalGoals) * 100) : 0;
+                return (
+                  <div key={status} className="flex items-center gap-3">
+                    <span className="w-24 text-xs text-[var(--text-lo)] capitalize shrink-0">
+                      {status.replace("_", " ")}
+                    </span>
+                    <div className="flex-1 h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${GOAL_COLORS[status]}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 w-14 justify-end">
+                      <span className="text-xs font-semibold text-[var(--text-hi)] tabular-nums">{count}</span>
+                      <span className="text-[10px] text-[var(--text-lo)]">({pct}%)</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-[var(--text-lo)]">No goals found.</p>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* Flight Risk */}
       {flightRisks.length > 0 && (
-        <div className="bg-white rounded-xl border border-amber-200 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-700 mb-1">Flight Risk Signals</h2>
-          <p className="text-xs text-slate-400 mb-4">Employees with 2+ low-mood check-ins or blockers in 3+ of the last 4 weeks</p>
+        <SectionCard
+          icon="solar:danger-triangle-broken"
+          title="Flight Risk Signals"
+          description="Employees with 2+ low-mood check-ins or blockers in 3+ of the last 4 weeks"
+          accent="amber"
+        >
           <div className="space-y-2">
             {flightRisks.map((m) => {
               const recent = checkins
@@ -194,20 +243,24 @@ export default async function LeadershipDashboard() {
                 .slice(0, 4);
               const lowMoods = recent.filter((c) => c.mood !== null && c.mood <= 2).length;
               const blockerWeeks = recent.filter((c) => c.blockers && c.blockers.trim()).length;
+              const initials = m.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
               return (
-                <div key={m.id} className="flex items-center gap-4 rounded-lg bg-amber-50 px-4 py-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900">{m.name}</p>
-                    {m.department && <p className="text-xs text-slate-400">{m.department}</p>}
+                <div key={m.id} className="flex items-center gap-3 rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/40 dark:bg-amber-900/10 px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-200 dark:bg-amber-800/50 text-amber-700 dark:text-amber-300 text-xs font-bold">
+                    {initials}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--text-hi)] truncate">{m.name}</p>
+                    {m.department && <p className="text-xs text-[var(--text-lo)]">{m.department}</p>}
+                  </div>
+                  <div className="flex gap-2 shrink-0">
                     {lowMoods >= 2 && (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
+                      <span className="rounded-full bg-red-100 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
                         Low mood ×{lowMoods}
                       </span>
                     )}
                     {blockerWeeks >= 3 && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      <span className="rounded-full bg-amber-100 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-800/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
                         Blockers ×{blockerWeeks}
                       </span>
                     )}
@@ -216,45 +269,47 @@ export default async function LeadershipDashboard() {
               );
             })}
           </div>
-        </div>
+        </SectionCard>
       )}
 
-      {/* Department breakdown (HR only) */}
+      {/* Department Breakdown — HR only */}
       {isHr && Object.keys(deptMap).length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-700 mb-4">Department Breakdown</h2>
+        <SectionCard icon="solar:buildings-broken" title="Department Breakdown" description="Check-in completion by department">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-slate-400 border-b border-slate-100">
-                  <th className="text-left pb-2 font-medium">Department</th>
-                  <th className="text-right pb-2 font-medium">Headcount</th>
-                  <th className="text-right pb-2 font-medium">Check-ins</th>
-                  <th className="text-right pb-2 font-medium">Avg Mood</th>
-                  <th className="text-right pb-2 font-medium">At Risk</th>
+                <tr className="border-b border-[var(--border)]">
+                  {["Department", "Headcount", "Check-ins", "Avg Mood", "At Risk"].map((h) => (
+                    <th
+                      key={h}
+                      className={`pb-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-lo)] ${h === "Department" ? "text-left" : "text-right"}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[var(--border)]">
                 {Object.entries(deptMap).map(([dept, stats]) => {
                   const mood = stats.avgMood.length > 0
                     ? (stats.avgMood.reduce((a, b) => a + b, 0) / stats.avgMood.length).toFixed(1)
                     : "—";
                   const deptRate = Math.round((stats.submitted / stats.total) * 100);
                   return (
-                    <tr key={dept} className="border-b border-slate-50 last:border-0">
-                      <td className="py-2.5 font-medium text-slate-700">{dept}</td>
-                      <td className="py-2.5 text-right text-slate-500">{stats.total}</td>
-                      <td className="py-2.5 text-right">
-                        <span className={deptRate >= 80 ? "text-green-600" : deptRate >= 50 ? "text-amber-600" : "text-red-500"}>
+                    <tr key={dept} className="hover:bg-[var(--surface-2)] transition-colors">
+                      <td className="py-3 font-medium text-[var(--text-hi)]">{dept}</td>
+                      <td className="py-3 text-right text-[var(--text-lo)] tabular-nums">{stats.total}</td>
+                      <td className="py-3 text-right tabular-nums">
+                        <span className={`font-medium ${deptRate >= 80 ? "text-green-500" : deptRate >= 50 ? "text-amber-500" : "text-red-400"}`}>
                           {deptRate}%
                         </span>
                       </td>
-                      <td className="py-2.5 text-right text-slate-500">{mood}</td>
-                      <td className="py-2.5 text-right">
+                      <td className="py-3 text-right text-[var(--text-lo)] tabular-nums">{mood}</td>
+                      <td className="py-3 text-right tabular-nums">
                         {stats.atRisk > 0 ? (
-                          <span className="text-amber-600 font-medium">{stats.atRisk}</span>
+                          <span className="font-medium text-amber-500">{stats.atRisk}</span>
                         ) : (
-                          <span className="text-slate-300">—</span>
+                          <span className="text-[var(--text-lo)] opacity-30">—</span>
                         )}
                       </td>
                     </tr>
@@ -263,30 +318,75 @@ export default async function LeadershipDashboard() {
               </tbody>
             </table>
           </div>
-        </div>
+        </SectionCard>
       )}
     </div>
   );
 }
 
-function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub: string; accent: string }) {
-  const border: Record<string, string> = {
-    green: "border-green-200",
-    amber: "border-amber-200",
-    red: "border-red-200",
-    slate: "border-slate-200",
-  };
-  const text: Record<string, string> = {
-    green: "text-green-600",
-    amber: "text-amber-600",
-    red: "text-red-500",
-    slate: "text-slate-700",
-  };
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+const ACCENT_STYLES = {
+  green: { border: "border-green-200/60 dark:border-green-800/30", icon: "bg-green-500/10 text-green-500", value: "text-green-500" },
+  amber: { border: "border-amber-200/60 dark:border-amber-800/30", icon: "bg-amber-500/10 text-amber-500", value: "text-amber-500" },
+  red: { border: "border-red-200/60 dark:border-red-800/30", icon: "bg-red-500/10 text-red-500", value: "text-red-400" },
+  slate: { border: "border-[var(--border)]", icon: "bg-[var(--surface-2)] text-[var(--text-lo)]", value: "text-[var(--text-hi)]" },
+};
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  icon: string;
+  accent: string;
+}) {
+  const styles = ACCENT_STYLES[accent as keyof typeof ACCENT_STYLES] ?? ACCENT_STYLES.slate;
   return (
-    <div className={`rounded-xl border bg-white p-5 shadow-sm ${border[accent] ?? "border-slate-200"}`}>
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`text-3xl font-bold mt-1 ${text[accent] ?? "text-slate-700"}`}>{value}</p>
-      <p className="text-xs text-slate-400 mt-1">{sub}</p>
+    <div className={`rounded-2xl border bg-[var(--surface)] p-5 shadow-lg shadow-black/5 transition-all duration-300 ${styles.border}`}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium text-[var(--text-lo)]">{label}</p>
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}>
+          <Icon icon={icon} className="h-3.5 w-3.5" />
+        </div>
+      </div>
+      <p className={`mt-3 font-display text-3xl font-bold tabular-nums ${styles.value}`}>{value}</p>
+      <p className="mt-1 text-xs text-[var(--text-lo)]">{sub}</p>
+    </div>
+  );
+}
+
+function SectionCard({
+  icon,
+  title,
+  description,
+  accent,
+  children,
+}: {
+  icon: string;
+  title: string;
+  description?: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  const isAmber = accent === "amber";
+  return (
+    <div className={`rounded-2xl border shadow-lg shadow-black/5 transition-all duration-300 ${isAmber ? "border-amber-200/60 dark:border-amber-800/30 bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--surface)]"}`}>
+      <div className={`flex items-center gap-3 border-b px-6 py-4 ${isAmber ? "border-amber-100 dark:border-amber-800/20" : "border-[var(--border)]"}`}>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${isAmber ? "bg-amber-500/10 text-amber-500" : "bg-[#f05d23]/10 text-[#f05d23]"}`}>
+          <Icon icon={icon} className="h-4 w-4" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--text-hi)]">{title}</h3>
+          {description && <p className="text-xs text-[var(--text-lo)]">{description}</p>}
+        </div>
+      </div>
+      <div className="p-6">{children}</div>
     </div>
   );
 }

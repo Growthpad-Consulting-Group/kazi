@@ -79,22 +79,28 @@ export default function KaziHeader({
         </div>
       </GlassPanel>
 
-      {/* Right — search hint, theme picker, profile */}
+      {/* Right — search, notifications, theme, profile */}
       <GlassPanel mode={mode} className="shrink-0 rounded-2xl">
-        <div className="flex h-full items-center gap-1 px-2 py-1.5">
-          {/* ⌘K hint */}
+        <div className="flex h-full items-center gap-0.5 px-2 py-1.5">
           <button
-            className="hidden md:flex items-center gap-1.5 rounded-xl border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-lo)] hover:text-[var(--text-hi)] hover:bg-black/5 dark:hover:bg-white/5 transition-all"
             title="Search (⌘K)"
+            className="group flex items-center justify-center p-2 rounded-full transition-all active:scale-95 hover:bg-black/5 dark:hover:bg-white/10 text-gray-600 dark:text-gray-200"
           >
-            <Icon icon="solar:magnifer-broken" className="h-4 w-4" />
-            <span>Search</span>
-            <kbd className="rounded border border-[var(--border)] px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
+            <Icon icon="solar:magnifer-broken" className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
           </button>
 
-          <div className="mx-1 h-5 w-px bg-[var(--border)] hidden md:block" />
+          <button
+            title="Notifications"
+            className="group relative flex items-center justify-center p-2 rounded-full transition-all active:scale-95 hover:bg-black/5 dark:hover:bg-white/10 text-gray-600 dark:text-gray-200"
+          >
+            <Icon icon="solar:bell-bing-broken" className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+          </button>
 
-          <HeaderThemeDropdown />
+          <div className="mx-0.5 h-5 w-px bg-[var(--border)] hidden md:block" />
+
+          <div className="hidden md:block">
+            <HeaderThemeDropdown />
+          </div>
           <HeaderProfileDropdown />
         </div>
       </GlassPanel>
