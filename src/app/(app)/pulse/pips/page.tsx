@@ -1,2 +1,5 @@
-import PipsPage from "@/features/pulse/pips/components/PipsPage";
-export default PipsPage;
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/pulse/reviews?tab=pips");
+}

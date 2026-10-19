@@ -1,2 +1,5 @@
-import IdpsPage from "@/features/pulse/idps/components/IdpsPage";
-export default IdpsPage;
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/pulse/reviews?tab=idps");
+}

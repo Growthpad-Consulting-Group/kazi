@@ -1,3 +1,5 @@
-import ReportingPage from "@/features/hire/reporting/components/ReportingPage";
+import { redirect } from "next/navigation";
 
-export default ReportingPage;
+export default function Page() {
+  redirect("/hire/candidates?tab=reports");
+}

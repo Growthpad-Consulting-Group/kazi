@@ -1,5 +1,5 @@
-import OneOnOnesPage from "@/features/pulse/one-on-ones/components/OneOnOnesPage";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <OneOnOnesPage />;
+  redirect("/pulse/checkins?tab=one-on-ones");
 }

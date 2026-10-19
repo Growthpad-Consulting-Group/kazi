@@ -1,10 +1,5 @@
-import PipelinePage from "@/features/hire/pipeline/components/PipelinePage";
+import { redirect } from "next/navigation";
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ job?: string }>;
-}) {
-  const { job } = await searchParams;
-  return <PipelinePage jobId={job} />;
+export default function Page() {
+  redirect("/hire/candidates?tab=pipeline");
 }

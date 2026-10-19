@@ -1,3 +1,5 @@
-import GoalsPage from "@/features/pulse/goals/components/GoalsPage";
+import { redirect } from "next/navigation";
 
-export default GoalsPage;
+export default function Page() {
+  redirect("/pulse/checkins?tab=goals");
+}
