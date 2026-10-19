@@ -1,25 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --sidebar-bg: #0f172a;
-  --sidebar-text: #94a3b8;
-  --sidebar-active: #ffffff;
-  --sidebar-active-bg: #1e293b;
-  --brand: #2563eb;
-  --brand-hover: #1d4ed8;
+  --canvas:    #f7f7f8;
+  --surface:   #ffffff;
+  --surface-2: #f1f1f3;
+  --border:    #e4e4e7;
+  --text-hi:   #18181b;
+  --text-lo:   #71717a;
+  --header-height: 72px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root.dark {
+  --canvas:    #0b0c0e;
+  --surface:   #131417;
+  --surface-2: #1a1c1f;
+  --border:    #26282c;
+  --text-hi:   #f4f4f5;
+  --text-lo:   #8b8d93;
+}
+
+@keyframes headerSlideIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+.animate-header-slide-in {
+  animation: headerSlideIn 400ms ease-out;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background-color: var(--canvas);
+  color: var(--text-hi);
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 15px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+html {
+  font-family: var(--font-figtree), sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, nav {
+  font-family: var(--font-clover-display), sans-serif;
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
