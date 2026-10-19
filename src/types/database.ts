@@ -5,6 +5,11 @@ export type GoalStatus = "not_started" | "in_progress" | "at_risk" | "completed"
 export type GoalLevel = "company" | "team" | "individual";
 export type CheckinStatus = "draft" | "submitted" | "reviewed";
 export type FeedbackVisibility = "public" | "private";
+export type ReviewCycle = "quarterly" | "biannual" | "annual";
+export type ReviewStatus = "pending" | "self_review" | "manager_review" | "peer_review" | "completed";
+export type ReviewType = "self" | "manager" | "peer";
+export type SurveyStatus = "draft" | "active" | "closed";
+export type IdpStatus = "active" | "completed" | "cancelled";
 
 export interface Database {
   public: {
@@ -261,6 +266,137 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      // ── Phase 3: Reviews, Surveys, IDPs, PIPs ───────────────
+      review_cycles: {
+        Row: {
+          id: string;
+          title: string;
+          cycle: ReviewCycle;
+          start_date: string;
+          end_date: string;
+          status: ReviewStatus;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["review_cycles"]["Row"], "id" | "created_at" | "updated_at" | "status"> & { status?: ReviewStatus };
+        Update: Partial<Database["public"]["Tables"]["review_cycles"]["Row"]>;
+        Relationships: [];
+      };
+      performance_reviews: {
+        Row: {
+          id: string;
+          cycle_id: string;
+          reviewee_id: string;
+          reviewer_id: string;
+          review_type: ReviewType;
+          competency_ratings: { criterion: string; rating: number; comment: string }[];
+          overall_rating: number | null;
+          strengths: string | null;
+          development_areas: string | null;
+          ai_draft: string | null;
+          submitted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["performance_reviews"]["Row"], "id" | "created_at" | "updated_at" | "competency_ratings" | "overall_rating" | "strengths" | "development_areas" | "ai_draft" | "submitted_at"> & {
+          competency_ratings?: { criterion: string; rating: number; comment: string }[];
+          overall_rating?: number | null;
+          strengths?: string | null;
+          development_areas?: string | null;
+          ai_draft?: string | null;
+          submitted_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["performance_reviews"]["Row"]>;
+        Relationships: [];
+      };
+      surveys: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          questions: { id: string; text: string; type: "scale" | "text" }[];
+          status: SurveyStatus;
+          anonymous: boolean;
+          created_by: string;
+          opens_at: string | null;
+          closes_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["surveys"]["Row"], "id" | "created_at" | "updated_at" | "status" | "anonymous" | "description" | "opens_at" | "closes_at"> & {
+          description?: string | null;
+          status?: SurveyStatus;
+          anonymous?: boolean;
+          opens_at?: string | null;
+          closes_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["surveys"]["Row"]>;
+        Relationships: [];
+      };
+      survey_responses: {
+        Row: {
+          id: string;
+          survey_id: string;
+          respondent_id: string | null;
+          answers: Record<string, string | number>;
+          submitted_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["survey_responses"]["Row"], "id" | "submitted_at" | "respondent_id"> & { respondent_id?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      idps: {
+        Row: {
+          id: string;
+          user_id: string;
+          manager_id: string | null;
+          title: string;
+          goals: string | null;
+          actions: { text: string; due_date: string | null; done: boolean }[];
+          status: IdpStatus;
+          due_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["idps"]["Row"], "id" | "created_at" | "updated_at" | "manager_id" | "goals" | "actions" | "status" | "due_date"> & {
+          manager_id?: string | null;
+          goals?: string | null;
+          actions?: { text: string; due_date: string | null; done: boolean }[];
+          status?: IdpStatus;
+          due_date?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["idps"]["Row"]>;
+        Relationships: [];
+      };
+      pips: {
+        Row: {
+          id: string;
+          user_id: string;
+          manager_id: string;
+          hr_id: string | null;
+          concern: string;
+          expected_outcomes: string;
+          support_provided: string | null;
+          check_in_frequency: string | null;
+          actions: { text: string; due_date: string | null; done: boolean }[];
+          start_date: string;
+          review_date: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["pips"]["Row"], "id" | "created_at" | "updated_at" | "hr_id" | "support_provided" | "check_in_frequency" | "actions" | "review_date" | "resolved_at"> & {
+          hr_id?: string | null;
+          support_provided?: string | null;
+          check_in_frequency?: string | null;
+          actions?: { text: string; due_date: string | null; done: boolean }[];
+          review_date?: string | null;
+          resolved_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["pips"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -272,6 +408,11 @@ export interface Database {
       goal_level: GoalLevel;
       checkin_status: CheckinStatus;
       feedback_visibility: FeedbackVisibility;
+      review_cycle: ReviewCycle;
+      review_status: ReviewStatus;
+      review_type: ReviewType;
+      survey_status: SurveyStatus;
+      idp_status: IdpStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -290,3 +431,11 @@ export type Checkin = Database["public"]["Tables"]["checkins"]["Row"];
 export type Goal = Database["public"]["Tables"]["goals"]["Row"];
 export type OneOnOne = Database["public"]["Tables"]["one_on_ones"]["Row"];
 export type Feedback = Database["public"]["Tables"]["feedback"]["Row"];
+
+// Reviews & Development types
+export type ReviewCycleRow = Database["public"]["Tables"]["review_cycles"]["Row"];
+export type PerformanceReview = Database["public"]["Tables"]["performance_reviews"]["Row"];
+export type Survey = Database["public"]["Tables"]["surveys"]["Row"];
+export type SurveyResponse = Database["public"]["Tables"]["survey_responses"]["Row"];
+export type Idp = Database["public"]["Tables"]["idps"]["Row"];
+export type Pip = Database["public"]["Tables"]["pips"]["Row"];

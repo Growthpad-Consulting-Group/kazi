@@ -133,6 +133,9 @@ export function OneOnOneDetail({ session: s, managerName, reportName, isManager 
               </button>
               <span className={`flex-1 text-sm ${item.done ? "line-through text-slate-400" : "text-slate-700"}`}>
                 {item.text}
+                {item.carried_from && !item.done && (
+                  <span className="ml-2 text-xs text-amber-500 font-medium">↩ carried over</span>
+                )}
               </span>
               <button
                 type="button"

@@ -17,5 +17,18 @@ export async function PATCH(req: Request) {
 
   const { error } = await supabaseAdmin.from("goals").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Roll up progress to parent if this goal has one
+  const { data: goal } = await supabaseAdmin.from("goals").select("parent_id").eq("id", id).single();
+  const parentId = (goal as unknown as { parent_id: string | null } | null)?.parent_id;
+  if (parentId) {
+    const { data: siblings } = await supabaseAdmin.from("goals").select("progress").eq("parent_id", parentId);
+    const sibs = (siblings ?? []) as unknown as { progress: number }[];
+    if (sibs.length) {
+      const avg = Math.round(sibs.reduce((sum, s) => sum + s.progress, 0) / sibs.length);
+      await supabaseAdmin.from("goals").update({ progress: avg }).eq("id", parentId);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

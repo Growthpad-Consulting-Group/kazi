@@ -10,6 +10,24 @@ interface Props {
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
+// Detect mood drop: mood ≤ 2 this week
+function hasMoodAlert(checkins: CheckinWithUser[], userId: string, weekStart: string): boolean {
+  const latest = checkins.filter((c) => c.user_id === userId && c.week_start === weekStart);
+  return latest.some((c) => c.mood !== null && c.mood <= 2);
+}
+
+// Detect repeated blocker: same user has blockers in 2+ consecutive weeks
+function hasBlockerAlert(checkins: CheckinWithUser[], userId: string, weekStart: string): boolean {
+  const userCheckins = checkins
+    .filter((c) => c.user_id === userId)
+    .sort((a, b) => b.week_start.localeCompare(a.week_start));
+  const recent = userCheckins.slice(0, 3);
+  const withBlockers = recent.filter((c) => c.blockers && c.blockers.trim().length > 0);
+  // Flag if current week has a blocker AND at least one of the previous 2 weeks did too
+  const currentHasBlocker = userCheckins[0]?.week_start === weekStart && !!userCheckins[0]?.blockers?.trim();
+  return currentHasBlocker && withBlockers.length >= 2;
+}
+
 export function TeamCheckins({ checkins, weekStart }: Props) {
   const thisWeek = checkins.filter((c) => c.week_start === weekStart);
   const others = checkins.filter((c) => c.week_start !== weekStart);
@@ -17,6 +35,25 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(
+    thisWeek.find((c) => c.ai_summary)?.ai_summary ?? null
+  );
+  const [summarising, setSummarising] = useState(false);
+
+  async function generateSummary() {
+    setSummarising(true);
+    try {
+      const res = await fetch("/api/pulse/ai-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weekStart }),
+      });
+      const json = await res.json();
+      if (json.summary) setAiSummary(json.summary);
+    } finally {
+      setSummarising(false);
+    }
+  }
 
   async function submitReview(checkinId: string) {
     setSaving(true);
@@ -35,9 +72,28 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
-        Team Check-ins — This Week ({thisWeek.length})
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+          Team Check-ins — This Week ({thisWeek.length})
+        </h2>
+        {thisWeek.length > 0 && (
+          <button
+            onClick={generateSummary}
+            disabled={summarising}
+            className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
+          >
+            {summarising ? "Summarising…" : "AI Summary"}
+          </button>
+        )}
+      </div>
+
+      {/* AI team summary */}
+      {aiSummary && (
+        <div className="rounded-xl bg-violet-50 border border-violet-100 p-4">
+          <p className="text-xs font-semibold text-violet-600 mb-1">AI Team Summary</p>
+          <p className="text-sm text-violet-900 whitespace-pre-wrap">{aiSummary}</p>
+        </div>
+      )}
 
       {thisWeek.length === 0 && (
         <p className="text-sm text-slate-400">No team check-ins submitted yet this week.</p>
@@ -59,8 +115,14 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
                   <p className="text-xs text-slate-400">{c.users?.job_title ?? c.users?.department ?? ""}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {c.mood && <span className="text-lg">{MOODS[c.mood - 1]}</span>}
+                {hasMoodAlert(checkins, c.user_id, weekStart) && (
+                  <span title="Low mood this week" className="rounded-full bg-red-100 text-red-600 px-2 py-0.5 text-xs font-medium">Low mood</span>
+                )}
+                {hasBlockerAlert(checkins, c.user_id, weekStart) && (
+                  <span title="Repeated blocker across weeks" className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-medium">Blocker ×2</span>
+                )}
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${c.status === "reviewed" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-600"}`}>
                   {c.status}
                 </span>

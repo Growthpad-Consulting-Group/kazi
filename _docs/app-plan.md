@@ -78,19 +78,19 @@
 ### Weekly Check-ins
 - [x] Employee check-in form (wins, priorities, blockers, mood 1–5)
 - [x] Manager review + comment on check-ins
-- [ ] AI summary of team check-ins for manager (Groq) — endpoint ready, UI pending
-- [ ] Repeated-blocker / dropping-mood flag
+- [x] AI summary of team check-ins for manager (Groq) — "AI Summary" button in team view
+- [x] Repeated-blocker / dropping-mood flag — "Low mood" / "Blocker ×2" badges in team view
 
 ### Goals / OKRs
 - [x] Company → team → individual goal hierarchy
 - [x] Progress updates on goals (slider + status picker)
-- [ ] Goal completion percentage roll-up to parent
+- [x] Goal completion percentage roll-up to parent (auto on child update)
 
 ### 1-on-1s
 - [x] Shared agenda (manager + report)
 - [x] Notes and action items with done/undone toggle
 - [x] AI-suggested talking points from check-ins (Groq)
-- [ ] Action items carried forward from previous session (UI link)
+- [x] Action items carried forward from previous session (↩ carried over badge)
 
 ### Feedback & Recognition
 - [x] Peer shout-outs (kudos with emoji, public wall)
