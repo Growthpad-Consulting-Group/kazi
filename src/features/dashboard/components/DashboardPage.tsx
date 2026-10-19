@@ -4,6 +4,16 @@ import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { StatusPill } from "@/components/ui/StatusPill";
+import dynamic from "next/dynamic";
+
+const ApplicationsTrendChart = dynamic(
+  () => import("./ApplicationsTrendChart"),
+  { ssr: false, loading: () => <div className="h-40 animate-pulse rounded-xl bg-white/5" /> }
+);
+const PipelineDonutChart = dynamic(
+  () => import("./PipelineDonutChart"),
+  { ssr: false, loading: () => <div className="h-40 animate-pulse rounded-xl bg-white/5" /> }
+);
 
 // ─── Data helpers ─────────────────────────────────────────────────────────────
 
@@ -46,6 +56,32 @@ type RecentCandidate = {
   ai_score: number | null;
   jobs: { title: string } | null;
 };
+
+async function getApplicationsTrend(): Promise<{ day: string; count: number }[]> {
+  const days = 7;
+  const result: { day: string; count: number }[] = [];
+  const now = new Date();
+
+  const { data } = await supabaseAdmin
+    .from("candidates")
+    .select("applied_at")
+    .gte("applied_at", new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString())
+    .order("applied_at", { ascending: true });
+
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const d = new Date(row.applied_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+    counts.set(d, (counts.get(d) ?? 0) + 1);
+  }
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const label = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+    result.push({ day: label, count: counts.get(label) ?? 0 });
+  }
+  return result;
+}
 
 async function getRecentCandidates(): Promise<RecentCandidate[]> {
   const { data } = await supabaseAdmin
@@ -155,10 +191,11 @@ const QUICK_ACTIONS = [
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  const [stats, pipeline, recent] = await Promise.all([
+  const [stats, pipeline, recent, trend] = await Promise.all([
     getStats(),
     getPipelineByStage(),
     getRecentCandidates(),
+    getApplicationsTrend(),
   ]);
 
   const firstName = session?.user.name?.split(" ")[0] ?? "there";
@@ -291,6 +328,59 @@ export default async function DashboardPage() {
                 </span>
               </Link>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Charts row ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+        {/* Applications trend */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
+                <Icon icon="solar:chart-broken" className="h-3.5 w-3.5 text-[#f05d23]" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">Applications (7 days)</h2>
+                <p className="text-[11px] text-[var(--text-lo)]">Candidates who applied this week</p>
+              </div>
+            </div>
+            <span className="font-mono text-lg font-bold text-[#f05d23]">
+              {trend.reduce((a, b) => a + b.count, 0)}
+            </span>
+          </div>
+          <ApplicationsTrendChart data={trend} />
+        </div>
+
+        {/* Pipeline donut */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="mb-2 flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15">
+              <Icon icon="solar:pie-chart-broken" className="h-3.5 w-3.5 text-violet-500" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text-hi)]">Pipeline Breakdown</h2>
+              <p className="text-[11px] text-[var(--text-lo)]">Candidates by current stage</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <PipelineDonutChart data={pipeline} />
+            </div>
+            <div className="shrink-0 space-y-2">
+              {pipeline.filter(s => s.stage !== "rejected" && s.count > 0).map(({ stage, count }) => {
+                const COLORS: Record<string, string> = { applied: "#94a3b8", screened: "#60a5fa", interview: "#a78bfa", offer: "#fbbf24", hired: "#4ade80" };
+                return (
+                  <div key={stage} className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[stage] ?? "#94a3b8" }} />
+                    <span className="text-[11px] capitalize text-[var(--text-lo)] w-16">{stage}</span>
+                    <span className="font-mono text-xs font-bold text-[var(--text-hi)]">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

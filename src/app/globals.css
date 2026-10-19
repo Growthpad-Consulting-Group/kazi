@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4: use .dark class (applied by ThemeContext) instead of prefers-color-scheme */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --canvas:    #f7f7f8;
   --surface:   #ffffff;
