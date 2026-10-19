@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import Anthropic from "@anthropic-ai/sdk";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-
-const client = new Anthropic();
+import { groq, GROQ_MODEL } from "@/lib/ai";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -28,24 +26,23 @@ Brief from hiring manager: ${brief}
 
 Return ONLY the job description text, no preamble. Structure: Overview (2–3 sentences), Key Responsibilities (bulleted), What We're Looking For (bulleted), What We Offer (2–3 bullets). Keep it under 400 words.`;
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 1024,
+  const completion = await groq.chat.completions.create({
+    model: GROQ_MODEL,
     messages: [{ role: "user", content: prompt }],
+    max_tokens: 1024,
   });
 
-  const text = message.content[0].type === "text" ? message.content[0].text : "";
+  const text = completion.choices[0]?.message?.content ?? "";
 
-  // Log the AI call for auditability
   if (jobId) {
     await supabaseAdmin.from("ai_logs").insert({
       operation: "jd_draft",
       entity_type: "job",
       entity_id: jobId,
-      model: message.model,
+      model: GROQ_MODEL,
       prompt,
       response: text,
-      tokens_used: message.usage.input_tokens + message.usage.output_tokens,
+      tokens_used: completion.usage?.total_tokens ?? null,
     });
   }
 

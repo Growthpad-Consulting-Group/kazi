@@ -1,0 +1,60 @@
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+
+// Public endpoint — no auth. Called by the public /apply/[jobId] page.
+export async function POST(req: Request) {
+  const body = await req.json();
+  const { job_id, full_name, email, phone, location, source, consented } = body;
+
+  if (!job_id || !full_name || !email || !consented) {
+    return NextResponse.json(
+      { error: "job_id, full_name, email and consent are required" },
+      { status: 400 }
+    );
+  }
+
+  // Verify job exists and is open
+  const { data: job } = await supabaseAdmin
+    .from("jobs")
+    .select("id, status")
+    .eq("id", job_id)
+    .single();
+
+  if (!job || job.status !== "open") {
+    return NextResponse.json({ error: "This role is not accepting applications" }, { status: 404 });
+  }
+
+  // Check for duplicate application
+  const { data: existing } = await supabaseAdmin
+    .from("candidates")
+    .select("id")
+    .eq("job_id", job_id)
+    .eq("email", email.toLowerCase())
+    .single();
+
+  if (existing) {
+    return NextResponse.json(
+      { error: "An application with this email already exists for this role" },
+      { status: 409 }
+    );
+  }
+
+  const { data: candidate, error } = await supabaseAdmin
+    .from("candidates")
+    .insert({
+      job_id,
+      full_name,
+      email: email.toLowerCase(),
+      phone: phone || null,
+      location: location || null,
+      source: source || "direct",
+      consented_at: new Date().toISOString(),
+      applied_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ candidateId: candidate.id });
+}

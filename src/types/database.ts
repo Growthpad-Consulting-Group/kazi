@@ -82,7 +82,23 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["candidates"]["Row"], "id" | "created_at" | "updated_at">;
+        Insert: Omit<
+          Database["public"]["Tables"]["candidates"]["Row"],
+          "id" | "created_at" | "updated_at" | "phone" | "location" | "cv_url" | "cv_text" | "cv_parsed" | "assigned_to" | "source" | "ai_score" | "ai_justification" | "consented_at" | "stage" | "shortlisted"
+        > & {
+          phone?: string | null;
+          location?: string | null;
+          cv_url?: string | null;
+          cv_text?: string | null;
+          cv_parsed?: Database["public"]["Tables"]["candidates"]["Row"]["cv_parsed"];
+          assigned_to?: string | null;
+          source?: string | null;
+          ai_score?: number | null;
+          ai_justification?: string | null;
+          stage?: CandidateStage;
+          shortlisted?: boolean;
+          consented_at?: string | null;
+        };
         Update: Partial<Database["public"]["Tables"]["candidates"]["Insert"]>;
         Relationships: [];
       };

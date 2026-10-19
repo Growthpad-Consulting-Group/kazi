@@ -10,10 +10,10 @@
     "seed:admin": "dotenv -e .env.local -- npx tsx scripts/seed-admin.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.135.0",
     "@supabase/supabase-js": "^2.118.0",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
+    "groq-sdk": "^1.6.0",
     "next": "16.4.2",
     "next-auth": "^4.24.15",
     "react": "19.3.0",
