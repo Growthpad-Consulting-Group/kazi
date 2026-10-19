@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getCandidates, type CandidateWithJob } from "../actions";
 import { StageBadge } from "./StageBadge";
+import { BulkScreenButton } from "./BulkScreenButton";
 
 export default async function CandidatesPage({ jobId }: { jobId?: string }) {
   const candidates = await getCandidates(jobId);
+  const unscreened = candidates.filter((c) => c.ai_score === null && (c.cv_text || c.cv_parsed));
 
   return (
     <div>
@@ -15,6 +17,9 @@ export default async function CandidatesPage({ jobId }: { jobId?: string }) {
             {jobId ? " for this role" : " across all roles"}
           </p>
         </div>
+        {unscreened.length > 0 && (
+          <BulkScreenButton candidateIds={unscreened.map((c) => c.id)} />
+        )}
       </div>
 
       {candidates.length === 0 ? (

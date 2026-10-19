@@ -144,7 +144,7 @@
 
 - [ ] Slack / Teams notifications (check-in reminders, new candidates, stage changes)
 - [ ] Google / Outlook calendar sync for interviews
-- [ ] Bulk CV screening queue (Redis/Valkey background job)
+- [x] Bulk CV screening queue — Upstash Redis (Valkey) FIFO queue, Vercel Cron worker every 2 min, batch size 5
 - [x] HRIS export (CSV) — candidates, employees, review summaries (`/api/export/*`)
 - [x] Candidate data retention / deletion workflow (ODPC / Kenya Data Protection Act compliance)
 - [x] GitHub Actions CI — type check + lint + build on push/PR to main
