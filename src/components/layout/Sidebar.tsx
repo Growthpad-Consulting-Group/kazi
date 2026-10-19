@@ -38,6 +38,12 @@ const NAV: NavItem[] = [
     requiredRole: "interviewer",
   },
   {
+    label: "Reporting",
+    href: "/hire/reporting",
+    icon: <ChartIcon />,
+    requiredRole: "hr",
+  },
+  {
     label: "Team",
     href: "/people",
     icon: <OrgIcon />,
@@ -137,6 +143,16 @@ function KanbanIcon() {
       <rect x="1" y="2" width="4" height="8" rx="1" />
       <rect x="6" y="2" width="4" height="5" rx="1" />
       <rect x="11" y="2" width="4" height="11" rx="1" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="1" y="9" width="3" height="5" rx="0.5" />
+      <rect x="6" y="5" width="3" height="9" rx="0.5" />
+      <rect x="11" y="2" width="3" height="12" rx="0.5" />
     </svg>
   );
 }

@@ -126,7 +126,12 @@ export interface Database {
           submitted_at: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["interview_scorecards"]["Row"], "id" | "created_at">;
+        Insert: Omit<Database["public"]["Tables"]["interview_scorecards"]["Row"], "id" | "created_at" | "overall_score" | "recommendation" | "ai_summary" | "submitted_at"> & {
+          overall_score?: number | null;
+          recommendation?: "hire" | "no_hire" | "maybe" | null;
+          ai_summary?: string | null;
+          submitted_at?: string | null;
+        };
         Update: Partial<Database["public"]["Tables"]["interview_scorecards"]["Insert"]>;
         Relationships: [];
       };
