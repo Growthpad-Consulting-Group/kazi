@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCandidate, getCandidateNotes, type NoteWithUser } from "../actions";
 import { StageBadge } from "./StageBadge";
 import { StageAdvancer } from "./StageAdvancer";
 import { ScreenButton } from "./ScreenButton";
 import { NoteForm } from "./NoteForm";
+import { EmailPanel } from "./EmailPanel";
 import type { CandidateStage } from "../types";
 
 type CvParsed = {
@@ -39,7 +41,15 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             </p>
           )}
         </div>
-        <StageBadge stage={candidate.stage} />
+        <div className="flex items-center gap-2">
+          <StageBadge stage={candidate.stage} />
+          <Link
+            href={`/hire/candidates/${candidate.id}/interview`}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            Interview Kit
+          </Link>
+        </div>
       </div>
 
       {/* Stage pipeline */}
@@ -140,6 +150,9 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           )}
         </div>
       )}
+
+      {/* Email */}
+      <EmailPanel candidateId={candidate.id} />
 
       {/* Notes */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
