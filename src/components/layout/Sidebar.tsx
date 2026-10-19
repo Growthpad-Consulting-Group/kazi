@@ -106,6 +106,12 @@ const PULSE_NAV: NavItem[] = [
     icon: <BookIcon />,
     requiredRole: "employee",
   },
+  {
+    label: "PIPs",
+    href: "/pulse/pips",
+    icon: <AlertIcon />,
+    requiredRole: "manager",
+  },
 ];
 
 export function Sidebar({ role }: { role: UserRole }) {
@@ -307,6 +313,16 @@ function BookIcon() {
       <path d="M8 2v12" />
       <line x1="5" y1="5.5" x2="7" y2="5.5" />
       <line x1="5" y1="8" x2="7" y2="8" />
+    </svg>
+  );
+}
+
+function AlertIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M8 1.5L14.5 13.5H1.5L8 1.5z" strokeLinejoin="round" />
+      <line x1="8" y1="6.5" x2="8" y2="9.5" strokeLinecap="round" />
+      <circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
