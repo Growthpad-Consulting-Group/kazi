@@ -100,20 +100,43 @@
 - [x] My check-in status + mood for the week
 - [x] Team check-in completion count + avg mood (managers)
 - [x] Quick links with alert indicator for missing check-in
-- [ ] Mood trend chart over time (Phase 3)
 
 ---
 
-## Phase 3 — Performance Phase 2 (Reviews & Surveys)
+## Phase 3 — Performance Phase 2 (Reviews, Surveys, IDPs, PIPs) ✅
 
-- [ ] Self / manager / peer performance reviews (configurable cycle)
-- [ ] AI review draft from quarter's check-ins, goals and feedback
-- [ ] Competency ratings
-- [ ] Pulse / engagement surveys (anonymous, no results for groups < 5)
-- [ ] Flight-risk signals
-- [ ] Individual Development Plans (IDPs)
-- [ ] Performance Improvement Plans (PIPs)
-- [ ] Leadership analytics dashboard
+### Review Cycles
+- [x] Self / manager / peer performance reviews (configurable cycle — quarterly / biannual / annual)
+- [x] Competency ratings (1–5) per criterion with comments
+- [x] Overall rating auto-calculated from competency scores
+- [x] AI review draft from quarter's check-ins + goals (Groq, JSON mode)
+- [x] Strengths and development areas fields
+- [x] Save draft / submit flow with status tracking
+
+### Engagement Surveys
+- [x] Survey builder (scale 1–5 and open-text question types)
+- [x] Anonymous mode with results hidden until ≥ 5 responses
+- [x] Survey status flow: draft → active → closed
+- [x] Response collection with duplicate prevention
+- [x] Results view: bar chart for scale, quoted text for open questions
+
+### Individual Development Plans (IDPs)
+- [x] IDP creation with goals text and due date
+- [x] Action step checklist with due dates and done toggle
+- [x] Status management: active / completed / cancelled
+
+### Performance Improvement Plans (PIPs)
+- [x] Manager-created PIPs for direct reports
+- [x] Concern, expected outcomes, support provided, check-in frequency
+- [x] Action step checklist (manager adds, employee checks off)
+- [x] Manager-only "Mark Resolved" action
+
+### Leadership Analytics Dashboard
+- [x] KPI cards: check-in completion rate, avg mood, goal progress, flight risk count
+- [x] Weekly check-in completion trend bar chart (last 4 weeks)
+- [x] Goal status distribution (not started / in progress / at risk / completed)
+- [x] Flight-risk signals: employees with 2+ low-mood or blockers in 3+ of last 4 weeks
+- [x] Department breakdown table for HR (headcount, completion %, avg mood, at-risk)
 
 ---
 
