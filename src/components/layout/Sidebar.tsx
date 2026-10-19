@@ -112,6 +112,12 @@ const PULSE_NAV: NavItem[] = [
     icon: <AlertIcon />,
     requiredRole: "manager",
   },
+  {
+    label: "Analytics",
+    href: "/pulse/analytics",
+    icon: <TrendIcon />,
+    requiredRole: "manager",
+  },
 ];
 
 export function Sidebar({ role }: { role: UserRole }) {
@@ -323,6 +329,14 @@ function AlertIcon() {
       <path d="M8 1.5L14.5 13.5H1.5L8 1.5z" strokeLinejoin="round" />
       <line x1="8" y1="6.5" x2="8" y2="9.5" strokeLinecap="round" />
       <circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TrendIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M1.5 12.5l4-4 3 2.5 5.5-7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
