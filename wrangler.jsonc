@@ -9,6 +9,6 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "NEXTAUTH_URL": "https://kazi.growthpad.co.ke"
+    "NEXTAUTH_URL": "https://kazi.growthpad.africa"
   }
 }
