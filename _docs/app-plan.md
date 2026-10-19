@@ -145,9 +145,10 @@
 - [ ] Slack / Teams notifications (check-in reminders, new candidates, stage changes)
 - [ ] Google / Outlook calendar sync for interviews
 - [ ] Bulk CV screening queue (Redis/Valkey background job)
-- [ ] HRIS export (CSV / API)
-- [ ] Candidate data retention / deletion workflow (ODPC compliance)
-- [ ] Vercel CI/CD with preview deploys + GitHub Actions
+- [x] HRIS export (CSV) — candidates, employees, review summaries (`/api/export/*`)
+- [x] Candidate data retention / deletion workflow (ODPC / Kenya Data Protection Act compliance)
+- [x] GitHub Actions CI — type check + lint + build on push/PR to main
+- [ ] Vercel preview deploys (configure in Vercel dashboard; CI workflow in place)
 - [ ] End-to-end tests (Playwright)
 - [ ] Penetration / security review
 
