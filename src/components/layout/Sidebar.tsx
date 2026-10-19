@@ -88,6 +88,24 @@ const PULSE_NAV: NavItem[] = [
     icon: <StarIcon />,
     requiredRole: "employee",
   },
+  {
+    label: "Reviews",
+    href: "/pulse/reviews",
+    icon: <ClipboardIcon />,
+    requiredRole: "employee",
+  },
+  {
+    label: "Surveys",
+    href: "/pulse/surveys",
+    icon: <ListIcon />,
+    requiredRole: "employee",
+  },
+  {
+    label: "IDPs",
+    href: "/pulse/idps",
+    icon: <BookIcon />,
+    requiredRole: "employee",
+  },
 ];
 
 export function Sidebar({ role }: { role: UserRole }) {
@@ -254,6 +272,41 @@ function StarIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M8 1l1.8 4h4.2l-3.4 2.6 1.3 4L8 9.3 4.1 11.6l1.3-4L2 5h4.2z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ClipboardIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="2" width="10" height="13" rx="1.5" />
+      <path d="M6 2a2 2 0 0 1 4 0" />
+      <line x1="5.5" y1="7" x2="10.5" y2="7" />
+      <line x1="5.5" y1="10" x2="9" y2="10" />
+    </svg>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <line x1="5" y1="4" x2="14" y2="4" />
+      <line x1="5" y1="8" x2="14" y2="8" />
+      <line x1="5" y1="12" x2="14" y2="12" />
+      <circle cx="2.5" cy="4" r="1" fill="currentColor" stroke="none" />
+      <circle cx="2.5" cy="8" r="1" fill="currentColor" stroke="none" />
+      <circle cx="2.5" cy="12" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function BookIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M3 2h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+      <path d="M8 2v12" />
+      <line x1="5" y1="5.5" x2="7" y2="5.5" />
+      <line x1="5" y1="8" x2="7" y2="8" />
     </svg>
   );
 }
