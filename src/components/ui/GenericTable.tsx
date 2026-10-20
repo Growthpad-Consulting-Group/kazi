@@ -2,12 +2,14 @@
 
 import { useState, useMemo, useCallback, ReactNode } from "react";
 import { Icon } from "@iconify/react";
+import { parseISO, isWithinInterval } from "date-fns";
 import { cn } from "@/shared/lib/cn";
 import { EmptyState } from "./EmptyState";
 import { Skeleton } from "./LoadingStates";
 import TableHeader from "./table/TableHeader";
 import TableRow from "./table/TableRow";
 import TablePagination from "./table/TablePagination";
+import DateRangePicker, { type DateRangeValue } from "./DateRangePicker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +64,11 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   addNewLabel?: string;
   fullPageHeight?: boolean;
   tableMaxHeight?: string | number;
+  onImport?: () => void;
+  enableDateFilter?: boolean;
+  enableRefresh?: boolean;
+  onRefresh?: () => void;
+  allowedDateRanges?: string[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -92,6 +99,11 @@ export function GenericTable<T extends Record<string, unknown>>({
   addNewLabel = "Add New",
   fullPageHeight = true,
   tableMaxHeight: propTableMaxHeight,
+  onImport,
+  enableDateFilter = false,
+  enableRefresh = false,
+  onRefresh,
+  allowedDateRanges,
 }: GenericTableProps<T>) {
   const tableMaxHeight = useMemo(() => {
     if (propTableMaxHeight) return propTableMaxHeight;
@@ -100,6 +112,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   }, [propTableMaxHeight, fullPageHeight]);
 
   const derivedStickyHeader = stickyHeader ?? !!(tableMaxHeight);
+  const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null, label: 'All Time' });
   const [sortKey, setSortKey]   = useState<string | null>(null);
   const [sortDir, setSortDir]   = useState<"asc" | "desc">("asc");
   const [page, setPage]         = useState(0);
@@ -129,10 +142,41 @@ export function GenericTable<T extends Record<string, unknown>>({
     });
   }, [data, sortKey, sortDir]);
 
+  const dateFiltered = useMemo(() => {
+    if (!enableDateFilter) return sorted;
+    const { startDate, endDate } = dateRange;
+    if (!startDate || !endDate) return sorted;
+    const dateFields = ['created_at', 'updated_at', 'applied_at', 'published_at', 'date', 'timestamp'];
+    return sorted.filter((row) => {
+      let dateValue: unknown = null;
+      for (const field of dateFields) {
+        if ((row as Record<string, unknown>)[field]) { dateValue = (row as Record<string, unknown>)[field]; break; }
+      }
+      if (!dateValue) return false;
+      try {
+        let parsedDate: Date;
+        if (typeof dateValue === 'string') {
+          parsedDate = parseISO(dateValue);
+          if (isNaN(parsedDate.getTime())) parsedDate = new Date(dateValue);
+        } else if (typeof dateValue === 'number') {
+          parsedDate = new Date(dateValue);
+        } else if (dateValue instanceof Date) {
+          parsedDate = dateValue;
+        } else {
+          return false;
+        }
+        if (isNaN(parsedDate.getTime())) return false;
+        const s = new Date(startDate); s.setHours(0, 0, 0, 0);
+        const e = new Date(endDate); e.setHours(23, 59, 59, 999);
+        return isWithinInterval(parsedDate, { start: s, end: e });
+      } catch { return false; }
+    });
+  }, [sorted, dateRange, enableDateFilter]);
+
   const searched = useMemo(() => {
-    if (!searchable || !searchTerm.trim()) return sorted;
+    if (!searchable || !searchTerm.trim()) return dateFiltered;
     const q = searchTerm.toLowerCase();
-    return sorted.filter((row) =>
+    return dateFiltered.filter((row) =>
       columns.some((col) => {
         const path = String(col.accessor);
         const val = path.split(".").reduce<unknown>((acc, k) =>
@@ -140,7 +184,7 @@ export function GenericTable<T extends Record<string, unknown>>({
         return String(val ?? "").toLowerCase().includes(q);
       })
     );
-  }, [sorted, searchTerm, searchable, columns]);
+  }, [dateFiltered, searchTerm, searchable, columns]);
 
   const total      = searched.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -166,7 +210,7 @@ export function GenericTable<T extends Record<string, unknown>>({
     [data, selected, rowId]
   );
 
-  const showToolbar = !!(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew);
+  const showToolbar = !!(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew || onImport || enableDateFilter || enableRefresh);
 
   return (
     <div className={cn(
@@ -197,6 +241,13 @@ export function GenericTable<T extends Record<string, unknown>>({
             <div className="flex flex-1 min-w-0 items-center justify-between gap-3">
               {/* LEFT: filter */}
               <div className="flex flex-1 min-w-0 items-center gap-2">
+                {enableDateFilter && (
+                  <DateRangePicker
+                    value={dateRange}
+                    onChange={setDateRange}
+                    allowedRanges={allowedDateRanges}
+                  />
+                )}
                 {unifiedSearchFilter && (
                   <div className="flex-1 min-w-0">{unifiedSearchFilter}</div>
                 )}
@@ -221,6 +272,15 @@ export function GenericTable<T extends Record<string, unknown>>({
               {/* RIGHT: actions */}
               <div className="flex items-center gap-2 shrink-0">
                 {rightContent}
+                {enableRefresh && (
+                  <button
+                    onClick={onRefresh}
+                    title="Refresh"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                  >
+                    <Icon icon="solar:refresh-broken" className="h-4 w-4" />
+                  </button>
+                )}
                 {showExport && (
                   <button
                     onClick={() => onExport?.(data)}
@@ -228,6 +288,15 @@ export function GenericTable<T extends Record<string, unknown>>({
                   >
                     <Icon icon="solar:export-broken" className="h-4 w-4" />
                     Export
+                  </button>
+                )}
+                {onImport && (
+                  <button
+                    onClick={onImport}
+                    className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                  >
+                    <Icon icon="solar:import-broken" className="h-4 w-4" />
+                    Import
                   </button>
                 )}
                 {onAddNew && (

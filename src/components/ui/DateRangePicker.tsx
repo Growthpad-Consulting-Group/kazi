@@ -1,0 +1,349 @@
+'use client';
+
+import { useImperativeHandle, useRef, useState, useEffect, Ref } from 'react';
+import {
+  startOfMonth,
+  endOfMonth,
+  subDays,
+  subMonths,
+  startOfYear,
+  startOfWeek,
+  endOfWeek,
+  format,
+} from 'date-fns';
+import { createPortal } from 'react-dom';
+import { DateRange } from 'react-date-range';
+import { Icon } from '@iconify/react';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+
+export const PRESETS: readonly string[] = [
+  'Today',
+  'Yesterday',
+  'Last 7 Days',
+  'Last 30 Days',
+  'Last 90 Days',
+  'This Week',
+  'Last Week',
+  'This Month',
+  'Last Month',
+  'This Year',
+  'All Time',
+  'Custom Range',
+] as const;
+
+function sod(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
+function eod(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
+
+export function computePresetRange(label: string): { startDate: Date | null; endDate: Date | null } {
+  const now = new Date();
+  switch (label) {
+    case 'Today': return { startDate: sod(now), endDate: eod(now) };
+    case 'Yesterday': { const y = subDays(now, 1); return { startDate: sod(y), endDate: eod(y) }; }
+    case 'Last 7 Days': return { startDate: sod(subDays(now, 6)), endDate: eod(now) };
+    case 'Last 30 Days': return { startDate: sod(subDays(now, 29)), endDate: eod(now) };
+    case 'Last 90 Days': return { startDate: sod(subDays(now, 89)), endDate: eod(now) };
+    case 'This Week': return { startDate: startOfWeek(now, { weekStartsOn: 1 }), endDate: eod(now) };
+    case 'Last Week': {
+      const lws = startOfWeek(subDays(now, 7), { weekStartsOn: 1 });
+      const lwe = endOfWeek(subDays(now, 7), { weekStartsOn: 1 });
+      return { startDate: lws, endDate: lwe };
+    }
+    case 'This Month': return { startDate: startOfMonth(now), endDate: eod(now) };
+    case 'Last Month': { const lm = subMonths(now, 1); return { startDate: startOfMonth(lm), endDate: endOfMonth(lm) }; }
+    case 'This Year': return { startDate: startOfYear(now), endDate: eod(now) };
+    case 'All Time': return { startDate: new Date(2020, 0, 1), endDate: eod(now) };
+    default: return { startDate: null, endDate: null };
+  }
+}
+
+export interface DateRangeValue {
+  startDate: Date | null;
+  endDate: Date | null;
+  label?: string;
+}
+
+export interface DateRangePickerProps {
+  value?: DateRangeValue;
+  onChange?: (value: DateRangeValue) => void;
+  className?: string;
+  allowedRanges?: string[];
+  ref?: Ref<DateRangePickerRef>;
+}
+
+export interface DateRangePickerRef {
+  focus: () => void;
+  openDropdown: () => void;
+}
+
+interface DraftRange { startDate: Date | null; endDate: Date | null; key: string; }
+
+function formatDisplayLabel(value: DateRangeValue | undefined): string {
+  if (!value) return 'Select date range';
+  if (value.label && value.label !== 'Custom Range') return value.label;
+  if (value.startDate && value.endDate) {
+    return `${format(value.startDate, 'MMM d, yyyy')} – ${format(value.endDate, 'MMM d, yyyy')}`;
+  }
+  return 'Select date range';
+}
+
+const DateRangePicker = function DateRangePicker(
+  { value, onChange, className = '', allowedRanges, ref }: DateRangePickerProps
+) {
+  const [draftRange, setDraftRange] = useState<DraftRange>({
+    startDate: value?.startDate ?? null,
+    endDate: value?.endDate ?? null,
+    key: 'selection',
+  });
+  const [activeLabel, setActiveLabel] = useState<string>(value?.label || 'Today');
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+  const [calendarRenderKey, setCalendarRenderKey] = useState(0);
+
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  const canApply =
+    draftRange.startDate !== null &&
+    draftRange.endDate !== null &&
+    draftRange.startDate <= draftRange.endDate;
+
+  const visibleRanges = (
+    allowedRanges
+      ? PRESETS.filter((p) => allowedRanges.includes(p))
+      : [...PRESETS]
+  ).map((label) => ({ label }));
+
+  const displayLabel = formatDisplayLabel(value);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    if (value) {
+      setActiveLabel(value.label || 'Custom Range');
+      setDraftRange({ startDate: value.startDate, endDate: value.endDate, key: 'selection' });
+    }
+  }, [value]);
+
+  const computePosition = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const pw = isMobile ? Math.min(vw - 32, 360) : 680;
+    let left = rect.left + window.scrollX;
+    if (left + pw > vw - 16 + window.scrollX) left = vw - pw - 16 + window.scrollX;
+    if (left < 16 + window.scrollX) left = 16 + window.scrollX;
+    setPopoverStyle({ position: 'absolute', top: rect.bottom + window.scrollY + 6, left, width: pw, zIndex: 9999 });
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = () => computePosition();
+    window.addEventListener('scroll', handler, true);
+    window.addEventListener('resize', handler);
+    return () => { window.removeEventListener('scroll', handler, true); window.removeEventListener('resize', handler); };
+  }, [isOpen, isMobile]);
+
+  const openPopover = () => {
+    setDraftRange({ startDate: value?.startDate ?? null, endDate: value?.endDate ?? null, key: 'selection' });
+    setActiveLabel(value?.label || 'Custom Range');
+    computePosition();
+    setIsOpen(true);
+  };
+
+  const closePopover = (revert = true) => {
+    if (revert) {
+      setDraftRange({ startDate: value?.startDate ?? null, endDate: value?.endDate ?? null, key: 'selection' });
+      setActiveLabel(value?.label || 'Custom Range');
+    }
+    setIsOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (popoverRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
+      closePopover(true);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen, value]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closePopover(true); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, value]);
+
+  useImperativeHandle(ref, () => ({ focus: () => openPopover(), openDropdown: () => openPopover() }));
+
+  const handlePresetClick = (label: string) => {
+    const range = computePresetRange(label);
+    setActiveLabel(label);
+    setDraftRange({ ...range, key: 'selection' });
+    if (label === 'Custom Range') setCalendarRenderKey((k) => k + 1);
+  };
+
+  const handleCalendarChange = (ranges: unknown) => {
+    let sel: { startDate?: Date; endDate?: Date } | null = null;
+    if (Array.isArray(ranges)) sel = ranges[0];
+    else if (ranges && typeof ranges === 'object') {
+      const r = ranges as Record<string, unknown>;
+      sel = (r.selection as typeof sel) ?? (Object.values(r)[0] as typeof sel);
+    }
+    if (!sel) return;
+    setDraftRange({ startDate: sel.startDate ?? null, endDate: sel.endDate ?? null, key: 'selection' });
+    setActiveLabel('Custom Range');
+  };
+
+  const handleApply = () => {
+    if (!canApply) return;
+    onChange?.({ startDate: draftRange.startDate, endDate: draftRange.endDate, label: activeLabel });
+    closePopover(false);
+    setTimeout(() => triggerRef.current?.focus(), 0);
+  };
+
+  const handleCancel = () => { closePopover(true); setTimeout(() => triggerRef.current?.focus(), 0); };
+
+  const fmt = (d: Date | null) => (d ? format(d, 'MMM d, yyyy') : '');
+
+  const shownDate = draftRange.startDate ?? subMonths(new Date(), 1);
+
+  return (
+    <div className={`relative inline-block ${className}`}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => (isOpen ? handleCancel() : openPopover())}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#f05d23]/30 bg-[var(--surface)] border-[var(--border)] text-[var(--text-hi)] hover:border-[#f05d23]/40 hover:bg-[var(--surface-2)] ${isOpen ? 'border-[#f05d23]/60 ring-2 ring-[#f05d23]/20' : ''}`}
+      >
+        <Icon icon="solar:calendar-date-broken" className="w-4 h-4 shrink-0 text-[var(--text-lo)]" />
+        <span className="max-w-[160px] truncate">{displayLabel}</span>
+        <Icon
+          icon={isOpen ? 'solar:alt-arrow-up-broken' : 'solar:alt-arrow-down-broken'}
+          className="w-3.5 h-3.5 shrink-0 text-[var(--text-lo)]"
+        />
+      </button>
+
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={popoverRef}
+          style={popoverStyle}
+          role="dialog"
+          aria-label="Date range picker"
+          className="rounded-2xl shadow-2xl border overflow-hidden bg-[var(--surface)] border-[var(--border)]"
+        >
+          <div className={isMobile ? 'flex flex-col max-h-[85vh] overflow-y-auto' : 'flex'}>
+            {/* Preset panel */}
+            <div
+              className={`flex flex-col py-2 border-[var(--border)] bg-[var(--surface-2)]/40 ${isMobile ? 'border-b' : 'border-r overflow-y-auto'}`}
+              style={isMobile ? undefined : { width: 160, minWidth: 160, maxHeight: 450 }}
+            >
+              {visibleRanges.map(({ label }) => {
+                const isActive = activeLabel === label;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => handlePresetClick(label)}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
+                      isActive
+                        ? 'bg-[#f05d23]/10 text-[#f05d23]'
+                        : 'text-[var(--text-hi)] hover:bg-[var(--surface-2)]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Calendar panel */}
+            <div className="flex flex-col flex-1 min-w-0">
+              {/* Date inputs row */}
+              <div className="flex items-center gap-3 px-5 py-3 border-b border-[var(--border)]">
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-[#f05d23]">Start date</p>
+                  <div className="px-3 py-1.5 rounded-lg border text-sm font-medium min-h-[34px] bg-[var(--surface-2)] border-[var(--border)] text-[var(--text-hi)]">
+                    {fmt(draftRange.startDate) || <span className="opacity-40">—</span>}
+                  </div>
+                </div>
+                <span className="text-sm mt-5 shrink-0 text-[var(--text-lo)]">–</span>
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-[var(--text-lo)]">End date</p>
+                  <div className="px-3 py-1.5 rounded-lg border text-sm font-medium min-h-[34px] bg-[var(--surface-2)] border-[var(--border)] text-[var(--text-hi)]">
+                    {fmt(draftRange.endDate) || <span className="opacity-40">—</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Calendar */}
+              <div className="overflow-auto px-2 pb-1" style={{ maxHeight: 500 }}>
+                <DateRange
+                  key={calendarRenderKey}
+                  ranges={[{
+                    startDate: draftRange.startDate ?? new Date(),
+                    endDate: draftRange.endDate ?? new Date(),
+                    key: 'selection',
+                  }]}
+                  onChange={handleCalendarChange}
+                  moveRangeOnFirstSelection={false}
+                  showDateDisplay={false}
+                  rangeColors={['#f05d23']}
+                  showMonthAndYearPickers={true}
+                  showPreview={true}
+                  editableDateInputs={false}
+                  maxDate={new Date()}
+                  direction={isMobile ? 'vertical' : 'horizontal'}
+                  months={isMobile ? 1 : 2}
+                  shownDate={shownDate}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-[var(--border)]">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors text-[var(--text-lo)] hover:bg-[var(--surface-2)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  disabled={!canApply}
+                  className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+                    canApply
+                      ? 'bg-[#f05d23] text-white hover:bg-[#d94f1a] shadow-sm'
+                      : 'bg-[var(--surface-2)] text-[var(--text-lo)] cursor-not-allowed'
+                  }`}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+export default DateRangePicker;
