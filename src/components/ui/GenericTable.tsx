@@ -60,6 +60,8 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   unifiedSearchFilter?: ReactNode;
   onAddNew?: () => void;
   addNewLabel?: string;
+  fullPageHeight?: boolean;
+  tableMaxHeight?: string | number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -84,11 +86,20 @@ export function GenericTable<T extends Record<string, unknown>>({
   onExport,
   searchable = false,
   searchPlaceholder = "Search…",
-  stickyHeader = false,
+  stickyHeader,
   unifiedSearchFilter,
   onAddNew,
   addNewLabel = "Add New",
+  fullPageHeight = true,
+  tableMaxHeight: propTableMaxHeight,
 }: GenericTableProps<T>) {
+  const tableMaxHeight = useMemo(() => {
+    if (propTableMaxHeight) return propTableMaxHeight;
+    if (fullPageHeight) return "calc(100vh - var(--header-height) - 200px)";
+    return undefined;
+  }, [propTableMaxHeight, fullPageHeight]);
+
+  const derivedStickyHeader = stickyHeader ?? !!(tableMaxHeight);
   const [sortKey, setSortKey]   = useState<string | null>(null);
   const [sortDir, setSortDir]   = useState<"asc" | "desc">("asc");
   const [page, setPage]         = useState(0);
@@ -265,8 +276,8 @@ export function GenericTable<T extends Record<string, unknown>>({
 
       {/* ── Table ────────────────────────────────────────────────────────── */}
       <div
-        className="w-full overflow-x-auto"
-        style={Object.keys(columnWidths).length > 0 ? undefined : undefined}
+        className={tableMaxHeight ? "w-full overflow-auto scrollbar-thin scrollbar-thumb-[var(--border)] scrollbar-track-transparent" : "w-full overflow-x-auto overflow-y-visible"}
+        style={tableMaxHeight ? { maxHeight: tableMaxHeight } : undefined}
       >
         <table
           className="min-w-full border-collapse"
@@ -285,7 +296,7 @@ export function GenericTable<T extends Record<string, unknown>>({
             table={{ paged: paginated, selected, sortKey, sortDir, toggleAll, allPageSel, somePageSel, toggleSort }}
             selectable={selectable}
             hasActions={actions.length > 0}
-            stickyHeader={stickyHeader}
+            stickyHeader={derivedStickyHeader}
             columnWidths={columnWidths}
             onColumnResize={(accessor, w) => setColumnWidths((prev) => ({ ...prev, [accessor]: w }))}
           />
