@@ -40,45 +40,43 @@ export default function TablePagination({ page, pageSize, total, totalPages, onP
       </div>
 
       {/* Right */}
-      {totalPages > 1 && (
-        <div className="flex items-center gap-1.5 flex-wrap justify-center">
-          <button
-            disabled={page === 0}
-            onClick={() => onPageChange(page - 1)}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30"
-          >
-            <Icon icon="solar:alt-arrow-left-broken" className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Previous</span>
-          </button>
+      <div className="flex items-center gap-1.5 flex-wrap justify-center">
+        <button
+          disabled={page === 0}
+          onClick={() => onPageChange(page - 1)}
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <Icon icon="solar:alt-arrow-left-broken" className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Previous</span>
+        </button>
 
-          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-            const p = totalPages <= 5 ? i : Math.max(0, Math.min(page - 2, totalPages - 5)) + i;
-            return (
-              <button
-                key={p}
-                onClick={() => onPageChange(p)}
-                className={cn(
-                  "h-7 w-7 rounded-lg text-xs font-medium transition-all",
-                  page === p
-                    ? "bg-[#f05d23] text-white shadow-sm"
-                    : "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
-                )}
-              >
-                {p + 1}
-              </button>
-            );
-          })}
+        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+          const p = totalPages <= 5 ? i : Math.max(0, Math.min(page - 2, totalPages - 5)) + i;
+          return (
+            <button
+              key={p}
+              onClick={() => onPageChange(p)}
+              className={cn(
+                "h-7 w-7 rounded-lg text-xs font-medium transition-all",
+                page === p
+                  ? "bg-[#f05d23] text-white shadow-sm"
+                  : "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
+              )}
+            >
+              {p + 1}
+            </button>
+          );
+        })}
 
-          <button
-            disabled={page >= totalPages - 1}
-            onClick={() => onPageChange(page + 1)}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30"
-          >
-            <span className="hidden sm:inline">Next</span>
-            <Icon icon="solar:alt-arrow-right-broken" className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
+        <button
+          disabled={page >= totalPages - 1}
+          onClick={() => onPageChange(page + 1)}
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <span className="hidden sm:inline">Next</span>
+          <Icon icon="solar:alt-arrow-right-broken" className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
