@@ -89,7 +89,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   className,
   getRowId,
   selectable = true,
-  showExport = false,
+  showExport = true,
   onExport,
   searchable = false,
   searchPlaceholder = "Search…",
@@ -101,7 +101,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   tableMaxHeight: propTableMaxHeight,
   onImport,
   enableDateFilter = true,
-  enableRefresh = false,
+  enableRefresh = true,
   onRefresh,
   allowedDateRanges,
 }: GenericTableProps<T>) {
@@ -210,6 +210,35 @@ export function GenericTable<T extends Record<string, unknown>>({
     [data, selected, rowId]
   );
 
+  const handleExport = () => {
+    if (onExport) { onExport(searched); return; }
+    // Built-in CSV export
+    const headers = columns.map((c) => c.header);
+    const rows = searched.map((row) =>
+      columns.map((col) => {
+        const path = String(col.accessor);
+        const val = path.split(".").reduce<unknown>(
+          (acc, k) => acc != null && typeof acc === "object" ? (acc as Record<string, unknown>)[k] : undefined, row
+        );
+        const str = String(val ?? "");
+        return str.includes(",") || str.includes('"') || str.includes("\n") ? `"${str.replace(/"/g, '""')}"` : str;
+      })
+    );
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${title ?? "export"}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRefresh = () => {
+    if (onRefresh) { onRefresh(); return; }
+    setSortKey(null); setSortDir("asc"); setPage(0); setSearch("");
+    setDateRange({ startDate: null, endDate: null, label: "All Time" });
+    setSelected(new Set());
+  };
+
   const showToolbar = !!(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew || onImport || enableDateFilter || enableRefresh);
 
   return (
@@ -274,7 +303,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                 {rightContent}
                 {enableRefresh && (
                   <button
-                    onClick={onRefresh}
+                    onClick={handleRefresh}
                     title="Refresh"
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
                   >
@@ -283,7 +312,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                 )}
                 {showExport && (
                   <button
-                    onClick={() => onExport?.(data)}
+                    onClick={handleExport}
                     className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
                   >
                     <Icon icon="solar:export-broken" className="h-4 w-4" />
