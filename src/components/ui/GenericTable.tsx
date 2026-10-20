@@ -100,7 +100,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   fullPageHeight = true,
   tableMaxHeight: propTableMaxHeight,
   onImport,
-  enableDateFilter = false,
+  enableDateFilter = true,
   enableRefresh = false,
   onRefresh,
   allowedDateRanges,
