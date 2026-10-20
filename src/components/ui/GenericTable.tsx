@@ -10,7 +10,8 @@ import TableHeader from "./table/TableHeader";
 import TableRow from "./table/TableRow";
 import TablePagination from "./table/TablePagination";
 import DateRangePicker, { type DateRangeValue } from "./DateRangePicker";
-import ExportModal from "./ExportModal";
+import ExportModal from "./export/ExportModal";
+import toast from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -219,11 +220,12 @@ export function GenericTable<T extends Record<string, unknown>>({
   };
 
   const handleRefresh = () => {
-    if (onRefresh) { onRefresh(); return; }
     setSortKey(null); setSortDir("asc"); setPage(0); setSearch("");
     setDateRange({ startDate: null, endDate: null, label: "All Time" });
     setSelected(new Set());
     setFilterKey((k) => k + 1);
+    if (onRefresh) onRefresh();
+    toast.success("Table refreshed");
   };
 
   const showToolbar = !!(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew || onImport || enableDateFilter || enableRefresh);
@@ -442,8 +444,9 @@ export function GenericTable<T extends Record<string, unknown>>({
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        data={searched as Record<string, unknown>[]}
-        columns={columns.map((c) => ({ header: c.header, accessor: String(c.accessor) }))}
+        users={dateFiltered as Record<string, unknown>[]}
+        mode="light"
+        type={title?.toLowerCase().replace(/\s+/g, "_") || "records"}
         title={title}
       />
     </div>

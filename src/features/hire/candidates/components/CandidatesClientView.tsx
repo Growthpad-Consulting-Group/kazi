@@ -173,6 +173,7 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
         />
       }
       rightContent={bulkScreenButton}
+      onRefresh={() => { setSearch(""); setFilters([]); }}
     />
   );
 }

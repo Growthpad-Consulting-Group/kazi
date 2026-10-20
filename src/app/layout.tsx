@@ -3,6 +3,7 @@ import { Figtree } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { Toaster } from "react-hot-toast";
 
 const figtree = Figtree({
   variable: "--font-figtree",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${figtree.variable} ${cloverDisplay.variable} h-full antialiased`}>
       <body className="min-h-full">
         <SessionProvider>{children}</SessionProvider>
+        <Toaster position="top-right" />
       </body>
     </html>
   );

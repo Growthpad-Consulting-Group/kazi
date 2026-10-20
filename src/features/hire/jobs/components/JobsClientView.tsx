@@ -144,6 +144,7 @@ export default function JobsClientView({ jobs, departments }: Props) {
       }
       onAddNew={() => router.push("/hire/jobs/new")}
       addNewLabel="New Job"
+      onRefresh={() => { setSearch(""); setFilters([]); }}
     />
   );
 }

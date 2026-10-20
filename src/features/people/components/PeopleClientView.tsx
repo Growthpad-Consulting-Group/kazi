@@ -181,11 +181,7 @@ export default function PeopleClientView({ people, departments, locations }: Pro
           searchPlaceholder="Search by name, email, title or department…"
         />
       }
-      rightContent={
-        <span className="text-xs text-[var(--text-lo)]">
-          {filtered.length} of {people.length}
-        </span>
-      }
+      onRefresh={() => { setSearch(""); setFilters([]); }}
     />
   );
 }
