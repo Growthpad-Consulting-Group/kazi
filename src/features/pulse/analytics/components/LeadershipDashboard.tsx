@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import { Icon } from "@iconify/react";
-import PageHeader from "@/components/ui/PageHeader";
+import SetPageHeader from "@/components/ui/SetPageHeader";
 
 type TeamMember = { id: string; name: string; department: string | null; manager_id: string | null };
 type Checkin = { user_id: string; week_start: string; mood: number | null; blockers: string | null; status: string };
@@ -47,7 +47,7 @@ export default async function LeadershipDashboard() {
   if (memberIds.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader
+        <SetPageHeader
           title="Leadership Analytics"
           description="Team engagement and performance insights"
           icon="solar:chart-broken"
@@ -128,7 +128,7 @@ export default async function LeadershipDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <SetPageHeader
         title="Leadership Analytics"
         description={`${isHr ? "Organisation-wide" : "Your team"} · ${members.length} ${members.length === 1 ? "member" : "members"}`}
         icon="solar:chart-broken"

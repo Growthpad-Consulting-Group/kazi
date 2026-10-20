@@ -1,6 +1,6 @@
 import { getJobs } from "../actions";
 import JobsClientView from "./JobsClientView";
-import PageHeader from "@/components/ui/PageHeader";
+import SetPageHeader from "@/components/ui/SetPageHeader";
 
 export default async function JobsPage() {
   const jobs = await getJobs();
@@ -9,22 +9,14 @@ export default async function JobsPage() {
   ).sort();
 
   return (
-    <div className="space-y-0">
-      <PageHeader
+    <>
+      <SetPageHeader
         title="Jobs"
         description={`${jobs.length} role${jobs.length !== 1 ? "s" : ""} across your organisation`}
-        icon="solar:case-broken"
-        actions={[
-          {
-            label: "New Job",
-            icon: "solar:add-circle-broken",
-            href: "/hire/jobs/new",
-            variant: "primary",
-          },
-        ]}
+        icon="solar:case-minimalistic-broken"
+        actions={[{ label: "New Job", icon: "solar:add-circle-broken", href: "/hire/jobs/new", variant: "primary" }]}
       />
-
       <JobsClientView jobs={jobs} departments={departments} />
-    </div>
+    </>
   );
 }

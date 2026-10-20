@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/rbac";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import PageHeader from "@/components/ui/PageHeader";
+import SetPageHeader from "@/components/ui/SetPageHeader";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -19,7 +19,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <SetPageHeader
         title="Settings"
         description="System administration, compliance tools, and account preferences"
         icon="solar:settings-broken"

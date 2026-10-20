@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
@@ -33,9 +33,10 @@ const CATEGORY_OPTIONS: Record<string, FilterOption[]> = {
 interface Props {
   candidates: CandidateWithJob[];
   unscreenedIds: string[];
+  bulkScreenButton?: React.ReactNode;
 }
 
-export default function CandidatesClientView({ candidates, unscreenedIds }: Props) {
+export default function CandidatesClientView({ candidates, unscreenedIds, bulkScreenButton }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>([]);
@@ -171,13 +172,7 @@ export default function CandidatesClientView({ candidates, unscreenedIds }: Prop
           searchPlaceholder="Search candidates by name, email or role…"
         />
       }
-      rightContent={
-        unscreenedIds.length > 0 ? (
-          <span className="rounded-xl border border-[#f05d23]/30 bg-[#f05d23]/5 px-3 py-1.5 text-xs font-medium text-[#f05d23]">
-            {unscreenedIds.length} unscreened
-          </span>
-        ) : undefined
-      }
+      rightContent={bulkScreenButton}
     />
   );
 }

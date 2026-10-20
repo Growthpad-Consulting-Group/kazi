@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import PeopleClientView from "./PeopleClientView";
-import PageHeader from "@/components/ui/PageHeader";
+import SetPageHeader from "@/components/ui/SetPageHeader";
 
 type UserRow = {
   id: string;
@@ -39,22 +39,14 @@ export default async function PeoplePage() {
   ).sort();
 
   return (
-    <div className="space-y-0">
-      <PageHeader
+    <>
+      <SetPageHeader
         title="People"
         description={`${people.length} team members`}
-        icon="solar:users-group-two-rounded-broken"
-        actions={[
-          {
-            label: "Add Person",
-            icon: "solar:add-circle-broken",
-            href: "/people/new",
-            variant: "primary",
-          },
-        ]}
+        icon="solar:user-id-broken"
+        actions={[{ label: "Add Person", icon: "solar:add-circle-broken", href: "/people/new", variant: "primary" }]}
       />
-
       <PeopleClientView people={enriched} departments={departments} locations={locations} />
-    </div>
+    </>
   );
 }
