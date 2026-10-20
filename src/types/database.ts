@@ -65,11 +65,16 @@ export interface Database {
           requirements: { must_haves: string[]; nice_to_haves: string[] };
           scoring_rubric: { criterion: string; weight: number; description: string }[];
           status: JobStatus;
+          published_at: string | null;
+          closes_at: string | null;
           created_by: string;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["jobs"]["Row"], "id" | "created_at" | "updated_at">;
+        Insert: Omit<Database["public"]["Tables"]["jobs"]["Row"], "id" | "created_at" | "updated_at" | "published_at" | "closes_at"> & {
+          published_at?: string | null;
+          closes_at?: string | null;
+        };
         Update: Partial<Database["public"]["Tables"]["jobs"]["Insert"]>;
         Relationships: [];
       };

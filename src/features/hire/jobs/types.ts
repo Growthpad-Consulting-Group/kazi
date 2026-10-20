@@ -17,6 +17,8 @@ export interface JobFormData {
   nice_to_haves: string[];
   scoring_rubric: RubricItem[];
   status: "draft" | "open";
+  published_at: string | null;
+  closes_at: string | null;
 }
 
 export interface DraftJdRequest {

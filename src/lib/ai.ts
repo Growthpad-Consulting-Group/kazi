@@ -2,5 +2,6 @@ import Groq from "groq-sdk";
 
 export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Default model — fast and capable for structured tasks
-export const GROQ_MODEL = "llama-3.3-70b-versatile";
+// Default model — production Groq model with JSON mode for structured tasks.
+// The former Llama 3.3 model was retired for developer accounts in August 2026.
+export const GROQ_MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";

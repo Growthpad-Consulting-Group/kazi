@@ -11,11 +11,17 @@ export default async function PublicApplyPage({
 
   const { data: job } = await supabaseAdmin
     .from("jobs")
-    .select("id, title, department, status")
+    .select("id, title, department, status, published_at, closes_at")
     .eq("id", jobId)
     .single();
 
-  if (!job || job.status !== "open") notFound();
+  const now = new Date();
+  if (
+    !job ||
+    job.status !== "open" ||
+    (job.published_at && new Date(job.published_at) > now) ||
+    (job.closes_at && new Date(job.closes_at) <= now)
+  ) notFound();
 
   return <ApplyPage jobId={job.id} jobTitle={job.title} />;
 }

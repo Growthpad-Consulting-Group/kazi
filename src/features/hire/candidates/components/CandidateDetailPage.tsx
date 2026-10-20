@@ -1,186 +1,69 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@iconify/react";
 import { getCandidate, getCandidateNotes, type NoteWithUser } from "../actions";
 import { StageBadge } from "./StageBadge";
 import { StageAdvancer } from "./StageAdvancer";
 import { ScreenButton } from "./ScreenButton";
 import { NoteForm } from "./NoteForm";
 import { EmailPanel } from "./EmailPanel";
+import SetPageHeader from "@/components/ui/SetPageHeader";
+import PageWithSidebar from "@/components/ui/PageWithSidebar";
+import SidebarWidget from "@/components/ui/SidebarWidget";
+import StatCard from "@/components/ui/StatCard";
 import type { CandidateStage } from "../types";
 
-type CvParsed = {
-  skills?: string[];
-  experience?: { title: string; company: string; duration: string }[];
-  education?: { degree: string; institution: string; year: string }[];
-};
+type CvParsed = { skills?: string[]; experience?: { title: string; company: string; duration: string }[]; education?: { degree: string; institution: string; year: string }[]; };
+const STAGES: CandidateStage[] = ["applied", "screened", "interview", "offer", "hired"];
 
 export default async function CandidateDetailPage({ id }: { id: string }) {
   const candidate = await getCandidate(id).catch(() => null);
   if (!candidate) notFound();
-
   const notes = await getCandidateNotes(id);
   const job = candidate.jobs;
   const cvParsed = candidate.cv_parsed as CvParsed | null;
+  const hasCv = !!(candidate.cv_text || candidate.cv_parsed || candidate.cv_url);
 
-  const stages: CandidateStage[] = ["applied", "screened", "interview", "offer", "hired"];
-
-  return (
-    <div className="max-w-3xl space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{candidate.full_name}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {candidate.email}
-            {candidate.phone ? ` · ${candidate.phone}` : ""}
-            {candidate.location ? ` · ${candidate.location}` : ""}
-          </p>
-          {job && (
-            <p className="mt-1 text-sm text-blue-600 font-medium">
-              {job.title}{job.department ? ` — ${job.department}` : ""}
-            </p>
-          )}
+  const main = (
+    <div className="space-y-5">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+        <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#f05d23]/10 blur-3xl" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#f05d23] to-orange-400 text-white shadow-lg shadow-[#f05d23]/25"><Icon icon="solar:user-rounded-broken" className="h-7 w-7" /></div>
+          <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-xl font-semibold text-[var(--text-hi)]">{candidate.full_name}</h2><StageBadge stage={candidate.stage} /></div><p className="mt-1 text-sm font-medium text-[#f05d23]">{job?.title ?? "Unassigned role"}{job?.department ? ` · ${job.department}` : ""}</p><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[var(--text-lo)]"><ContactItem icon="solar:letter-broken" value={candidate.email} /><ContactItem icon="solar:phone-broken" value={candidate.phone} /><ContactItem icon="solar:map-point-broken" value={candidate.location} /></div></div>
         </div>
-        <div className="flex items-center gap-2">
-          <StageBadge stage={candidate.stage} />
-          <Link
-            href={`/hire/candidates/${candidate.id}/interview`}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            Interview Kit
-          </Link>
-        </div>
-      </div>
+      </section>
 
-      {/* Stage pipeline */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-        <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">Pipeline</p>
-        <div className="flex items-center gap-1 flex-wrap">
-          {stages.map((s, i, arr) => (
-            <div key={s} className="flex items-center gap-1">
-              <StageAdvancer candidateId={candidate.id} stage={s} current={candidate.stage} />
-              {i < arr.length - 1 && <span className="text-slate-300 text-xs">›</span>}
-            </div>
-          ))}
-          <div className="ml-2">
-            <StageAdvancer candidateId={candidate.id} stage="rejected" current={candidate.stage} />
-          </div>
-        </div>
-      </div>
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard title="AI score" value={candidate.ai_score === null ? "—" : `${candidate.ai_score}/100`} icon="solar:magic-stick-3-broken" color="green" compact subtitle={candidate.shortlisted ? "Shortlisted" : "Awaiting decision"} />
+        <StatCard title="Applied" value={new Date(candidate.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })} icon="solar:calendar-broken" color="slate" compact subtitle="Application received" />
+        <StatCard title="CV status" value={hasCv ? "Ready" : "Missing"} icon="solar:document-text-broken" color="blue" compact subtitle={cvParsed ? "Parsed for review" : "Not parsed yet"} />
+        <StatCard title="Notes" value={notes.length} icon="solar:notes-broken" color="amber" compact subtitle={notes.length ? "Team context added" : "No notes yet"} />
+      </section>
 
-      {/* AI Screening */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-slate-700">AI Screening</p>
-          <ScreenButton
-            candidateId={candidate.id}
-            hasCV={!!(candidate.cv_text || candidate.cv_parsed)}
-          />
-        </div>
-        {candidate.ai_score !== null ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className={`text-3xl font-bold ${candidate.ai_score >= 65 ? "text-green-600" : "text-slate-500"}`}>
-                {candidate.ai_score}
-                <span className="text-base font-normal text-slate-400">/100</span>
-              </span>
-              {candidate.shortlisted && (
-                <span className="rounded-full bg-green-100 text-green-700 px-2.5 py-0.5 text-xs font-medium">
-                  Shortlisted
-                </span>
-              )}
-            </div>
-            {candidate.ai_justification && (
-              <p className="text-sm text-slate-600">{candidate.ai_justification}</p>
-            )}
-            <p className="text-xs text-slate-400 italic">
-              AI ranking only — a recruiter makes every advance/reject decision.
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400">
-            Not screened yet.{" "}
-            {!candidate.cv_text && !candidate.cv_parsed
-              ? "Upload a CV first."
-              : "Click Screen to run AI scoring."}
-          </p>
-        )}
-      </div>
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+        <SectionHeader icon="solar:sort-horizontal-broken" title="Hiring progress" />
+        <p className="-mt-3 mb-4 text-xs text-[var(--text-lo)]">Update the stage as the candidate moves through your hiring process.</p>
+        <div className="flex flex-wrap items-center gap-2">{STAGES.map((stage, index) => <div key={stage} className="flex items-center gap-2"><StageAdvancer candidateId={candidate.id} stage={stage} current={candidate.stage} />{index < STAGES.length - 1 && <Icon icon="solar:alt-arrow-right-broken" className="h-3.5 w-3.5 text-[var(--text-lo)]" />}</div>)}<span className="mx-1 h-5 w-px bg-[var(--border)]" /><StageAdvancer candidateId={candidate.id} stage="rejected" current={candidate.stage} /></div>
+      </section>
 
-      {/* CV */}
-      {candidate.cv_url && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <p className="text-sm font-semibold text-slate-700 mb-2">CV</p>
-          <a
-            href={candidate.cv_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:underline"
-          >
-            View uploaded CV ↗
-          </a>
-          {cvParsed && (
-            <div className="mt-4 space-y-3">
-              {cvParsed.skills && cvParsed.skills.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-slate-500 mb-1">Skills</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {cvParsed.skills.map((s, i) => (
-                      <span key={i} className="rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-xs">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {cvParsed.experience && cvParsed.experience.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-slate-500 mb-1">Experience</p>
-                  <ul className="space-y-1">
-                    {cvParsed.experience.map((e, i) => (
-                      <li key={i} className="text-xs text-slate-600">
-                        {e.title} at {e.company}
-                        {e.duration ? ` · ${e.duration}` : ""}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+        <div className="mb-4 flex items-start justify-between gap-3"><SectionHeader icon="solar:magic-stick-3-broken" title="AI screening" /><ScreenButton candidateId={candidate.id} hasCV={hasCv} /></div>
+        {candidate.ai_score !== null ? <div className="rounded-xl bg-[var(--surface-2)] p-4"><div className="flex flex-wrap items-center gap-3"><span className={`font-mono text-3xl font-bold ${candidate.ai_score >= 65 ? "text-green-600" : "text-amber-600"}`}>{candidate.ai_score}<span className="text-base font-medium text-[var(--text-lo)]">/100</span></span>{candidate.shortlisted && <span className="rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600">Shortlisted</span>}</div>{candidate.ai_justification && <p className="mt-3 text-sm leading-relaxed text-[var(--text-hi)]">{candidate.ai_justification}</p>}<p className="mt-3 text-[11px] text-[var(--text-lo)]">AI supports review—your team makes every hiring decision.</p></div> : <div className="rounded-xl border border-dashed border-[var(--border)] p-5 text-sm text-[var(--text-lo)]">{hasCv ? "This candidate is ready for AI screening." : "Upload a CV to enable AI screening."}</div>}
+      </section>
 
-      {/* Email */}
+      {(candidate.cv_url || cvParsed) && <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6"><div className="mb-4 flex items-center justify-between gap-3"><SectionHeader icon="solar:document-text-broken" title="CV overview" />{candidate.cv_url && <a href={candidate.cv_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-[#f05d23]/10 px-2.5 py-1.5 text-xs font-semibold text-[#d94f1c] hover:bg-[#f05d23]/15">View CV <Icon icon="solar:arrow-right-up-broken" className="h-3.5 w-3.5" /></a>}</div>{cvParsed ? <div className="space-y-5">{cvParsed.skills?.length ? <div><p className="mb-2 text-xs font-semibold text-[var(--text-lo)]">Skills</p><div className="flex flex-wrap gap-1.5">{cvParsed.skills.map((skill, index) => <span key={`${skill}-${index}`} className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--text-hi)]">{skill}</span>)}</div></div> : null}{cvParsed.experience?.length ? <div><p className="mb-2 text-xs font-semibold text-[var(--text-lo)]">Experience</p><div className="space-y-2">{cvParsed.experience.map((experience, index) => <div key={index} className="flex gap-3 rounded-xl bg-[var(--surface-2)] p-3"><span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[#f05d23]" /><div><p className="text-sm font-semibold text-[var(--text-hi)]">{experience.title}</p><p className="text-xs text-[var(--text-lo)]">{experience.company}{experience.duration ? ` · ${experience.duration}` : ""}</p></div></div>)}</div></div> : null}</div> : <p className="text-sm text-[var(--text-lo)]">The CV has not been parsed yet.</p>}</section>}
+
       <EmailPanel candidateId={candidate.id} />
-
-      {/* Notes */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
-        <p className="text-sm font-semibold text-slate-700 mb-3">Notes</p>
-        <NoteForm candidateId={candidate.id} />
-        {notes.length > 0 && (
-          <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
-            {notes.map((n: NoteWithUser) => (
-              <div key={n.id}>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-medium text-slate-700">
-                    {n.users?.name ?? "Unknown"}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {new Date(n.created_at).toLocaleDateString("en-KE", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600">{n.note}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6"><SectionHeader icon="solar:notes-broken" title="Team notes" /><NoteForm candidateId={candidate.id} />{notes.length > 0 && <div className="mt-5 space-y-4 border-t border-[var(--border)] pt-4">{notes.map((note: NoteWithUser) => <div key={note.id} className="flex gap-3"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#f05d23]/10 text-[10px] font-bold text-[#d94f1c]">{(note.users?.name ?? "?").slice(0, 1)}</div><div><div className="flex flex-wrap items-center gap-x-2"><span className="text-xs font-semibold text-[var(--text-hi)]">{note.users?.name ?? "Unknown"}</span><span className="text-[11px] text-[var(--text-lo)]">{new Date(note.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div><p className="mt-1 text-sm leading-relaxed text-[var(--text-hi)]">{note.note}</p></div></div>)}</div>}</section>
     </div>
   );
+
+  const sidebar = <><SidebarWidget title="Application" icon="solar:case-minimalistic-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]"><div className="space-y-3"><MetaRow label="Role" value={job?.title ?? "Unassigned"} /><MetaRow label="Department" value={job?.department ?? "—"} /><MetaRow label="Source" value={candidate.source?.replaceAll("_", " ") ?? "Direct"} /><MetaRow label="Applied" value={new Date(candidate.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })} />{job && <Link href={`/hire/candidates?tab=pipeline&job=${candidate.job_id}`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#f05d23] hover:text-[#d94f1c]">View role pipeline <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" /></Link>}</div></SidebarWidget><SidebarWidget title="Current status" icon="solar:flag-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]"><div className="flex items-center justify-between gap-3"><div><p className="text-xs text-[var(--text-lo)]">Candidate stage</p><div className="mt-1"><StageBadge stage={candidate.stage} /></div></div>{candidate.shortlisted && <span className="rounded-lg bg-green-500/10 px-2 py-1 text-xs font-semibold text-green-600">Shortlisted</span>}</div></SidebarWidget></>;
+
+  return <><SetPageHeader title={candidate.full_name} description={job ? `Candidate for ${job.title}` : "Candidate profile"} icon="solar:user-rounded-broken" actions={[{ label: "Interview kit", icon: "solar:clipboard-check-broken", href: `/hire/candidates/${candidate.id}/interview` }]} /><PageWithSidebar main={main} sidebar={sidebar} /></>;
 }
+
+function SectionHeader({ icon, title }: { icon: string; title: string }) { return <div className="mb-5 flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10"><Icon icon={icon} className="h-3.5 w-3.5 text-[#f05d23]" /></span><h2 className="text-base font-semibold text-[var(--text-hi)]">{title}</h2></div>; }
+function ContactItem({ icon, value }: { icon: string; value: string | null }) { return value ? <span className="flex items-center gap-1"><Icon icon={icon} className="h-3.5 w-3.5 text-[#f05d23]" />{value}</span> : null; }
+function MetaRow({ label, value }: { label: string; value: string }) { return <div className="flex items-start justify-between gap-3"><span className="text-xs text-[var(--text-lo)]">{label}</span><span className="max-w-[60%] text-right text-xs font-medium capitalize text-[var(--text-hi)]">{value}</span></div>; }

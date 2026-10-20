@@ -7,6 +7,7 @@ import type { JobStatus } from "@/types/database";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import PageWithSidebar from "@/components/ui/PageWithSidebar";
 import SidebarWidget from "@/components/ui/SidebarWidget";
+import StatCard from "@/components/ui/StatCard";
 
 const STATUS_META: Record<JobStatus, { icon: string; chip: string; text: string; hint: string }> = {
   draft: {
@@ -54,22 +55,44 @@ export default async function JobDetailPage({ id }: { id: string }) {
   const job = await getJob(id).catch(() => null);
   if (!job) notFound();
 
-  const { count: candidateCount } = await supabaseAdmin
+  const { data: candidateRows } = await supabaseAdmin
     .from("candidates")
-    .select("id", { count: "exact", head: true })
-    .eq("job_id", id);
+    .select("id, full_name, stage, ai_score, shortlisted, applied_at")
+    .eq("job_id", id)
+    .order("applied_at", { ascending: false });
+  const candidates = candidateRows ?? [];
+  const stageCounts = Object.fromEntries(
+    ["applied", "screened", "interview", "offer", "hired", "rejected"].map((stage) => [stage, candidates.filter((candidate) => candidate.stage === stage).length])
+  ) as Record<"applied" | "screened" | "interview" | "offer" | "hired" | "rejected", number>;
+  const activeCandidates = candidates.filter((candidate) => !["hired", "rejected"].includes(candidate.stage)).length;
 
   const status = STATUS_META[job.status] ?? STATUS_META.draft;
   const rubricTotal = job.scoring_rubric.reduce((sum, r) => sum + (Number(r.weight) || 0), 0);
 
   const mainContent = (
     <div className="space-y-5">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#f05d23]/10 blur-2xl" />
+        <div className="relative flex flex-col gap-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div><p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f05d23]">Role overview</p><h2 className="mt-1 text-lg font-semibold text-[var(--text-hi)]">Hiring activity at a glance</h2></div>
+            <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${status.chip}`}><Icon icon={status.icon} className="h-3.5 w-3.5" />{job.status}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard title="Applicants" value={candidates.length} icon="solar:users-group-two-rounded-broken" color="orange" compact />
+            <StatCard title="In progress" value={activeCandidates} icon="solar:sort-horizontal-broken" color="blue" compact />
+            <StatCard title="Interviews" value={stageCounts.interview} icon="solar:calendar-broken" color="blue" compact />
+            <StatCard title="Offers" value={stageCounts.offer} icon="solar:letter-broken" color="amber" compact />
+          </div>
+        </div>
+      </section>
+
       {/* ── Description ── */}
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
         <SectionHeader
           icon="solar:document-text-broken"
-          iconBg="bg-violet-500/15"
-          iconColor="text-violet-500"
+          iconBg="bg-[#f05d23]/10"
+          iconColor="text-[#f05d23]"
           title="Description"
         />
         {job.description ? (
@@ -84,8 +107,8 @@ export default async function JobDetailPage({ id }: { id: string }) {
       {/* ── Requirements ── */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
-          <div className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-hi)]">
-            <Icon icon="solar:check-circle-broken" className="h-4 w-4 text-green-500" />
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-[var(--text-hi)]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></span>
             Must-haves
           </div>
           {job.requirements.must_haves.length ? (
@@ -103,8 +126,8 @@ export default async function JobDetailPage({ id }: { id: string }) {
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
-          <div className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-hi)]">
-            <Icon icon="solar:star-broken" className="h-4 w-4 text-blue-400" />
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-[var(--text-hi)]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10"><Icon icon="solar:star-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></span>
             Nice-to-haves
           </div>
           {job.requirements.nice_to_haves.length ? (
@@ -128,8 +151,8 @@ export default async function JobDetailPage({ id }: { id: string }) {
           <div className="mb-5 flex items-start justify-between gap-3">
             <SectionHeader
               icon="solar:chart-square-broken"
-              iconBg="bg-blue-500/15"
-              iconColor="text-blue-500"
+              iconBg="bg-[#f05d23]/10"
+              iconColor="text-[#f05d23]"
               title="AI Screening Rubric"
             />
             <span
@@ -163,15 +186,20 @@ export default async function JobDetailPage({ id }: { id: string }) {
           </div>
         </section>
       )}
+
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+        <div className="mb-4 flex items-center justify-between gap-3"><SectionHeader icon="solar:users-group-two-rounded-broken" iconBg="bg-[#f05d23]/10" iconColor="text-[#f05d23]" title="Recent applicants" /><Link href={`/hire/candidates?job=${job.id}`} className="text-xs font-semibold text-[#f05d23] hover:text-[#d94f1c]">View pipeline</Link></div>
+        {candidates.length ? <div className="divide-y divide-[var(--border)]">{candidates.slice(0, 5).map((candidate) => <Link key={candidate.id} href={`/hire/candidates/${candidate.id}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:text-[#f05d23]"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-xs font-bold text-[var(--text-lo)]">{candidate.full_name.slice(0, 1)}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-[var(--text-hi)]">{candidate.full_name}</p><p className="text-[11px] text-[var(--text-lo)]">Applied {new Date(candidate.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</p></div><span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] font-medium capitalize text-[var(--text-lo)]">{candidate.stage}</span>{candidate.ai_score !== null && <span className="font-mono text-xs font-bold text-green-600">{candidate.ai_score}</span>}<Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)]" /></Link>)}</div> : <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text-lo)]">Applicants will appear here once this role is live.</div>}
+      </section>
     </div>
   );
 
   const sidebar = (
     <>
       {/* ── Status ── */}
-      <SidebarWidget title="Status" icon="solar:eye-broken" iconClass={status.chip}>
+      <SidebarWidget title="Status" icon="solar:eye-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]">
         <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${status.chip}`}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]">
             <Icon icon={status.icon} className="h-5 w-5" />
           </div>
           <div>
@@ -185,15 +213,10 @@ export default async function JobDetailPage({ id }: { id: string }) {
       <SidebarWidget
         title="Pipeline"
         icon="solar:users-group-two-rounded-broken"
-        iconClass="bg-violet-500/15 text-violet-500"
+        iconClass="bg-[#f05d23]/10 text-[#f05d23]"
       >
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="font-mono text-3xl font-bold text-[var(--text-hi)]">
-              {candidateCount ?? 0}
-            </p>
-            <p className="text-xs text-[var(--text-lo)]">candidates applied</p>
-          </div>
+          <div><p className="font-mono text-3xl font-bold text-[var(--text-hi)]">{candidates.length}</p><p className="text-xs text-[var(--text-lo)]">total applicants</p></div>
           <Link
             href={`/hire/candidates?job=${job.id}`}
             className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#f05d23] transition-colors hover:bg-[#f05d23]/10"
@@ -202,10 +225,11 @@ export default async function JobDetailPage({ id }: { id: string }) {
             <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
           </Link>
         </div>
+        <div className="mt-4 space-y-2.5">{(["applied", "screened", "interview", "offer", "hired"] as const).map((stage) => <PipelineLine key={stage} label={stage} count={stageCounts[stage]} total={candidates.length} />)}</div>
       </SidebarWidget>
 
       {/* ── Meta ── */}
-      <SidebarWidget title="Meta" icon="solar:calendar-broken">
+      <SidebarWidget title="Meta" icon="solar:calendar-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]">
         <dl className="space-y-2.5">
           <div className="flex items-center justify-between">
             <dt className="text-xs text-[var(--text-lo)]">Created</dt>
@@ -215,6 +239,22 @@ export default async function JobDetailPage({ id }: { id: string }) {
                 month: "short",
                 year: "numeric",
               })}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-xs text-[var(--text-lo)]">Publishes</dt>
+            <dd className="text-xs font-medium text-[var(--text-hi)]">
+              {job.published_at
+                ? new Date(job.published_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                : "Immediately"}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-xs text-[var(--text-lo)]">Closes</dt>
+            <dd className="text-xs font-medium text-[var(--text-hi)]">
+              {job.closes_at
+                ? new Date(job.closes_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                : "No end date"}
             </dd>
           </div>
           <div className="flex items-center justify-between">
@@ -251,4 +291,9 @@ export default async function JobDetailPage({ id }: { id: string }) {
       <PageWithSidebar main={mainContent} sidebar={sidebar} />
     </>
   );
+}
+
+function PipelineLine({ label, count, total }: { label: string; count: number; total: number }) {
+  const colors: Record<string, string> = { applied: "bg-slate-400", screened: "bg-blue-500", interview: "bg-cyan-500", offer: "bg-amber-500", hired: "bg-green-500" };
+  return <div><div className="mb-1 flex items-center justify-between text-[11px]"><span className="capitalize text-[var(--text-lo)]">{label}</span><span className="font-mono font-bold text-[var(--text-hi)]">{count}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]"><div className={`h-full rounded-full ${colors[label]}`} style={{ width: `${total ? (count / total) * 100 : 0}%` }} /></div></div>;
 }

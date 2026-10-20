@@ -10,6 +10,7 @@ import PageWithSidebar from "@/components/ui/PageWithSidebar";
 import SidebarWidget from "@/components/ui/SidebarWidget";
 import FormActions from "@/components/ui/FormActions";
 import DepartmentSelect from "@/components/ui/DepartmentSelect";
+import DateRangePicker, { type DateRangeValue } from "@/components/ui/DateRangePicker";
 
 interface Props {
   job?: Job;
@@ -20,6 +21,15 @@ const EMPTY_RUBRIC: RubricItem = { criterion: "", weight: 20, description: "" };
 
 const inputCls =
   "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-[#f05d23] focus:ring-2 focus:ring-[#f05d23]/30";
+
+function toScheduleRange(job?: Job): DateRangeValue | undefined {
+  if (!job?.published_at || !job.closes_at) return undefined;
+  return {
+    startDate: new Date(job.published_at),
+    endDate: new Date(job.closes_at),
+    label: "Custom Range",
+  };
+}
 
 function SectionHeader({
   icon,
@@ -101,6 +111,7 @@ export function JobForm({ job, departments = [] }: Props) {
   const [status, setStatus] = useState<"draft" | "open">(
     job?.status === "open" ? "open" : "draft"
   );
+  const [schedule, setSchedule] = useState<DateRangeValue | undefined>(() => toScheduleRange(job));
 
   // AI JD drafter
   const [brief, setBrief] = useState("");
@@ -111,6 +122,8 @@ export function JobForm({ job, departments = [] }: Props) {
   const mustCount = mustHaves.filter(Boolean).length;
   const niceCount = niceToHaves.filter(Boolean).length;
   const criteriaCount = rubric.filter((r) => r.criterion).length;
+  const isScheduledForLater =
+    status === "open" && !!schedule?.startDate && schedule.startDate > new Date();
 
   async function draftDescription() {
     if (!title || !brief) return;
@@ -168,6 +181,12 @@ export function JobForm({ job, departments = [] }: Props) {
       nice_to_haves: niceToHaves.filter(Boolean),
       scoring_rubric: rubric.filter((r) => r.criterion),
       status,
+      published_at: schedule?.startDate?.toISOString() ?? null,
+      // A date range represents inclusive calendar dates, so a job remains
+      // live through the end of its selected closing date.
+      closes_at: schedule?.endDate
+        ? new Date(schedule.endDate.getFullYear(), schedule.endDate.getMonth(), schedule.endDate.getDate(), 23, 59, 59, 999).toISOString()
+        : null,
     };
 
     startTransition(async () => {
@@ -244,8 +263,8 @@ export function JobForm({ job, departments = [] }: Props) {
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200">
         <SectionHeader
           icon="solar:document-text-broken"
-          iconBg="bg-violet-500/15"
-          iconColor="text-violet-500"
+          iconBg="bg-[#f05d23]/15"
+          iconColor="text-[#f05d23]"
           title="Job Description"
         />
 
@@ -305,8 +324,8 @@ export function JobForm({ job, departments = [] }: Props) {
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200">
         <SectionHeader
           icon="solar:checklist-broken"
-          iconBg="bg-green-500/15"
-          iconColor="text-green-500"
+          iconBg="bg-[#f05d23]/15"
+          iconColor="text-[#f05d23]"
           title="Requirements"
           hint="Must-haves are used to screen candidates. Nice-to-haves give AI extra context."
         />
@@ -375,8 +394,8 @@ export function JobForm({ job, departments = [] }: Props) {
         <div className="mb-5 flex items-start justify-between gap-3">
           <SectionHeader
             icon="solar:chart-square-broken"
-            iconBg="bg-blue-500/15"
-            iconColor="text-blue-500"
+            iconBg="bg-[#f05d23]/15"
+            iconColor="text-[#f05d23]"
             title="AI Screening Rubric"
             hint="Criteria used to score candidates. Weights should sum to 100."
           />
@@ -470,13 +489,45 @@ export function JobForm({ job, departments = [] }: Props) {
         </div>
         <p className="mt-3 text-xs leading-relaxed text-[var(--text-lo)]">
           {status === "open"
-            ? "Visible on your public careers page and accepting applications."
+            ? isScheduledForLater
+              ? "Scheduled for your public careers page at the chosen publish time."
+              : "Visible on your public careers page and accepting applications."
             : "Only visible to your team — nobody can apply yet."}
         </p>
       </SidebarWidget>
 
+      <SidebarWidget title="Publishing schedule" icon="solar:calendar-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
+        <div className="space-y-3">
+          <Field label="Live dates">
+            <DateRangePicker
+              value={schedule}
+              onChange={(value) => {
+                setSchedule(value);
+                setStatus("open");
+              }}
+              allowedRanges={["Custom Range"]}
+              minDate={new Date()}
+              maxDate={null}
+              fullWidth
+            />
+          </Field>
+          {schedule && (
+            <button
+              type="button"
+              onClick={() => setSchedule(undefined)}
+              className="text-xs font-semibold text-[#f05d23] hover:underline"
+            >
+              Clear schedule
+            </button>
+          )}
+          <p className="text-xs leading-relaxed text-[var(--text-lo)]">
+            Select the first and last dates the role should accept applications. Leave this blank to publish immediately when set to Open and keep it live until you close it.
+          </p>
+        </div>
+      </SidebarWidget>
+
       {/* ── Live summary ── */}
-      <SidebarWidget title="Summary" icon="solar:chart-square-broken" iconClass="bg-blue-500/15 text-blue-500">
+      <SidebarWidget title="Summary" icon="solar:chart-square-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
         <dl className="space-y-2.5">
           <div className="flex items-center justify-between">
             <dt className="text-sm text-[var(--text-lo)]">Must-haves</dt>
@@ -511,7 +562,7 @@ export function JobForm({ job, departments = [] }: Props) {
 
       {/* ── Meta (edit mode) ── */}
       {job && (
-        <SidebarWidget title="Meta" icon="solar:calendar-broken">
+        <SidebarWidget title="Meta" icon="solar:calendar-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
           <dl className="space-y-2.5">
             <div className="flex items-center justify-between">
               <dt className="text-sm text-[var(--text-lo)]">Created</dt>
@@ -521,6 +572,22 @@ export function JobForm({ job, departments = [] }: Props) {
                   month: "short",
                   year: "numeric",
                 })}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-xs text-[var(--text-lo)]">Publishes</dt>
+              <dd className="text-xs font-medium text-[var(--text-hi)]">
+                {job.published_at
+                  ? new Date(job.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                  : "Not scheduled"}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-xs text-[var(--text-lo)]">Closes</dt>
+              <dd className="text-xs font-medium text-[var(--text-hi)]">
+                {job.closes_at
+                  ? new Date(job.closes_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                  : "No end date"}
               </dd>
             </div>
             <div className="flex items-center justify-between">
@@ -538,7 +605,7 @@ export function JobForm({ job, departments = [] }: Props) {
       )}
 
       {/* ── Actions ── */}
-      <SidebarWidget title="Actions" icon="solar:settings-broken">
+      <SidebarWidget title="Actions" icon="solar:settings-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
         <FormActions layout="vertical" {...actionsProps} />
       </SidebarWidget>
     </>

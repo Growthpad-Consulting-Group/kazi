@@ -7,6 +7,8 @@ import DashboardCharts from "./DashboardCharts";
 import DashboardHeader from "./DashboardHeader";
 import { resolveRange } from "./DashboardRange";
 import { getDashboardData } from "../data";
+import HiringHealthChart from "./HiringHealthChart";
+import OfferTrackerChart from "./OfferTrackerChart";
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 type StatDef = {
@@ -113,7 +115,15 @@ export default async function DashboardPage({
   const range = resolveRange(params);
 
   const session = await getServerSession(authOptions);
-  const { stats, pipeline, recent, trend } = await getDashboardData(range);
+  const { stats, pipeline, recent, trend, rolePipeline, stageAging, teamPulseTrend, operations: dashboardOperations } = await getDashboardData(range);
+  const operations = dashboardOperations ?? {
+    interviewQueue: [],
+    upcomingOneOnOnes: [],
+    actionItems: [],
+    health: { averageDaysToHire: null, stalledCandidates: 0, offerPending: 0, offerAccepted: 0, offerDeclined: 0 },
+    pulse: { pendingCheckins: 0, lowMood: 0, blockers: 0, atRiskGoals: 0 },
+    scheduledJobs: [],
+  };
 
   const firstName = session?.user.name?.split(" ")[0] ?? "there";
   const hour = new Date().getHours();
@@ -132,7 +142,7 @@ export default async function DashboardPage({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="-mt-6 space-y-6 md:-mt-8">
 
       <DashboardHeader
         range={range}
@@ -200,6 +210,38 @@ export default async function DashboardPage({
         {kpis.map((stat) => <KpiCard key={stat.label} stat={stat} />)}
       </div>
 
+      {/* ── Operating queue ── */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15"><Icon icon="solar:checklist-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></div>
+            <div><h2 className="text-md font-semibold text-[var(--text-hi)]">My action items</h2><p className="text-[11px] text-[var(--text-lo)]">Items that need attention</p></div>
+          </div>
+          <div className="space-y-2">
+            {operations.actionItems.length ? operations.actionItems.map((item) => (
+              <Link key={item.label} href={item.href} className="flex items-center justify-between rounded-xl bg-[var(--surface-2)] px-3 py-2.5 transition-colors hover:bg-[#f05d23]/10">
+                <span className="text-sm text-[var(--text-hi)]">{item.label}</span>
+                <span className={`rounded-lg px-2 py-0.5 font-mono text-xs font-bold ${item.tone === "red" ? "bg-red-500/10 text-red-500" : item.tone === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"}`}>{item.count}</span>
+              </Link>
+            )) : <p className="rounded-xl bg-green-500/5 px-3 py-4 text-sm text-green-600">You&apos;re all caught up.</p>}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5 text-violet-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Interview queue</h2><p className="text-[11px] text-[var(--text-lo)]">Scorecards still to complete</p></div></div><Link href="/hire/candidates?stage=interview" className="text-xs text-[#f05d23] hover:underline">View all</Link></div>
+          <div className="space-y-2">
+            {operations.interviewQueue.length ? operations.interviewQueue.map((candidate) => <Link key={candidate.id} href={`/hire/candidates/${candidate.id}/interview`} className="flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"><div><p className="text-sm font-medium text-[var(--text-hi)]">{candidate.full_name}</p><p className="text-[11px] text-[var(--text-lo)]">{candidate.jobs?.title ?? "Role"}</p></div><Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)]" /></Link>) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No interviews waiting for a scorecard.</p>}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="mb-4 flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-cyan-500/15"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-cyan-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Team pulse</h2><p className="text-[11px] text-[var(--text-lo)]">This week&apos;s check-ins and goals</p></div></div>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ label: "Check-ins due", value: operations.pulse.pendingCheckins, href: "/pulse/checkins" }, { label: "Low mood", value: operations.pulse.lowMood, href: "/pulse/checkins" }, { label: "Blockers", value: operations.pulse.blockers, href: "/pulse/checkins" }, { label: "Goals at risk", value: operations.pulse.atRiskGoals, href: "/pulse/goals" }].map((item) => <Link key={item.label} href={item.href} className="rounded-xl bg-[var(--surface-2)] p-3 transition-colors hover:bg-cyan-500/10"><p className="font-mono text-xl font-bold text-[var(--text-hi)]">{item.value}</p><p className="mt-1 text-[11px] text-[var(--text-lo)]">{item.label}</p></Link>)}
+          </div>
+        </section>
+      </div>
+
       {/* ── Middle row: Pipeline + Quick actions ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
@@ -255,7 +297,23 @@ export default async function DashboardPage({
       </div>
 
       {/* ── Charts row ── */}
-      <DashboardCharts trend={trend} pipeline={pipeline} />
+      <DashboardCharts trend={trend} pipeline={pipeline} rolePipeline={rolePipeline} teamPulseTrend={teamPulseTrend} />
+
+      {/* ── Hiring health, offers and schedules ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <h2 className="text-md font-semibold text-[var(--text-hi)]">Hiring health</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Flow and bottlenecks across active roles</p>
+          <Link href="/hire/candidates" className="mt-4 block rounded-xl transition-colors hover:bg-[var(--surface-2)]"><HiringHealthChart stages={stageAging} stalled={operations.health.stalledCandidates} averageDays={operations.health.averageDaysToHire} /></Link>
+        </section>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline outcomes</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Pending offers and completed candidate outcomes</p>
+          <div className="mt-4"><OfferTrackerChart pending={operations.health.offerPending} accepted={operations.health.offerAccepted} declined={operations.health.offerDeclined} /></div>
+        </section>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="flex items-center justify-between"><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Role schedule</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Publishing and closing soon</p></div><Link href="/hire/jobs" className="text-xs text-[#f05d23] hover:underline">Jobs</Link></div>
+          <div className="mt-3 space-y-2">{operations.scheduledJobs.length ? operations.scheduledJobs.map((job) => { const date = job.kind === "publishes" ? job.published_at : job.closes_at; return <Link key={`${job.id}-${job.kind}`} href={`/hire/jobs/${job.id}`} className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-[var(--surface-2)]"><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--text-hi)]">{job.title}</p><p className="text-[11px] text-[var(--text-lo)]">{job.kind === "publishes" ? "Publishes" : "Closes"} {date ? new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : ""}</p></div><Icon icon="solar:calendar-mark-broken" className="h-4 w-4 shrink-0 text-[#f05d23]" /></Link>; }) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No scheduled role changes.</p>}</div>
+        </section>
+      </div>
 
       {/* ── Recent candidates ── */}
       {recent.length > 0 && (

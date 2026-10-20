@@ -12,7 +12,7 @@ interface PillConfig {
 const stageConfig: Record<string, PillConfig> = {
   applied:   { icon: "solar:user-broken",          label: "Applied",    className: "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20" },
   screened:  { icon: "solar:cpu-bolt-broken",       label: "Screened",   className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
-  interview: { icon: "solar:chat-round-dots-broken", label: "Interview",  className: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20" },
+  interview: { icon: "solar:chat-round-dots-broken", label: "Interview",  className: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" },
   offer:     { icon: "solar:tag-price-broken",      label: "Offer",      className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
   hired:     { icon: "solar:check-circle-broken",   label: "Hired",      className: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" },
   rejected:  { icon: "solar:close-circle-broken",   label: "Rejected",   className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" },
@@ -27,7 +27,7 @@ const priorityConfig: Record<string, PillConfig> = {
 /** Shared colour vocabulary for status words used across jobs, reviews, goals, surveys… */
 const SUCCESS = "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20";
 const INFO    = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-const VIOLET  = "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20";
+const ACCENT  = "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20";
 const AMBER   = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
 const RED     = "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
 const NEUTRAL = "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20";
@@ -47,8 +47,8 @@ const statusConfig: Record<string, PillConfig> = {
   submitted:      { icon: "solar:check-circle-broken",    label: "Submitted",      className: INFO },
   reviewed:       { icon: "solar:check-circle-broken",    label: "Reviewed",       className: SUCCESS },
   self_review:    { icon: "solar:user-broken",            label: "Self Review",    className: INFO },
-  manager_review: { icon: "solar:user-broken",            label: "Manager Review", className: VIOLET },
-  peer_review:    { icon: "solar:users-group-broken",     label: "Peer Review",    className: VIOLET },
+  manager_review: { icon: "solar:user-broken",            label: "Manager Review", className: ACCENT },
+  peer_review:    { icon: "solar:users-group-broken",     label: "Peer Review",    className: ACCENT },
   not_started:    { icon: "solar:minus-circle-broken",    label: "Not Started",    className: NEUTRAL },
   in_progress:    { icon: "solar:play-circle-broken",     label: "In Progress",    className: INFO },
   at_risk:        { icon: "solar:danger-triangle-broken", label: "At Risk",        className: RED },

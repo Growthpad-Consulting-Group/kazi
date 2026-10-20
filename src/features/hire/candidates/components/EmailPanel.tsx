@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@iconify/react";
+import { Button } from "@/components/ui/Button";
 
 type EmailType = "acknowledgement" | "invite" | "rejection";
 
@@ -29,8 +31,15 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ candidateId, type }),
       });
-      const json = await res.json();
+      const text = await res.text();
+      let json: { subject?: string; body?: string; to?: string; error?: string };
+      try {
+        json = JSON.parse(text) as typeof json;
+      } catch {
+        throw new Error("Unable to draft an email right now. Please try again.");
+      }
       if (!res.ok) throw new Error(json.error);
+      if (!json.subject || !json.body || !json.to) throw new Error("The AI draft was incomplete. Please try again.");
       setDraft({ subject: json.subject, body: json.body, to: json.to });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Draft failed");
@@ -61,24 +70,24 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-4">
-      <h2 className="text-sm font-semibold text-slate-700">Candidate Communications</h2>
+    <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
+      <div className="flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10"><Icon icon="solar:letter-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></span><div><h2 className="text-base font-semibold text-[var(--text-hi)]">Candidate communications</h2><p className="text-[11px] text-[var(--text-lo)]">Draft and send thoughtful updates with AI assistance.</p></div></div>
 
       {sent && (
-        <p className="text-sm text-green-600 bg-green-50 rounded-lg px-3 py-2">
+        <p className="rounded-xl bg-green-500/10 px-3 py-2 text-sm text-green-600">
           ✓ Email sent successfully.
         </p>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-1 rounded-xl bg-[var(--surface-2)] p-1">
         {(Object.keys(TYPE_LABELS) as EmailType[]).map((t) => (
           <button
             key={t}
             onClick={() => { setType(t); setDraft(null); setSent(false); }}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               type === t
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-[#f05d23] text-white shadow-sm"
+                : "text-[var(--text-lo)] hover:bg-[var(--surface)] hover:text-[var(--text-hi)]"
             }`}
           >
             {TYPE_LABELS[t]}
@@ -89,53 +98,36 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       {!draft ? (
-        <button
-          onClick={draftEmail}
-          disabled={drafting}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {drafting ? "Drafting…" : "Draft with AI"}
-        </button>
+        <Button onClick={draftEmail} loading={drafting} icon="solar:magic-stick-3-broken" variant="secondary">Draft with AI</Button>
       ) : (
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">To</label>
-            <p className="text-sm text-slate-700">{draft.to}</p>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">To</label>
+            <p className="text-sm text-[var(--text-hi)]">{draft.to}</p>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Subject</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Subject</label>
             <input
               value={draft.subject}
               onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-[#f05d23]/30"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Body</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Body</label>
             <textarea
               rows={8}
               value={draft.body}
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-[#f05d23]/30"
             />
           </div>
-          <p className="text-xs text-slate-400 italic">
+          <p className="text-xs italic text-[var(--text-lo)]">
             Review this email before sending — AI drafted it, you own it.
           </p>
           <div className="flex gap-2">
-            <button
-              onClick={sendEmail}
-              disabled={sending}
-              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              {sending ? "Sending…" : "Send Email"}
-            </button>
-            <button
-              onClick={() => setDraft(null)}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              Discard
-            </button>
+            <Button onClick={sendEmail} loading={sending} icon="solar:plain-2-broken">Send email</Button>
+            <Button onClick={() => setDraft(null)} variant="secondary">Discard</Button>
           </div>
         </div>
       )}

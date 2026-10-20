@@ -53,12 +53,21 @@ Return ONLY valid JSON:
   "body": "string (plain text, use \\n for line breaks)"
 }`;
 
-  const completion = await groq.chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 512,
-    response_format: { type: "json_object" },
-  });
+  let completion;
+  try {
+    completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 512,
+      response_format: { type: "json_object" },
+    });
+  } catch (error) {
+    console.error("Email drafting request failed", error);
+    return NextResponse.json(
+      { error: "AI drafting is temporarily unavailable. Please try again shortly." },
+      { status: 502 }
+    );
+  }
 
   const raw = completion.choices[0]?.message?.content ?? "{}";
   let result: { subject: string; body: string };

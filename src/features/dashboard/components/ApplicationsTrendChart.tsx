@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -27,7 +27,13 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 export default function ApplicationsTrendChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={160}>
-      <BarChart data={data} barSize={24} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
+        <defs>
+          <linearGradient id="applicationsGradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#f05d23" stopOpacity={0.45} />
+            <stop offset="100%" stopColor="#f05d23" stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
         <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
         <XAxis
           dataKey="day"
@@ -42,13 +48,16 @@ export default function ApplicationsTrendChart({ data }: Props) {
           tickLine={false}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-        <Bar
+        <Area
+          type="monotone"
           dataKey="count"
-          fill="#f05d23"
-          radius={[6, 6, 0, 0]}
-          fillOpacity={0.9}
+          stroke="#f05d23"
+          strokeWidth={3}
+          fill="url(#applicationsGradient)"
+          dot={{ r: 3, fill: "#f05d23", strokeWidth: 0 }}
+          activeDot={{ r: 5, fill: "#fff", stroke: "#f05d23", strokeWidth: 3 }}
         />
-      </BarChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 }

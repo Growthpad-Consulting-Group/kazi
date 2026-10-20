@@ -27,7 +27,11 @@ export interface DateRangePickerProps {
   value?: DateRangeValue;
   onChange?: (value: DateRangeValue) => void;
   className?: string;
+  fullWidth?: boolean;
   allowedRanges?: string[];
+  /** Defaults to today to preserve reporting/date-filter behavior. Pass null to allow future dates. */
+  maxDate?: Date | null;
+  minDate?: Date;
   ref?: Ref<DateRangePickerRef>;
 }
 
@@ -48,7 +52,7 @@ function formatDisplayLabel(value: DateRangeValue | undefined): string {
 }
 
 const DateRangePicker = function DateRangePicker(
-  { value, onChange, className = '', allowedRanges, ref }: DateRangePickerProps
+  { value, onChange, className = '', fullWidth = false, allowedRanges, maxDate = new Date(), minDate, ref }: DateRangePickerProps
 ) {
   const [draftRange, setDraftRange] = useState<DraftRange>({
     startDate: value?.startDate ?? null,
@@ -178,17 +182,19 @@ const DateRangePicker = function DateRangePicker(
   const shownDate = draftRange.startDate ?? subMonths(new Date(), 1);
 
   return (
-    <div className={`relative inline-block ${className}`}>
+    <div className={`relative ${fullWidth ? 'block w-full' : 'inline-block'} ${className}`}>
       <button
         ref={triggerRef}
         type="button"
         onClick={() => (isOpen ? handleCancel() : openPopover())}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#f05d23]/30 bg-[var(--surface)] border-[var(--border)] text-[var(--text-hi)] hover:border-[#f05d23]/40 hover:bg-[var(--surface-2)] ${isOpen ? 'border-[#f05d23]/60 ring-2 ring-[#f05d23]/20' : ''}`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#f05d23]/30 bg-[var(--surface)] border-[var(--border)] text-[var(--text-hi)] hover:border-[#f05d23]/40 hover:bg-[var(--surface-2)] ${fullWidth ? 'w-full justify-between' : ''} ${isOpen ? 'border-[#f05d23]/60 ring-2 ring-[#f05d23]/20' : ''}`}
       >
         <Icon icon="solar:calendar-date-broken" className="w-4 h-4 shrink-0 text-[var(--text-lo)]" />
-        <span className="max-w-[160px] truncate">{displayLabel}</span>
+        <span className={fullWidth ? "min-w-0 flex-1 truncate text-left" : "max-w-[160px] truncate"}>
+          {displayLabel}
+        </span>
         <Icon
           icon={isOpen ? 'solar:alt-arrow-up-broken' : 'solar:alt-arrow-down-broken'}
           className="w-3.5 h-3.5 shrink-0 text-[var(--text-lo)]"
@@ -263,7 +269,8 @@ const DateRangePicker = function DateRangePicker(
                   showMonthAndYearPickers={true}
                   showPreview={true}
                   editableDateInputs={false}
-                  maxDate={new Date()}
+                  minDate={minDate}
+                  maxDate={maxDate ?? undefined}
                   direction={isMobile ? 'vertical' : 'horizontal'}
                   months={isMobile ? 1 : 2}
                   shownDate={shownDate}

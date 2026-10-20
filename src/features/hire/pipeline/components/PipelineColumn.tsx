@@ -4,7 +4,6 @@ import { useDroppable } from "@dnd-kit/core";
 import { CandidateCard } from "./CandidateCard";
 import type { CandidateWithJob } from "@/features/hire/candidates/actions";
 import type { CandidateStage } from "@/types/database";
-import { STAGE_COLORS } from "@/features/hire/candidates/types";
 
 interface Props {
   stage: CandidateStage;
@@ -14,33 +13,34 @@ interface Props {
 
 export function PipelineColumn({ stage, label, candidates }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
+  const style = columnStyle(stage);
 
   return (
-    <div className="flex-shrink-0 w-64">
+    <div id={`pipeline-${stage}`} className="w-[19rem] shrink-0 scroll-mx-6">
       {/* Column header */}
-      <div className="flex items-center justify-between mb-2 px-1">
+      <div className={`mb-3 flex h-12 items-center justify-between rounded-2xl px-3.5 ${style.header}`}>
         <div className="flex items-center gap-2">
-          <span className={`inline-block w-2 h-2 rounded-full ${dotColor(stage)}`} />
-          <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+          <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/85 px-1.5 font-mono text-[11px] font-bold ${style.text}`}>{candidates.length}</span>
+          <span className={`text-sm font-semibold ${style.text}`}>
             {label}
           </span>
         </div>
-        <span className="text-xs text-slate-400 font-medium">{candidates.length}</span>
+        <span className={`text-[11px] font-medium ${style.textMuted}`}>Stage</span>
       </div>
 
       {/* Drop zone */}
       <div
         ref={setNodeRef}
-        className={`min-h-[60vh] rounded-xl p-2 space-y-2 transition-colors ${
-          isOver ? "bg-blue-50 ring-2 ring-blue-200" : "bg-slate-100"
+        className={`h-[calc(100dvh-18rem)] min-h-[30rem] max-h-[44rem] space-y-3 overflow-y-auto overscroll-contain rounded-2xl border p-3 pr-2 transition-all ${
+          isOver ? "border-[#f05d23]/40 bg-[#f05d23]/8 ring-2 ring-[#f05d23]/15" : "border-[var(--border)] bg-[var(--surface-2)]/40"
         }`}
       >
         {candidates.map((c) => (
           <CandidateCard key={c.id} candidate={c} />
         ))}
         {candidates.length === 0 && (
-          <div className="flex items-center justify-center h-20">
-            <p className="text-xs text-slate-400">Drop here</p>
+          <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-[var(--border)]">
+            <p className="text-xs text-[var(--text-lo)]">Drop candidates here</p>
           </div>
         )}
       </div>
@@ -48,14 +48,14 @@ export function PipelineColumn({ stage, label, candidates }: Props) {
   );
 }
 
-function dotColor(stage: CandidateStage): string {
-  const map: Record<CandidateStage, string> = {
-    applied: "bg-slate-400",
-    screened: "bg-blue-400",
-    interview: "bg-violet-500",
-    offer: "bg-amber-400",
-    hired: "bg-green-500",
-    rejected: "bg-red-400",
+function columnStyle(stage: CandidateStage): { header: string; text: string; textMuted: string } {
+  const map: Record<CandidateStage, { header: string; text: string; textMuted: string }> = {
+    applied: { header: "bg-slate-200 dark:bg-slate-700/70", text: "text-slate-700 dark:text-slate-100", textMuted: "text-slate-500 dark:text-slate-300" },
+    screened: { header: "bg-blue-500/15", text: "text-blue-700 dark:text-blue-300", textMuted: "text-blue-600/70 dark:text-blue-300/70" },
+    interview: { header: "bg-cyan-500/15", text: "text-cyan-700 dark:text-cyan-300", textMuted: "text-cyan-600/70 dark:text-cyan-300/70" },
+    offer: { header: "bg-amber-500/15", text: "text-amber-700 dark:text-amber-300", textMuted: "text-amber-600/70 dark:text-amber-300/70" },
+    hired: { header: "bg-green-500/15", text: "text-green-700 dark:text-green-300", textMuted: "text-green-600/70 dark:text-green-300/70" },
+    rejected: { header: "bg-red-500/15", text: "text-red-700 dark:text-red-300", textMuted: "text-red-600/70 dark:text-red-300/70" },
   };
   return map[stage];
 }

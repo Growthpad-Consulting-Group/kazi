@@ -17,8 +17,8 @@ if (!url || !serviceKey) {
 const db = createClient<Database>(url, serviceKey, { auth: { persistSession: false } });
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL ?? "admin@growthpad.co.ke";
-  const password = process.env.ADMIN_PASSWORD ?? "changeme123!";
+  const email = process.env.ADMIN_EMAIL ?? "analytics.growthpad@gmail.com";
+  const password = process.env.ADMIN_PASSWORD ?? "testpassword";
   const name = process.env.ADMIN_NAME ?? "Admin";
 
   const hash = await bcrypt.hash(password, 12);

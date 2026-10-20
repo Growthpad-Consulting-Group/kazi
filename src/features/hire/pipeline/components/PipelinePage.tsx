@@ -2,6 +2,8 @@ import { getCachedCandidates } from "@/lib/cache/queries";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PipelineBoard } from "./PipelineBoard";
+import SetPageHeader from "@/components/ui/SetPageHeader";
+import { PipelineHeaderMetrics } from "./PipelineHeaderMetrics";
 import type { CandidateStage } from "@/types/database";
 import type { CandidateWithJob } from "@/features/hire/candidates/actions";
 
@@ -25,17 +27,26 @@ export default async function PipelinePage({ jobId }: { jobId?: string }) {
   for (const c of candidates) {
     if (c.stage in columns) columns[c.stage].push(c);
   }
+  const activeRoles = new Set(candidates.map((candidate) => candidate.job_id)).size;
+  const awaitingReview = columns.applied.length;
+  const inInterviews = columns.interview.length;
+  const offersInPlay = columns.offer.length;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Pipeline</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {candidates.length} active candidate{candidates.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-      </div>
+      <SetPageHeader
+        title="Hiring pipeline"
+        description={`${candidates.length} candidate${candidates.length === 1 ? "" : "s"} across ${activeRoles} active role${activeRoles === 1 ? "" : "s"}`}
+        icon="solar:sort-horizontal-broken"
+        trailing={(
+          <PipelineHeaderMetrics
+            candidates={candidates.length}
+            awaitingReview={awaitingReview}
+            interviews={inInterviews}
+            offers={offersInPlay}
+          />
+        )}
+      />
       <PipelineBoard columns={columns} stages={PIPELINE_STAGES} />
     </div>
   );

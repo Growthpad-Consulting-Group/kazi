@@ -18,11 +18,17 @@ export async function POST(req: Request) {
   // Verify job exists and is open
   const { data: job } = await supabaseAdmin
     .from("jobs")
-    .select("id, status, title")
+    .select("id, status, title, published_at, closes_at")
     .eq("id", job_id)
     .single();
 
-  if (!job || job.status !== "open") {
+  const now = new Date();
+  if (
+    !job ||
+    job.status !== "open" ||
+    (job.published_at && new Date(job.published_at) > now) ||
+    (job.closes_at && new Date(job.closes_at) <= now)
+  ) {
     return NextResponse.json({ error: "This role is not accepting applications" }, { status: 404 });
   }
 

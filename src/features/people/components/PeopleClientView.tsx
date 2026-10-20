@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
+import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 
 interface UserRow extends Record<string, unknown> {
   id: string;
@@ -29,6 +30,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 const FILTER_CATEGORIES: FilterCategoryDef[] = [
   { id: "department", label: "Department", icon: "solar:buildings-broken" },
+  { id: "manager", label: "Manager", icon: "solar:user-speak-broken" },
   { id: "role", label: "Role", icon: "solar:shield-user-broken" },
   { id: "location", label: "Location", icon: "solar:map-point-broken" },
 ];
@@ -83,30 +85,39 @@ export default function PeopleClientView({ people, departments, locations }: Pro
       }
     }
 
+    const managerIds = new Set(people.map((person) => person.manager_id).filter((id): id is string => !!id));
+    for (const f of filters) {
+      if (f.category === "manager" && f.values.includes("has_direct_reports")) {
+        list = f.operator === "is" ? list.filter((person) => managerIds.has(person.id)) : list.filter((person) => !managerIds.has(person.id));
+      }
+    }
+
     return list;
   }, [people, search, filters]);
+
+  const peopleStats = useMemo(() => {
+    const managers = new Set(people.map((person) => person.manager_id).filter(Boolean)).size;
+    const activeDepartments = new Set(people.map((person) => person.department).filter(Boolean)).size;
+    const activeLocations = new Set(people.map((person) => person.location).filter(Boolean)).size;
+    return [
+      { filter: [] as ActiveFilter[], label: "Team members", value: people.length, icon: "solar:users-group-two-rounded-broken", color: "blue" },
+      { filter: [{ category: "department", values: departments, label: "Department: is assigned", operator: "is" as const }], label: "Departments", value: activeDepartments, icon: "solar:buildings-broken", color: "violet" },
+      { filter: [{ category: "manager", values: ["has_direct_reports"], label: "Manager: has direct reports", operator: "is" as const }], label: "Managers", value: managers, icon: "solar:user-speak-broken", color: "orange" },
+      { filter: [{ category: "location", values: locations, label: "Location: is assigned", operator: "is" as const }], label: "Locations", value: activeLocations, icon: "solar:map-point-broken", color: "green" },
+    ] as { filter: ActiveFilter[]; label: string; value: number; icon: string; color: StatCardColor }[];
+  }, [people, departments, locations]);
 
   const columns: Column<UserRow>[] = [
     {
       header: "Name",
       accessor: "name",
       sortable: true,
-      render: (row) => {
-        const initials = row.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-        const colors = ["from-orange-500 to-rose-500", "from-violet-500 to-indigo-500", "from-teal-500 to-cyan-500", "from-amber-500 to-orange-500"];
-        const color = colors[row.name.charCodeAt(0) % colors.length];
-        return (
-          <div className="flex items-center gap-3">
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br ${color} text-white text-xs font-bold`}>
-              {initials}
-            </div>
-            <div>
-              <div className="font-medium text-[var(--text-hi)]">{row.name}</div>
-              <div className="text-xs text-[var(--text-lo)]">{row.email}</div>
-            </div>
+      render: (row) => (
+        <div>
+          <div className="font-medium text-[var(--text-hi)]">{row.name}</div>
+          <div className="text-xs text-[var(--text-lo)]">{row.email}</div>
           </div>
-        );
-      },
+      ),
     },
     {
       header: "Job Title",
@@ -167,7 +178,11 @@ export default function PeopleClientView({ people, departments, locations }: Pro
   ];
 
   return (
-    <GenericTable
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {peopleStats.map((stat) => <StatCard key={stat.label} title={stat.label} value={stat.value} icon={stat.icon} color={stat.color} compact onClick={() => setFilters(stat.filter)} />)}
+      </div>
+      <GenericTable
       data={filtered}
       columns={columns}
       actions={actions}
@@ -179,11 +194,13 @@ export default function PeopleClientView({ people, departments, locations }: Pro
           onSearchChange={setSearch}
           onFilterChange={setFilters}
           filterCategories={FILTER_CATEGORIES}
-          categoryOptions={{ department: deptOptions, role: roleOptions, location: locationOptions }}
+          categoryOptions={{ department: deptOptions, manager: [{ id: "has_direct_reports", label: "Has direct reports", category: "manager", value: "has_direct_reports" }], role: roleOptions, location: locationOptions }}
+          initialFilters={filters}
           searchPlaceholder="Search by name, email, title or department…"
         />
       }
       onRefresh={() => { setSearch(""); setFilters([]); }}
-    />
+      />
+    </div>
   );
 }

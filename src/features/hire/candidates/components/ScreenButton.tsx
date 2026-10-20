@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 interface Props {
   candidateId: string;
   hasCV: boolean;
+  compact?: boolean;
 }
 
-export function ScreenButton({ candidateId, hasCV }: Props) {
+export function ScreenButton({ candidateId, hasCV, compact = false }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +40,7 @@ export function ScreenButton({ candidateId, hasCV }: Props) {
         onClick={screen}
         disabled={loading || !hasCV}
         title={!hasCV ? "Upload a CV first" : "Run AI screening"}
-        className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-40 transition-colors"
+        className={`${compact ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-xs"} rounded-lg bg-[#f05d23] font-semibold text-white transition-colors hover:bg-[#d94f1c] disabled:opacity-40`}
       >
         {loading ? "Screening…" : "Screen with AI"}
       </button>

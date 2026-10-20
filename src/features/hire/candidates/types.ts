@@ -34,7 +34,7 @@ export const STAGE_LABELS: Record<CandidateStage, string> = {
 export const STAGE_COLORS: Record<CandidateStage, string> = {
   applied: "bg-slate-100 text-slate-600",
   screened: "bg-blue-100 text-blue-700",
-  interview: "bg-violet-100 text-violet-700",
+  interview: "bg-cyan-100 text-cyan-700",
   offer: "bg-amber-100 text-amber-700",
   hired: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-600",

@@ -6,11 +6,14 @@ import { Icon } from "@iconify/react";
 import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
 import { StatusPill } from "@/components/ui/StatusPill";
+import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 import type { CandidateWithJob } from "../actions";
+import CandidateStageSelect from "./CandidateStageSelect";
+import { ScreenButton } from "./ScreenButton";
 
 const STAGE_FILTER_OPTIONS: FilterOption[] = [
   { id: "applied", label: "Applied", category: "stage", value: "applied" },
-  { id: "screening", label: "Screening", category: "stage", value: "screening" },
+  { id: "screened", label: "Screened", category: "stage", value: "screened" },
   { id: "interview", label: "Interview", category: "stage", value: "interview" },
   { id: "offer", label: "Offer", category: "stage", value: "offer" },
   { id: "hired", label: "Hired", category: "stage", value: "hired" },
@@ -20,15 +23,13 @@ const STAGE_FILTER_OPTIONS: FilterOption[] = [
 const FILTER_CATEGORIES: FilterCategoryDef[] = [
   { id: "stage", label: "Stage", icon: "solar:chart-2-broken" },
   { id: "shortlisted", label: "Shortlisted", icon: "solar:star-broken" },
+  { id: "role", label: "Role", icon: "solar:case-broken" },
+  { id: "source", label: "Source", icon: "solar:link-broken" },
+  { id: "location", label: "Location", icon: "solar:map-point-broken" },
+  { id: "score", label: "AI score", icon: "solar:cpu-bolt-broken" },
+  { id: "cv", label: "CV", icon: "solar:file-text-broken" },
+  { id: "attention", label: "Attention", icon: "solar:danger-triangle-broken" },
 ];
-
-const CATEGORY_OPTIONS: Record<string, FilterOption[]> = {
-  stage: STAGE_FILTER_OPTIONS,
-  shortlisted: [
-    { id: "yes", label: "Yes", category: "shortlisted", value: "true" },
-    { id: "no", label: "No", category: "shortlisted", value: "false" },
-  ],
-};
 
 interface Props {
   candidates: CandidateWithJob[];
@@ -40,9 +41,25 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>([]);
+  const [referenceTime] = useState(() => Date.now());
+
+  const categoryOptions = useMemo<Record<string, FilterOption[]>>(() => {
+    const unique = (values: (string | null | undefined)[]) => [...new Set(values.filter((value): value is string => !!value))].sort();
+    return {
+      stage: STAGE_FILTER_OPTIONS,
+      shortlisted: [{ id: "yes", label: "Yes", category: "shortlisted", value: "true" }, { id: "no", label: "No", category: "shortlisted", value: "false" }],
+      role: unique(candidates.map((candidate) => candidate.jobs?.title)).map((value) => ({ id: value, label: value, category: "role", value })),
+      source: unique(candidates.map((candidate) => candidate.source)).map((value) => ({ id: value, label: value, category: "source", value })),
+      location: unique(candidates.map((candidate) => candidate.location)).map((value) => ({ id: value, label: value, category: "location", value })),
+      score: [{ id: "high", label: "High (75+)", category: "score", value: "high" }, { id: "review", label: "Review (50–74)", category: "score", value: "review" }, { id: "low", label: "Low (<50)", category: "score", value: "low" }, { id: "pending", label: "Not screened", category: "score", value: "pending" }],
+      cv: [{ id: "available", label: "CV available", category: "cv", value: "available" }, { id: "missing", label: "CV missing", category: "cv", value: "missing" }],
+      attention: [{ id: "needs_screening", label: "Needs screening", category: "attention", value: "needs_screening" }, { id: "stalled", label: "Stalled 14+ days", category: "attention", value: "stalled" }],
+    };
+  }, [candidates]);
 
   const filtered = useMemo(() => {
     let list = candidates;
+    const fourteenDaysAgo = referenceTime - 14 * 24 * 60 * 60 * 1000;
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -64,10 +81,35 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
         if (f.operator === "is") list = list.filter((c) => c.shortlisted === wantShortlisted);
         else list = list.filter((c) => c.shortlisted !== wantShortlisted);
       }
+      if (f.category === "role") list = f.operator === "is" ? list.filter((c) => f.values.includes(c.jobs?.title ?? "")) : list.filter((c) => !f.values.includes(c.jobs?.title ?? ""));
+      if (f.category === "source") list = f.operator === "is" ? list.filter((c) => f.values.includes(c.source ?? "")) : list.filter((c) => !f.values.includes(c.source ?? ""));
+      if (f.category === "location") list = f.operator === "is" ? list.filter((c) => f.values.includes(c.location ?? "")) : list.filter((c) => !f.values.includes(c.location ?? ""));
+      if (f.category === "score") {
+        const matches = (c: CandidateWithJob) => f.values.some((value) => value === "pending" ? c.ai_score === null : value === "high" ? (c.ai_score ?? -1) >= 75 : value === "review" ? (c.ai_score ?? -1) >= 50 && (c.ai_score ?? -1) < 75 : c.ai_score !== null && c.ai_score < 50);
+        list = f.operator === "is" ? list.filter(matches) : list.filter((candidate) => !matches(candidate));
+      }
+      if (f.category === "cv") {
+        const matches = (c: CandidateWithJob) => f.values.some((value) => value === "available" ? !!(c.cv_url || c.cv_text || c.cv_parsed) : !(c.cv_url || c.cv_text || c.cv_parsed));
+        list = f.operator === "is" ? list.filter(matches) : list.filter((candidate) => !matches(candidate));
+      }
+      if (f.category === "attention") {
+        const matches = (c: CandidateWithJob) => f.values.some((value) => value === "needs_screening" ? c.ai_score === null && !!(c.cv_text || c.cv_parsed) : !["hired", "rejected"].includes(c.stage) && new Date(c.applied_at).getTime() < fourteenDaysAgo);
+        list = f.operator === "is" ? list.filter(matches) : list.filter((candidate) => !matches(candidate));
+      }
     }
 
     return list;
-  }, [candidates, search, filters]);
+  }, [candidates, search, filters, referenceTime]);
+
+  const stats = useMemo(() => {
+    const stalled = candidates.filter((candidate) => !["hired", "rejected"].includes(candidate.stage) && referenceTime - new Date(candidate.applied_at).getTime() > 14 * 24 * 60 * 60 * 1000).length;
+    return [
+      { label: "All candidates", value: candidates.length, icon: "solar:users-group-two-rounded-broken", color: "blue", filter: [] as ActiveFilter[] },
+      { label: "Needs screening", value: unscreenedIds.length, icon: "solar:cpu-bolt-broken", color: "amber", filter: [{ category: "attention", values: ["needs_screening"], label: "Attention: is Needs screening", operator: "is" as const }] },
+      { label: "Interviews", value: candidates.filter((candidate) => candidate.stage === "interview").length, icon: "solar:calendar-broken", color: "blue", filter: [{ category: "stage", values: ["interview"], label: "Stage: is Interview", operator: "is" as const }] },
+      { label: "Stalled", value: stalled, icon: "solar:alarm-broken", color: "red", filter: [{ category: "attention", values: ["stalled"], label: "Attention: is Stalled 14+ days", operator: "is" as const }] },
+    ] as { label: string; value: number; icon: string; color: StatCardColor; filter: ActiveFilter[] }[];
+  }, [candidates, unscreenedIds, referenceTime]);
 
   const columns: Column<CandidateWithJob>[] = [
     {
@@ -91,7 +133,7 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
       header: "Stage",
       accessor: "stage",
       sortable: true,
-      render: (row) => <StatusPill context="stage" value={row.stage} />,
+      render: (row) => <div className="flex flex-col items-start gap-1.5"><StatusPill context="stage" value={row.stage} /><CandidateStageSelect candidateId={row.id} stage={row.stage} /></div>,
     },
     {
       header: "AI Score",
@@ -121,6 +163,13 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
         ) : (
           <span className="text-xs text-[var(--text-lo)] opacity-50">—</span>
         ),
+    },
+    {
+      header: "Triage",
+      accessor: "ai_score",
+      render: (row) => row.ai_score === null
+        ? <ScreenButton candidateId={row.id} hasCV={!!(row.cv_text || row.cv_parsed)} compact />
+        : <span className="text-xs text-[var(--text-lo)]">Screened</span>,
     },
     {
       header: "Shortlisted",
@@ -156,7 +205,11 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
   ];
 
   return (
-    <GenericTable
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats.map((stat) => <StatCard key={stat.label} title={stat.label} value={stat.value} icon={stat.icon} color={stat.color} compact onClick={() => setFilters(stat.filter)} />)}
+      </div>
+      <GenericTable
       data={filtered}
       columns={columns}
       actions={actions}
@@ -169,12 +222,14 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
           onSearchChange={setSearch}
           onFilterChange={setFilters}
           filterCategories={FILTER_CATEGORIES}
-          categoryOptions={CATEGORY_OPTIONS}
+          categoryOptions={categoryOptions}
+          initialFilters={filters}
           searchPlaceholder="Search candidates by name, email or role…"
         />
       }
       rightContent={bulkScreenButton}
       onRefresh={() => { setSearch(""); setFilters([]); }}
-    />
+      />
+    </div>
   );
 }

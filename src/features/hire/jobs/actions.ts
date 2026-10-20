@@ -10,6 +10,22 @@ import { getCachedJob, getCachedJobs } from "@/lib/cache/queries";
 import type { Database } from "@/types/database";
 import type { JobFormData } from "./types";
 
+function scheduledDate(value: string | null | undefined, label: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new Error(`${label} must be a valid date and time`);
+  return date.toISOString();
+}
+
+function validateSchedule(form: Pick<JobFormData, "published_at" | "closes_at">) {
+  const publishedAt = scheduledDate(form.published_at, "Publish date");
+  const closesAt = scheduledDate(form.closes_at, "Close date");
+  if (publishedAt && closesAt && new Date(closesAt) <= new Date(publishedAt)) {
+    throw new Error("Close date must be after the publish date");
+  }
+  return { publishedAt, closesAt };
+}
+
 export async function getJobs() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
@@ -28,6 +44,8 @@ export async function createJob(form: JobFormData) {
   const session = await getServerSession(authOptions);
   if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
 
+  const { publishedAt, closesAt } = validateSchedule(form);
+
   const { data, error } = await supabaseAdmin
     .from("jobs")
     .insert({
@@ -38,6 +56,9 @@ export async function createJob(form: JobFormData) {
       requirements: { must_haves: form.must_haves, nice_to_haves: form.nice_to_haves },
       scoring_rubric: form.scoring_rubric,
       status: form.status,
+      // Opening a job with no schedule publishes it immediately.
+      published_at: publishedAt ?? (form.status === "open" ? new Date().toISOString() : null),
+      closes_at: closesAt,
       created_by: session.user.id,
     })
     .select()
@@ -55,6 +76,14 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
 
   type JobUpdate = Database["public"]["Tables"]["jobs"]["Update"];
   const update: JobUpdate = {};
+  if (form.published_at !== undefined || form.closes_at !== undefined) {
+    const { publishedAt, closesAt } = validateSchedule({
+      published_at: form.published_at ?? null,
+      closes_at: form.closes_at ?? null,
+    });
+    if (form.published_at !== undefined) update.published_at = publishedAt;
+    if (form.closes_at !== undefined) update.closes_at = closesAt;
+  }
   if (form.title !== undefined) update.title = form.title;
   if (form.department !== undefined) update.department = form.department || null;
   if (form.location !== undefined) update.location = form.location || null;
@@ -66,7 +95,18 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
     };
   }
   if (form.scoring_rubric !== undefined) update.scoring_rubric = form.scoring_rubric;
-  if (form.status !== undefined) update.status = form.status;
+  if (form.status !== undefined) {
+    update.status = form.status;
+    if (form.status === "open" && form.published_at === undefined) {
+      const { data: current, error: currentError } = await supabaseAdmin
+        .from("jobs")
+        .select("published_at")
+        .eq("id", id)
+        .single();
+      if (currentError) throw new Error(currentError.message);
+      if (!current?.published_at) update.published_at = new Date().toISOString();
+    }
+  }
 
   const { data, error } = await supabaseAdmin
     .from("jobs")

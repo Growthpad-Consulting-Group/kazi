@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { addNote } from "../actions";
+import { Button } from "@/components/ui/Button";
 
 export function NoteForm({ candidateId }: { candidateId: string }) {
   const [note, setNote] = useState("");
@@ -22,15 +23,9 @@ export function NoteForm({ candidateId }: { candidateId: string }) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Add a note…"
-        className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+        className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-[#f05d23]/30"
       />
-      <button
-        type="submit"
-        disabled={isPending || !note.trim()}
-        className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40 transition-colors"
-      >
-        {isPending ? "…" : "Add"}
-      </button>
+      <Button type="submit" disabled={isPending || !note.trim()} loading={isPending} size="sm" icon="solar:add-circle-broken">Add note</Button>
     </form>
   );
 }

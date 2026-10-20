@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import {
   DndContext,
   DragOverlay,
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export function PipelineBoard({ columns: initial, stages }: Props) {
+  const router = useRouter();
   const [columns, setColumns] = useState(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -66,15 +69,18 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
     });
 
     // Persist
-    updateCandidateStage(candidateId, toStage).catch(() => {
-      // Revert on failure
+    updateCandidateStage(candidateId, toStage).then(() => {
+      toast.success(`Moved to ${STAGE_LABELS[toStage]}`);
+      router.refresh();
+    }).catch((error) => {
       setColumns(initial);
+      toast.error(error instanceof Error ? error.message : "Could not move candidate");
     });
   }
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6">
+      <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 md:mx-0 md:px-0">
         {stages.map((stage) => (
           <PipelineColumn
             key={stage}
