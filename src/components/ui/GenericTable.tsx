@@ -11,6 +11,7 @@ import TableRow from "./table/TableRow";
 import TablePagination from "./table/TablePagination";
 import DateRangePicker, { type DateRangeValue } from "./DateRangePicker";
 import ExportModal from "./export/ExportModal";
+import TooltipIconButton from "./TooltipIconButton";
 import toast from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -288,43 +289,59 @@ export function GenericTable<T extends Record<string, unknown>>({
               </div>
 
               {/* RIGHT: actions */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 {rightContent}
                 {enableRefresh && (
-                  <button
+                  <TooltipIconButton
+                    icon="solar:refresh-broken"
+                    label="Refresh"
                     onClick={handleRefresh}
-                    title="Refresh"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
-                  >
-                    <Icon icon="solar:refresh-broken" className="h-4 w-4" />
-                  </button>
+                    className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                    iconClassName="h-4 w-4"
+                    position="bottom"
+                  />
                 )}
                 {showExport && (
-                  <button
+                  <TooltipIconButton
+                    label="Export"
                     onClick={handleExport}
-                    className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                    className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                    iconClassName="h-4 w-4"
+                    position="bottom"
                   >
-                    <Icon icon="solar:export-broken" className="h-4 w-4" />
-                    Export
-                  </button>
+                    <div className="flex items-center gap-1.5 px-1 text-xs font-medium">
+                      <Icon icon="solar:export-broken" className="h-4 w-4" />
+                      Export
+                    </div>
+                  </TooltipIconButton>
                 )}
                 {onImport && (
-                  <button
+                  <TooltipIconButton
+                    label="Import"
                     onClick={onImport}
-                    className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                    className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                    iconClassName="h-4 w-4"
+                    position="bottom"
                   >
-                    <Icon icon="solar:import-broken" className="h-4 w-4" />
-                    Import
-                  </button>
+                    <div className="flex items-center gap-1.5 px-1 text-xs font-medium">
+                      <Icon icon="solar:import-broken" className="h-4 w-4" />
+                      Import
+                    </div>
+                  </TooltipIconButton>
                 )}
                 {onAddNew && (
-                  <button
+                  <TooltipIconButton
+                    label={addNewLabel}
                     onClick={onAddNew}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#f05d23] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#d94f1a] transition-all shadow-sm"
+                    className="bg-[#f05d23] text-white hover:bg-[#d94f1a] transition-all shadow-sm"
+                    iconClassName="h-4 w-4"
+                    position="bottom"
                   >
-                    <Icon icon="solar:add-circle-broken" className="h-4 w-4" />
-                    {addNewLabel}
-                  </button>
+                    <div className="flex items-center gap-1.5 px-1 text-xs font-medium">
+                      <Icon icon="solar:add-circle-broken" className="h-4 w-4" />
+                      {addNewLabel}
+                    </div>
+                  </TooltipIconButton>
                 )}
               </div>
             </div>

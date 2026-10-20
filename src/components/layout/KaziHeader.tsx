@@ -1,11 +1,16 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import GlassPanel from "./GlassPanel";
 import { useTheme } from "@/shared/contexts/ThemeContext";
 import { usePageHeaderValue } from "@/shared/contexts/PageHeaderContext";
+import { useCommandPalette } from "@/shared/contexts/CommandPaletteContext";
+import { useNotifications } from "@/shared/contexts/NotificationsContext";
 import HeaderThemeDropdown from "./HeaderThemeDropdown";
 import HeaderProfileDropdown from "./HeaderProfileDropdown";
+import Notifications from "@/components/ui/Notifications";
+import TooltipIconButton from "@/components/ui/TooltipIconButton";
 
 export default function KaziHeader({
   isSidebarOpen,
@@ -16,6 +21,22 @@ export default function KaziHeader({
 }) {
   const { resolvedMode: mode } = useTheme();
   const pageHeader = usePageHeaderValue();
+  const { open: openCommandPalette } = useCommandPalette();
+  const { notifications, isLoading, markNotificationAsRead, clearAllNotifications } = useNotifications();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 flex items-stretch gap-3 animate-header-slide-in m-1 md:mx-8 md:mt-4 transition-all duration-300">
@@ -82,19 +103,52 @@ export default function KaziHeader({
       {/* Right — search, notifications, theme, profile */}
       <GlassPanel mode={mode} className="shrink-0 rounded-2xl">
         <div className="flex h-full items-center gap-0.5 px-2 py-1.5">
-          <button
-            title="Search (⌘K)"
-            className="group flex items-center justify-center p-2 rounded-full transition-all active:scale-95 hover:bg-black/5 dark:hover:bg-white/10 text-gray-600 dark:text-gray-200"
-          >
-            <Icon icon="solar:magnifer-broken" className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-          </button>
 
-          <button
-            title="Notifications"
-            className="group relative flex items-center justify-center p-2 rounded-full transition-all active:scale-95 hover:bg-black/5 dark:hover:bg-white/10 text-gray-600 dark:text-gray-200"
-          >
-            <Icon icon="solar:bell-bing-broken" className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-          </button>
+          {/* Search / Command Palette */}
+          <TooltipIconButton
+            icon="solar:magnifer-broken"
+            label="Search (⌘K)"
+            onClick={openCommandPalette}
+            mode={mode}
+            className="text-gray-600 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
+            iconClassName="h-5 w-5"
+            position="bottom"
+          />
+
+          {/* Notifications */}
+          <div className="relative" ref={notificationsRef}>
+            <TooltipIconButton
+              label="Notifications"
+              onClick={() => setIsNotificationsOpen((o) => !o)}
+              mode={mode}
+              className="text-gray-600 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95"
+              iconClassName="h-5 w-5"
+              position="bottom"
+            >
+              <div className="relative">
+                <Icon icon="solar:bell-bing-broken" className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-medium border border-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </div>
+            </TooltipIconButton>
+            {isNotificationsOpen && (
+              <div className="absolute top-12 right-0 w-96 z-50" onClick={(e) => e.stopPropagation()}>
+                <GlassPanel mode={mode} className={`rounded-2xl ${mode === "dark" ? "bg-gray-900/90 text-white" : "bg-white/90 text-[var(--text-hi)]"}`}>
+                  <Notifications
+                    notifications={notifications}
+                    mode={mode}
+                    isLoading={isLoading}
+                    onMarkAsRead={markNotificationAsRead}
+                    onClearAll={clearAllNotifications}
+                    onNavigate={() => setIsNotificationsOpen(false)}
+                  />
+                </GlassPanel>
+              </div>
+            )}
+          </div>
 
           <div className="mx-0.5 h-5 w-px bg-[var(--border)] hidden md:block" />
 

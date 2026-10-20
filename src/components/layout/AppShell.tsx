@@ -7,12 +7,17 @@ import AppFooter from "./AppFooter";
 import useSidebar from "@/shared/hooks/useSidebar";
 import { PageHeaderProvider } from "@/shared/contexts/PageHeaderContext";
 import { ThemeProvider } from "@/shared/contexts/ThemeContext";
+import { CommandPaletteProvider } from "@/shared/contexts/CommandPaletteContext";
+import { NotificationsProvider } from "@/shared/contexts/NotificationsContext";
+import CommandPalette from "./CommandPalette";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
 
   return (
     <ThemeProvider>
+      <CommandPaletteProvider>
+      <NotificationsProvider>
       <PageHeaderProvider>
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--canvas)]">
           <div className="flex min-h-0 flex-1">
@@ -28,7 +33,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
+        <CommandPalette />
       </PageHeaderProvider>
+      </NotificationsProvider>
+      </CommandPaletteProvider>
     </ThemeProvider>
   );
 }

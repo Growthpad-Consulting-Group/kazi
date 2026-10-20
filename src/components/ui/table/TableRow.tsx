@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import { cn } from "@/shared/lib/cn";
 import { getNestedValue, isDateField, formatDateValue } from "./TableUtils";
 import type { Column, RowAction } from "../GenericTable";
+import TooltipIconButton from "../TooltipIconButton";
 
 interface TableRowProps<T extends Record<string, unknown>> {
   row: T;
@@ -140,19 +141,20 @@ export default function TableRow<T extends Record<string, unknown>>({
                     const ic    = typeof action.icon  === "function" ? action.icon(row)  : action.icon;
                     const label = typeof action.label === "function" ? action.label(row) : action.label;
                     return (
-                      <button
+                      <TooltipIconButton
                         key={ai}
+                        icon={ic}
+                        label={label}
                         onClick={() => action.onClick(row)}
-                        title={label}
                         className={cn(
-                          "rounded-lg p-1.5 transition-all active:scale-95",
+                          "transition-all active:scale-95",
                           action.variant === "danger"
                             ? "text-red-400 hover:bg-red-500/10"
                             : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[#f05d23]"
                         )}
-                      >
-                        <Icon icon={ic} className="h-4 w-4" />
-                      </button>
+                        iconClassName="h-4 w-4"
+                        position="bottom"
+                      />
                     );
                   })}
 
