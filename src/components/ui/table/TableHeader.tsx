@@ -80,7 +80,7 @@ export default function TableHeader({
     <thead className={cn("bg-[var(--surface-2)] transition-colors", stickyHeader && "sticky top-0 z-20")}>
       <tr ref={rowRef}>
         {selectable && (
-          <th className="w-10 px-3 py-3.5 border-b border-r border-[var(--border)] bg-[var(--surface-2)] sticky left-0 top-0 z-30">
+          <th className="w-10 px-3 py-3.5 border-b border-r border-slate-200/60 dark:border-slate-800/60 bg-[var(--surface-2)] sticky left-0 top-0 z-30">
             <input
               type="checkbox"
               checked={table.allPageSel}
@@ -102,7 +102,7 @@ export default function TableHeader({
               key={`${accessor}-${idx}`}
               style={style}
               className={cn(
-                "group/col relative px-4 py-3.5 border-b border-[var(--border)] text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-lo)] bg-[var(--surface-2)] select-none",
+                "group/col relative px-4 py-3.5 border-b border-slate-200/80 dark:border-slate-800/80 text-left text-md font-semibold text-[var(--text-lo)] bg-[var(--surface-2)] select-none",
                 col.sortable && "cursor-pointer hover:text-[var(--text-hi)] transition-colors",
                 col.headerClassName
               )}
@@ -139,7 +139,7 @@ export default function TableHeader({
         })}
 
         {hasActions && (
-          <th className="sticky right-0 top-0 z-20 px-4 py-3.5 border-b border-l border-[var(--border)] bg-[var(--surface-2)] text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-lo)]">
+          <th className="sticky right-0 top-0 z-20 px-4 py-3.5 border-b border-l border-slate-200/60 dark:border-slate-800/60 bg-[var(--surface-2)] text-left text-md font-semibold text-[var(--text-lo)]">
             Actions
           </th>
         )}

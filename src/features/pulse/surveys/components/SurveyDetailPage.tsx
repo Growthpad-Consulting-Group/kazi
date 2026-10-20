@@ -58,7 +58,7 @@ export default async function SurveyDetailPage({ surveyId }: { surveyId: string 
 
       {/* Take the survey */}
       {survey.status === "active" && !alreadyResponded && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">Your Response</h2>
           <SurveyResponseForm
             surveyId={surveyId}

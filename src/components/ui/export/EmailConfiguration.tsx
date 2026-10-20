@@ -17,7 +17,7 @@ interface Props {
 
 export default function EmailConfiguration({ emailRecipients, setEmailRecipients, emailSubject, setEmailSubject, emailMessage, setEmailMessage, emailAttachmentFormat, setEmailAttachmentFormat, mode }: Props) {
   return (
-    <div className={`rounded-2xl border backdrop-blur-sm p-6 space-y-5 ${mode === "dark" ? "bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border-blue-700/50" : "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg"}`}>
+    <div className={`rounded-2xl border backdrop-blur-sm p-6 space-y-5 ${mode === "dark" ? "bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border-blue-700/50" : "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg hover:shadow-xl transition-shadow duration-200"}`}>
       <div className="flex items-center gap-3 mb-2">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === "dark" ? "bg-[#f05d23]/20" : "bg-gradient-to-br from-[#f05d23] to-[#d94f1a] shadow-lg shadow-[#f05d23]/30"}`}>
           <Icon icon="solar:letter-opened-broken" className={`w-5 h-5 ${mode === "dark" ? "text-[#f05d23]" : "text-white"}`} />

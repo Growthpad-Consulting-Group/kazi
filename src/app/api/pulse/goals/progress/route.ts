@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateOwnerGoals } from "@/lib/cache/invalidate";
 import type { GoalStatus } from "@/types/database";
 
 export async function PATCH(req: Request) {
@@ -15,12 +16,21 @@ export async function PATCH(req: Request) {
   if (progress !== undefined) update.progress = Math.max(0, Math.min(100, progress));
   if (status) update.status = status as GoalStatus;
 
+  // Read the owner (and parent) before the write so the right cached lists
+  // can be dropped afterwards.
+  const { data: existing } = await supabaseAdmin
+    .from("goals")
+    .select("owner_id, parent_id")
+    .eq("id", id)
+    .maybeSingle();
+  const before = existing as unknown as { owner_id: string | null; parent_id: string | null } | null;
+  const ownerId = before?.owner_id ?? "";
+  const parentId = before?.parent_id ?? null;
+
   const { error } = await supabaseAdmin.from("goals").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Roll up progress to parent if this goal has one
-  const { data: goal } = await supabaseAdmin.from("goals").select("parent_id").eq("id", id).single();
-  const parentId = (goal as unknown as { parent_id: string | null } | null)?.parent_id;
   if (parentId) {
     const { data: siblings } = await supabaseAdmin.from("goals").select("progress").eq("parent_id", parentId);
     const sibs = (siblings ?? []) as unknown as { progress: number }[];
@@ -30,5 +40,17 @@ export async function PATCH(req: Request) {
     }
   }
 
+  await invalidateOwnerGoals(ownerId);
+  // The parent goal's progress changed too — its owner may differ.
+  if (parentId) {
+    const { data: parent } = await supabaseAdmin
+      .from("goals")
+      .select("owner_id")
+      .eq("id", parentId)
+      .maybeSingle();
+    await invalidateOwnerGoals(
+      (parent as unknown as { owner_id: string | null } | null)?.owner_id ?? ""
+    );
+  }
   return NextResponse.json({ ok: true });
 }

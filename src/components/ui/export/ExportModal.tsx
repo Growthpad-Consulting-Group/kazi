@@ -207,7 +207,7 @@ export default function ExportModal({ isOpen, onClose, users, mode, type = "reco
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
             {/* Field Selection */}
-            <div className={`rounded-2xl border backdrop-blur-sm ${mode === "dark" ? "bg-gray-800/50 border-gray-700/50" : "bg-white/80 border-gray-200 shadow-sm"}`}>
+            <div className={`rounded-2xl border backdrop-blur-sm ${mode === "dark" ? "bg-gray-800/50 border-gray-700/50" : "bg-white/80 border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"}`}>
               <div className={`p-5 border-b ${mode === "dark" ? "border-gray-700/50" : "border-gray-200"}`}>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
@@ -254,7 +254,7 @@ export default function ExportModal({ isOpen, onClose, users, mode, type = "reco
             )}
 
             {/* Data Preview */}
-            <div className={`rounded-2xl border backdrop-blur-sm ${mode === "dark" ? "bg-gray-800/50 border-gray-700/50" : "bg-white/80 border-gray-200 shadow-sm"}`}>
+            <div className={`rounded-2xl border backdrop-blur-sm ${mode === "dark" ? "bg-gray-800/50 border-gray-700/50" : "bg-white/80 border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"}`}>
               <div className={`p-5 border-b ${mode === "dark" ? "border-gray-700/50" : "border-gray-200"}`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === "dark" ? "bg-[#f05d23]/20" : "bg-gradient-to-br from-[#f05d23] to-[#d94f1a] shadow-lg shadow-[#f05d23]/30"}`}>

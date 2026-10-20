@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { notifyRoles, RECRUITER_ROLES } from "@/lib/notifications";
+import { invalidateTables } from "@/lib/cache/invalidate";
 
 // Public endpoint — no auth. Called by the public /apply/[jobId] page.
 export async function POST(req: Request) {
@@ -16,7 +18,7 @@ export async function POST(req: Request) {
   // Verify job exists and is open
   const { data: job } = await supabaseAdmin
     .from("jobs")
-    .select("id, status")
+    .select("id, status, title")
     .eq("id", job_id)
     .single();
 
@@ -55,6 +57,15 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await notifyRoles(
+    RECRUITER_ROLES,
+    `New application: ${full_name} for ${job.title}`,
+    `/hire/candidates/${candidate.id}`
+  );
+
+  // The pipeline and hiring dashboard counts now include this applicant.
+  await invalidateTables("candidates");
 
   return NextResponse.json({ candidateId: candidate.id });
 }

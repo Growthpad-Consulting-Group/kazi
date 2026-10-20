@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateTables } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { surveyId, answers, respondentId } = await req.json();
+  // The respondent is always the signed-in user — a client-supplied id is
+  // never trusted, so that answers cannot be attributed to someone else.
+  const { surveyId, answers } = await req.json();
   if (!surveyId || !answers) return NextResponse.json({ error: "surveyId and answers required" }, { status: 400 });
 
   // Check survey is active
@@ -33,5 +36,6 @@ export async function POST(req: Request) {
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateTables("survey_responses");
   return NextResponse.json({ ok: true });
 }

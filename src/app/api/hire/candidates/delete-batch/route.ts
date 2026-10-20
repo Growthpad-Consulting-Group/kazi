@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "@/lib/r2";
+import { invalidateTables } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -43,5 +44,6 @@ export async function POST(req: Request) {
   const { error } = await supabaseAdmin.from("candidates").delete().in("id", ids);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  await invalidateTables("candidates");
   return NextResponse.json({ deleted: ids.length });
 }

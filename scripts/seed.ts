@@ -61,6 +61,17 @@ async function seed() {
 
   const hash = await bcrypt.hash("Demo1234!", 10);
 
+  // Departments lookup list (not wiped; insert only the missing ones)
+  console.log("🏢  Seeding departments…");
+  const deptNames = ["Engineering","Design","Product","Marketing","Sales","Finance","HR","Operations","Customer Support","Legal"];
+  const { data: existingDepts } = await supabase.from("departments").select("name");
+  const have = new Set((existingDepts ?? []).map((d: { name: string }) => d.name.toLowerCase()));
+  const missing = deptNames.filter((n) => !have.has(n.toLowerCase()));
+  if (missing.length) {
+    const { error: dErr } = await supabase.from("departments").insert(missing.map((name) => ({ name })));
+    if (dErr) console.warn(`  departments: ${dErr.message}`);
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // 1. USERS
   // ══════════════════════════════════════════════════════════════════════════

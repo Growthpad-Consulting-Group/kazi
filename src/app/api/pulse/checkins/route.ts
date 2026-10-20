@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateUserCheckins } from "@/lib/cache/invalidate";
 import type { CheckinStatus } from "@/types/database";
 
 export async function POST(req: Request) {
@@ -29,5 +30,6 @@ export async function POST(req: Request) {
   );
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateUserCheckins(userId);
   return NextResponse.json({ ok: true });
 }

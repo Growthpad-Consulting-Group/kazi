@@ -39,7 +39,7 @@ export function NewOneOnOneButton({ managerId, reports }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-200 w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-slate-900">Schedule 1-on-1</h2>
 
             <div>

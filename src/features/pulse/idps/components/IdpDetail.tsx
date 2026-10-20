@@ -67,14 +67,14 @@ export function IdpDetail({ idp }: { idp: Idp }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Goals</h2>
         <textarea rows={4} value={goals} onChange={(e) => setGoals(e.target.value)}
           placeholder="What do you want to achieve? How will success be measured?"
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Action Steps</h2>
         <div className="space-y-2">
           {actions.map((a, i) => (

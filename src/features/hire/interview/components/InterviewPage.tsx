@@ -43,7 +43,6 @@ export default async function InterviewPage({ candidateId }: { candidateId: stri
         candidateId={candidateId}
         rubric={candidate.jobs?.scoring_rubric ?? []}
         existingScorecard={scorecard}
-        interviewerId={session.user.id}
       />
     </div>
   );

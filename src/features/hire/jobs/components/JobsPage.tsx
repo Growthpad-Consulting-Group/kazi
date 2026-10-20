@@ -1,12 +1,14 @@
 import { getJobs } from "../actions";
+import { getDepartments } from "@/features/departments/actions";
 import JobsClientView from "./JobsClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 
 export default async function JobsPage() {
   const jobs = await getJobs();
+  const listed = await getDepartments().catch(() => [] as string[]);
   const departments = Array.from(
-    new Set(jobs.map((j) => j.department).filter(Boolean) as string[])
-  ).sort();
+    new Set([...listed, ...(jobs.map((j) => j.department).filter(Boolean) as string[])])
+  ).sort((a, b) => a.localeCompare(b));
 
   return (
     <>

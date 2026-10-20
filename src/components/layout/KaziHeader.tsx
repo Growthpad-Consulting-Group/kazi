@@ -39,7 +39,7 @@ export default function KaziHeader({
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 flex items-stretch gap-3 animate-header-slide-in m-1 md:mx-8 md:mt-4 transition-all duration-300">
+    <header className="sticky top-0 z-40 flex items-stretch gap-3 bg-transparent animate-header-slide-in m-1 md:mx-8 md:mt-4 transition-all duration-300">
 
       {/* Left — sidebar toggle + page title + actions */}
       <GlassPanel mode={mode} className="flex-1 min-w-0 rounded-2xl">

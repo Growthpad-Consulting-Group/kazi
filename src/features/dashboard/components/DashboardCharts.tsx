@@ -33,14 +33,14 @@ export default function DashboardCharts({ trend, pipeline }: Props) {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
       {/* Applications trend */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
               <Icon icon="solar:chart-broken" className="h-3.5 w-3.5 text-[#f05d23]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-[var(--text-hi)]">Applications (7 days)</h2>
+              <h2 className="text-md font-semibold text-[var(--text-hi)]">Applications (7 days)</h2>
               <p className="text-[11px] text-[var(--text-lo)]">Candidates who applied this week</p>
             </div>
           </div>
@@ -50,13 +50,13 @@ export default function DashboardCharts({ trend, pipeline }: Props) {
       </div>
 
       {/* Pipeline donut */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
         <div className="mb-2 flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15">
             <Icon icon="solar:pie-chart-broken" className="h-3.5 w-3.5 text-violet-500" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-hi)]">Pipeline Breakdown</h2>
+            <h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline Breakdown</h2>
             <p className="text-[11px] text-[var(--text-lo)]">Candidates by current stage</p>
           </div>
         </div>

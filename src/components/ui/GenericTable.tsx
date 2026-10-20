@@ -26,11 +26,16 @@ export interface Column<T = Record<string, unknown>> {
   render?: (row: T, value: unknown) => ReactNode;
 }
 
+export type RowActionVariant = "default" | "info" | "warning" | "danger" | "success";
+
 export interface RowAction<T = Record<string, unknown>> {
   icon: string | ((row: T) => string);
   label: string | ((row: T) => string);
   onClick: (row: T) => void;
-  variant?: "default" | "danger";
+  /** Colour scheme for the button. Ignored when `className` is provided. */
+  variant?: RowActionVariant;
+  /** Full Tailwind class override for the button, e.g. bflowpos-style per-action colours. */
+  className?: string | ((row: T) => string);
   show?: (row: T) => boolean;
 }
 
@@ -233,7 +238,7 @@ export function GenericTable<T extends Record<string, unknown>>({
 
   return (
     <div className={cn(
-      "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl shadow-black/5 transition-colors",
+      "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-all duration-200",
       className
     )}>
 
@@ -408,7 +413,7 @@ export function GenericTable<T extends Record<string, unknown>>({
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className={cn("border-b border-[var(--border)]", i % 2 !== 0 && "bg-[var(--surface-2)]/30")}>
+                <tr key={i} className={cn("border-b border-slate-200/60 dark:border-slate-800/60", i % 2 !== 0 && "bg-[var(--surface-2)]/30")}>
                   {selectable && <td className="px-3 py-3.5 border-r border-[var(--border)]"><Skeleton className="h-4 w-4" /></td>}
                   {columns.map((col) => (
                     <td key={String(col.accessor)} className="px-4 py-3.5">

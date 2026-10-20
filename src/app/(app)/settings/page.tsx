@@ -1,2 +1,6 @@
-import SettingsPage from "@/features/settings/components/SettingsPage";
-export default SettingsPage;
+import { redirect } from "next/navigation";
+
+export default function SettingsIndexPage() {
+  redirect("/settings/overview");
+}
+

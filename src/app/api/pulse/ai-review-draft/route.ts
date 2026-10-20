@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import type { ReviewType } from "@/types/database";
+import { invalidateTables } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -73,5 +74,6 @@ Return JSON: {"draft": "...", "strengths": "one sentence", "developmentAreas": "
   // Save draft to the review record
   await supabaseAdmin.from("performance_reviews").update({ ai_draft: result.draft }).eq("id", reviewId);
 
+  await invalidateTables("performance_reviews");
   return NextResponse.json(result);
 }

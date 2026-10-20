@@ -7,13 +7,13 @@ export function FeedbackWall({ kudos }: { kudos: FeedbackWithUsers[] }) {
         Recognition Wall ({kudos.length})
       </h2>
       {kudos.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-sm text-slate-400">No shout-outs yet. Be the first to recognise a teammate!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {kudos.map((f) => (
-            <div key={f.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div key={f.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
               <div className="flex items-start gap-3">
                 <span className="text-2xl flex-shrink-0">{f.emoji ?? "⭐"}</span>
                 <div className="flex-1 min-w-0">

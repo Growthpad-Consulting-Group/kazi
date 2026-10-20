@@ -115,6 +115,7 @@ export default function JobsClientView({ jobs, departments }: Props) {
     {
       icon: "solar:eye-broken",
       label: "View",
+      variant: "info",
       onClick: (row) => router.push(`/hire/jobs/${row.id}`),
     },
     {
@@ -142,8 +143,6 @@ export default function JobsClientView({ jobs, departments }: Props) {
           searchPlaceholder="Search jobs by title, department or location…"
         />
       }
-      onAddNew={() => router.push("/hire/jobs/new")}
-      addNewLabel="New Job"
       onRefresh={() => { setSearch(""); setFilters([]); }}
     />
   );

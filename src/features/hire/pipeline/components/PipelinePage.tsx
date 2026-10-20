@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getCachedCandidates } from "@/lib/cache/queries";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PipelineBoard } from "./PipelineBoard";
@@ -11,18 +11,7 @@ export default async function PipelinePage({ jobId }: { jobId?: string }) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
-  let query = supabaseAdmin
-    .from("candidates")
-    .select("*, jobs(title, department)")
-    .in("stage", PIPELINE_STAGES)
-    .order("applied_at", { ascending: false });
-
-  if (jobId) query = query.eq("job_id", jobId);
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  const candidates = (data ?? []) as unknown as CandidateWithJob[];
+  const candidates = (await getCachedCandidates(jobId, true)) as unknown as CandidateWithJob[];
 
   // Group by stage
   const columns: Record<CandidateStage, CandidateWithJob[]> = {

@@ -64,7 +64,7 @@ const TooltipIconButton = forwardRef<HTMLDivElement, TooltipIconButtonProps>((
           else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
         }}
         onClick={disabled ? undefined : onClick}
-        className={`relative group p-2 rounded-full focus:outline-none ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"} ${className}`}
+        className={`relative group p-2 rounded-lg focus:outline-none ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"} ${className}`}
         style={style}
         role="button"
         tabIndex={disabled ? -1 : 0}

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateTables } from "@/lib/cache/invalidate";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import type { Candidate } from "@/types/database";
 
@@ -97,6 +98,9 @@ Shortlist if score >= 65.`;
       stage: "screened",
     })
     .eq("id", candidateId);
+
+  // Screening changed the candidate's score, shortlist flag and stage.
+  await invalidateTables("candidates");
 
   await supabaseAdmin.from("ai_logs").insert({
     operation: "screening",

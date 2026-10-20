@@ -33,7 +33,7 @@ export default async function FeedbackPage() {
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
             Private Feedback for You ({privateFeedback.length})
           </h2>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
             {privateFeedback.map((f, i) => (
               <div key={f.id} className={`px-5 py-4 ${i > 0 ? "border-t border-slate-100" : ""}`}>
                 <p className="text-sm text-slate-700">{f.message}</p>

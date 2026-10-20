@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 
 export async function POST(req: Request) {
@@ -60,5 +61,19 @@ Return a plain numbered list of talking points. Be specific and practical. Focus
   // Save to one_on_one record
   await supabaseAdmin.from("one_on_ones").update({ ai_talking_points: points }).eq("id", oneOnOneId);
 
+  // Only the two participants' cached one-on-one lists went stale.
+  const { data: existing } = await supabaseAdmin
+    .from("one_on_ones")
+    .select("manager_id, report_id")
+    .eq("id", oneOnOneId)
+    .maybeSingle();
+  const participants = existing as unknown as {
+    manager_id: string | null;
+    report_id: string | null;
+  } | null;
+  await invalidateOneOnOneParticipants({
+    managerId: participants?.manager_id ?? undefined,
+    reportId: participants?.report_id ?? undefined,
+  });
   return NextResponse.json({ points });
 }

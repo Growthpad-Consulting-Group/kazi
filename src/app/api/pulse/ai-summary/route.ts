@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateUserCheckins } from "@/lib/cache/invalidate";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 
 export async function POST(req: Request) {
@@ -71,5 +72,9 @@ Be direct and specific. Do not list names unnecessarily — focus on themes.`;
       .eq("week_start", weekStart);
   }
 
+  // Only the check-ins that were just summarised went stale.
+  for (const c of rows) {
+    await invalidateUserCheckins(c.user_id);
+  }
   return NextResponse.json({ summary });
 }

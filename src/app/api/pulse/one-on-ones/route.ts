@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -43,5 +44,6 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateOneOnOneParticipants({ managerId, reportId });
   return NextResponse.json({ id: (data as unknown as { id: string }).id, carried: carried.length });
 }

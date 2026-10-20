@@ -29,7 +29,7 @@ export function SurveyResults({ survey, responses }: Props) {
           const maxCount = Math.max(...Object.values(dist), 1);
 
           return (
-            <div key={q.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div key={q.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5">
               <p className="text-sm font-semibold text-slate-900 mb-3">{q.text}</p>
               <div className="flex items-end gap-2 mb-2">
                 <span className="text-3xl font-bold text-slate-900">{avg}</span>
@@ -50,7 +50,7 @@ export function SurveyResults({ survey, responses }: Props) {
         // Text responses
         const texts = qAnswers.filter((a) => typeof a === "string" && a.trim()) as string[];
         return (
-          <div key={q.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <div key={q.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5">
             <p className="text-sm font-semibold text-slate-900 mb-3">{q.text}</p>
             <div className="space-y-2">
               {texts.map((t, i) => (

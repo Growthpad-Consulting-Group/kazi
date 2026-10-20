@@ -52,7 +52,7 @@ export default async function LeadershipDashboard() {
           description="Team engagement and performance insights"
           icon="solar:chart-broken"
         />
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-12 text-center transition-shadow duration-200">
           <Icon icon="solar:users-group-broken" className="mx-auto h-10 w-10 text-[var(--text-lo)] opacity-40" />
           <p className="mt-3 text-sm text-[var(--text-lo)]">No team members found.</p>
         </div>
@@ -348,7 +348,7 @@ function KpiCard({
 }) {
   const styles = ACCENT_STYLES[accent as keyof typeof ACCENT_STYLES] ?? ACCENT_STYLES.slate;
   return (
-    <div className={`rounded-2xl border bg-[var(--surface)] p-5 shadow-lg shadow-black/5 transition-all duration-300 ${styles.border}`}>
+    <div className={`rounded-2xl border bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-all duration-300 ${styles.border}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-medium text-[var(--text-lo)]">{label}</p>
         <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}>
@@ -376,13 +376,13 @@ function SectionCard({
 }) {
   const isAmber = accent === "amber";
   return (
-    <div className={`rounded-2xl border shadow-lg shadow-black/5 transition-all duration-300 ${isAmber ? "border-amber-200/60 dark:border-amber-800/30 bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--surface)]"}`}>
+    <div className={`rounded-2xl border shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-all duration-300 ${isAmber ? "border-amber-200/60 dark:border-amber-800/30 bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--surface)]"}`}>
       <div className={`flex items-center gap-3 border-b px-6 py-4 ${isAmber ? "border-amber-100 dark:border-amber-800/20" : "border-[var(--border)]"}`}>
         <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${isAmber ? "bg-amber-500/10 text-amber-500" : "bg-[#f05d23]/10 text-[#f05d23]"}`}>
           <Icon icon={icon} className="h-4 w-4" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-[var(--text-hi)]">{title}</h3>
+          <h3 className="text-md font-semibold text-[var(--text-hi)]">{title}</h3>
           {description && <p className="text-xs text-[var(--text-lo)]">{description}</p>}
         </div>
       </div>

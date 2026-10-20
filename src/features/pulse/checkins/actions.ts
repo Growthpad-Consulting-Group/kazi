@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateUserCheckins } from "@/lib/cache/invalidate";
+import { getCachedMyCheckins } from "@/lib/cache/queries";
 import type { Checkin, CheckinStatus } from "@/types/database";
 
 export type CheckinWithUser = Checkin & {
@@ -9,13 +11,7 @@ export type CheckinWithUser = Checkin & {
 };
 
 export async function getMyCheckins(userId: string): Promise<Checkin[]> {
-  const { data } = await supabaseAdmin
-    .from("checkins")
-    .select("*")
-    .eq("user_id", userId)
-    .order("week_start", { ascending: false })
-    .limit(12);
-  return (data ?? []) as unknown as Checkin[];
+  return (await getCachedMyCheckins(userId)) as Checkin[];
 }
 
 export async function getTeamCheckins(managerId: string): Promise<CheckinWithUser[]> {
@@ -52,6 +48,7 @@ export async function upsertCheckin(
   );
   if (error) throw new Error(error.message);
   revalidatePath("/pulse/checkins");
+  await invalidateUserCheckins(userId);
 }
 
 export async function reviewCheckin(
@@ -70,4 +67,12 @@ export async function reviewCheckin(
     .eq("id", checkinId);
   if (error) throw new Error(error.message);
   revalidatePath("/pulse/checkins");
+  // The reviewer's comment is stored on the employee's check-in, so the
+  // owner's cached check-ins are the ones that went stale.
+  const { data: checkin } = await supabaseAdmin
+    .from("checkins")
+    .select("user_id")
+    .eq("id", checkinId)
+    .maybeSingle();
+  await invalidateUserCheckins((checkin as { user_id: string } | null)?.user_id ?? "");
 }

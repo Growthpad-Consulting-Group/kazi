@@ -53,7 +53,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
       </div>
 
       {/* Stage pipeline */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
         <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">Pipeline</p>
         <div className="flex items-center gap-1 flex-wrap">
           {stages.map((s, i, arr) => (
@@ -69,7 +69,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
       </div>
 
       {/* AI Screening */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-slate-700">AI Screening</p>
           <ScreenButton
@@ -109,7 +109,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
 
       {/* CV */}
       {candidate.cv_url && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-sm font-semibold text-slate-700 mb-2">CV</p>
           <a
             href={candidate.cv_url}
@@ -155,7 +155,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
       <EmailPanel candidateId={candidate.id} />
 
       {/* Notes */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
         <p className="text-sm font-semibold text-slate-700 mb-3">Notes</p>
         <NoteForm candidateId={candidate.id} />
         {notes.length > 0 && (

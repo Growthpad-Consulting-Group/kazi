@@ -62,7 +62,7 @@ export function ApplyPage({ jobId, jobTitle, company = "Growthpad Consulting Gro
   if (step === "done") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-sm p-10">
+        <div className="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 hover:shadow-2xl p-10 transition-shadow duration-200">
           <div className="text-4xl mb-4">✓</div>
           <h1 className="text-xl font-bold text-slate-900">Application received</h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -86,7 +86,7 @@ export function ApplyPage({ jobId, jobTitle, company = "Growthpad Consulting Gro
           <h1 className="text-2xl font-bold text-slate-900 mt-1">{jobTitle}</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 hover:shadow-2xl p-8 space-y-5 transition-shadow duration-200">
           <h2 className="font-semibold text-slate-900">Your details</h2>
 
           {[

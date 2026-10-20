@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabaseAdmin } from "@/lib/supabase";
 
 interface Question {
   question: string;
@@ -28,10 +27,9 @@ interface Props {
     ai_summary: string | null;
     submitted_at: string | null;
   } | null;
-  interviewerId: string;
 }
 
-export function InterviewKit({ candidateId, rubric, existingScorecard, interviewerId }: Props) {
+export function InterviewKit({ candidateId, rubric, existingScorecard }: Props) {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, { answer: string; score: number }>>(
@@ -46,6 +44,7 @@ export function InterviewKit({ candidateId, rubric, existingScorecard, interview
   );
   const [generating, setGenerating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [genError, setGenError] = useState("");
   const submitted = !!existingScorecard?.submitted_at;
 
@@ -91,22 +90,24 @@ export function InterviewKit({ candidateId, rubric, existingScorecard, interview
     const totalScore = filled.reduce((sum, a) => sum + a.score, 0) / filled.length;
 
     setSubmitting(true);
+    setSubmitError("");
     try {
-      const { error } = await (await import("@/lib/supabase")).supabaseAdmin
-        .from("interview_scorecards")
-        .upsert(
-          {
-            candidate_id: candidateId,
-            interviewer_id: interviewerId,
-            questions: filled,
-            overall_score: Math.round(totalScore * 10) / 10,
-            recommendation: recommendation || null,
-            submitted_at: new Date().toISOString(),
-          },
-          { onConflict: "candidate_id,interviewer_id" }
-        );
-      if (error) throw new Error(error.message);
+      // Written through the API route: the interviewer id comes from the
+      // session server-side, and the route invalidates the candidate's cache.
+      const res = await fetch("/api/hire/interview/scorecard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId,
+          questions: filled,
+          recommendation,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to submit scorecard");
       router.refresh();
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : "Failed to submit scorecard");
     } finally {
       setSubmitting(false);
     }
@@ -116,7 +117,7 @@ export function InterviewKit({ candidateId, rubric, existingScorecard, interview
     <div className="space-y-5">
       {/* Generate button */}
       {!submitted && displayQuestions.length === 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           <h2 className="text-sm font-semibold text-slate-700 mb-2">AI-Generated Questions</h2>
           <p className="text-sm text-slate-500 mb-4">
             Claude will generate role-specific questions based on the job requirements and
@@ -137,7 +138,7 @@ export function InterviewKit({ candidateId, rubric, existingScorecard, interview
       {displayQuestions.length > 0 && (
         <div className="space-y-4">
           {displayQuestions.map((q, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
               <div className="flex items-start gap-3 mb-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center mt-0.5">
                   {i + 1}
@@ -216,7 +217,7 @@ export function InterviewKit({ candidateId, rubric, existingScorecard, interview
 
       {/* Recommendation + submit */}
       {displayQuestions.length > 0 && !submitted && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-4">
           <h2 className="text-sm font-semibold text-slate-700">Overall Recommendation</h2>
           <div className="flex gap-2">
             {(["hire", "maybe", "no_hire"] as const).map((r) => (
@@ -245,12 +246,15 @@ export function InterviewKit({ candidateId, rubric, existingScorecard, interview
           >
             {submitting ? "Submitting…" : "Submit Scorecard"}
           </button>
+          {submitError && (
+            <p className="text-sm text-red-600">{submitError}</p>
+          )}
         </div>
       )}
 
       {/* Submitted summary */}
       {submitted && existingScorecard && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center gap-3">
             <span className="text-2xl font-bold text-slate-900">
               {existingScorecard.overall_score ?? "—"}

@@ -1,16 +1,24 @@
 import { JobForm } from "@/features/hire/jobs/components/JobForm";
 import { getJob } from "@/features/hire/jobs/actions";
+import { getDepartments } from "@/features/departments/actions";
+import SetPageHeader from "@/components/ui/SetPageHeader";
 import { notFound } from "next/navigation";
 
 export default async function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const job = await getJob(id).catch(() => null);
   if (!job) notFound();
+  const departments = await getDepartments().catch(() => []);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Edit Job</h1>
-      <JobForm job={job} />
-    </div>
+    <>
+      <SetPageHeader
+        title="Edit Job"
+        description={job.title}
+        icon="solar:case-minimalistic-broken"
+        actions={[{ label: "View Job", icon: "solar:eye-broken", href: `/hire/jobs/${job.id}` }]}
+      />
+      <JobForm job={job} departments={departments} />
+    </>
   );
 }

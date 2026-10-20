@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
+import {
+  invalidatePublicFeedback,
+  invalidateUserPrivateFeedback,
+} from "@/lib/cache/invalidate";
+import { getCachedPrivateFeedback, getCachedPublicFeedback } from "@/lib/cache/queries";
 import type { Feedback, FeedbackVisibility } from "@/types/database";
 
 export type FeedbackWithUsers = Feedback & {
@@ -10,23 +15,11 @@ export type FeedbackWithUsers = Feedback & {
 };
 
 export async function getPublicFeedback(limit = 20): Promise<FeedbackWithUsers[]> {
-  const { data } = await supabaseAdmin
-    .from("feedback")
-    .select("*, from:from_user_id(name), to:to_user_id(name)")
-    .eq("visibility", "public")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as unknown as FeedbackWithUsers[];
+  return getCachedPublicFeedback(limit);
 }
 
 export async function getMyPrivateFeedback(userId: string): Promise<FeedbackWithUsers[]> {
-  const { data } = await supabaseAdmin
-    .from("feedback")
-    .select("*, from:from_user_id(name), to:to_user_id(name)")
-    .eq("to_user_id", userId)
-    .eq("visibility", "private")
-    .order("created_at", { ascending: false });
-  return (data ?? []) as unknown as FeedbackWithUsers[];
+  return getCachedPrivateFeedback(userId);
 }
 
 export async function sendFeedback(fields: {
@@ -39,4 +32,7 @@ export async function sendFeedback(fields: {
   const { error } = await supabaseAdmin.from("feedback").insert(fields);
   if (error) throw new Error(error.message);
   revalidatePath("/pulse/feedback");
+  // The recipient's private list changed; the public wall only if it was public.
+  await invalidateUserPrivateFeedback(fields.to_user_id);
+  if (fields.visibility === "public") await invalidatePublicFeedback();
 }

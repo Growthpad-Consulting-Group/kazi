@@ -42,7 +42,7 @@ export default async function CheckinsPage({ userId: overrideUserId }: { userId?
       </div>
 
       {/* My check-in */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-semibold text-slate-700">My Check-in</h2>
           {thisWeek && (
@@ -58,7 +58,7 @@ export default async function CheckinsPage({ userId: overrideUserId }: { userId?
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
             Past Check-ins
           </h2>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
             {myCheckins.slice(1).map((c, i) => (
               <div
                 key={c.id}

@@ -196,28 +196,28 @@ export default function LoginPage() {
           </span>
 
           <div className="grid grid-cols-2 gap-5">
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50">
+            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
               <div className="h-10 w-10 rounded-xl bg-[#fdf1e7] flex items-center justify-center mb-4">
                 <Icon icon="solar:user-id-broken" className="h-5 w-5 text-[#f05d23]" />
               </div>
               <h3 className="font-bold text-[#231812] mb-1">People</h3>
               <p className="text-sm text-gray-500">Manage your entire workforce in one place</p>
             </div>
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50">
+            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
               <div className="h-10 w-10 rounded-xl bg-[#e9f7ee] flex items-center justify-center mb-4">
                 <Icon icon="solar:case-minimalistic-broken" className="h-5 w-5 text-green-600" />
               </div>
               <h3 className="font-bold text-[#231812] mb-1">Hiring</h3>
               <p className="text-sm text-gray-500">Post jobs and screen candidates with AI</p>
             </div>
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50">
+            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
               <div className="h-10 w-10 rounded-xl bg-[#e9f0fb] flex items-center justify-center mb-4">
                 <Icon icon="solar:pulse-broken" className="h-5 w-5 text-blue-600" />
               </div>
               <h3 className="font-bold text-[#231812] mb-1">Pulse</h3>
               <p className="text-sm text-gray-500">Track engagement, feedback &amp; performance</p>
             </div>
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50">
+            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
               <div className="h-10 w-10 rounded-xl bg-[#fdeaea] flex items-center justify-center mb-4">
                 <Icon icon="solar:shield-check-broken" className="h-5 w-5 text-red-500" />
               </div>

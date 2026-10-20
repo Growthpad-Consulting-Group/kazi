@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import SetPageHeader from "@/components/ui/SetPageHeader";
 import { DataRetentionClient } from "./DataRetentionClient";
 
 type StaleCandidate = {
@@ -28,15 +29,14 @@ export default async function DataRetentionPage() {
   const candidates = (data ?? []) as unknown as StaleCandidate[];
 
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Data Retention</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          ODPC compliance — candidates rejected or hired over 12 months ago
-        </p>
-      </div>
+    <div className="space-y-6">
+      <SetPageHeader
+        title="Data Retention"
+        description="ODPC compliance — candidates rejected or hired over 12 months ago"
+        icon="solar:trash-bin-minimalistic-broken"
+      />
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
         <strong>Policy reminder:</strong> Under Kenya's Data Protection Act, personal data must not be kept longer than necessary. Review and delete stale candidate records regularly. Deletion removes CV files from storage and all associated data.
       </div>
 

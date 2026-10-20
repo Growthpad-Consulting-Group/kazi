@@ -150,6 +150,7 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
     {
       icon: "solar:eye-broken",
       label: "View",
+      variant: "info",
       onClick: (row) => router.push(`/hire/candidates/${row.id}`),
     },
   ];

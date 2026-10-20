@@ -81,7 +81,7 @@ export function PipDetail({ pip, isManager, employeeName }: Props) {
         </span>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Performance Concern</h2>
           <p className="text-sm text-slate-700 whitespace-pre-wrap">{pip.concern}</p>
@@ -104,7 +104,7 @@ export function PipDetail({ pip, isManager, employeeName }: Props) {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-700">Action Steps</h2>
           {actions.length > 0 && (

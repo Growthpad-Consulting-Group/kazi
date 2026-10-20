@@ -1,88 +1,12 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { StatusPill } from "@/components/ui/StatusPill";
 import DashboardCharts from "./DashboardCharts";
-
-// ─── Data helpers ─────────────────────────────────────────────────────────────
-
-async function getStats() {
-  const [jobs, openCandidates, pendingScreen, employees, reviews, hired30] =
-    await Promise.all([
-      supabaseAdmin.from("jobs").select("id", { count: "exact" }).eq("status", "open"),
-      supabaseAdmin.from("candidates").select("id", { count: "exact" }).not("stage", "in", '("hired","rejected")'),
-      supabaseAdmin.from("candidates").select("id", { count: "exact" }).eq("stage", "applied").is("ai_score", null),
-      supabaseAdmin.from("users").select("id", { count: "exact" }).eq("is_active", true),
-      supabaseAdmin.from("performance_reviews").select("id", { count: "exact" }),
-      supabaseAdmin.from("candidates").select("id", { count: "exact" }).eq("stage", "hired")
-        .gte("applied_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
-    ]);
-  return {
-    openJobs: jobs.count ?? 0,
-    activePipeline: openCandidates.count ?? 0,
-    pendingScreen: pendingScreen.count ?? 0,
-    activeEmployees: employees.count ?? 0,
-    totalReviews: reviews.count ?? 0,
-    hired30: hired30.count ?? 0,
-  };
-}
-
-async function getPipelineByStage() {
-  const stages = ["applied", "screened", "interview", "offer", "hired", "rejected"] as const;
-  const results = await Promise.all(
-    stages.map((s) =>
-      supabaseAdmin.from("candidates").select("id", { count: "exact" }).eq("stage", s)
-    )
-  );
-  return stages.map((stage, i) => ({ stage, count: results[i].count ?? 0 }));
-}
-
-type RecentCandidate = {
-  id: string;
-  full_name: string;
-  stage: string;
-  applied_at: string;
-  ai_score: number | null;
-  jobs: { title: string } | null;
-};
-
-async function getApplicationsTrend(): Promise<{ day: string; count: number }[]> {
-  const days = 7;
-  const result: { day: string; count: number }[] = [];
-  const now = new Date();
-
-  const { data } = await supabaseAdmin
-    .from("candidates")
-    .select("applied_at")
-    .gte("applied_at", new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString())
-    .order("applied_at", { ascending: true });
-
-  const counts = new Map<string, number>();
-  for (const row of data ?? []) {
-    const d = new Date(row.applied_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
-    counts.set(d, (counts.get(d) ?? 0) + 1);
-  }
-
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const label = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
-    result.push({ day: label, count: counts.get(label) ?? 0 });
-  }
-  return result;
-}
-
-async function getRecentCandidates(): Promise<RecentCandidate[]> {
-  const { data } = await supabaseAdmin
-    .from("candidates")
-    .select("id, full_name, stage, applied_at, ai_score, jobs(title)")
-    .order("applied_at", { ascending: false })
-    .limit(8);
-  return (data ?? []) as unknown as RecentCandidate[];
-}
-
+import DashboardHeader from "./DashboardHeader";
+import { resolveRange } from "./DashboardRange";
+import { getDashboardData } from "../data";
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 type StatDef = {
@@ -99,7 +23,7 @@ function KpiCard({ stat }: { stat: StatDef }) {
   return (
     <Link
       href={stat.href}
-      className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 transition-all duration-300 hover:border-[#f05d23]/30 hover:shadow-lg hover:-translate-y-0.5 block"
+      className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-all duration-300 hover:border-[#f05d23]/30 hover:-translate-y-0.5 block"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -180,14 +104,16 @@ const QUICK_ACTIONS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ from?: string; to?: string; preset?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const range = resolveRange(params);
+
   const session = await getServerSession(authOptions);
-  const [stats, pipeline, recent, trend] = await Promise.all([
-    getStats(),
-    getPipelineByStage(),
-    getRecentCandidates(),
-    getApplicationsTrend(),
-  ]);
+  const { stats, pipeline, recent, trend } = await getDashboardData(range);
 
   const firstName = session?.user.name?.split(" ")[0] ?? "there";
   const hour = new Date().getHours();
@@ -202,11 +128,16 @@ export default async function DashboardPage() {
     { label: "Active Pipeline",   value: stats.activePipeline,  icon: "solar:users-group-two-rounded-broken",  accent: "text-blue-500",   accentBg: "bg-blue-500/10",      href: "/hire/candidates" },
     { label: "Awaiting Screen",   value: stats.pendingScreen,   icon: "solar:cpu-bolt-broken",                accent: stats.pendingScreen > 0 ? "text-amber-500" : "text-[var(--text-lo)]", accentBg: stats.pendingScreen > 0 ? "bg-amber-500/10" : "bg-[var(--surface-2)]", href: "/hire/candidates", note: stats.pendingScreen > 0 ? "AI screening needed" : undefined },
     { label: "Employees",         value: stats.activeEmployees, icon: "solar:people-nearby-broken",           accent: "text-green-500",  accentBg: "bg-green-500/10",     href: "/people" },
-    { label: "Hired (30d)",       value: stats.hired30,         icon: "solar:check-circle-broken",            accent: "text-violet-500", accentBg: "bg-violet-500/10",    href: "/hire/candidates?stage=hired" },
+    { label: "Hired",             value: stats.hired,           icon: "solar:check-circle-broken",            accent: "text-violet-500", accentBg: "bg-violet-500/10",    href: "/hire/candidates?stage=hired" },
   ];
 
   return (
     <div className="space-y-6">
+
+      <DashboardHeader
+        range={range}
+        description={`${stats.openJobs} open role${stats.openJobs !== 1 ? "s" : ""} · ${stats.activePipeline} in pipeline · ${stats.hired} hired`}
+      />
 
       {/* ── Hero banner ── */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a0a04] via-[#2d1107] to-[#0f0f14] p-7 shadow-2xl">
@@ -273,13 +204,13 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
         {/* Pipeline funnel */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
                 <Icon icon="solar:graph-broken" className="h-3.5 w-3.5 text-[#f05d23]" />
               </div>
-              <h2 className="text-sm font-semibold text-[var(--text-hi)]">Hiring Pipeline</h2>
+              <h2 className="text-md font-semibold text-[var(--text-hi)]">Hiring Pipeline</h2>
             </div>
             <Link href="/hire/pipeline" className="flex items-center gap-1 text-xs text-[#f05d23] hover:underline">
               View <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
@@ -295,12 +226,12 @@ export default async function DashboardPage() {
         </div>
 
         {/* Quick actions */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
           <div className="mb-4 flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15">
               <Icon icon="solar:widget-broken" className="h-3.5 w-3.5 text-violet-500" />
             </div>
-            <h2 className="text-sm font-semibold text-[var(--text-hi)]">Quick Actions</h2>
+            <h2 className="text-md font-semibold text-[var(--text-hi)]">Quick Actions</h2>
           </div>
           <div className="grid grid-cols-4 gap-2">
             {QUICK_ACTIONS.map((a) => (
@@ -314,7 +245,7 @@ export default async function DashboardPage() {
                 >
                   <Icon icon={a.icon} className="h-5 w-5" style={{ color: a.color }} />
                 </div>
-                <span className="text-[10px] font-medium leading-tight text-[var(--text-lo)] group-hover:text-[var(--text-hi)]">
+                <span className="text-xs font-medium leading-tight text-[var(--text-lo)] group-hover:text-[var(--text-hi)]">
                   {a.label}
                 </span>
               </Link>
@@ -328,13 +259,13 @@ export default async function DashboardPage() {
 
       {/* ── Recent candidates ── */}
       {recent.length > 0 && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 overflow-hidden transition-shadow duration-200">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-500/15">
                 <Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-blue-500" />
               </div>
-              <h2 className="text-sm font-semibold text-[var(--text-hi)]">Recent Candidates</h2>
+              <h2 className="text-md font-semibold text-[var(--text-hi)]">Recent Candidates</h2>
             </div>
             <Link href="/hire/candidates" className="flex items-center gap-1 text-xs text-[#f05d23] hover:underline">
               View all <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
@@ -354,7 +285,7 @@ export default async function DashboardPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-[var(--text-hi)] truncate">{c.full_name}</p>
+                  <p className="text-md font-semibold text-[var(--text-hi)] truncate">{c.full_name}</p>
                   <p className="text-xs text-[var(--text-lo)] truncate">{c.jobs?.title ?? "—"}</p>
                 </div>
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateTables } from "@/lib/cache/invalidate";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -40,5 +41,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { error } = await supabaseAdmin.from("performance_reviews").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateTables("performance_reviews");
   return NextResponse.json({ ok: true });
 }

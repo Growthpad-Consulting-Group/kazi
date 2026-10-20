@@ -35,11 +35,11 @@ export default async function SurveysPage() {
       </div>
 
       {surveys.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-sm text-slate-400">No surveys yet.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
           {surveys.map((s, i) => (
             <Link
               key={s.id}

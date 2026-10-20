@@ -99,7 +99,7 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
         <p className="text-sm text-slate-400">No team check-ins submitted yet this week.</p>
       )}
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
         {thisWeek.map((c, i) => (
           <div key={c.id} className={i > 0 ? "border-t border-slate-100" : ""}>
             <button

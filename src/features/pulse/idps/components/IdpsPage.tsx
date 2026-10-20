@@ -48,11 +48,11 @@ export default async function IdpsPage() {
       </div>
 
       {idps.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-sm text-slate-400">No development plans yet.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
           {idps.map((idp, i) => {
             const openActions = idp.actions.filter((a) => !a.done).length;
             return (

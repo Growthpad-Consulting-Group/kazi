@@ -97,7 +97,7 @@ function PipRow({ pip }: { pip: Pip }) {
 
   return (
     <Link href={`/pulse/pips/${pip.id}`}
-      className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+      className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-slate-900 truncate">{pip.concern}</p>
         <p className="text-xs text-slate-400 mt-0.5">

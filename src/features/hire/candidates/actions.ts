@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
+import { invalidateTables } from "@/lib/cache/invalidate";
+import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
 
 export type CandidateWithJob = Candidate & {
@@ -24,16 +26,7 @@ export async function getCandidates(jobId?: string): Promise<CandidateWithJob[]>
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  let query = supabaseAdmin
-    .from("candidates")
-    .select("*, jobs(title, department)")
-    .order("applied_at", { ascending: false });
-
-  if (jobId) query = query.eq("job_id", jobId);
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as CandidateWithJob[];
+  return (await getCachedCandidates(jobId)) as unknown as CandidateWithJob[];
 }
 
 export async function getCandidate(id: string): Promise<CandidateWithJob> {
@@ -63,6 +56,7 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
   revalidatePath("/hire/candidates");
   revalidatePath(`/hire/candidates/${id}`);
   revalidatePath("/hire/pipeline");
+  await invalidateTables("candidates");
 }
 
 export async function assignCandidate(id: string, userId: string) {
@@ -76,6 +70,7 @@ export async function assignCandidate(id: string, userId: string) {
 
   if (error) throw new Error(error.message);
   revalidatePath(`/hire/candidates/${id}`);
+  await invalidateTables("candidates");
 }
 
 export async function addNote(candidateId: string, note: string) {
@@ -90,6 +85,7 @@ export async function addNote(candidateId: string, note: string) {
 
   if (error) throw new Error(error.message);
   revalidatePath(`/hire/candidates/${candidateId}`);
+  await invalidateTables("candidate_notes");
 }
 
 export async function getCandidateNotes(candidateId: string): Promise<NoteWithUser[]> {
@@ -118,4 +114,5 @@ export async function shortlistCandidate(id: string, shortlisted: boolean) {
   if (error) throw new Error(error.message);
   revalidatePath(`/hire/candidates/${id}`);
   revalidatePath("/hire/candidates");
+  await invalidateTables("candidates");
 }

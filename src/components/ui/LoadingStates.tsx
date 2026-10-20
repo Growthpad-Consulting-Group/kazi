@@ -8,7 +8,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function CardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3", className)}>
+    <div className={cn("rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 space-y-3 transition-shadow duration-200", className)}>
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1">
           <Skeleton className="h-3 w-24" />
@@ -22,7 +22,7 @@ export function CardSkeleton({ className }: { className?: string }) {
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 overflow-hidden transition-shadow duration-200">
       <div className="px-4 py-3 border-b border-[var(--border)]">
         <Skeleton className="h-4 w-32" />
       </div>

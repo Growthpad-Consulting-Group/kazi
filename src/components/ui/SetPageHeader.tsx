@@ -16,9 +16,11 @@ interface Props {
   description?: string;
   icon?: string;
   actions?: ActionDef[];
+  /** Custom node rendered on the right, after any actions. */
+  trailing?: React.ReactNode;
 }
 
-export default function SetPageHeader({ title, description, icon, actions }: Props) {
+export default function SetPageHeader({ title, description, icon, actions, trailing }: Props) {
   const router = useRouter();
 
   const config: PageHeaderConfig = {
@@ -32,6 +34,7 @@ export default function SetPageHeader({ title, description, icon, actions }: Pro
       disabled: a.disabled,
       onClick: a.href ? () => router.push(a.href!) : () => {},
     })),
+    content: trailing,
   };
 
   usePageHeader(config);

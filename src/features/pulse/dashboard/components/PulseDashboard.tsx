@@ -62,7 +62,7 @@ export default async function PulseDashboard() {
 
       {/* My status row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-xs text-slate-500">My Check-in</p>
           {myCheckin ? (
             <div className="mt-1 flex items-center gap-2">
@@ -76,14 +76,14 @@ export default async function PulseDashboard() {
           )}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-xs text-slate-500">My Goals</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{openGoals}</p>
           <p className="text-xs text-slate-400">active</p>
         </div>
 
         {teamStats && (
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
             <p className="text-xs text-slate-500">Team Check-ins</p>
             <p className="text-2xl font-bold text-slate-900 mt-1">{teamStats.submitted}<span className="text-base font-normal text-slate-400">/{teamStats.total}</span></p>
             <p className="text-xs text-slate-400">
@@ -104,7 +104,7 @@ export default async function PulseDashboard() {
           <Link
             key={a.href}
             href={a.href}
-            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm hover:shadow transition-all ${
+            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200 ${
               a.alert ? "border-amber-300 bg-amber-50 text-amber-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >

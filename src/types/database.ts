@@ -397,9 +397,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["pips"]["Row"]>;
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          message: string;
+          link: string | null;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["notifications"]["Row"], "id" | "created_at" | "read" | "link"> & {
+          read?: boolean;
+          link?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      departments: {
+        Row: {
+          id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: { name: string };
+        Update: Partial<{ name: string }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      rename_department: {
+        Args: { p_id: string; p_name: string };
+        Returns: string;
+      };
+    };
     Enums: {
       user_role: UserRole;
       job_status: JobStatus;
@@ -425,6 +456,7 @@ export type Candidate = Database["public"]["Tables"]["candidates"]["Row"];
 export type CandidateNote = Database["public"]["Tables"]["candidate_notes"]["Row"];
 export type InterviewScorecard = Database["public"]["Tables"]["interview_scorecards"]["Row"];
 export type AiLog = Database["public"]["Tables"]["ai_logs"]["Row"];
+export type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
 
 // Pulse types
 export type Checkin = Database["public"]["Tables"]["checkins"]["Row"];

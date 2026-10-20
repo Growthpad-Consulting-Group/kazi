@@ -50,12 +50,12 @@ export default async function ReviewsPage() {
       </div>
 
       {cycles.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-sm text-slate-400">No review cycles yet.</p>
           {isAdmin && <p className="text-xs text-slate-400 mt-1">Create one above to kick off a review round.</p>}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
           {cycles.map((c, i) => (
             <Link
               key={c.id}

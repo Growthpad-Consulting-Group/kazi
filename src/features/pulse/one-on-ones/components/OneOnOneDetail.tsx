@@ -74,7 +74,7 @@ export function OneOnOneDetail({ session: s, managerName, reportName, isManager 
       </div>
 
       {/* AI Talking Points */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-slate-700">AI Talking Points</h2>
           <button
@@ -93,7 +93,7 @@ export function OneOnOneDetail({ session: s, managerName, reportName, isManager 
       </div>
 
       {/* Shared Agenda */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Shared Agenda</h2>
         <textarea
           rows={5}
@@ -105,7 +105,7 @@ export function OneOnOneDetail({ session: s, managerName, reportName, isManager 
       </div>
 
       {/* Notes */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Meeting Notes</h2>
         <textarea
           rows={5}
@@ -117,7 +117,7 @@ export function OneOnOneDetail({ session: s, managerName, reportName, isManager 
       </div>
 
       {/* Action Items */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Action Items</h2>
         <div className="space-y-2">
           {items.map((item, i) => (

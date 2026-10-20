@@ -46,7 +46,7 @@ export function SendFeedbackForm({ fromUserId, users }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-4">
       <h2 className="text-sm font-semibold text-slate-700">Send Feedback</h2>
 
       {/* Public / Private toggle */}

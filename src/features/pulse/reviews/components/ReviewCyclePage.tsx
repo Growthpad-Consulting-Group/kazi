@@ -50,7 +50,7 @@ export default async function ReviewCyclePage({ cycleId }: { cycleId: string }) 
         <div className="space-y-4">
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Awaiting Your Input ({myReviews.length})</h2>
           {myReviews.map((r) => (
-            <div key={r.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div key={r.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{users[r.reviewee_id]?.name ?? "—"}</p>
@@ -67,7 +67,7 @@ export default async function ReviewCyclePage({ cycleId }: { cycleId: string }) 
       {completedByMe.length > 0 && (
         <div>
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Completed ({completedByMe.length})</h2>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
             {completedByMe.map((r, i) => (
               <div key={r.id} className={`flex items-center justify-between px-5 py-3 ${i > 0 ? "border-t border-slate-100" : ""}`}>
                 <div>
@@ -87,7 +87,7 @@ export default async function ReviewCyclePage({ cycleId }: { cycleId: string }) 
       )}
 
       {myReviews.length === 0 && completedByMe.length === 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-sm text-slate-400">No reviews assigned to you in this cycle.</p>
           {isAdmin && <p className="text-xs text-slate-400 mt-1">Assign reviews from the admin panel.</p>}
         </div>

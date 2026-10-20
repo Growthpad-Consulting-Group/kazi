@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { redis, SCREENING_QUEUE, SCREENING_PROCESSING } from "@/lib/redis";
+import { invalidateTables } from "@/lib/cache/invalidate";
 
 // Called by Vercel Cron (vercel.json) or an external scheduler.
 // Processes up to BATCH_SIZE candidates per invocation.
@@ -90,6 +91,10 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
       tokens_used: completion.usage?.total_tokens ?? null,
     }),
   ]);
+
+  // The candidate's stage, score and shortlist flag all changed — drop the
+  // cached pipeline and dashboard aggregates so the change is visible at once.
+  await invalidateTables("candidates");
 }
 
 export async function GET(req: Request) {

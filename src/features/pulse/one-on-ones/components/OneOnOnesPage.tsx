@@ -40,12 +40,12 @@ export default async function OneOnOnesPage() {
       </div>
 
       {sessions.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
           <p className="text-sm text-slate-400">No 1-on-1s yet.</p>
           {isManager && <p className="text-xs text-slate-400 mt-1">Schedule one with a direct report above.</p>}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
           {(sessions as OneOnOne[]).map((s, i) => (
             <Link
               key={s.id}

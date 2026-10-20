@@ -1,28 +1,10 @@
-import { supabaseAdmin } from "@/lib/supabase";
+import { getCachedPeople } from "@/lib/cache/queries";
+import { getDepartments } from "@/features/departments/actions";
 import PeopleClientView from "./PeopleClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 
-type UserRow = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  department: string | null;
-  job_title: string | null;
-  location: string | null;
-  manager_id: string | null;
-};
-
-async function getPeople() {
-  const { data } = await supabaseAdmin
-    .from("users")
-    .select("id, name, email, role, department, job_title, location, manager_id")
-    .order("name");
-  return (data ?? []) as unknown as UserRow[];
-}
-
 export default async function PeoplePage() {
-  const people = await getPeople();
+  const people = await getCachedPeople();
   const byId = Object.fromEntries(people.map((p) => [p.id, p]));
 
   const enriched = people.map((p) => ({
@@ -30,9 +12,10 @@ export default async function PeoplePage() {
     manager_name: p.manager_id ? byId[p.manager_id]?.name ?? null : null,
   }));
 
+  const listed = await getDepartments().catch(() => [] as string[]);
   const departments = Array.from(
-    new Set(people.map((p) => p.department).filter(Boolean) as string[])
-  ).sort();
+    new Set([...listed, ...(people.map((p) => p.department).filter(Boolean) as string[])])
+  ).sort((a, b) => a.localeCompare(b));
 
   const locations = Array.from(
     new Set(people.map((p) => p.location).filter(Boolean) as string[])

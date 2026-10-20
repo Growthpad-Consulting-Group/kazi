@@ -58,7 +58,7 @@ export default function HeaderProfileDropdown() {
                   {initials}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-hi)] truncate">{session?.user?.name ?? "—"}</p>
+                  <p className="text-md font-semibold text-[var(--text-hi)] truncate">{session?.user?.name ?? "—"}</p>
                   <p className="text-xs text-[var(--text-lo)] truncate">{session?.user?.email ?? ""}</p>
                   <p className="text-[10px] text-[#f05d23] capitalize font-medium mt-0.5">{session?.user?.role?.replace("_", " ") ?? ""}</p>
                 </div>

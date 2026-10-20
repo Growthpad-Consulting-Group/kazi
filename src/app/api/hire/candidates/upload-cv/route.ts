@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateTables } from "@/lib/cache/invalidate";
 import { uploadToR2 } from "@/lib/r2";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 
@@ -78,6 +79,9 @@ Return this exact JSON shape:
     .from("candidates")
     .update({ cv_url: cvUrl, cv_text: cvText || null, cv_parsed: cvParsed })
     .eq("id", candidateId);
+
+  // The candidate's CV changed — the cached pipeline entry is now stale.
+  await invalidateTables("candidates");
 
   return NextResponse.json({ cv_url: cvUrl, cv_parsed: cvParsed });
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateTables } from "@/lib/cache/invalidate";
 import type { IdpStatus } from "@/types/database";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -28,5 +29,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { error } = await supabaseAdmin.from("idps").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateTables("idps");
   return NextResponse.json({ ok: true });
 }

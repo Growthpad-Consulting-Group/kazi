@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateOwnerGoals } from "@/lib/cache/invalidate";
 import type { GoalLevel } from "@/types/database";
 
 export async function POST(req: Request) {
@@ -25,5 +26,6 @@ export async function POST(req: Request) {
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateOwnerGoals(owner_id ?? "");
   return NextResponse.json({ ok: true });
 }

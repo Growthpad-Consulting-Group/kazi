@@ -155,11 +155,13 @@ export default function PeopleClientView({ people, departments, locations }: Pro
     {
       icon: "solar:eye-broken",
       label: "View profile",
+      variant: "info",
       onClick: (row) => router.push(`/pulse/checkins?user=${row.id}`),
     },
     {
       icon: "solar:chat-line-broken",
       label: "1-on-1s",
+      variant: "success",
       onClick: (row) => router.push(`/pulse/one-on-ones?report=${row.id}`),
     },
   ];

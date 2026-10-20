@@ -31,7 +31,7 @@ export default function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={`mb-6 ${className}`}>
-      <div className="relative rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-5 shadow-lg shadow-black/5 transition-all duration-300">
+      <div className="relative rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-5 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-all duration-300">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             {icon && (

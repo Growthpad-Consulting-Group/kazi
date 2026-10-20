@@ -5,8 +5,25 @@ import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 import { cn } from "@/shared/lib/cn";
 import { getNestedValue, isDateField, formatDateValue } from "./TableUtils";
-import type { Column, RowAction } from "../GenericTable";
+import type { Column, RowAction, RowActionVariant } from "../GenericTable";
 import TooltipIconButton from "../TooltipIconButton";
+
+
+/** Tinted button colours per RowAction variant, styled after bflowpos. */
+function actionVariantClass(variant: RowActionVariant = "default"): string {
+  switch (variant) {
+    case "danger":
+      return "bg-red-500/10 text-red-500 hover:bg-red-500/20 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25";
+    case "warning":
+      return "bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25";
+    case "success":
+      return "bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/25";
+    case "info":
+      return "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25";
+    default:
+      return "bg-[#f05d23]/10 text-[#f05d23] hover:bg-[#f05d23]/20";
+  }
+}
 
 interface TableRowProps<T extends Record<string, unknown>> {
   row: T;
@@ -75,7 +92,7 @@ export default function TableRow<T extends Record<string, unknown>>({
     <tr
       onClick={handleRowClick}
       className={cn(
-        "group border-b border-[var(--border)] last:border-0 transition-colors duration-150",
+        "group border-b border-slate-200/60 dark:border-slate-800/60 last:border-0 transition-colors duration-150",
         rowBg,
         onRowClick ? "cursor-pointer hover:bg-[#f05d23]/5" : "hover:bg-[var(--surface-2)]/60",
         showDropdown && "relative z-60"
@@ -125,12 +142,12 @@ export default function TableRow<T extends Record<string, unknown>>({
       {visibleActions.length > 0 && (
         <td
           className={cn(
-            "sticky right-0 z-10 px-3 py-3.5 border-l border-[var(--border)] transition-colors duration-150",
+            "sticky right-0 z-10 px-3 py-3.5 border-l border-slate-200/60 dark:border-slate-800/60 transition-colors duration-150",
             rowBg, "group-hover:bg-[#f05d23]/5"
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-2">
             {(() => {
               const primary = visibleActions.length <= 4 ? visibleActions : visibleActions.slice(0, 3);
               const overflow = visibleActions.length > 4 ? visibleActions.slice(3) : [];
@@ -147,10 +164,9 @@ export default function TableRow<T extends Record<string, unknown>>({
                         label={label}
                         onClick={() => action.onClick(row)}
                         className={cn(
-                          "transition-all active:scale-95",
-                          action.variant === "danger"
-                            ? "text-red-400 hover:bg-red-500/10"
-                            : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[#f05d23]"
+                          "transition-all active:scale-95 rounded-xl p-1.5",
+                          actionVariantClass(action.variant),
+                          typeof action.className === "function" ? action.className(row) : action.className
                         )}
                         iconClassName="h-4 w-4"
                         position="bottom"
@@ -163,7 +179,7 @@ export default function TableRow<T extends Record<string, unknown>>({
                       <button
                         onClick={openDropdown}
                         title="More actions"
-                        className="rounded-lg p-1.5 text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                        className="rounded-xl bg-[var(--surface-2)] p-1.5 text-[var(--text-lo)] hover:bg-[#f05d23]/10 hover:text-[#f05d23] transition-all"
                       >
                         <Icon icon="solar:menu-dots-broken" className="h-4 w-4" />
                       </button>

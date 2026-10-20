@@ -58,7 +58,7 @@ export function SimpleModal({ open, onClose, title, icon, children, maxWidth = "
                     <Icon icon={icon} className="h-4 w-4 text-[#f05d23]" />
                   </div>
                 )}
-                <h2 className="flex-1 text-sm font-semibold text-[var(--text-hi)]">{title}</h2>
+                <h2 className="flex-1 text-md font-semibold text-[var(--text-hi)]">{title}</h2>
                 <button
                   onClick={onClose}
                   className="p-1.5 rounded-lg text-[var(--text-lo)] hover:text-[var(--text-hi)] hover:bg-[var(--surface-2)] transition-all"

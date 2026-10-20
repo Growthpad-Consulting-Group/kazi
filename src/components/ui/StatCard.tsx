@@ -31,7 +31,7 @@ export function StatCard({
 }: StatCardProps) {
   const content = (
     <div className={cn(
-      "relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] group",
+      "relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-all duration-300 hover:scale-[1.01] group",
       (href || onClick) && "cursor-pointer",
       className
     )}>

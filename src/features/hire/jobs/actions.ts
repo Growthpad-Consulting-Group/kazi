@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
+import { invalidateTables } from "@/lib/cache/invalidate";
+import { getCachedJob, getCachedJobs } from "@/lib/cache/queries";
 import type { Database } from "@/types/database";
 import type { JobFormData } from "./types";
 
@@ -12,27 +14,14 @@ export async function getJobs() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  const { data, error } = await supabaseAdmin
-    .from("jobs")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data;
+  return getCachedJobs();
 }
 
 export async function getJob(id: string) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  const { data, error } = await supabaseAdmin
-    .from("jobs")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data;
+  return getCachedJob(id);
 }
 
 export async function createJob(form: JobFormData) {
@@ -56,6 +45,7 @@ export async function createJob(form: JobFormData) {
 
   if (error) throw new Error(error.message);
   revalidatePath("/hire/jobs");
+  await invalidateTables("jobs");
   return data;
 }
 
@@ -88,6 +78,7 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   if (error) throw new Error(error.message);
   revalidatePath("/hire/jobs");
   revalidatePath(`/hire/jobs/${id}`);
+  await invalidateTables("jobs");
   return data;
 }
 
@@ -98,4 +89,5 @@ export async function deleteJob(id: string) {
   const { error } = await supabaseAdmin.from("jobs").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/hire/jobs");
+  await invalidateTables("jobs");
 }

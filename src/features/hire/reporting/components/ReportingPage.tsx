@@ -97,7 +97,7 @@ export default async function ReportingPage() {
           { label: "Screened by AI", value: d.screened },
           { label: "Shortlisted", value: d.shortlisted },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
             <p className="text-xs text-slate-500">{s.label}</p>
             <p className="text-2xl font-bold text-slate-900 mt-1">{s.value}</p>
           </div>
@@ -106,7 +106,7 @@ export default async function ReportingPage() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {/* Funnel */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">Candidate Funnel</h2>
           <div className="space-y-2">
             {d.funnel.map(({ stage, count }) => (
@@ -129,7 +129,7 @@ export default async function ReportingPage() {
         </div>
 
         {/* Source breakdown */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">Source of Applicants</h2>
           {Object.keys(d.sourceCounts).length === 0 ? (
             <p className="text-sm text-slate-400">No data yet</p>
@@ -161,7 +161,7 @@ export default async function ReportingPage() {
         </div>
 
         {/* AI screening stats */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">AI Screening</h2>
           <div className="space-y-3">
             <Metric label="Average AI Score" value={d.avgScore !== null ? `${d.avgScore}/100` : "—"} />
@@ -178,7 +178,7 @@ export default async function ReportingPage() {
         </div>
 
         {/* Time in pipeline */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">Pipeline Velocity</h2>
           <div className="space-y-3">
             <Metric
