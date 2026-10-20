@@ -10,6 +10,7 @@ import TableHeader from "./table/TableHeader";
 import TableRow from "./table/TableRow";
 import TablePagination from "./table/TablePagination";
 import DateRangePicker, { type DateRangeValue } from "./DateRangePicker";
+import ExportModal from "./ExportModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,8 @@ export function GenericTable<T extends Record<string, unknown>>({
 
   const derivedStickyHeader = stickyHeader ?? !!(tableMaxHeight);
   const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null, label: 'All Time' });
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [filterKey, setFilterKey] = useState(0);
   const [sortKey, setSortKey]   = useState<string | null>(null);
   const [sortDir, setSortDir]   = useState<"asc" | "desc">("asc");
   const [page, setPage]         = useState(0);
@@ -212,24 +215,7 @@ export function GenericTable<T extends Record<string, unknown>>({
 
   const handleExport = () => {
     if (onExport) { onExport(searched); return; }
-    // Built-in CSV export
-    const headers = columns.map((c) => c.header);
-    const rows = searched.map((row) =>
-      columns.map((col) => {
-        const path = String(col.accessor);
-        const val = path.split(".").reduce<unknown>(
-          (acc, k) => acc != null && typeof acc === "object" ? (acc as Record<string, unknown>)[k] : undefined, row
-        );
-        const str = String(val ?? "");
-        return str.includes(",") || str.includes('"') || str.includes("\n") ? `"${str.replace(/"/g, '""')}"` : str;
-      })
-    );
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `${title ?? "export"}.csv`; a.click();
-    URL.revokeObjectURL(url);
+    setShowExportModal(true);
   };
 
   const handleRefresh = () => {
@@ -237,6 +223,7 @@ export function GenericTable<T extends Record<string, unknown>>({
     setSortKey(null); setSortDir("asc"); setPage(0); setSearch("");
     setDateRange({ startDate: null, endDate: null, label: "All Time" });
     setSelected(new Set());
+    setFilterKey((k) => k + 1);
   };
 
   const showToolbar = !!(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew || onImport || enableDateFilter || enableRefresh);
@@ -278,7 +265,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                   />
                 )}
                 {unifiedSearchFilter && (
-                  <div className="flex-1 min-w-0">{unifiedSearchFilter}</div>
+                  <div key={filterKey} className="flex-1 min-w-0">{unifiedSearchFilter}</div>
                 )}
                 {!unifiedSearchFilter && searchable && (
                   <div className="flex flex-1 min-w-[180px] items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm transition-all focus-within:border-[#f05d23]/50 focus-within:ring-2 focus-within:ring-[#f05d23]/20">
@@ -451,6 +438,14 @@ export function GenericTable<T extends Record<string, unknown>>({
           onPageSizeChange={(n) => { setPageSize(n); setPage(0); }}
         />
       )}
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        data={searched as Record<string, unknown>[]}
+        columns={columns.map((c) => ({ header: c.header, accessor: String(c.accessor) }))}
+        title={title}
+      />
     </div>
   );
 }
