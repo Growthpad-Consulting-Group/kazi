@@ -171,7 +171,6 @@ export default function PeopleClientView({ people, departments, locations }: Pro
       actions={actions}
       emptyMessage="No people match your filters."
       emptyIcon="solar:user-id-broken"
-      title="Team"
       icon="solar:user-id-broken"
       unifiedSearchFilter={
         <UnifiedSearchFilter

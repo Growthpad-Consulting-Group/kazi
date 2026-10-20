@@ -1,10 +1,13 @@
-  "use client";
+"use client";
 
-import { useState, useMemo, ReactNode, useCallback } from "react";
+import { useState, useMemo, useCallback, ReactNode } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "@/shared/lib/cn";
 import { EmptyState } from "./EmptyState";
 import { Skeleton } from "./LoadingStates";
+import TableHeader from "./table/TableHeader";
+import TableRow from "./table/TableRow";
+import TablePagination from "./table/TablePagination";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,17 +62,6 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   addNewLabel?: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getVal<T>(row: T, accessor: string): unknown {
-  return accessor.split(".").reduce<unknown>((obj, key) => {
-    if (obj != null && typeof obj === "object") return (obj as Record<string, unknown>)[key];
-    return undefined;
-  }, row);
-}
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function GenericTable<T extends Record<string, unknown>>({
@@ -97,35 +89,44 @@ export function GenericTable<T extends Record<string, unknown>>({
   onAddNew,
   addNewLabel = "Add New",
 }: GenericTableProps<T>) {
-  const [sortKey, setSortKey]     = useState<string | null>(null);
-  const [sortDir, setSortDir]     = useState<"asc" | "desc">("asc");
-  const [page, setPage]           = useState(0);
-  const [pageSize, setPageSize]   = useState(defaultPageSize);
-  const [selected, setSelected]   = useState<Set<string>>(new Set());
-  const [searchTerm, setSearch]   = useState("");
+  const [sortKey, setSortKey]   = useState<string | null>(null);
+  const [sortDir, setSortDir]   = useState<"asc" | "desc">("asc");
+  const [page, setPage]         = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearch] = useState("");
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
 
   const rowId = useCallback((row: T, i: number) =>
     getRowId ? getRowId(row) : String((row as Record<string, unknown>).id ?? i), [getRowId]);
 
-  // Sort
+  const toggleSort = (key: string) => {
+    setPage(0);
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
   const sorted = useMemo(() => {
     if (!sortKey) return data;
     return [...data].sort((a, b) => {
-      const av = getVal(a, sortKey);
-      const bv = getVal(b, sortKey);
-      const cmp = String(av ?? "").localeCompare(String(bv ?? ""), undefined, { numeric: true });
+      const getVal = (o: T) => sortKey.split(".").reduce<unknown>((acc, k) => {
+        if (acc != null && typeof acc === "object") return (acc as Record<string, unknown>)[k];
+        return undefined;
+      }, o);
+      const cmp = String(getVal(a) ?? "").localeCompare(String(getVal(b) ?? ""), undefined, { numeric: true });
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [data, sortKey, sortDir]);
 
-  // Search (client-side, only if searchable)
   const searched = useMemo(() => {
     if (!searchable || !searchTerm.trim()) return sorted;
     const q = searchTerm.toLowerCase();
     return sorted.filter((row) =>
       columns.some((col) => {
-        const v = getVal(row, String(col.accessor));
-        return String(v ?? "").toLowerCase().includes(q);
+        const path = String(col.accessor);
+        const val = path.split(".").reduce<unknown>((acc, k) =>
+          acc != null && typeof acc === "object" ? (acc as Record<string, unknown>)[k] : undefined, row);
+        return String(val ?? "").toLowerCase().includes(q);
       })
     );
   }, [sorted, searchTerm, searchable, columns]);
@@ -134,16 +135,10 @@ export function GenericTable<T extends Record<string, unknown>>({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const paginated  = searched.slice(page * pageSize, (page + 1) * pageSize);
 
-  const toggleSort = (key: string) => {
-    setPage(0);
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
-  };
-
   // Selection
-  const allPageIds    = paginated.map((r, i) => rowId(r, page * pageSize + i));
-  const allPageSel    = allPageIds.length > 0 && allPageIds.every((id) => selected.has(id));
-  const somePageSel   = allPageIds.some((id) => selected.has(id));
+  const allPageIds  = paginated.map((r, i) => rowId(r, page * pageSize + i));
+  const allPageSel  = allPageIds.length > 0 && allPageIds.every((id) => selected.has(id));
+  const somePageSel = allPageIds.some((id) => selected.has(id));
 
   const toggleRow = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -160,17 +155,18 @@ export function GenericTable<T extends Record<string, unknown>>({
     [data, selected, rowId]
   );
 
-  const visibleActions = (row: T) => actions.filter((a) => !a.show || a.show(row));
-  const colSpan = columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0);
+  const showToolbar = !!(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew);
 
   return (
-    <div className={cn("rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl shadow-black/5 transition-all duration-300", className)}>
+    <div className={cn(
+      "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl shadow-black/5 transition-colors",
+      className
+    )}>
 
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-      {(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew) && (
-        <div className="border-b border-[var(--border)] bg-[var(--surface-2)]/30 px-5 py-4">
+      {showToolbar && (
+        <div className="border-b border-[var(--border)] bg-[var(--surface-2)]/40 px-5 py-4">
           <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-            {/* Title */}
             {title && (
               <div className="flex items-center gap-2.5 shrink-0">
                 {icon && (
@@ -187,16 +183,14 @@ export function GenericTable<T extends Record<string, unknown>>({
               </div>
             )}
 
-            {/* Filters + actions row */}
-            <div className="flex flex-row items-center gap-3 flex-1 min-w-0 justify-between">
-
-              {/* LEFT: unified filter or built-in search */}
+            <div className="flex flex-1 min-w-0 items-center justify-between gap-3">
+              {/* LEFT: filter */}
               <div className="flex flex-1 min-w-0 items-center gap-2">
                 {unifiedSearchFilter && (
                   <div className="flex-1 min-w-0">{unifiedSearchFilter}</div>
                 )}
                 {!unifiedSearchFilter && searchable && (
-                  <div className="flex flex-1 min-w-[180px] items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm transition-all focus-within:border-[#f05d23]/50 focus-within:ring-2 focus-within:ring-[#f05d23]/20">
+                  <div className="flex flex-1 min-w-[180px] items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm transition-all focus-within:border-[#f05d23]/50 focus-within:ring-2 focus-within:ring-[#f05d23]/20">
                     <Icon icon="solar:magnifer-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
                     <input
                       value={searchTerm}
@@ -213,14 +207,13 @@ export function GenericTable<T extends Record<string, unknown>>({
                 )}
               </div>
 
-              {/* RIGHT: action buttons */}
+              {/* RIGHT: actions */}
               <div className="flex items-center gap-2 shrink-0">
                 {rightContent}
                 {showExport && (
                   <button
                     onClick={() => onExport?.(data)}
-                    title="Export"
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                    className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
                   >
                     <Icon icon="solar:export-broken" className="h-4 w-4" />
                     Export
@@ -229,7 +222,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                 {onAddNew && (
                   <button
                     onClick={onAddNew}
-                    className="flex items-center justify-center gap-1.5 rounded-lg bg-[#f05d23] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#d94f1a] transition-all shadow-sm"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#f05d23] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#d94f1a] transition-all shadow-sm"
                   >
                     <Icon icon="solar:add-circle-broken" className="h-4 w-4" />
                     {addNewLabel}
@@ -241,7 +234,7 @@ export function GenericTable<T extends Record<string, unknown>>({
         </div>
       )}
 
-      {/* ── Bulk action bar ──────────────────────────────────────────────── */}
+      {/* ── Bulk bar ─────────────────────────────────────────────────────── */}
       {selectable && selected.size > 0 && (
         <div className="flex items-center justify-between gap-3 border-b border-blue-200/60 dark:border-blue-800/30 bg-blue-50/60 dark:bg-blue-900/20 px-5 py-2.5">
           <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
@@ -255,18 +248,15 @@ export function GenericTable<T extends Record<string, unknown>>({
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
                   ba.variant === "danger"
-                    ? "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30"
-                    : "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/30"
+                    ? "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200"
+                    : "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-200"
                 )}
               >
                 <Icon icon={ba.icon} className="h-3.5 w-3.5" />
                 {ba.label}
               </button>
             ))}
-            <button
-              onClick={clearSelection}
-              className="text-xs text-[var(--text-lo)] hover:text-[var(--text-hi)] transition-colors"
-            >
+            <button onClick={clearSelection} className="text-xs text-[var(--text-lo)] hover:text-[var(--text-hi)]">
               Clear
             </button>
           </div>
@@ -274,135 +264,66 @@ export function GenericTable<T extends Record<string, unknown>>({
       )}
 
       {/* ── Table ────────────────────────────────────────────────────────── */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className={cn(
-              "border-b border-[var(--border)] bg-[var(--surface-2)]/50",
-              stickyHeader && "sticky top-0 z-10"
-            )}>
-              {selectable && (
-                <th className="w-10 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={allPageSel}
-                    ref={(el) => { if (el) el.indeterminate = somePageSel && !allPageSel; }}
-                    onChange={toggleAll}
-                    className="h-4 w-4 rounded border-[var(--border)] accent-[#f05d23] cursor-pointer"
-                  />
-                </th>
-              )}
-              {columns.map((col) => (
-                <th
-                  key={String(col.accessor)}
-                  style={col.width ? { width: col.width } : undefined}
-                  className={cn(
-                    "px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-[var(--text-lo)]",
-                    col.sortable && "cursor-pointer select-none hover:text-[var(--text-hi)] transition-colors",
-                    col.headerClassName
-                  )}
-                  onClick={() => col.sortable && toggleSort(String(col.accessor))}
-                >
-                  <div className="flex items-center gap-1.5">
-                    {col.header}
-                    {col.sortable && (
-                      <Icon
-                        icon={
-                          sortKey === String(col.accessor)
-                            ? sortDir === "asc" ? "solar:alt-arrow-up-broken" : "solar:alt-arrow-down-broken"
-                            : "solar:sort-broken"
-                        }
-                        className={cn("h-3.5 w-3.5", sortKey === String(col.accessor) ? "text-[#f05d23]" : "opacity-30")}
-                      />
-                    )}
-                  </div>
-                </th>
-              ))}
-              {actions.length > 0 && (
-                <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-widest text-[var(--text-lo)]">
-                  Actions
-                </th>
-              )}
-            </tr>
-          </thead>
+      <div
+        className="w-full overflow-x-auto"
+        style={Object.keys(columnWidths).length > 0 ? undefined : undefined}
+      >
+        <table
+          className="min-w-full border-collapse"
+          style={Object.keys(columnWidths).length > 0 ? { tableLayout: "fixed" } : undefined}
+        >
+          <colgroup>
+            {selectable && <col className="w-10" />}
+            {columns.map((col, i) => (
+              <col key={i} style={columnWidths[String(col.accessor)] ? { width: columnWidths[String(col.accessor)] } : undefined} />
+            ))}
+            {actions.length > 0 && <col />}
+          </colgroup>
+
+          <TableHeader
+            columns={columns as Column[]}
+            table={{ paged: paginated, selected, sortKey, sortDir, toggleAll, allPageSel, somePageSel, toggleSort }}
+            selectable={selectable}
+            hasActions={actions.length > 0}
+            stickyHeader={stickyHeader}
+            columnWidths={columnWidths}
+            onColumnResize={(accessor, w) => setColumnWidths((prev) => ({ ...prev, [accessor]: w }))}
+          />
 
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-[var(--border)] last:border-0">
-                  {selectable && <td className="px-4 py-3"><Skeleton className="h-4 w-4" /></td>}
+                <tr key={i} className={cn("border-b border-[var(--border)]", i % 2 !== 0 && "bg-[var(--surface-2)]/30")}>
+                  {selectable && <td className="px-3 py-3.5 border-r border-[var(--border)]"><Skeleton className="h-4 w-4" /></td>}
                   {columns.map((col) => (
-                    <td key={String(col.accessor)} className="px-4 py-3">
+                    <td key={String(col.accessor)} className="px-4 py-3.5">
                       <Skeleton className="h-4 w-full max-w-[160px]" />
                     </td>
                   ))}
-                  {actions.length > 0 && <td className="px-4 py-3"><Skeleton className="h-4 w-16 ml-auto" /></td>}
+                  {actions.length > 0 && <td className="px-4 py-3.5"><Skeleton className="h-4 w-16" /></td>}
                 </tr>
               ))
             ) : paginated.length === 0 ? (
               <tr>
-                <td colSpan={colSpan} className="py-2">
+                <td colSpan={columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0)}>
                   <EmptyState icon={emptyIcon} title={emptyMessage} className="py-12" />
                 </td>
               </tr>
             ) : (
               paginated.map((row, i) => {
                 const id = rowId(row, page * pageSize + i);
-                const isSel = selected.has(id);
                 return (
-                  <tr
+                  <TableRow
                     key={id}
-                    onClick={() => onRowClick?.(row)}
-                    className={cn(
-                      "border-b border-[var(--border)] last:border-0 transition-colors",
-                      isSel && "bg-[#f05d23]/5",
-                      onRowClick ? "cursor-pointer hover:bg-[var(--surface-2)]" : "hover:bg-[var(--surface-2)]/50"
-                    )}
-                  >
-                    {selectable && (
-                      <td className="w-10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isSel}
-                          onChange={() => toggleRow(id)}
-                          className="h-4 w-4 rounded border-[var(--border)] accent-[#f05d23] cursor-pointer"
-                        />
-                      </td>
-                    )}
-                    {columns.map((col) => {
-                      const val = getVal(row, String(col.accessor));
-                      return (
-                        <td key={String(col.accessor)} className={cn("px-4 py-3 text-[var(--text-hi)]", col.className)}>
-                          {col.render ? col.render(row, val) : String(val ?? "—")}
-                        </td>
-                      );
-                    })}
-                    {actions.length > 0 && (
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          {visibleActions(row).map((action, ai) => {
-                            const ic    = typeof action.icon  === "function" ? action.icon(row)  : action.icon;
-                            const label = typeof action.label === "function" ? action.label(row) : action.label;
-                            return (
-                              <button
-                                key={ai}
-                                onClick={() => action.onClick(row)}
-                                title={label}
-                                className={cn(
-                                  "rounded-lg p-1.5 transition-all active:scale-95",
-                                  action.variant === "danger"
-                                    ? "text-red-400 hover:bg-red-500/10"
-                                    : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
-                                )}
-                              >
-                                <Icon icon={ic} className="h-4 w-4" />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
+                    row={row}
+                    rowIndex={i}
+                    columns={columns}
+                    selectable={selectable}
+                    selected={selected.has(id)}
+                    onToggleSelect={() => toggleRow(id)}
+                    actions={actions}
+                    onRowClick={onRowClick}
+                  />
                 );
               })
             )}
@@ -410,84 +331,16 @@ export function GenericTable<T extends Record<string, unknown>>({
         </table>
       </div>
 
-      {/* ── Footer / Pagination ──────────────────────────────────────────── */}
+      {/* ── Pagination ───────────────────────────────────────────────────── */}
       {!loading && total > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--surface-2)]/40 px-5 py-3">
-          {/* Page size */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--text-lo)]">Rows per page</span>
-            <select
-              value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text-hi)] outline-none focus:border-[#f05d23]/50 cursor-pointer"
-            >
-              {PAGE_SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Count + pages */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[var(--text-lo)]">
-              {page * pageSize + 1}–{Math.min((page + 1) * pageSize, total)} of {total}
-            </span>
-
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={page === 0}
-                  onClick={() => setPage(0)}
-                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30"
-                  title="First page"
-                >
-                  <Icon icon="solar:double-alt-arrow-left-broken" className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30"
-                >
-                  <Icon icon="solar:alt-arrow-left-broken" className="h-3.5 w-3.5" />
-                </button>
-
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                  const p = totalPages <= 5 ? i : Math.max(0, Math.min(page - 2, totalPages - 5)) + i;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setPage(p)}
-                      className={cn(
-                        "h-7 w-7 rounded-lg text-xs font-medium transition-all",
-                        page === p
-                          ? "bg-[#f05d23] text-white shadow-sm"
-                          : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
-                      )}
-                    >
-                      {p + 1}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30"
-                >
-                  <Icon icon="solar:alt-arrow-right-broken" className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(totalPages - 1)}
-                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-30"
-                  title="Last page"
-                >
-                  <Icon icon="solar:double-alt-arrow-right-broken" className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(n) => { setPageSize(n); setPage(0); }}
+        />
       )}
     </div>
   );

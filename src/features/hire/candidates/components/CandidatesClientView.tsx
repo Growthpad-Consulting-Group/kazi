@@ -161,7 +161,6 @@ export default function CandidatesClientView({ candidates, unscreenedIds }: Prop
       onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
       emptyMessage="No candidates match your filters."
       emptyIcon="solar:users-group-two-rounded-broken"
-      title="Candidates"
       icon="solar:user-speak-broken"
       unifiedSearchFilter={
         <UnifiedSearchFilter

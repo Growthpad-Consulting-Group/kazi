@@ -132,7 +132,6 @@ export default function JobsClientView({ jobs, departments }: Props) {
       onRowClick={(row) => router.push(`/hire/jobs/${row.id}`)}
       emptyMessage="No jobs match your filters."
       emptyIcon="solar:case-broken"
-      title="Jobs"
       icon="solar:case-minimalistic-broken"
       unifiedSearchFilter={
         <UnifiedSearchFilter
