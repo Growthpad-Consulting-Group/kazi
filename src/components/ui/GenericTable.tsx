@@ -54,6 +54,9 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   searchable?: boolean;
   searchPlaceholder?: string;
   stickyHeader?: boolean;
+  unifiedSearchFilter?: ReactNode;
+  onAddNew?: () => void;
+  addNewLabel?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,6 +93,9 @@ export function GenericTable<T extends Record<string, unknown>>({
   searchable = false,
   searchPlaceholder = "Search…",
   stickyHeader = false,
+  unifiedSearchFilter,
+  onAddNew,
+  addNewLabel = "Add New",
 }: GenericTableProps<T>) {
   const [sortKey, setSortKey]     = useState<string | null>(null);
   const [sortDir, setSortDir]     = useState<"asc" | "desc">("asc");
@@ -161,56 +167,76 @@ export function GenericTable<T extends Record<string, unknown>>({
     <div className={cn("rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl shadow-black/5 transition-all duration-300", className)}>
 
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-      {(title || searchable || rightContent || showExport) && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-5 py-3">
-          {/* Title */}
-          {title && (
-            <div className="flex items-center gap-2.5 shrink-0">
-              {icon && (
-                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
-                  <Icon icon={icon} className="h-3.5 w-3.5 text-[#f05d23]" />
-                </div>
-              )}
-              <h2 className="text-sm font-semibold text-[var(--text-hi)]">{title}</h2>
-              {!loading && (
-                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-lo)]">
-                  {total}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Search */}
-          {searchable && (
-            <div className="flex flex-1 min-w-[180px] items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm transition-all focus-within:border-[#f05d23]/50 focus-within:ring-2 focus-within:ring-[#f05d23]/20">
-              <Icon icon="solar:magnifer-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
-              <input
-                value={searchTerm}
-                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                placeholder={searchPlaceholder}
-                className="flex-1 bg-transparent text-[var(--text-hi)] placeholder-[var(--text-lo)] outline-none"
-              />
-              {searchTerm && (
-                <button onClick={() => setSearch("")} className="text-[var(--text-lo)] hover:text-[var(--text-hi)]">
-                  <Icon icon="solar:close-circle-broken" className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Right side */}
-          <div className="flex items-center gap-2 ml-auto shrink-0">
-            {rightContent}
-            {showExport && (
-              <button
-                onClick={() => onExport?.(data)}
-                title="Export"
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
-              >
-                <Icon icon="solar:export-broken" className="h-4 w-4" />
-                Export
-              </button>
+      {(title || searchable || unifiedSearchFilter || rightContent || showExport || onAddNew) && (
+        <div className="border-b border-[var(--border)] bg-[var(--surface-2)]/30 px-5 py-4">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+            {/* Title */}
+            {title && (
+              <div className="flex items-center gap-2.5 shrink-0">
+                {icon && (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
+                    <Icon icon={icon} className="h-3.5 w-3.5 text-[#f05d23]" />
+                  </div>
+                )}
+                <h2 className="text-base font-semibold text-[var(--text-hi)]">{title}</h2>
+                {!loading && (
+                  <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-lo)]">
+                    {total}
+                  </span>
+                )}
+              </div>
             )}
+
+            {/* Filters + actions row */}
+            <div className="flex flex-row items-center gap-3 flex-1 min-w-0 justify-between">
+
+              {/* LEFT: unified filter or built-in search */}
+              <div className="flex flex-1 min-w-0 items-center gap-2">
+                {unifiedSearchFilter && (
+                  <div className="flex-1 min-w-0">{unifiedSearchFilter}</div>
+                )}
+                {!unifiedSearchFilter && searchable && (
+                  <div className="flex flex-1 min-w-[180px] items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm transition-all focus-within:border-[#f05d23]/50 focus-within:ring-2 focus-within:ring-[#f05d23]/20">
+                    <Icon icon="solar:magnifer-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
+                    <input
+                      value={searchTerm}
+                      onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                      placeholder={searchPlaceholder}
+                      className="flex-1 bg-transparent text-[var(--text-hi)] placeholder-[var(--text-lo)] outline-none"
+                    />
+                    {searchTerm && (
+                      <button onClick={() => setSearch("")} className="text-[var(--text-lo)] hover:text-[var(--text-hi)]">
+                        <Icon icon="solar:close-circle-broken" className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT: action buttons */}
+              <div className="flex items-center gap-2 shrink-0">
+                {rightContent}
+                {showExport && (
+                  <button
+                    onClick={() => onExport?.(data)}
+                    title="Export"
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] transition-all"
+                  >
+                    <Icon icon="solar:export-broken" className="h-4 w-4" />
+                    Export
+                  </button>
+                )}
+                {onAddNew && (
+                  <button
+                    onClick={onAddNew}
+                    className="flex items-center justify-center gap-1.5 rounded-lg bg-[#f05d23] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#d94f1a] transition-all shadow-sm"
+                  >
+                    <Icon icon="solar:add-circle-broken" className="h-4 w-4" />
+                    {addNewLabel}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

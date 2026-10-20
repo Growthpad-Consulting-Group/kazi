@@ -154,39 +154,31 @@ export default function CandidatesClientView({ candidates, unscreenedIds }: Prop
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <UnifiedSearchFilter
-            onSearchChange={setSearch}
-            onFilterChange={setFilters}
-            filterCategories={FILTER_CATEGORIES}
-            categoryOptions={CATEGORY_OPTIONS}
-            searchPlaceholder="Search candidates by name, email or role…"
-          />
-        </div>
-        {unscreenedIds.length > 0 && (
-          <div className="shrink-0 rounded-xl border border-[#f05d23]/30 bg-[#f05d23]/5 px-3 py-2 text-xs font-medium text-[#f05d23]">
+    <GenericTable
+      data={filtered}
+      columns={columns}
+      actions={actions}
+      onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
+      emptyMessage="No candidates match your filters."
+      emptyIcon="solar:users-group-two-rounded-broken"
+      title="Candidates"
+      icon="solar:user-speak-broken"
+      unifiedSearchFilter={
+        <UnifiedSearchFilter
+          onSearchChange={setSearch}
+          onFilterChange={setFilters}
+          filterCategories={FILTER_CATEGORIES}
+          categoryOptions={CATEGORY_OPTIONS}
+          searchPlaceholder="Search candidates by name, email or role…"
+        />
+      }
+      rightContent={
+        unscreenedIds.length > 0 ? (
+          <span className="rounded-xl border border-[#f05d23]/30 bg-[#f05d23]/5 px-3 py-1.5 text-xs font-medium text-[#f05d23]">
             {unscreenedIds.length} unscreened
-          </div>
-        )}
-      </div>
-
-      <GenericTable
-        data={filtered}
-        columns={columns}
-        actions={actions}
-        onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
-        emptyMessage="No candidates match your filters."
-        emptyIcon="solar:users-group-two-rounded-broken"
-        title="Candidates"
-        icon="solar:users-group-two-rounded-broken"
-        rightContent={
-          <span className="text-xs text-[var(--text-lo)]">
-            {filtered.length} of {candidates.length}
           </span>
-        }
-      />
-    </div>
+        ) : undefined
+      }
+    />
   );
 }

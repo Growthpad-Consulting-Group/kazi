@@ -125,33 +125,26 @@ export default function JobsClientView({ jobs, departments }: Props) {
   ];
 
   return (
-    <div className="space-y-4">
-      <UnifiedSearchFilter
-        onSearchChange={setSearch}
-        onFilterChange={setFilters}
-        filterCategories={FILTER_CATEGORIES}
-        categoryOptions={{ status: STATUS_OPTIONS, department: deptOptions }}
-        searchPlaceholder="Search jobs by title, department or location…"
-      />
-
-      <GenericTable
-        data={filtered}
-        columns={columns}
-        actions={actions}
-        onRowClick={(row) => router.push(`/hire/jobs/${row.id}`)}
-        emptyMessage="No jobs match your filters."
-        emptyIcon="solar:case-broken"
-        title="Jobs"
-        icon="solar:case-broken"
-        rightContent={
-          <a
-            href="/hire/jobs/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#f05d23] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#d94f1e] transition-colors"
-          >
-            + New Job
-          </a>
-        }
-      />
-    </div>
+    <GenericTable
+      data={filtered}
+      columns={columns}
+      actions={actions}
+      onRowClick={(row) => router.push(`/hire/jobs/${row.id}`)}
+      emptyMessage="No jobs match your filters."
+      emptyIcon="solar:case-broken"
+      title="Jobs"
+      icon="solar:case-minimalistic-broken"
+      unifiedSearchFilter={
+        <UnifiedSearchFilter
+          onSearchChange={setSearch}
+          onFilterChange={setFilters}
+          filterCategories={FILTER_CATEGORIES}
+          categoryOptions={{ status: STATUS_OPTIONS, department: deptOptions }}
+          searchPlaceholder="Search jobs by title, department or location…"
+        />
+      }
+      onAddNew={() => router.push("/hire/jobs/new")}
+      addNewLabel="New Job"
+    />
   );
 }

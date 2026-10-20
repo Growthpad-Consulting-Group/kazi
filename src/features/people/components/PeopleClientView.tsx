@@ -165,29 +165,28 @@ export default function PeopleClientView({ people, departments, locations }: Pro
   ];
 
   return (
-    <div className="space-y-4">
-      <UnifiedSearchFilter
-        onSearchChange={setSearch}
-        onFilterChange={setFilters}
-        filterCategories={FILTER_CATEGORIES}
-        categoryOptions={{ department: deptOptions, role: roleOptions, location: locationOptions }}
-        searchPlaceholder="Search by name, email, title or department…"
-      />
-
-      <GenericTable
-        data={filtered}
-        columns={columns}
-        actions={actions}
-        emptyMessage="No people match your filters."
-        emptyIcon="solar:user-id-broken"
-        title="Team"
-        icon="solar:users-group-two-rounded-broken"
-        rightContent={
-          <span className="text-xs text-[var(--text-lo)]">
-            {filtered.length} of {people.length}
-          </span>
-        }
-      />
-    </div>
+    <GenericTable
+      data={filtered}
+      columns={columns}
+      actions={actions}
+      emptyMessage="No people match your filters."
+      emptyIcon="solar:user-id-broken"
+      title="Team"
+      icon="solar:user-id-broken"
+      unifiedSearchFilter={
+        <UnifiedSearchFilter
+          onSearchChange={setSearch}
+          onFilterChange={setFilters}
+          filterCategories={FILTER_CATEGORIES}
+          categoryOptions={{ department: deptOptions, role: roleOptions, location: locationOptions }}
+          searchPlaceholder="Search by name, email, title or department…"
+        />
+      }
+      rightContent={
+        <span className="text-xs text-[var(--text-lo)]">
+          {filtered.length} of {people.length}
+        </span>
+      }
+    />
   );
 }
