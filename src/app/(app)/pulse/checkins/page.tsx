@@ -13,9 +13,9 @@ const TABS = [
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; user?: string; report?: string }>;
 }) {
-  const { tab = "checkins" } = await searchParams;
+  const { tab = "checkins", user, report } = await searchParams;
 
   return (
     <div>
@@ -24,9 +24,9 @@ export default async function Page({
       </Suspense>
 
       {tab === "goals"       && <GoalsPage />}
-      {tab === "one-on-ones" && <OneOnOnesPage />}
+      {tab === "one-on-ones" && <OneOnOnesPage reportId={report} />}
       {(tab === "checkins" || !["goals", "one-on-ones"].includes(tab)) && (
-        <CheckinsPage />
+        <CheckinsPage userId={user} />
       )}
     </div>
   );

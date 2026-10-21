@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
+import { SimpleModal } from "@/components/ui/SimpleModal";
+import { Button } from "@/components/ui/Button";
 
 type Candidate = {
   id: string; full_name: string; email: string; stage: string;
@@ -24,7 +27,11 @@ export function DataRetentionClient({ candidates }: { candidates: Candidate[] })
 
   function toggle(id: string) {
     const next = new Set(selected);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
     setSelected(next);
   }
 
@@ -45,88 +52,62 @@ export function DataRetentionClient({ candidates }: { candidates: Candidate[] })
 
   if (candidates.length === 0) {
     return (
-      <div className="rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
-        <p className="text-slate-500 font-medium">No stale records</p>
-        <p className="text-xs text-slate-400 mt-1">All candidate records are within the 12-month retention window.</p>
+      <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 text-center">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600"><Icon icon="solar:shield-check-broken" className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No stale records</p>
+        <p className="mt-1 text-xs text-[var(--text-lo)]">All candidate records are within the 12-month retention window.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          <span className="font-semibold text-slate-900">{candidates.length}</span> records eligible for deletion
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/10 text-red-500"><Icon icon="solar:trash-bin-minimalistic-broken" className="h-4 w-4" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">Records ready for review</p><p className="text-xs text-[var(--text-lo)]"><span className="font-mono font-bold text-[var(--text-hi)]">{candidates.length}</span> candidate records eligible for deletion</p></div></div>
         {selected.size > 0 && (
-          <button onClick={() => setConfirm(true)}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
-            Delete {selected.size} selected
-          </button>
+          <Button variant="danger" icon="solar:trash-bin-minimalistic-broken" onClick={() => setConfirm(true)}>Delete {selected.size} selected</Button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b border-slate-200">
+      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead className="border-b border-[var(--border)] bg-[var(--surface-2)]">
             <tr>
               <th className="w-10 px-4 py-3">
                 <input type="checkbox" checked={selected.size === candidates.length && candidates.length > 0}
                   onChange={toggleAll} className="rounded" />
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Job</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Outcome</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Applied</th>
+              <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-lo)]">Name</th><th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-lo)]">Email</th><th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-lo)]">Job</th><th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-lo)]">Outcome</th><th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-lo)]">Applied</th>
             </tr>
           </thead>
           <tbody>
             {candidates.map((c) => (
-              <tr key={c.id} className={`border-b border-slate-50 last:border-0 ${selected.has(c.id) ? "bg-red-50" : "hover:bg-slate-50"}`}>
+              <tr key={c.id} className={`border-b border-[var(--border)] last:border-0 ${selected.has(c.id) ? "bg-red-500/5" : "hover:bg-[var(--surface-2)]"}`}>
                 <td className="px-4 py-3">
                   <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} className="rounded" />
                 </td>
-                <td className="px-4 py-3 font-medium text-slate-900">{c.full_name}</td>
-                <td className="px-4 py-3 text-slate-500">{c.email}</td>
-                <td className="px-4 py-3 text-slate-500">{c.jobs?.title ?? "—"}</td>
+                <td className="px-4 py-3 font-medium text-[var(--text-hi)]">{c.full_name}</td><td className="px-4 py-3 text-[var(--text-lo)]">{c.email}</td><td className="px-4 py-3 text-[var(--text-lo)]">{c.jobs?.title ?? "—"}</td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                    c.stage === "hired" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
+                    c.stage === "hired" ? "bg-emerald-500/10 text-emerald-700" : "bg-[var(--surface-2)] text-[var(--text-lo)]"
                   }`}>
                     {c.stage}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-slate-500">
+                <td className="px-4 py-3 text-[var(--text-lo)]">
                   {new Date(c.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </div></div>
 
-      {confirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-4">
-            <h2 className="text-base font-semibold text-slate-900">Confirm Deletion</h2>
-            <p className="text-sm text-slate-600">
-              You are about to permanently delete <strong>{selected.size} candidate record{selected.size > 1 ? "s" : ""}</strong>,
-              including their CV files and all associated data. This cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirm(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                Cancel
-              </button>
-              <button onClick={deleteSelected} disabled={deleting}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
-                {deleting ? "Deleting…" : "Delete permanently"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SimpleModal open={confirm} onClose={() => setConfirm(false)} title="Confirm deletion" icon="solar:trash-bin-trash-broken" maxWidth="max-w-md">
+        <p className="text-sm text-[var(--text-lo)]">
+          You are about to permanently delete <strong className="text-[var(--text-hi)]">{selected.size} candidate record{selected.size > 1 ? "s" : ""}</strong>,
+          including their CV files and all associated data. This cannot be undone.
+        </p>
+        <div className="mt-5 flex justify-end gap-3 border-t border-[var(--border)] pt-4"><Button variant="secondary" onClick={() => setConfirm(false)}>Cancel</Button><Button variant="danger" icon="solar:trash-bin-minimalistic-broken" loading={deleting} onClick={deleteSelected}>{deleting ? "Deleting" : "Delete permanently"}</Button></div>
+      </SimpleModal>
     </div>
   );
 }

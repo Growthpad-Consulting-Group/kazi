@@ -10,7 +10,7 @@ import { getOneOnOnes } from "../actions";
 import { NewOneOnOneButton } from "./NewOneOnOneButton";
 import type { OneOnOne } from "@/types/database";
 
-type UserRow = { id: string; name: string; job_title: string | null };
+type UserRow = { id: string; name: string; job_title: string | null; department?: string | null; manager_id?: string | null };
 
 function actionsFor(meeting: OneOnOne) {
   const total = meeting.action_items?.length ?? 0;
@@ -23,14 +23,20 @@ function dateLabel(date: string | null, includeYear = false) {
   return new Date(date).toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short", ...(includeYear ? { year: "numeric" } : {}) });
 }
 
-export default async function OneOnOnesPage() {
+export default async function OneOnOnesPage({ reportId }: { reportId?: string }) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
   const userId = session.user.id;
   const isManager = hasRole(session.user.role, "manager");
+  const isHr = hasRole(session.user.role, "hr");
+  const { data: focusData } = reportId && isManager
+    ? await supabaseAdmin.from("users").select("id, name, job_title, department, manager_id").eq("id", reportId).maybeSingle()
+    : { data: null };
+  const requestedReport = focusData as UserRow | null;
+  const focusedReport = requestedReport && (isHr || requestedReport.manager_id === userId) ? requestedReport : null;
   const [sessions, reports] = await Promise.all([
-    getOneOnOnes(isManager ? { managerId: userId } : { reportId: userId }),
+    getOneOnOnes(isManager ? (focusedReport && isHr ? { reportId: focusedReport.id } : { managerId: userId, reportId: focusedReport?.id }) : { reportId: userId }),
     isManager
       ? supabaseAdmin.from("users").select("id, name, job_title").eq("manager_id", userId).eq("is_active", true).then((result) => (result.data ?? []) as unknown as UserRow[])
       : Promise.resolve<UserRow[]>([]),
@@ -54,8 +60,9 @@ export default async function OneOnOnesPage() {
   const actionCompletion = actionTotal ? Math.round((completedActions / actionTotal) * 100) : 0;
 
   return <>
-    <SetPageHeader title="1-on-1s" description={`${meetings.length} session${meetings.length === 1 ? "" : "s"} · ${openActions} open action item${openActions === 1 ? "" : "s"}`} icon="solar:chat-round-dots-broken" trailing={isManager && reports.length ? <NewOneOnOneButton managerId={userId} reports={reports} size="sm" /> : undefined} />
+    <SetPageHeader title={focusedReport ? `${focusedReport.name} · 1-on-1s` : "1-on-1s"} description={focusedReport ? `${focusedReport.job_title ?? "Team member"}${focusedReport.department ? ` · ${focusedReport.department}` : ""}` : `${meetings.length} session${meetings.length === 1 ? "" : "s"} · ${openActions} open action item${openActions === 1 ? "" : "s"}`} icon="solar:chat-round-dots-broken" trailing={isManager && reports.length ? <NewOneOnOneButton managerId={userId} reports={reports} size="sm" /> : undefined} />
     <div className="mx-auto max-w-7xl space-y-5">
+      {focusedReport && <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#f05d23] to-orange-400 text-xs font-bold text-white">{focusedReport.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</span><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--text-hi)]">Viewing conversations with {focusedReport.name}</p><p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">{focusedReport.job_title ?? "Team member"}{focusedReport.department ? ` · ${focusedReport.department}` : ""}</p></div></div><Link href="/pulse/one-on-ones" className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text-hi)] hover:bg-[var(--surface-2)]"><Icon icon="solar:alt-arrow-left-broken" className="h-4 w-4" />All 1-on-1s</Link></section>}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4"><StatCard title="Upcoming" value={upcoming.length} icon="solar:calendar-broken" color="blue" compact subtitle={nextMeeting ? dateLabel(nextMeeting.scheduled_at) : "Nothing scheduled"} /><StatCard title="Open actions" value={openActions} icon="solar:checklist-minimalistic-broken" color={openActions ? "amber" : "green"} compact subtitle={openActions ? "To follow through" : "All caught up"} /><StatCard title="Completed actions" value={completedActions} icon="solar:check-circle-broken" color="green" compact subtitle={`${actionCompletion}% action completion`} /><StatCard title="Unscheduled" value={unscheduled.length} icon="solar:calendar-mark-broken" color={unscheduled.length ? "orange" : "slate"} compact subtitle={unscheduled.length ? "Needs a time" : "Calendar is clear"} /></section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">

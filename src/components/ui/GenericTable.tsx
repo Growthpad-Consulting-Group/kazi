@@ -122,6 +122,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   const derivedStickyHeader = stickyHeader ?? !!(tableMaxHeight);
   const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null, label: 'All Time' });
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportRows, setExportRows] = useState<T[] | null>(null);
   const [filterKey, setFilterKey] = useState(0);
   const [sortKey, setSortKey]   = useState<string | null>(null);
   const [sortDir, setSortDir]   = useState<"asc" | "desc">("asc");
@@ -130,6 +131,9 @@ export function GenericTable<T extends Record<string, unknown>>({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searchTerm, setSearch] = useState("");
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  // Every selectable table has a safe, universal bulk action: export the
+  // selected rows. Feature-specific actions can be supplied through props.
+  const canSelect = selectable && (bulkActions.length > 0 || showExport);
 
   const rowId = useCallback((row: T, i: number) =>
     getRowId ? getRowId(row) : String((row as Record<string, unknown>).id ?? i), [getRowId]);
@@ -205,8 +209,12 @@ export function GenericTable<T extends Record<string, unknown>>({
   const allPageSel  = allPageIds.length > 0 && allPageIds.every((id) => selected.has(id));
   const somePageSel = allPageIds.some((id) => selected.has(id));
 
-  const toggleRow = (id: string) =>
-    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleRow = (id: string) => setSelected((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
 
   const toggleAll = () => {
     if (allPageSel) setSelected((s) => { const n = new Set(s); allPageIds.forEach((id) => n.delete(id)); return n; });
@@ -222,8 +230,25 @@ export function GenericTable<T extends Record<string, unknown>>({
 
   const handleExport = () => {
     if (onExport) { onExport(searched); return; }
+    setExportRows(null);
     setShowExportModal(true);
   };
+
+  const resolvedBulkActions: BulkAction<T>[] = [
+    ...bulkActions,
+    ...(showExport ? [{
+      icon: "solar:export-broken",
+      label: "Export selected",
+      onClick: (rows: T[]) => {
+        if (onExport) {
+          onExport(rows);
+        } else {
+          setExportRows(rows);
+          setShowExportModal(true);
+        }
+      },
+    }] : []),
+  ];
 
   const handleRefresh = () => {
     setSortKey(null); setSortDir("asc"); setPage(0); setSearch("");
@@ -355,13 +380,13 @@ export function GenericTable<T extends Record<string, unknown>>({
       )}
 
       {/* ── Bulk bar ─────────────────────────────────────────────────────── */}
-      {selectable && selected.size > 0 && (
+      {canSelect && selected.size > 0 && (
         <div className="flex items-center justify-between gap-3 border-b border-blue-200/60 dark:border-blue-800/30 bg-blue-50/60 dark:bg-blue-900/20 px-5 py-2.5">
           <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
             {selected.size} row{selected.size !== 1 ? "s" : ""} selected
           </span>
           <div className="flex items-center gap-2">
-            {bulkActions.map((ba, i) => (
+            {resolvedBulkActions.map((ba, i) => (
               <button
                 key={i}
                 onClick={() => { ba.onClick(selectedRows); clearSelection(); }}
@@ -393,7 +418,7 @@ export function GenericTable<T extends Record<string, unknown>>({
           style={Object.keys(columnWidths).length > 0 ? { tableLayout: "fixed" } : undefined}
         >
           <colgroup>
-            {selectable && <col className="w-10" />}
+            {canSelect && <col className="w-10" />}
             {columns.map((col, i) => (
               <col key={i} style={columnWidths[String(col.accessor)] ? { width: columnWidths[String(col.accessor)] } : undefined} />
             ))}
@@ -403,7 +428,7 @@ export function GenericTable<T extends Record<string, unknown>>({
           <TableHeader
             columns={columns as Column[]}
             table={{ paged: paginated, selected, sortKey, sortDir, toggleAll, allPageSel, somePageSel, toggleSort }}
-            selectable={selectable}
+            selectable={canSelect}
             hasActions={actions.length > 0}
             stickyHeader={derivedStickyHeader}
             columnWidths={columnWidths}
@@ -414,7 +439,7 @@ export function GenericTable<T extends Record<string, unknown>>({
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className={cn("border-b border-slate-200/60 dark:border-slate-800/60", i % 2 !== 0 && "bg-[var(--surface-2)]/30")}>
-                  {selectable && <td className="px-3 py-3.5 border-r border-[var(--border)]"><Skeleton className="h-4 w-4" /></td>}
+                  {canSelect && <td className="px-3 py-3.5 border-r border-[var(--border)]"><Skeleton className="h-4 w-4" /></td>}
                   {columns.map((col) => (
                     <td key={String(col.accessor)} className="px-4 py-3.5">
                       <Skeleton className="h-4 w-full max-w-[160px]" />
@@ -425,7 +450,7 @@ export function GenericTable<T extends Record<string, unknown>>({
               ))
             ) : paginated.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0)}>
+                <td colSpan={columns.length + (canSelect ? 1 : 0) + (actions.length > 0 ? 1 : 0)}>
                   <EmptyState icon={emptyIcon} title={emptyMessage} className="py-12" />
                 </td>
               </tr>
@@ -438,7 +463,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                     row={row}
                     rowIndex={i}
                     columns={columns}
-                    selectable={selectable}
+                    selectable={canSelect}
                     selected={selected.has(id)}
                     onToggleSelect={() => toggleRow(id)}
                     actions={actions}
@@ -466,7 +491,7 @@ export function GenericTable<T extends Record<string, unknown>>({
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        users={dateFiltered as Record<string, unknown>[]}
+        users={(exportRows ?? dateFiltered) as Record<string, unknown>[]}
         mode="light"
         type={title?.toLowerCase().replace(/\s+/g, "_") || "records"}
         title={title}

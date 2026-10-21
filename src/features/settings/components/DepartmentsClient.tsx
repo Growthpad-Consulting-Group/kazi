@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/Button";
+import { SimpleModal } from "@/components/ui/SimpleModal";
 import {
   createDepartment,
   renameDepartment,
@@ -18,6 +20,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [departmentToDelete, setDepartmentToDelete] = useState<DepartmentRow | null>(null);
   const [pending, startTransition] = useTransition();
 
   function add() {
@@ -54,11 +57,11 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
   }
 
   function remove(row: DepartmentRow) {
-    if (!confirm(`Delete department "${row.name}"?`)) return;
     startTransition(async () => {
       try {
         await deleteDepartment(row.id);
         setRows((prev) => prev.filter((r) => r.id !== row.id));
+        setDepartmentToDelete(null);
         toast.success("Department deleted");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not delete department");
@@ -67,31 +70,16 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200">
-      <div className="flex gap-2 border-b border-[var(--border)] p-4">
-        <input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
-          className={inputCls}
-          placeholder="New department name"
-        />
-        <button
-          type="button"
-          onClick={add}
-          disabled={pending || !newName.trim()}
-          className="shrink-0 rounded-xl bg-gradient-to-r from-[#f05d23] to-[#d94f1e] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          Add
-        </button>
-      </div>
+    <>
+      <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+      <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-[var(--text-hi)]">Department directory</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">Use clear, reusable names for people and job records.</p></div><div className="flex gap-2 sm:w-[360px]"><input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} className={inputCls} placeholder="Add department" /><Button size="sm" icon="solar:add-circle-broken" loading={pending} disabled={!newName.trim()} onClick={add}>Add</Button></div></div>
 
       {rows.length === 0 ? (
-        <p className="p-6 text-sm text-[var(--text-lo)]">No departments yet.</p>
+        <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No departments yet</p><p className="mt-1 text-xs text-[var(--text-lo)]">Add one to organize your people and roles.</p></div>
       ) : (
         <ul className="divide-y divide-[var(--border)]">
           {rows.map((row) => (
-            <li key={row.id} className="flex items-center gap-3 px-4 py-3">
+            <li key={row.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)]">
               {editingId === row.id ? (
                 <>
                   <input
@@ -133,7 +121,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
                   <button
                     type="button"
                     title={row.jobs + row.people > 0 ? "In use — cannot delete" : "Delete"}
-                    onClick={() => remove(row)}
+                    onClick={() => setDepartmentToDelete(row)}
                     disabled={pending || row.jobs + row.people > 0}
                     className="rounded-lg p-2 text-red-500 hover:bg-red-500/10 disabled:opacity-30"
                   >
@@ -143,8 +131,10 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
               )}
             </li>
           ))}
-        </ul>
+      </ul>
       )}
-    </section>
+      </section>
+      <SimpleModal open={!!departmentToDelete} onClose={() => setDepartmentToDelete(null)} title="Delete department" icon="solar:trash-bin-minimalistic-broken" maxWidth="max-w-md"><p className="text-sm text-[var(--text-lo)]">Delete <strong className="text-[var(--text-hi)]">{departmentToDelete?.name}</strong>? This can only be done when the department is not used by people or jobs.</p><div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4"><Button variant="secondary" onClick={() => setDepartmentToDelete(null)}>Cancel</Button><Button variant="danger" icon="solar:trash-bin-minimalistic-broken" loading={pending} onClick={() => departmentToDelete && remove(departmentToDelete)}>Delete department</Button></div></SimpleModal>
+    </>
   );
 }

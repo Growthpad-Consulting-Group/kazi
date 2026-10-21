@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { updateProfile } from "../actions";
 import SettingsSection from "./SettingsSection";
+import { Button } from "@/components/ui/Button";
 
 const inputCls =
   "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-[#f05d23] focus:ring-2 focus:ring-[#f05d23]/30";
@@ -80,14 +81,7 @@ export default function ProfileClient({ initial }: Props) {
       </SettingsSection>
 
       <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={save}
-          disabled={!dirty || isPending}
-          className="rounded-xl bg-gradient-to-r from-[#f05d23] to-[#d94f1e] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-60"
-        >
-          {isPending ? "Saving…" : "Save changes"}
-        </button>
+        <Button icon="solar:diskette-broken" loading={isPending} disabled={!dirty} onClick={save}>{isPending ? "Saving" : "Save changes"}</Button>
       </div>
     </div>
   );

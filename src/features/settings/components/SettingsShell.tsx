@@ -54,7 +54,10 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
   // Persist the collapsed state; read after mount to avoid SSR/client mismatch
   useEffect(() => {
     const saved = localStorage.getItem("kaziSettingsSidebarExpanded");
-    if (saved !== null) setIsExpanded(saved === "true");
+    if (saved !== null) {
+      const frame = window.requestAnimationFrame(() => setIsExpanded(saved === "true"));
+      return () => window.cancelAnimationFrame(frame);
+    }
   }, []);
 
   const toggleExpanded = () => {
@@ -103,6 +106,10 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
 
   return (
     <div className="relative flex w-full flex-col self-start">
+      <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 md:hidden">
+        <div className="flex items-center gap-2 px-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:settings-broken" className="h-4 w-4" /></span><span className="text-sm font-semibold text-[var(--text-hi)]">Settings</span></div>
+        <button type="button" onClick={() => setMobileOpen((prev) => !prev)} aria-expanded={mobileOpen} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-medium text-[var(--text-hi)]"><Icon icon={mobileOpen ? "solar:close-circle-broken" : "solar:hamburger-menu-broken"} className="h-4 w-4" />{mobileOpen ? "Close" : "Browse"}</button>
+      </div>
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:gap-6">
 
         {/* ── Desktop sidebar ── */}
@@ -167,18 +174,6 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
         <div className="w-full min-w-0 flex-1 overflow-hidden">{children}</div>
       </div>
 
-      {/* Mobile FAB toggle */}
-      <button
-        type="button"
-        onClick={() => setMobileOpen((prev) => !prev)}
-        aria-label={mobileOpen ? "Close settings navigation" : "Open settings navigation"}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#f05d23] to-[#d94f1e] text-white shadow-2xl transition-all hover:scale-110 active:scale-95 md:hidden"
-      >
-        <Icon
-          icon={mobileOpen ? "solar:close-circle-broken" : "solar:hamburger-menu-broken"}
-          className="h-6 w-6"
-        />
-      </button>
     </div>
   );
 }

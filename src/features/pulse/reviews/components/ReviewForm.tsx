@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@iconify/react";
+import { Button } from "@/components/ui/Button";
 import type { PerformanceReview, ReviewType } from "@/types/database";
 
 interface Props {
@@ -12,55 +14,47 @@ interface Props {
 
 type Rating = { criterion: string; rating: number; comment: string };
 
-const DEFAULT_CRITERIA = [
-  "Quality of work",
-  "Communication",
-  "Collaboration",
-  "Initiative & ownership",
-  "Growth & development",
-];
+const DEFAULT_CRITERIA = ["Quality of work", "Communication", "Collaboration", "Initiative & ownership", "Growth & development"];
 
-export function ReviewForm({ review, cycleId, revieweeId, reviewType }: Props) {
-  const initialRatings: Rating[] = DEFAULT_CRITERIA.map((c) => {
-    const existing = review.competency_ratings.find((r) => r.criterion === c);
-    return { criterion: c, rating: existing?.rating ?? 3, comment: existing?.comment ?? "" };
-  });
-
-  const [ratings, setRatings] = useState<Rating[]>(initialRatings);
+export function ReviewForm({ review, revieweeId, reviewType }: Props) {
+  const [ratings, setRatings] = useState<Rating[]>(() => DEFAULT_CRITERIA.map((criterion) => {
+    const existing = review.competency_ratings.find((rating) => rating.criterion === criterion);
+    return { criterion, rating: existing?.rating ?? 3, comment: existing?.comment ?? "" };
+  }));
   const [strengths, setStrengths] = useState(review.strengths ?? "");
   const [developmentAreas, setDevelopmentAreas] = useState(review.development_areas ?? "");
   const [aiDraft, setAiDraft] = useState(review.ai_draft ?? "");
   const [drafting, setDrafting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<"draft" | "submitted" | null>(null);
   const [error, setError] = useState("");
 
-  const overallRating = Math.round((ratings.reduce((s, r) => s + r.rating, 0) / ratings.length) * 10) / 10;
+  const overallRating = Math.round((ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length) * 10) / 10;
 
-  function setRating(i: number, val: number) {
-    setRatings(ratings.map((r, idx) => idx === i ? { ...r, rating: val } : r));
+  function updateRating(index: number, value: number) {
+    setRatings((current) => current.map((rating, itemIndex) => itemIndex === index ? { ...rating, rating: value } : rating));
   }
 
-  function setComment(i: number, val: string) {
-    setRatings(ratings.map((r, idx) => idx === i ? { ...r, comment: val } : r));
+  function updateComment(index: number, value: string) {
+    setRatings((current) => current.map((rating, itemIndex) => itemIndex === index ? { ...rating, comment: value } : rating));
   }
 
   async function generateDraft() {
     setDrafting(true);
     setError("");
     try {
-      const res = await fetch("/api/pulse/ai-review-draft", {
+      const response = await fetch("/api/pulse/ai-review-draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviewId: review.id, revieweeId, reviewType }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error);
       setAiDraft(json.draft);
       if (json.strengths) setStrengths(json.strengths);
       if (json.developmentAreas) setDevelopmentAreas(json.developmentAreas);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Draft failed");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Draft failed");
     } finally {
       setDrafting(false);
     }
@@ -70,22 +64,15 @@ export function ReviewForm({ review, cycleId, revieweeId, reviewType }: Props) {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/pulse/reviews/${review.id}`, {
+      const response = await fetch(`/api/pulse/reviews/${review.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          competency_ratings: ratings,
-          overall_rating: overallRating,
-          strengths,
-          development_areas: developmentAreas,
-          ai_draft: aiDraft,
-          submitted_at: isDraft ? null : new Date().toISOString(),
-        }),
+        body: JSON.stringify({ competency_ratings: ratings, overall_rating: overallRating, strengths, development_areas: developmentAreas, ai_draft: aiDraft, submitted_at: isDraft ? null : new Date().toISOString() }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
-      setSaved(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
+      if (!response.ok) throw new Error((await response.json()).error);
+      setSaved(isDraft ? "draft" : "submitted");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -93,77 +80,32 @@ export function ReviewForm({ review, cycleId, revieweeId, reviewType }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Competency ratings */}
-      <div className="space-y-4">
-        {ratings.map((r, i) => (
-          <div key={r.criterion}>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-medium text-slate-700">{r.criterion}</p>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} type="button" onClick={() => setRating(i, n)}
-                    className={`w-7 h-7 rounded-full text-xs font-semibold transition-colors ${r.rating === n ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
-                    {n}
-                  </button>
-                ))}
-              </div>
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-3 sm:p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h4 className="text-sm font-semibold text-[var(--text-hi)]">Competencies</h4><p className="mt-0.5 text-xs text-[var(--text-lo)]">Score each area, then add context where it helps.</p></div><div className="inline-flex items-baseline gap-1 rounded-xl bg-[#f05d23]/10 px-3 py-2"><span className="font-mono text-xl font-bold text-[#f05d23]">{overallRating}</span><span className="text-xs text-[#f05d23]/70">/5 overall</span></div></div>
+        <div className="space-y-3">
+          {ratings.map((rating, index) => (
+            <div key={rating.criterion} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-[var(--text-hi)]">{rating.criterion}</p><div className="flex items-center gap-1">{[1, 2, 3, 4, 5].map((value) => <button key={value} type="button" aria-label={`Rate ${rating.criterion} ${value} out of 5`} onClick={() => updateRating(index, value)} className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold transition-all ${rating.rating === value ? "bg-[#f05d23] text-white shadow-sm" : "bg-[var(--surface-2)] text-[var(--text-lo)] hover:bg-[#f05d23]/10 hover:text-[#f05d23]"}`}>{value}</button>)}</div></div>
+              <input value={rating.comment} onChange={(event) => updateComment(index, event.target.value)} placeholder="Add a short example or observation (optional)" className="mt-2.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" />
             </div>
-            <input
-              value={r.comment}
-              onChange={(e) => setComment(i, e.target.value)}
-              placeholder="Brief comment (optional)…"
-              className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2 py-1">
-        <span className="text-xs text-slate-500">Overall rating:</span>
-        <span className="text-lg font-bold text-slate-900">{overallRating}</span>
-        <span className="text-xs text-slate-400">/5</span>
-      </div>
-
-      {/* AI draft */}
-      <div className="rounded-lg bg-violet-50 border border-violet-100 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-violet-700">AI Draft (edit before submitting)</p>
-          <button onClick={generateDraft} disabled={drafting} className="rounded-lg bg-violet-600 px-3 py-1 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50 transition-colors">
-            {drafting ? "Generating…" : aiDraft ? "Regenerate" : "Generate Draft"}
-          </button>
+          ))}
         </div>
-        {aiDraft && (
-          <textarea rows={4} value={aiDraft} onChange={(e) => setAiDraft(e.target.value)}
-            className="w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-        )}
+      </section>
+
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600"><Icon icon="solar:magic-stick-3-broken" className="h-4 w-4" /></span><div><h4 className="text-sm font-semibold text-[var(--text-hi)]">Draft with AI</h4><p className="text-[11px] text-[var(--text-lo)]">A starting point that you can edit before submitting.</p></div></div><Button size="sm" variant="secondary" icon="solar:magic-stick-3-broken" loading={drafting} onClick={generateDraft}>{aiDraft ? "Regenerate" : "Generate draft"}</Button></div>
+        {aiDraft && <textarea rows={5} value={aiDraft} onChange={(event) => setAiDraft(event.target.value)} className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" />}
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div><label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Key strengths</label><textarea rows={4} value={strengths} onChange={(event) => setStrengths(event.target.value)} placeholder="What does this person do exceptionally well?" className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" /></div>
+        <div><label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Development areas</label><textarea rows={4} value={developmentAreas} onChange={(event) => setDevelopmentAreas(event.target.value)} placeholder="Where can they grow? Be specific and constructive." className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" /></div>
       </div>
 
-      {/* Strengths & development */}
-      <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Key strengths</label>
-        <textarea rows={2} value={strengths} onChange={(e) => setStrengths(e.target.value)}
-          placeholder="What does this person do exceptionally well?"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
-      </div>
+      {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600">{error}</p>}
+      {saved && <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-700">{saved === "submitted" ? "Review submitted successfully." : "Draft saved."}</p>}
 
-      <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Development areas</label>
-        <textarea rows={2} value={developmentAreas} onChange={(e) => setDevelopmentAreas(e.target.value)}
-          placeholder="Where can they grow? Be specific and constructive."
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
-      </div>
-
-      {error && <p className="text-xs text-red-500">{error}</p>}
-      {saved && <p className="text-xs text-green-600">Saved.</p>}
-
-      <div className="flex gap-2">
-        <button onClick={() => submit(true)} disabled={saving} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">
-          Save draft
-        </button>
-        <button onClick={() => submit(false)} disabled={saving} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 transition-colors">
-          {saving ? "Submitting…" : "Submit review"}
-        </button>
-      </div>
+      <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--border)] pt-4"><Button variant="secondary" loading={saving} onClick={() => submit(true)}>Save draft</Button><Button icon="solar:check-circle-broken" loading={saving} onClick={() => submit(false)}>{saving ? "Submitting" : "Submit review"}</Button></div>
     </div>
   );
 }

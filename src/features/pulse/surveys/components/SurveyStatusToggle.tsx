@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SurveyStatus } from "@/types/database";
+import { Button } from "@/components/ui/Button";
 
 export function SurveyStatusToggle({ surveyId, currentStatus }: { surveyId: string; currentStatus: SurveyStatus }) {
   const router = useRouter();
@@ -22,16 +23,10 @@ export function SurveyStatusToggle({ surveyId, currentStatus }: { surveyId: stri
   return (
     <div className="flex gap-2">
       {currentStatus === "draft" && (
-        <button onClick={() => setStatus("active")} disabled={saving}
-          className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-colors">
-          Launch
-        </button>
+        <Button size="sm" icon="solar:play-circle-broken" loading={saving} onClick={() => setStatus("active")}>Launch survey</Button>
       )}
       {currentStatus === "active" && (
-        <button onClick={() => setStatus("closed")} disabled={saving}
-          className="rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50 transition-colors">
-          Close
-        </button>
+        <Button size="sm" variant="secondary" icon="solar:lock-keyhole-broken" loading={saving} onClick={() => setStatus("closed")}>Close survey</Button>
       )}
     </div>
   );

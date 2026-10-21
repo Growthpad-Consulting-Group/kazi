@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReviewCycle } from "@/types/database";
+import { Button } from "@/components/ui/Button";
+import { SimpleModal } from "@/components/ui/SimpleModal";
+import DateRangePicker, { type DateRangeValue } from "@/components/ui/DateRangePicker";
 
 const CYCLES: ReviewCycle[] = ["quarterly", "biannual", "annual"];
 
-export function NewCycleButton({ userId }: { userId: string }) {
+export function NewCycleButton({ userId, size = "md" }: { userId: string; size?: "sm" | "md" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -37,16 +40,18 @@ export function NewCycleButton({ userId }: { userId: string }) {
     }
   }
 
+  const dateRange: DateRangeValue = {
+    startDate: startDate ? new Date(`${startDate}T12:00:00`) : null,
+    endDate: endDate ? new Date(`${endDate}T12:00:00`) : null,
+    label: "Custom Range",
+  };
+
   return (
     <>
-      <button onClick={() => setOpen(true)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition-colors">
-        + New Cycle
-      </button>
+      <Button size={size} icon="solar:calendar-add-broken" className="rounded-lg" onClick={() => setOpen(true)}>New cycle</Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-200 w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-slate-900">New Review Cycle</h2>
+      <SimpleModal open={open} onClose={() => setOpen(false)} title="New review cycle" icon="solar:clipboard-list-broken" maxWidth="max-w-md">
+          <div className="space-y-4">
 
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Cycle name *</label>
@@ -65,16 +70,7 @@ export function NewCycleButton({ userId }: { userId: string }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Start date *</label>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">End date *</label>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
-              </div>
-            </div>
+            <div><label className="mb-1 block text-xs font-medium text-slate-500">Review period *</label><DateRangePicker value={dateRange} onChange={(range) => { setStartDate(range.startDate?.toISOString().slice(0, 10) ?? ""); setEndDate(range.endDate?.toISOString().slice(0, 10) ?? ""); }} maxDate={null} allowedRanges={["Custom Range"]} fullWidth /></div>
 
             {error && <p className="text-xs text-red-500">{error}</p>}
 
@@ -85,8 +81,7 @@ export function NewCycleButton({ userId }: { userId: string }) {
               </button>
             </div>
           </div>
-        </div>
-      )}
+      </SimpleModal>
     </>
   );
 }

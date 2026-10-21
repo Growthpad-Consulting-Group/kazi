@@ -10,9 +10,7 @@ export function SurveyResults({ survey, responses }: Props) {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
-        Results · {responses.length} respondent{responses.length !== 1 ? "s" : ""}
-      </h2>
+      <div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Survey results</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Based on {responses.length} respondent{responses.length !== 1 ? "s" : ""}</p></div>
 
       {survey.questions.map((q) => {
         const qAnswers = responses
@@ -29,17 +27,17 @@ export function SurveyResults({ survey, responses }: Props) {
           const maxCount = Math.max(...Object.values(dist), 1);
 
           return (
-            <div key={q.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5">
-              <p className="text-sm font-semibold text-slate-900 mb-3">{q.text}</p>
+            <div key={q.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-4">
+              <p className="mb-3 text-sm font-semibold text-[var(--text-hi)]">{q.text}</p>
               <div className="flex items-end gap-2 mb-2">
-                <span className="text-3xl font-bold text-slate-900">{avg}</span>
-                <span className="text-slate-400 text-sm mb-1">/5</span>
+                <span className="font-mono text-3xl font-bold text-[#f05d23]">{avg}</span>
+                <span className="mb-1 text-sm text-[var(--text-lo)]">/5</span>
               </div>
               <div className="flex items-end gap-1.5 h-16">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <div key={n} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full bg-blue-500 rounded-t transition-all" style={{ height: `${(dist[n] / maxCount) * 52}px` }} />
-                    <span className="text-xs text-slate-400">{n}</span>
+                    <div className="w-full rounded-t bg-gradient-to-t from-[#f05d23] to-orange-400 transition-all" style={{ height: `${(dist[n] / maxCount) * 52}px` }} />
+                    <span className="text-xs text-[var(--text-lo)]">{n}</span>
                   </div>
                 ))}
               </div>
@@ -50,11 +48,11 @@ export function SurveyResults({ survey, responses }: Props) {
         // Text responses
         const texts = qAnswers.filter((a) => typeof a === "string" && a.trim()) as string[];
         return (
-          <div key={q.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5">
-            <p className="text-sm font-semibold text-slate-900 mb-3">{q.text}</p>
+          <div key={q.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-4">
+            <p className="mb-3 text-sm font-semibold text-[var(--text-hi)]">{q.text}</p>
             <div className="space-y-2">
               {texts.map((t, i) => (
-                <p key={i} className="text-sm text-slate-600 border-l-2 border-slate-200 pl-3">{t}</p>
+                <p key={i} className="border-l-2 border-[#f05d23]/30 pl-3 text-sm text-[var(--text-lo)]">{t}</p>
               ))}
             </div>
           </div>

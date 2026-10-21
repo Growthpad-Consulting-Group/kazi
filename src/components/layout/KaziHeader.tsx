@@ -85,8 +85,8 @@ export default function KaziHeader({
                         action.variant === "primary"
                           ? "bg-[#f05d23] text-white hover:bg-[#d94f1e] shadow-sm"
                           : mode === "dark"
-                            ? "text-gray-300 hover:bg-white/10"
-                            : "text-gray-600 hover:bg-black/5"
+                            ? "border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                            : "border border-[var(--border)] bg-[var(--surface)] text-gray-700 hover:bg-[var(--surface-2)]"
                       }`}
                     >
                       {action.icon && <Icon icon={action.icon} className="h-3.5 w-3.5" />}

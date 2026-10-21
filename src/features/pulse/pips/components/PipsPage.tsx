@@ -1,123 +1,36 @@
+import Link from "next/link";
+import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
-import Link from "next/link";
+import SetPageHeader from "@/components/ui/SetPageHeader";
+import StatCard from "@/components/ui/StatCard";
 import { NewPipButton } from "./NewPipButton";
 import type { Pip } from "@/types/database";
-
-async function getPips(userId: string, isManager: boolean) {
-  if (isManager) {
-    const { data } = await supabaseAdmin
-      .from("pips")
-      .select("*")
-      .or(`user_id.eq.${userId},manager_id.eq.${userId}`)
-      .order("created_at", { ascending: false });
-    return (data ?? []) as unknown as Pip[];
-  }
-  const { data } = await supabaseAdmin
-    .from("pips")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-  return (data ?? []) as unknown as Pip[];
-}
-
-async function getDirectReports(managerId: string) {
-  const { data } = await supabaseAdmin
-    .from("users")
-    .select("id, name")
-    .eq("manager_id", managerId)
-    .eq("is_active", true);
-  return (data ?? []) as { id: string; name: string }[];
-}
 
 export default async function PipsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
-
   const { id: userId, role } = session.user;
   const isManager = hasRole(role, "manager");
-
-  const [pips, directReports] = await Promise.all([
-    getPips(userId, isManager),
-    isManager ? getDirectReports(userId) : Promise.resolve([]),
+  const [pipsResult, reportsResult] = await Promise.all([
+    isManager ? supabaseAdmin.from("pips").select("*").or(`user_id.eq.${userId},manager_id.eq.${userId}`).order("created_at", { ascending: false }) : supabaseAdmin.from("pips").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+    isManager ? supabaseAdmin.from("users").select("id, name").eq("manager_id", userId).eq("is_active", true) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
   ]);
+  const pips = (pipsResult.data ?? []) as unknown as Pip[];
+  const reports = (reportsResult.data ?? []) as { id: string; name: string }[];
+  const names = new Map(reports.map((report) => [report.id, report.name]));
+  const myPips = pips.filter((pip) => pip.user_id === userId);
+  const teamPips = pips.filter((pip) => pip.manager_id === userId && pip.user_id !== userId);
+  const active = pips.filter((pip) => !pip.resolved_at);
+  const resolved = pips.filter((pip) => Boolean(pip.resolved_at));
+  const dueForReview = active.filter((pip) => pip.review_date && new Date(`${pip.review_date}T12:00:00`) <= new Date()).length;
+  const actionsOpen = active.reduce((total, pip) => total + pip.actions.filter((action) => !action.done).length, 0);
 
-  const myPips = pips.filter((p) => p.user_id === userId);
-  const teamPips = pips.filter((p) => p.manager_id === userId);
-
-  return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Performance Improvement Plans</h1>
-          <p className="text-sm text-slate-500 mt-1">Structured support for performance challenges</p>
-        </div>
-        {isManager && directReports.length > 0 && (
-          <NewPipButton directReports={directReports} managerId={userId} />
-        )}
-      </div>
-
-      {myPips.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-widest">My PIPs</h2>
-          <div className="space-y-2">
-            {myPips.map((pip) => <PipRow key={pip.id} pip={pip} />)}
-          </div>
-        </section>
-      )}
-
-      {teamPips.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Team PIPs</h2>
-          <div className="space-y-2">
-            {teamPips.map((pip) => <PipRow key={pip.id} pip={pip} />)}
-          </div>
-        </section>
-      )}
-
-      {pips.length === 0 && (
-        <div className="rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
-          <p className="text-slate-500">No PIPs active.</p>
-          {isManager && (
-            <p className="text-xs text-slate-400 mt-1">Use a PIP to document performance concerns and support plans.</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  return <><SetPageHeader title="Performance support plans" description={`${active.length} active plan${active.length === 1 ? "" : "s"} · structured support and clear follow-through`} icon="solar:heart-pulse-broken" trailing={isManager && reports.length ? <NewPipButton directReports={reports} managerId={userId} size="sm" /> : undefined} /><div className="mx-auto max-w-7xl space-y-5"><section className="grid grid-cols-2 gap-3 lg:grid-cols-4"><StatCard title="Active plans" value={active.length} icon="solar:heart-pulse-broken" color="amber" compact subtitle="Support in progress" /><StatCard title="Review due" value={dueForReview} icon="solar:calendar-mark-broken" color={dueForReview ? "red" : "green"} compact subtitle={dueForReview ? "Needs a check-in" : "Nothing due now"} /><StatCard title="Open actions" value={actionsOpen} icon="solar:checklist-minimalistic-broken" color={actionsOpen ? "blue" : "green"} compact subtitle="Across active plans" /><StatCard title="Resolved" value={resolved.length} icon="solar:check-circle-broken" color="green" compact subtitle={`${pips.length ? Math.round((resolved.length / pips.length) * 100) : 0}% of all plans`} /></section>
+    {pips.length ? <div className="grid gap-5 xl:grid-cols-2"><PipSection title="My support plans" description="Your agreed outcomes, support, and regular check-ins." pips={myPips} names={names} /><PipSection title="Team support plans" description="Support plans you are accountable for as a manager." pips={teamPips} names={names} /></div> : <section className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 text-center shadow-xl shadow-slate-200/40 dark:shadow-black/20"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600"><Icon icon="solar:heart-pulse-broken" className="h-5 w-5" /></span><h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No support plans active</h2><p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">A support plan creates a fair, documented rhythm for agreed outcomes, coaching, and follow-through.</p></section>}</div></>;
 }
 
-function PipRow({ pip }: { pip: Pip }) {
-  const done = pip.actions.filter((a) => a.done).length;
-  const total = pip.actions.length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const isResolved = !!pip.resolved_at;
-
-  return (
-    <Link href={`/pulse/pips/${pip.id}`}
-      className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-900 truncate">{pip.concern}</p>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Started {new Date(pip.start_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-          {pip.review_date && ` · Review ${new Date(pip.review_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`}
-        </p>
-      </div>
-      {total > 0 && (
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
-          </div>
-          <span className="text-xs text-slate-400">{done}/{total}</span>
-        </div>
-      )}
-      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        isResolved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-      }`}>
-        {isResolved ? "Resolved" : "Active"}
-      </span>
-    </Link>
-  );
-}
+function PipSection({ title, description, pips, names }: { title: string; description: string; pips: Pip[]; names: Map<string, string> }) { return <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4"><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">{title}</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">{description}</p></div><span className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 font-mono text-[10px] font-semibold text-[var(--text-lo)]">{pips.length}</span></div>{pips.length ? <div className="space-y-2 p-3">{pips.map((pip) => <PipCard key={pip.id} pip={pip} name={names.get(pip.user_id)} />)}</div> : <p className="px-5 py-10 text-center text-xs text-[var(--text-lo)]">No plans in this group.</p>}</section>; }
+function PipCard({ pip, name }: { pip: Pip; name?: string }) { const total = pip.actions.length; const done = pip.actions.filter((action) => action.done).length; const progress = total ? Math.round((done / total) * 100) : 0; const active = !pip.resolved_at; return <Link href={`/pulse/pips/${pip.id}`} className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface)]"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="line-clamp-2 text-sm font-semibold text-[var(--text-hi)]">{pip.concern}</p><p className="mt-1 text-[11px] text-[var(--text-lo)]">{name ? `${name} · ` : ""}Started {new Date(`${pip.start_date}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</p></div><span className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold ${active ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}>{active ? "Active" : "Resolved"}</span></div><div className="mt-4 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--border)]"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-sky-400" style={{ width: `${progress}%` }} /></div><span className="font-mono text-[10px] font-bold text-[var(--text-lo)]">{done}/{total}</span></div><div className="mt-3 flex items-center justify-between"><span className="text-[11px] text-[var(--text-lo)]">{pip.review_date ? `Review ${new Date(`${pip.review_date}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}` : "Review date not set"}</span><Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)] transition-transform group-hover:translate-x-0.5" /></div></Link>; }

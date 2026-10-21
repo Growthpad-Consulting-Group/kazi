@@ -26,7 +26,7 @@ export default async function OverviewPage() {
       .slice(0, 2) ?? "?";
 
   const stats = [
-    { label: "People", value: people ?? 0 },
+    { label: "Staff", value: people ?? 0 },
     { label: "Departments", value: departments ?? 0 },
     { label: "Jobs", value: jobs ?? 0 },
     { label: "Candidates", value: candidates ?? 0 },

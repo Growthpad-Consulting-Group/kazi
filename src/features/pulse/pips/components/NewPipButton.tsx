@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { SimpleModal } from "@/components/ui/SimpleModal";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 interface Props {
   directReports: { id: string; name: string }[];
   managerId: string;
 }
 
-export function NewPipButton({ directReports }: Props) {
+export function NewPipButton({ directReports, size = "md" }: Props & { size?: "sm" | "md" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,19 +43,10 @@ export function NewPipButton({ directReports }: Props) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)}
-        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition-colors">
-        New PIP
-      </button>
+      <Button size={size} icon="solar:add-circle-broken" className="rounded-lg" onClick={() => setOpen(true)}>New support plan</Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h2 className="text-base font-semibold text-slate-900">New Performance Improvement Plan</h2>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600">×</button>
-            </div>
-            <form onSubmit={submit} className="p-6 space-y-4">
+      <SimpleModal open={open} onClose={() => setOpen(false)} title="New performance support plan" icon="solar:heart-pulse-broken" maxWidth="max-w-lg">
+            <form onSubmit={submit} className="space-y-4">
               <div>
                 <label className="text-xs font-medium text-slate-600">Employee</label>
                 <select required value={form.user_id}
@@ -98,15 +92,11 @@ export function NewPipButton({ directReports }: Props) {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-600">Start Date</label>
-                  <input type="date" required value={form.start_date}
-                    onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
+                  <DatePicker value={form.start_date} onChange={(start_date) => setForm({ ...form, start_date })} className="mt-1" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-600">Review Date</label>
-                  <input type="date" value={form.review_date}
-                    onChange={(e) => setForm({ ...form, review_date: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
+                  <DatePicker value={form.review_date} onChange={(review_date) => setForm({ ...form, review_date })} placeholder="Choose date" className="mt-1" />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -120,9 +110,7 @@ export function NewPipButton({ directReports }: Props) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </SimpleModal>
     </>
   );
 }

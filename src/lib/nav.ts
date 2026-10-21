@@ -7,7 +7,7 @@ export const sidebarNavGroups: NavGroup[] = [
     icon: "solar:widget-2-broken",
     items: [
       { href: "/dashboard", icon: "solar:widget-2-broken",       label: "Dashboard" },
-      { href: "/people",    icon: "solar:user-id-broken",         label: "People" },
+      { href: "/people",    icon: "solar:user-id-broken",         label: "Staff" },
     ],
   },
   {

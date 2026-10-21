@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
 import { redirect } from "next/navigation";
+import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { DataRetentionClient } from "./DataRetentionClient";
 
@@ -36,9 +37,7 @@ export default async function DataRetentionPage() {
         icon="solar:trash-bin-minimalistic-broken"
       />
 
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
-        <strong>Policy reminder:</strong> Under Kenya's Data Protection Act, personal data must not be kept longer than necessary. Review and delete stale candidate records regularly. Deletion removes CV files from storage and all associated data.
-      </div>
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300"><Icon icon="solar:shield-warning-broken" className="h-4 w-4" /></span><div><p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Retention policy reminder</p><p className="mt-1 text-xs leading-relaxed text-amber-700 dark:text-amber-300">Under Kenya&apos;s Data Protection Act, personal data must not be kept longer than necessary. Deleting a record removes its CV files and associated candidate data.</p></div></div>
 
       <DataRetentionClient candidates={candidates} />
     </div>

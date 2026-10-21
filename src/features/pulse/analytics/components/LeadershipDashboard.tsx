@@ -5,6 +5,8 @@ import { hasRole } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import StatCard from "@/components/ui/StatCard";
+import { PulseAnalyticsCharts } from "./PulseAnalyticsCharts";
 
 type TeamMember = { id: string; name: string; department: string | null; manager_id: string | null };
 type Checkin = { user_id: string; week_start: string; mood: number | null; blockers: string | null; status: string };
@@ -84,9 +86,12 @@ export default async function LeadershipDashboard() {
 
   const weeklyTrend = Array.from({ length: 4 }, (_, i) => {
     const week = getWeekStart(3 - i);
-    const submitted = checkins.filter((c) => c.week_start === week).length;
+    const weekCheckins = checkins.filter((c) => c.week_start === week);
+    const submitted = weekCheckins.length;
     const pct = members.length > 0 ? Math.round((submitted / members.length) * 100) : 0;
-    return { week, pct };
+    const weekMoods = weekCheckins.map((checkin) => checkin.mood).filter((mood): mood is number => mood !== null);
+    const mood = weekMoods.length ? Math.round((weekMoods.reduce((total, value) => total + value, 0) / weekMoods.length) * 10) / 10 : null;
+    return { week, label: new Date(`${week}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short" }), rate: pct, mood };
   });
 
   const goalBuckets = {
@@ -117,115 +122,22 @@ export default async function LeadershipDashboard() {
     }
   }
 
-  const maxTrend = Math.max(...weeklyTrend.map((w) => w.pct), 1);
-
-  const GOAL_COLORS: Record<string, string> = {
-    not_started: "bg-[var(--surface-2)]",
-    in_progress: "bg-blue-500",
-    at_risk: "bg-amber-500",
-    completed: "bg-green-500",
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-5">
       <SetPageHeader
         title="Leadership Analytics"
         description={`${isHr ? "Organisation-wide" : "Your team"} · ${members.length} ${members.length === 1 ? "member" : "members"}`}
         icon="solar:chart-broken"
       />
 
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard
-          label="Check-in Rate"
-          value={`${completionRate}%`}
-          sub="this week"
-          icon="solar:checklist-minimalistic-broken"
-          accent={completionRate >= 80 ? "green" : completionRate >= 50 ? "amber" : "red"}
-        />
-        <KpiCard
-          label="Avg Mood"
-          value={avgMood ? `${avgMood}/5` : "—"}
-          sub="this week"
-          icon="solar:emoji-funny-circle-broken"
-          accent={avgMood && parseFloat(avgMood) >= 3.5 ? "green" : avgMood ? "amber" : "slate"}
-        />
-        <KpiCard
-          label="Goal Progress"
-          value={`${avgProgress}%`}
-          sub={`${totalGoals} goals total`}
-          icon="solar:target-broken"
-          accent={avgProgress >= 70 ? "green" : avgProgress >= 40 ? "amber" : "slate"}
-        />
-        <KpiCard
-          label="Flight Risks"
-          value={String(flightRisks.length)}
-          sub="need attention"
-          icon="solar:danger-broken"
-          accent={flightRisks.length === 0 ? "green" : flightRisks.length <= 2 ? "amber" : "red"}
-        />
-      </div>
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard title="Check-in rate" value={`${completionRate}%`} icon="solar:checklist-minimalistic-broken" color={completionRate >= 80 ? "green" : completionRate >= 50 ? "amber" : "red"} compact subtitle="Submitted this week" />
+        <StatCard title="Average mood" value={avgMood ? `${avgMood}/5` : "—"} icon="solar:emoji-funny-circle-broken" color={avgMood && parseFloat(avgMood) >= 3.5 ? "green" : avgMood ? "amber" : "slate"} compact subtitle="From this week’s check-ins" />
+        <StatCard title="Goal progress" value={`${avgProgress}%`} icon="solar:target-broken" color={avgProgress >= 70 ? "green" : avgProgress >= 40 ? "amber" : "blue"} compact subtitle={`${totalGoals} goals tracked`} />
+        <StatCard title="Attention signals" value={flightRisks.length} icon="solar:danger-triangle-broken" color={flightRisks.length === 0 ? "green" : flightRisks.length <= 2 ? "amber" : "red"} compact subtitle={flightRisks.length ? "Need a conversation" : "No signals detected"} />
+      </section>
 
-      {/* Trend + Goal Distribution */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Check-in Trend */}
-        <SectionCard
-          icon="solar:graph-up-broken"
-          title="Check-in Completion"
-          description="Last 4 weeks"
-        >
-          <div className="flex items-end gap-3 h-36 pt-2">
-            {weeklyTrend.map(({ week, pct }) => (
-              <div key={week} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-xs font-semibold text-[var(--text-lo)] tabular-nums">{pct}%</span>
-                <div className="relative w-full rounded-t-lg overflow-hidden" style={{ height: `${Math.round((pct / maxTrend) * 96) + 4}px` }}>
-                  <div className="absolute inset-0 bg-[#f05d23]/20 rounded-t-lg" />
-                  <div
-                    className="absolute bottom-0 w-full rounded-t-lg transition-all duration-500"
-                    style={{
-                      height: `${Math.max(pct, 4)}%`,
-                      background: "linear-gradient(to top, #f05d23, #ff8c5a)",
-                    }}
-                  />
-                </div>
-                <span className="text-[10px] text-[var(--text-lo)]">
-                  {new Date(week).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        {/* Goal Distribution */}
-        <SectionCard icon="solar:target-broken" title="Goal Status" description={`${totalGoals} goals tracked`}>
-          {totalGoals > 0 ? (
-            <div className="space-y-3 pt-1">
-              {(Object.entries(goalBuckets) as [string, number][]).map(([status, count]) => {
-                const pct = totalGoals > 0 ? Math.round((count / totalGoals) * 100) : 0;
-                return (
-                  <div key={status} className="flex items-center gap-3">
-                    <span className="w-24 text-xs text-[var(--text-lo)] capitalize shrink-0">
-                      {status.replace("_", " ")}
-                    </span>
-                    <div className="flex-1 h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${GOAL_COLORS[status]}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5 w-14 justify-end">
-                      <span className="text-xs font-semibold text-[var(--text-hi)] tabular-nums">{count}</span>
-                      <span className="text-[10px] text-[var(--text-lo)]">({pct}%)</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="py-6 text-center text-sm text-[var(--text-lo)]">No goals found.</p>
-          )}
-        </SectionCard>
-      </div>
+      <PulseAnalyticsCharts trend={weeklyTrend} goals={Object.entries(goalBuckets).map(([status, count]) => ({ status, count }))} />
 
       {/* Flight Risk */}
       {flightRisks.length > 0 && (
@@ -325,41 +237,6 @@ export default async function LeadershipDashboard() {
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
-
-const ACCENT_STYLES = {
-  green: { border: "border-green-200/60 dark:border-green-800/30", icon: "bg-green-500/10 text-green-500", value: "text-green-500" },
-  amber: { border: "border-amber-200/60 dark:border-amber-800/30", icon: "bg-amber-500/10 text-amber-500", value: "text-amber-500" },
-  red: { border: "border-red-200/60 dark:border-red-800/30", icon: "bg-red-500/10 text-red-500", value: "text-red-400" },
-  slate: { border: "border-[var(--border)]", icon: "bg-[var(--surface-2)] text-[var(--text-lo)]", value: "text-[var(--text-hi)]" },
-};
-
-function KpiCard({
-  label,
-  value,
-  sub,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  icon: string;
-  accent: string;
-}) {
-  const styles = ACCENT_STYLES[accent as keyof typeof ACCENT_STYLES] ?? ACCENT_STYLES.slate;
-  return (
-    <div className={`rounded-2xl border bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-all duration-300 ${styles.border}`}>
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-[var(--text-lo)]">{label}</p>
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}>
-          <Icon icon={icon} className="h-3.5 w-3.5" />
-        </div>
-      </div>
-      <p className={`mt-3 font-display text-3xl font-bold tabular-nums ${styles.value}`}>{value}</p>
-      <p className="mt-1 text-xs text-[var(--text-lo)]">{sub}</p>
-    </div>
-  );
-}
 
 function SectionCard({
   icon,

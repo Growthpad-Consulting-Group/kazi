@@ -15,13 +15,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("kazi_remembered_email");
-    if (saved) { setEmail(saved); setRememberMe(true); }
+    if (!saved) return;
+    const frame = requestAnimationFrame(() => {
+      setEmail(saved);
+      setRememberMe(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -30,7 +34,6 @@ export default function LoginPage() {
     try {
       const token = await recaptchaRef.current?.executeAsync();
       if (!token) throw new Error("CAPTCHA verification failed. Please try again.");
-      setCaptchaToken(token);
       recaptchaRef.current?.reset();
     } catch {
       setLoading(false);
@@ -48,7 +51,6 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err: unknown) {
       toast.error((err as Error).message, { id: loadingToast, icon: "❌" });
-      setCaptchaToken(null);
       recaptchaRef.current?.reset();
     } finally {
       setLoading(false);
@@ -192,7 +194,7 @@ export default function LoginPage() {
           </div>
 
           <span className="inline-block mb-8 px-4 py-1.5 rounded-full bg-white/70 text-sm text-[#231812] border border-[#231812]/10">
-            ● Kazi · People &amp; Hiring Platform
+            ● Kazi · Staff &amp; Hiring Platform
           </span>
 
           <div className="grid grid-cols-2 gap-5">
@@ -200,7 +202,7 @@ export default function LoginPage() {
               <div className="h-10 w-10 rounded-xl bg-[#fdf1e7] flex items-center justify-center mb-4">
                 <Icon icon="solar:user-id-broken" className="h-5 w-5 text-[#f05d23]" />
               </div>
-              <h3 className="font-bold text-[#231812] mb-1">People</h3>
+              <h3 className="font-bold text-[#231812] mb-1">Staff</h3>
               <p className="text-sm text-gray-500">Manage your entire workforce in one place</p>
             </div>
             <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">

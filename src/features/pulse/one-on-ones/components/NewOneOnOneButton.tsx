@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { SimpleModal } from "@/components/ui/SimpleModal";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 interface Props {
   managerId: string;
@@ -14,6 +16,7 @@ export function NewOneOnOneButton({ managerId, reports, size = "md" }: Props & {
   const [open, setOpen] = useState(false);
   const [reportId, setReportId] = useState(reports[0]?.id ?? "");
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function create() {
@@ -21,7 +24,7 @@ export function NewOneOnOneButton({ managerId, reports, size = "md" }: Props & {
     const res = await fetch("/api/pulse/one-on-ones", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ managerId, reportId, scheduledAt: date || null }),
+      body: JSON.stringify({ managerId, reportId, scheduledAt: date ? `${date}T${time || "09:00"}` : null }),
     });
     const json = await res.json();
     setSaving(false);
@@ -31,12 +34,10 @@ export function NewOneOnOneButton({ managerId, reports, size = "md" }: Props & {
 
   return (
     <>
-      <Button size={size} icon="solar:calendar-add-broken" onClick={() => setOpen(true)}>Schedule 1-on-1</Button>
+      <Button size={size} icon="solar:calendar-add-broken" className="rounded-lg" onClick={() => setOpen(true)}>Schedule 1-on-1</Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-200 w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-slate-900">Schedule 1-on-1</h2>
+      <SimpleModal open={open} onClose={() => setOpen(false)} title="Schedule 1-on-1" icon="solar:calendar-add-broken" maxWidth="max-w-sm">
+          <div className="space-y-4">
 
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">With</label>
@@ -51,25 +52,11 @@ export function NewOneOnOneButton({ managerId, reports, size = "md" }: Props & {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Date & time (optional)</label>
-              <input
-                type="datetime-local"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
-            </div>
+            <div><label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Date & time <span className="font-normal">(optional)</span></label><div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_112px]"><DatePicker value={date} onChange={setDate} placeholder="Choose date" /><input type="time" value={time} onChange={(event) => setTime(event.target.value)} disabled={!date} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60 disabled:cursor-not-allowed disabled:opacity-50" /></div>{date && !time && <p className="mt-1.5 text-[11px] text-[var(--text-lo)]">Defaults to 9:00 AM if no time is selected.</p>}</div>
 
-            <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
-              <button onClick={create} disabled={saving || !reportId} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 transition-colors">
-                {saving ? "Creating…" : "Create"}
-              </button>
-            </div>
+            <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4"><Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button><Button icon="solar:calendar-add-broken" loading={saving} disabled={!reportId} onClick={create}>{saving ? "Creating" : "Schedule"}</Button></div>
           </div>
-        </div>
-      )}
+      </SimpleModal>
     </>
   );
 }

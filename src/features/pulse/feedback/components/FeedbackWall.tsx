@@ -1,34 +1,6 @@
+import { Icon } from "@iconify/react";
 import type { FeedbackWithUsers } from "../actions";
 
 export function FeedbackWall({ kudos }: { kudos: FeedbackWithUsers[] }) {
-  return (
-    <div>
-      <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
-        Recognition Wall ({kudos.length})
-      </h2>
-      {kudos.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
-          <p className="text-sm text-slate-400">No shout-outs yet. Be the first to recognise a teammate!</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {kudos.map((f) => (
-            <div key={f.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl flex-shrink-0">{f.emoji ?? "⭐"}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">{f.to?.name ?? "—"}</p>
-                  <p className="text-xs text-slate-400 mb-2">from {f.from?.name ?? "—"}</p>
-                  <p className="text-sm text-slate-700">{f.message}</p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-400 mt-3">
-                {new Date(f.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4 sm:px-6"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:star-fall-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Recognition wall</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Specific appreciation makes great work visible.</p></div></div><span className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 font-mono text-[10px] font-semibold text-[var(--text-lo)]">{kudos.length} shared</span></div>{kudos.length ? <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">{kudos.map((item) => <article key={item.id} className="group rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface)]"><div className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-lg">{item.emoji ?? "⭐"}</span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--text-hi)]">{item.to?.name ?? "Teammate"}</p><p className="mt-0.5 truncate text-[11px] text-[var(--text-lo)]">From {item.from?.name ?? "A teammate"}</p></div><Icon icon="solar:quote-up-broken" className="h-4 w-4 shrink-0 text-[#f05d23]/45" /></div><p className="mt-3 line-clamp-4 text-xs leading-relaxed text-[var(--text-hi)]">{item.message}</p></div></div><p className="mt-3 border-t border-[var(--border)] pt-2.5 font-mono text-[10px] text-[var(--text-lo)]">{new Date(item.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</p></article>)}</div> : <div className="flex min-h-80 flex-col items-center justify-center px-5 text-center"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:star-fall-broken" className="h-5 w-5" /></span><h3 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">Start the recognition</h3><p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--text-lo)]">Celebrate a teammate&apos;s thoughtful work, a customer win, or the help they gave when it mattered.</p></div>}</section>;
 }

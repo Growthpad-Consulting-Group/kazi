@@ -6,6 +6,9 @@ import { Icon } from "@iconify/react";
 import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
+import { Button } from "@/components/ui/Button";
+import { SimpleModal } from "@/components/ui/SimpleModal";
+import toast from "react-hot-toast";
 
 interface UserRow extends Record<string, unknown> {
   id: string;
@@ -39,12 +42,41 @@ interface Props {
   people: UserRow[];
   departments: string[];
   locations: string[];
+  currentUserId: string;
+  canManageStaff: boolean;
 }
 
-export default function PeopleClientView({ people, departments, locations }: Props) {
+export default function PeopleClientView({ people, departments, locations, currentUserId, canManageStaff }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>([]);
+  const [staffToRemove, setStaffToRemove] = useState<UserRow | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState("");
+
+  const closeRemoveModal = () => {
+    if (removing) return;
+    setStaffToRemove(null);
+    setRemoveError("");
+  };
+
+  async function removeStaff() {
+    if (!staffToRemove) return;
+    setRemoving(true);
+    setRemoveError("");
+    try {
+      const response = await fetch(`/api/people/${staffToRemove.id}`, { method: "DELETE" });
+      const data = await response.json().catch(() => null) as { error?: string } | null;
+      if (!response.ok) throw new Error(data?.error ?? "Could not remove this staff member.");
+      toast.success(`${staffToRemove.name} removed from staff`);
+      setStaffToRemove(null);
+      router.refresh();
+    } catch (cause) {
+      setRemoveError(cause instanceof Error ? cause.message : "Could not remove this staff member.");
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   const deptOptions: FilterOption[] = departments.map((d) => ({
     id: d, label: d, category: "department", value: d,
@@ -100,7 +132,7 @@ export default function PeopleClientView({ people, departments, locations }: Pro
     const activeDepartments = new Set(people.map((person) => person.department).filter(Boolean)).size;
     const activeLocations = new Set(people.map((person) => person.location).filter(Boolean)).size;
     return [
-      { filter: [] as ActiveFilter[], label: "Team members", value: people.length, icon: "solar:users-group-two-rounded-broken", color: "blue" },
+      { filter: [] as ActiveFilter[], label: "Staff", value: people.length, icon: "solar:users-group-two-rounded-broken", color: "blue" },
       { filter: [{ category: "department", values: departments, label: "Department: is assigned", operator: "is" as const }], label: "Departments", value: activeDepartments, icon: "solar:buildings-broken", color: "violet" },
       { filter: [{ category: "manager", values: ["has_direct_reports"], label: "Manager: has direct reports", operator: "is" as const }], label: "Managers", value: managers, icon: "solar:user-speak-broken", color: "orange" },
       { filter: [{ category: "location", values: locations, label: "Location: is assigned", operator: "is" as const }], label: "Locations", value: activeLocations, icon: "solar:map-point-broken", color: "green" },
@@ -175,6 +207,16 @@ export default function PeopleClientView({ people, departments, locations }: Pro
       variant: "success",
       onClick: (row) => router.push(`/pulse/one-on-ones?report=${row.id}`),
     },
+    {
+      icon: "solar:trash-bin-trash-broken",
+      label: "Remove staff",
+      variant: "danger",
+      show: (row) => canManageStaff && row.id !== currentUserId,
+      onClick: (row) => {
+        setRemoveError("");
+        setStaffToRemove(row);
+      },
+    },
   ];
 
   return (
@@ -186,7 +228,7 @@ export default function PeopleClientView({ people, departments, locations }: Pro
       data={filtered}
       columns={columns}
       actions={actions}
-      emptyMessage="No people match your filters."
+      emptyMessage="No staff match your filters."
       emptyIcon="solar:user-id-broken"
       icon="solar:user-id-broken"
       unifiedSearchFilter={
@@ -201,6 +243,16 @@ export default function PeopleClientView({ people, departments, locations }: Pro
       }
       onRefresh={() => { setSearch(""); setFilters([]); }}
       />
+      <SimpleModal open={!!staffToRemove} onClose={closeRemoveModal} title="Remove staff member" icon="solar:trash-bin-trash-broken" maxWidth="max-w-md">
+        <p className="text-sm leading-6 text-[var(--text-lo)]">
+          Remove <span className="font-semibold text-[var(--text-hi)]">{staffToRemove?.name}</span> from active staff? They will lose access immediately and be removed from this directory. Their historical work is retained.
+        </p>
+        {removeError && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600">{removeError}</p>}
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button variant="secondary" disabled={removing} onClick={closeRemoveModal}>Cancel</Button>
+          <Button variant="danger" icon="solar:trash-bin-trash-broken" loading={removing} onClick={removeStaff}>{removing ? "Removing" : "Remove staff"}</Button>
+        </div>
+      </SimpleModal>
     </div>
   );
 }

@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { SimpleModal } from "@/components/ui/SimpleModal";
+import { DatePicker } from "@/components/ui/DatePicker";
 
-export function NewIdpButton({ userId, isManager }: { userId: string; isManager: boolean }) {
+export function NewIdpButton({ userId, isManager, size = "md" }: { userId: string; isManager: boolean; size?: "sm" | "md" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -35,14 +38,10 @@ export function NewIdpButton({ userId, isManager }: { userId: string; isManager:
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition-colors">
-        + New Plan
-      </button>
+      <Button size={size} icon="solar:add-circle-broken" className="rounded-lg" onClick={() => setOpen(true)}>New plan</Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-200 w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-slate-900">New Development Plan</h2>
+      <SimpleModal open={open} onClose={() => setOpen(false)} title="New development plan" icon="solar:book-broken" maxWidth="max-w-md">
+          <div className="space-y-4">
 
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Title *</label>
@@ -56,7 +55,7 @@ export function NewIdpButton({ userId, isManager }: { userId: string; isManager:
 
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Target date</label>
-              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
+              <DatePicker value={dueDate} onChange={setDueDate} placeholder="Choose target date" />
             </div>
 
             {error && <p className="text-xs text-red-500">{error}</p>}
@@ -68,8 +67,7 @@ export function NewIdpButton({ userId, isManager }: { userId: string; isManager:
               </button>
             </div>
           </div>
-        </div>
-      )}
+      </SimpleModal>
     </>
   );
 }

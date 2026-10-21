@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import toast from "react-hot-toast";
 import { changePassword } from "../actions";
 import SettingsSection from "./SettingsSection";
+import { Button } from "@/components/ui/Button";
 
 const inputCls =
   "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-[#f05d23] focus:ring-2 focus:ring-[#f05d23]/30";
@@ -69,14 +70,7 @@ export default function SecurityClient() {
           </label>
         </div>
         <div className="mt-5 flex justify-end">
-          <button
-            type="button"
-            onClick={save}
-            disabled={!current || !next || !confirm || isPending}
-            className="rounded-xl bg-gradient-to-r from-[#f05d23] to-[#d94f1e] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-60"
-          >
-            {isPending ? "Updating…" : "Update password"}
-          </button>
+          <Button icon="solar:key-broken" loading={isPending} disabled={!current || !next || !confirm} onClick={save}>{isPending ? "Updating" : "Update password"}</Button>
         </div>
       </SettingsSection>
 
@@ -90,13 +84,7 @@ export default function SecurityClient() {
           <p className="text-sm text-[var(--text-lo)]">
             You are signed in on this device. Signing out ends your session immediately.
           </p>
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="shrink-0 rounded-xl border border-red-500/30 px-4 py-2.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-500/10"
-          >
-            Sign out
-          </button>
+          <Button variant="danger" icon="solar:logout-2-broken" className="shrink-0" onClick={() => signOut({ callbackUrl: "/login" })}>Sign out</Button>
         </div>
       </SettingsSection>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useImperativeHandle, useRef, useState, useEffect, Ref } from 'react';
+import { useCallback, useImperativeHandle, useRef, useState, useEffect, Ref } from 'react';
 import {
   format,
   subMonths,
@@ -90,29 +90,45 @@ const DateRangePicker = function DateRangePicker(
 
   useEffect(() => {
     if (value) {
-      setActiveLabel(value.label || 'Custom Range');
-      setDraftRange({ startDate: value.startDate, endDate: value.endDate, key: 'selection' });
+      const frame = window.requestAnimationFrame(() => {
+        setActiveLabel(value.label || 'Custom Range');
+        setDraftRange({ startDate: value.startDate, endDate: value.endDate, key: 'selection' });
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
   }, [value]);
 
-  const computePosition = () => {
+  const computePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
+    const vh = window.innerHeight;
     const pw = isMobile ? Math.min(vw - 32, 360) : 680;
-    let left = rect.left + window.scrollX;
-    if (left + pw > vw - 16 + window.scrollX) left = vw - pw - 16 + window.scrollX;
-    if (left < 16 + window.scrollX) left = 16 + window.scrollX;
-    setPopoverStyle({ position: 'absolute', top: rect.bottom + window.scrollY + 6, left, width: pw, zIndex: 9999 });
-  };
+    const popoverHeight = popoverRef.current?.getBoundingClientRect().height ?? (isMobile ? 560 : 520);
+    const margin = 12;
+    let left = rect.left;
+    if (left + pw > vw - margin) left = vw - pw - margin;
+    if (left < margin) left = margin;
+
+    // Portalling avoids clipping from parent containers, but a modal can still
+    // position the trigger too low for the calendar. Keep the whole picker in
+    // the viewport rather than letting the lower months disappear off-screen.
+    const top = Math.max(margin, Math.min(rect.bottom + 6, vh - popoverHeight - margin));
+    setPopoverStyle({ position: 'fixed', top, left, width: pw, zIndex: 9999 });
+  }, [isMobile]);
 
   useEffect(() => {
     if (!isOpen) return;
+    const frame = window.requestAnimationFrame(computePosition);
     const handler = () => computePosition();
     window.addEventListener('scroll', handler, true);
     window.addEventListener('resize', handler);
-    return () => { window.removeEventListener('scroll', handler, true); window.removeEventListener('resize', handler); };
-  }, [isOpen, isMobile]);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', handler, true);
+      window.removeEventListener('resize', handler);
+    };
+  }, [isOpen, computePosition]);
 
   const openPopover = () => {
     setDraftRange({ startDate: value?.startDate ?? null, endDate: value?.endDate ?? null, key: 'selection' });
@@ -121,13 +137,13 @@ const DateRangePicker = function DateRangePicker(
     setIsOpen(true);
   };
 
-  const closePopover = (revert = true) => {
+  const closePopover = useCallback((revert = true) => {
     if (revert) {
       setDraftRange({ startDate: value?.startDate ?? null, endDate: value?.endDate ?? null, key: 'selection' });
       setActiveLabel(value?.label || 'Custom Range');
     }
     setIsOpen(false);
-  };
+  }, [value]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -138,14 +154,14 @@ const DateRangePicker = function DateRangePicker(
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [isOpen, value]);
+  }, [isOpen, closePopover]);
 
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closePopover(true); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, value]);
+  }, [isOpen, closePopover]);
 
   useImperativeHandle(ref, () => ({ focus: () => openPopover(), openDropdown: () => openPopover() }));
 
@@ -207,7 +223,7 @@ const DateRangePicker = function DateRangePicker(
           style={popoverStyle}
           role="dialog"
           aria-label="Date range picker"
-          className="rounded-2xl shadow-2xl border overflow-hidden bg-[var(--surface)] border-[var(--border)]"
+          className="max-h-[calc(100vh-24px)] overflow-x-hidden overflow-y-auto rounded-2xl border bg-[var(--surface)] shadow-2xl border-[var(--border)]"
         >
           <div className={isMobile ? 'flex flex-col max-h-[85vh] overflow-y-auto' : 'flex'}>
             {/* Preset panel */}

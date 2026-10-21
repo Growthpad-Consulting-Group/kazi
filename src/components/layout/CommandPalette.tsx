@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { sidebarNavGroups } from "@/lib/nav";
 import { useCommandPalette } from "@/shared/contexts/CommandPaletteContext";
-
-const DEBOUNCE_MS = 250;
-const MIN_QUERY_LENGTH = 2;
+import { SimpleModal } from "@/components/ui/SimpleModal";
 
 export default function CommandPalette() {
   const { isOpen: open, close } = useCommandPalette();
@@ -16,7 +14,10 @@ export default function CommandPalette() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!open) setQuery("");
+    if (!open) {
+      const frame = window.requestAnimationFrame(() => setQuery(""));
+      return () => window.cancelAnimationFrame(frame);
+    }
   }, [open]);
 
   const go = (href: string) => {
@@ -24,18 +25,10 @@ export default function CommandPalette() {
     close();
   };
 
-  if (!open) return null;
-
-  const allNavItems = sidebarNavGroups.flatMap((g) => g.items);
-
   return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/50 pt-[15vh]"
-      onClick={close}
-    >
+    <SimpleModal open={open} onClose={close} title="Search Kazi" icon="solar:magnifer-broken" maxWidth="max-w-lg">
       <Command
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45"
       >
         <div className="flex items-center gap-2 border-b border-[var(--border)] px-3">
           <Icon icon="solar:magnifer-broken" width={16} className="text-[var(--text-lo)]" />
@@ -50,7 +43,7 @@ export default function CommandPalette() {
             ESC
           </kbd>
         </div>
-        <Command.List className="max-h-96 overflow-y-auto p-2">
+        <Command.List className="max-h-[min(24rem,calc(90vh-180px))] overflow-y-auto p-2">
           <Command.Empty className="px-2 py-6 text-center text-sm text-[var(--text-lo)]">No results.</Command.Empty>
           {sidebarNavGroups.map((group) => (
             <Command.Group
@@ -73,6 +66,6 @@ export default function CommandPalette() {
           ))}
         </Command.List>
       </Command>
-    </div>
+    </SimpleModal>
   );
 }

@@ -96,7 +96,7 @@ export default async function PulseDashboard() {
         description={`Week of ${weekLabel(weekStart)}`}
         icon="solar:heart-pulse-broken"
         actions={[
-          { label: checkin ? "View check-in" : "Check in", icon: "solar:pen-new-square-broken", href: checkinHref },
+          { label: checkin ? "View check-in" : "Check in", icon: "solar:pen-new-square-broken", href: checkinHref, variant: "primary" },
           { label: "My goals", icon: "solar:target-broken", href: "/pulse/goals", variant: "secondary" },
         ]}
       />
