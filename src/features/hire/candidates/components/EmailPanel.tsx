@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
+import { RichEmailEditor } from "@/components/ui/RichEmailEditor";
 
 type EmailType = "acknowledgement" | "invite" | "rejection";
+type Draft = { subject: string; bodyHtml: string; bodyText: string; to: string };
 
 const TYPE_LABELS: Record<EmailType, string> = {
   acknowledgement: "Acknowledgement",
@@ -14,7 +16,7 @@ const TYPE_LABELS: Record<EmailType, string> = {
 
 export function EmailPanel({ candidateId }: { candidateId: string }) {
   const [type, setType] = useState<EmailType>("acknowledgement");
-  const [draft, setDraft] = useState<{ subject: string; body: string; to: string } | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -40,7 +42,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
       }
       if (!res.ok) throw new Error(json.error);
       if (!json.subject || !json.body || !json.to) throw new Error("The AI draft was incomplete. Please try again.");
-      setDraft({ subject: json.subject, body: json.body, to: json.to });
+      setDraft({ subject: json.subject, bodyText: json.body, bodyHtml: plainTextToHtml(json.body), to: json.to });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Draft failed");
     } finally {
@@ -115,11 +117,9 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Body</label>
-            <textarea
-              rows={8}
-              value={draft.body}
-              onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-[#f05d23]/30"
+            <RichEmailEditor
+              initialHtml={draft.bodyHtml}
+              onChange={(bodyHtml, bodyText) => setDraft({ ...draft, bodyHtml, bodyText })}
             />
           </div>
           <p className="text-xs italic text-[var(--text-lo)]">
@@ -133,4 +133,9 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
       )}
     </div>
   );
+}
+
+function plainTextToHtml(text: string) {
+  const escapeHtml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+  return text.split(/\n{2,}/).filter(Boolean).map((paragraph) => `<p>${escapeHtml(paragraph).replaceAll("\n", "<br />")}</p>`).join("");
 }

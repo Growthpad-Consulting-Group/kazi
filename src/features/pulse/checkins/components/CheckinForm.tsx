@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
 import type { Checkin } from "@/types/database";
+import { Button } from "@/components/ui/Button";
+import { PlainTextEditor } from "@/components/ui/PlainTextEditor";
+import { AsanaTaskImport } from "./AsanaTaskImport";
 
-interface Props {
-  userId: string;
-  weekStart: string;
-  existing: Checkin | null;
-}
+interface Props { userId: string; weekStart: string; existing: Checkin | null; }
 
 const MOODS = [
   { value: 1, emoji: "😔", label: "Struggling" },
@@ -18,6 +19,7 @@ const MOODS = [
 ];
 
 export function CheckinForm({ userId, weekStart, existing }: Props) {
+  const router = useRouter();
   const [wins, setWins] = useState(existing?.wins ?? "");
   const [priorities, setPriorities] = useState(existing?.priorities ?? "");
   const [blockers, setBlockers] = useState(existing?.blockers ?? "");
@@ -28,156 +30,47 @@ export function CheckinForm({ userId, weekStart, existing }: Props) {
   const isReviewed = existing?.status === "reviewed";
 
   async function save(submit: boolean) {
-    setSaving(true);
-    setError("");
-    setSaved(false);
+    setSaving(true); setError(""); setSaved(false);
     try {
-      const res = await fetch("/api/pulse/checkins", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          weekStart,
-          wins,
-          priorities,
-          blockers,
-          mood,
-          status: submit ? "submitted" : "draft",
-        }),
-      });
-      if (!res.ok) {
-        const j = await res.json();
-        throw new Error(j.error);
-      }
+      const res = await fetch("/api/pulse/checkins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, weekStart, wins, priorities, blockers, mood, status: submit ? "submitted" : "draft" }) });
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "Unable to save your check-in.");
       setSaved(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setSaving(false);
-    }
+      router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to save your check-in.");
+    } finally { setSaving(false); }
   }
 
-  if (isReviewed) {
-    return (
-      <div className="space-y-4">
-        <ReadField label="Wins & accomplishments" value={existing?.wins} />
-        <ReadField label="Priorities next week" value={existing?.priorities} />
-        <ReadField label="Blockers" value={existing?.blockers} />
-        <div>
-          <p className="text-xs font-medium text-slate-500 mb-1">Mood</p>
-          <p className="text-sm text-slate-700">
-            {MOODS.find((m) => m.value === existing?.mood)?.emoji ?? "—"}{" "}
-            {MOODS.find((m) => m.value === existing?.mood)?.label ?? ""}
-          </p>
-        </div>
-        {existing?.manager_comment && (
-          <div className="rounded-lg bg-blue-50 border border-blue-100 p-4">
-            <p className="text-xs font-semibold text-blue-600 mb-1">Manager feedback</p>
-            <p className="text-sm text-blue-800">{existing.manager_comment}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
+  if (isReviewed) return <ReviewedCheckin checkin={existing} />;
 
   return (
-    <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); save(false); }}>
-      <Field
-        label="Wins & accomplishments"
-        hint="What went well this week?"
-        value={wins}
-        onChange={setWins}
-      />
-      <Field
-        label="Priorities next week"
-        hint="Top 3 things you're focused on"
-        value={priorities}
-        onChange={setPriorities}
-      />
-      <Field
-        label="Blockers"
-        hint="Anything slowing you down or needing support?"
-        value={blockers}
-        onChange={setBlockers}
-      />
-
-      {/* Mood */}
-      <div>
-        <p className="text-sm font-medium text-slate-700 mb-2">How are you feeling?</p>
-        <div className="flex gap-2">
-          {MOODS.map((m) => (
-            <button
-              key={m.value}
-              type="button"
-              onClick={() => setMood(m.value)}
-              className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-colors ${
-                mood === m.value
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              <span className="text-xl">{m.emoji}</span>
-              <span className="text-xs font-medium">{m.label}</span>
-            </button>
-          ))}
-        </div>
+    <form className="space-y-6" onSubmit={(event) => { event.preventDefault(); save(false); }}>
+      <div className="space-y-4">
+        <Field label="Wins and accomplishments" hint="What moved forward, shipped, or went well?" icon="solar:cup-star-broken" value={wins} onChange={setWins} accessory={<AsanaTaskImport weekStart={weekStart} onImport={(bullets) => setWins((current) => current ? `${current}\n${bullets}` : bullets)} />} />
+        <Field label="Priorities for next week" hint="What are the few outcomes you want to focus on?" icon="solar:target-broken" value={priorities} onChange={setPriorities} />
+        <Field label="Blockers and support" hint="Flag anything that needs a decision, context, or help." icon="solar:danger-triangle-broken" value={blockers} onChange={setBlockers} optional />
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {saved && <p className="text-sm text-green-600">Saved.</p>}
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => save(false)}
-          disabled={saving}
-          className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-        >
-          Save draft
-        </button>
-        <button
-          type="button"
-          onClick={() => save(true)}
-          disabled={saving}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 transition-colors"
-        >
-          {saving ? "Submitting…" : "Submit check-in"}
-        </button>
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-[var(--text-hi)]">How are you feeling?</p><p className="mt-1 text-xs text-[var(--text-lo)]">A quick signal helps your manager know when to check in.</p></div><div className="flex gap-1.5">{MOODS.map((item) => <button key={item.value} type="button" onClick={() => setMood(item.value)} title={item.label} className={`flex h-10 w-10 flex-col items-center justify-center rounded-xl transition-all ${mood === item.value ? "bg-[#f05d23] text-white shadow-md shadow-[#f05d23]/25" : "bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[#f05d23]/10"}`}><span className="text-lg leading-none">{item.emoji}</span><span className="sr-only">{item.label}</span></button>)}</div></div>
+        <p className="mt-3 text-xs font-medium text-[var(--text-lo)]">{MOODS.find((item) => item.value === mood)?.label}</p>
       </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-5"><div>{error && <p className="flex items-center gap-1.5 text-xs font-medium text-red-500"><Icon icon="solar:danger-circle-broken" className="h-4 w-4" />{error}</p>}{saved && <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-600"><Icon icon="solar:check-circle-broken" className="h-4 w-4" />Saved. You can keep editing before submitting.</p>}</div><div className="flex items-center gap-2"><Button variant="secondary" disabled={saving} loading={saving} onClick={() => save(false)}>Save draft</Button><Button disabled={saving} loading={saving} onClick={() => save(true)} icon="solar:check-circle-broken">{saving ? "Saving" : "Submit check-in"}</Button></div></div>
     </form>
   );
 }
 
-function Field({
-  label,
-  hint,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
-      <p className="text-xs text-slate-400 mb-1.5">{hint}</p>
-      <textarea
-        rows={3}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-      />
-    </div>
-  );
+function Field({ label, hint, icon, value, onChange, accessory, optional = false }: { label: string; hint: string; icon: string; value: string; onChange: (value: string) => void; accessory?: ReactNode; optional?: boolean }) {
+  return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div className="flex gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon={icon} className="h-3.5 w-3.5" /></span><div><label className="block text-sm font-semibold text-[var(--text-hi)]">{label}{optional && <span className="ml-1 text-xs font-normal text-[var(--text-lo)]">Optional</span>}</label><p className="mt-0.5 text-xs text-[var(--text-lo)]">{hint}</p></div></div>{accessory}</div><PlainTextEditor value={value} onChange={onChange} ariaLabel={label} className="mt-3" /></div>;
 }
 
-function ReadField({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div>
-      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
-      <p className="text-sm text-slate-700 whitespace-pre-wrap">{value || <span className="text-slate-400 italic">Not filled in</span>}</p>
-    </div>
-  );
+function ReviewedCheckin({ checkin }: { checkin: Checkin }) {
+  const mood = MOODS.find((item) => item.value === checkin.mood);
+  return <div className="space-y-4"><div className="flex items-center gap-3 rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600"><Icon icon="solar:check-circle-broken" className="h-5 w-5" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">This check-in has been reviewed</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">Your update is now part of the conversation with your manager.</p></div></div><ReadField label="Wins and accomplishments" icon="solar:cup-star-broken" value={checkin.wins} /><ReadField label="Priorities for next week" icon="solar:target-broken" value={checkin.priorities} /><ReadField label="Blockers and support" icon="solar:danger-triangle-broken" value={checkin.blockers} /><div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"><span className="text-lg">{mood?.emoji ?? "—"}</span><span className="text-sm font-medium text-[var(--text-hi)]">{mood?.label ?? "Mood not recorded"}</span></div>{checkin.manager_comment && <div className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-4"><p className="text-xs font-semibold text-blue-600">Manager feedback</p><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">{checkin.manager_comment}</p></div>}</div>;
+}
+
+function ReadField({ label, icon, value }: { label: string; icon: string; value?: string | null }) {
+  return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4"><div className="flex items-center gap-2"><Icon icon={icon} className="h-4 w-4 text-[#f05d23]" /><p className="text-xs font-semibold text-[var(--text-hi)]">{label}</p></div><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-lo)]">{value || "Not filled in"}</p></div>;
 }

@@ -4,7 +4,7 @@ export default function AppFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto m-1 md:mx-8 md:mb-4 py-3 md:px-6 px-3 rounded-2xl border backdrop-blur-sm transition-all duration-300 bg-white/80 border-[var(--border)] text-[var(--text-lo)] shadow-xl shadow-slate-200/30 dark:bg-[#131417]/50 dark:shadow-black/30 hover:shadow-2xl">
+    <footer className="mt-auto md:mx-8 py-3 md:px-6 px-3 rounded-2xl border backdrop-blur-sm transition-all duration-300 bg-white/80 border-[var(--border)] text-[var(--text-lo)] shadow-xl shadow-slate-200/30 dark:bg-[#131417]/50 dark:shadow-black/30 hover:shadow-2xl">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mx-auto">
         {/* Left: brand + city credits */}
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1 text-sm text-[var(--text-lo)]">

@@ -1,193 +1,88 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
+import { Button } from "@/components/ui/Button";
 import type { CheckinWithUser } from "../actions";
 
-interface Props {
-  checkins: CheckinWithUser[];
-  weekStart: string;
-}
+interface Props { checkins: CheckinWithUser[]; weekStart: string; }
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
-// Detect mood drop: mood ≤ 2 this week
-function hasMoodAlert(checkins: CheckinWithUser[], userId: string, weekStart: string): boolean {
-  const latest = checkins.filter((c) => c.user_id === userId && c.week_start === weekStart);
-  return latest.some((c) => c.mood !== null && c.mood <= 2);
+function hasMoodAlert(checkins: CheckinWithUser[], userId: string, weekStart: string) {
+  return checkins.some((checkin) => checkin.user_id === userId && checkin.week_start === weekStart && (checkin.mood ?? 3) <= 2);
 }
 
-// Detect repeated blocker: same user has blockers in 2+ consecutive weeks
-function hasBlockerAlert(checkins: CheckinWithUser[], userId: string, weekStart: string): boolean {
-  const userCheckins = checkins
-    .filter((c) => c.user_id === userId)
-    .sort((a, b) => b.week_start.localeCompare(a.week_start));
-  const recent = userCheckins.slice(0, 3);
-  const withBlockers = recent.filter((c) => c.blockers && c.blockers.trim().length > 0);
-  // Flag if current week has a blocker AND at least one of the previous 2 weeks did too
-  const currentHasBlocker = userCheckins[0]?.week_start === weekStart && !!userCheckins[0]?.blockers?.trim();
-  return currentHasBlocker && withBlockers.length >= 2;
+function hasBlockerAlert(checkins: CheckinWithUser[], userId: string, weekStart: string) {
+  const recent = checkins.filter((checkin) => checkin.user_id === userId).sort((a, b) => b.week_start.localeCompare(a.week_start)).slice(0, 3);
+  return recent[0]?.week_start === weekStart && Boolean(recent[0]?.blockers?.trim()) && recent.filter((checkin) => checkin.blockers?.trim()).length >= 2;
 }
 
 export function TeamCheckins({ checkins, weekStart }: Props) {
-  const thisWeek = checkins.filter((c) => c.week_start === weekStart);
-  const others = checkins.filter((c) => c.week_start !== weekStart);
-
+  const router = useRouter();
+  const thisWeek = checkins.filter((checkin) => checkin.week_start === weekStart);
+  const previous = checkins.filter((checkin) => checkin.week_start !== weekStart);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
-  const [aiSummary, setAiSummary] = useState<string | null>(
-    thisWeek.find((c) => c.ai_summary)?.ai_summary ?? null
-  );
+  const [aiSummary, setAiSummary] = useState<string | null>(thisWeek.find((checkin) => checkin.ai_summary)?.ai_summary ?? null);
   const [summarising, setSummarising] = useState(false);
+  const awaitingReview = thisWeek.filter((checkin) => checkin.status !== "reviewed").length;
+  const lowMood = thisWeek.filter((checkin) => hasMoodAlert(checkins, checkin.user_id, weekStart)).length;
+  const repeatedBlockers = thisWeek.filter((checkin) => hasBlockerAlert(checkins, checkin.user_id, weekStart)).length;
 
   async function generateSummary() {
     setSummarising(true);
     try {
-      const res = await fetch("/api/pulse/ai-summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekStart }),
-      });
-      const json = await res.json();
-      if (json.summary) setAiSummary(json.summary);
-    } finally {
-      setSummarising(false);
-    }
+      const response = await fetch("/api/pulse/ai-summary", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ weekStart }) });
+      const data = await response.json().catch(() => null) as { summary?: string } | null;
+      if (data?.summary) setAiSummary(data.summary);
+    } finally { setSummarising(false); }
   }
 
   async function submitReview(checkinId: string) {
     setSaving(true);
     try {
-      await fetch("/api/pulse/checkins/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkinId, comment }),
-      });
-      setExpanded(null);
-      setComment("");
-    } finally {
-      setSaving(false);
-    }
+      const response = await fetch("/api/pulse/checkins/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checkinId, comment }) });
+      if (!response.ok) throw new Error();
+      setExpanded(null); setComment(""); router.refresh();
+    } finally { setSaving(false); }
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
-          Team Check-ins — This Week ({thisWeek.length})
-        </h2>
-        {thisWeek.length > 0 && (
-          <button
-            onClick={generateSummary}
-            disabled={summarising}
-            className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
-          >
-            {summarising ? "Summarising…" : "AI Summary"}
-          </button>
-        )}
-      </div>
+  return <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5" /></span><h2 className="text-sm font-semibold text-[var(--text-hi)]">Team check-ins</h2></div><p className="mt-2 text-xs text-[var(--text-lo)]">Review updates, acknowledge blockers, and keep the week moving.</p></div>{thisWeek.length > 0 && <Button size="sm" variant="secondary" icon="solar:magic-stick-3-broken" loading={summarising} onClick={generateSummary}>{summarising ? "Summarising" : "Team summary"}</Button>}</div>
 
-      {/* AI team summary */}
-      {aiSummary && (
-        <div className="rounded-xl bg-violet-50 border border-violet-100 p-4">
-          <p className="text-xs font-semibold text-violet-600 mb-1">AI Team Summary</p>
-          <p className="text-sm text-violet-900 whitespace-pre-wrap">{aiSummary}</p>
-        </div>
-      )}
+    <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><Metric label="Submitted" value={thisWeek.length} tone="blue" /><Metric label="To review" value={awaitingReview} tone={awaitingReview ? "amber" : "green"} /><Metric label="Low mood" value={lowMood} tone={lowMood ? "red" : "green"} /><Metric label="Repeat blockers" value={repeatedBlockers} tone={repeatedBlockers ? "orange" : "green"} /></div>
 
-      {thisWeek.length === 0 && (
-        <p className="text-sm text-slate-400">No team check-ins submitted yet this week.</p>
-      )}
+    {aiSummary && <div className="mt-5 rounded-xl border border-blue-500/15 bg-blue-500/5 p-4"><div className="flex gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500"><Icon icon="solar:magic-stick-3-broken" className="h-4 w-4" /></span><div><p className="text-xs font-semibold text-blue-600">AI team summary</p><p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">{aiSummary}</p></div></div></div>}
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-        {thisWeek.map((c, i) => (
-          <div key={c.id} className={i > 0 ? "border-t border-slate-100" : ""}>
-            <button
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
-              onClick={() => setExpanded(expanded === c.id ? null : c.id)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600">
-                  {c.users?.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-slate-900">{c.users?.name ?? "—"}</p>
-                  <p className="text-xs text-slate-400">{c.users?.job_title ?? c.users?.department ?? ""}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {c.mood && <span className="text-lg">{MOODS[c.mood - 1]}</span>}
-                {hasMoodAlert(checkins, c.user_id, weekStart) && (
-                  <span title="Low mood this week" className="rounded-full bg-red-100 text-red-600 px-2 py-0.5 text-xs font-medium">Low mood</span>
-                )}
-                {hasBlockerAlert(checkins, c.user_id, weekStart) && (
-                  <span title="Repeated blocker across weeks" className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-medium">Blocker ×2</span>
-                )}
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${c.status === "reviewed" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-600"}`}>
-                  {c.status}
-                </span>
-                <span className="text-slate-300">{expanded === c.id ? "▲" : "▼"}</span>
-              </div>
-            </button>
-
-            {expanded === c.id && (
-              <div className="px-5 pb-5 space-y-4 border-t border-slate-100 bg-slate-50">
-                <ReadSection label="Wins" value={c.wins} />
-                <ReadSection label="Priorities" value={c.priorities} />
-                <ReadSection label="Blockers" value={c.blockers} />
-
-                {c.ai_summary && (
-                  <div className="rounded-lg bg-violet-50 border border-violet-100 p-3">
-                    <p className="text-xs font-semibold text-violet-600 mb-1">AI Summary</p>
-                    <p className="text-sm text-violet-900">{c.ai_summary}</p>
-                  </div>
-                )}
-
-                {c.status !== "reviewed" && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-medium text-slate-500">Your comment (optional)</label>
-                    <textarea
-                      rows={2}
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="Reply to this check-in…"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    />
-                    <button
-                      onClick={() => submitReview(c.id)}
-                      disabled={saving}
-                      className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 transition-colors"
-                    >
-                      {saving ? "Saving…" : "Mark Reviewed"}
-                    </button>
-                  </div>
-                )}
-
-                {c.manager_comment && (
-                  <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
-                    <p className="text-xs font-semibold text-blue-600 mb-1">Your feedback</p>
-                    <p className="text-sm text-blue-800">{c.manager_comment}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {others.length > 0 && (
-        <p className="text-xs text-slate-400">{others.length} check-in{others.length > 1 ? "s" : ""} from previous weeks.</p>
-      )}
-    </div>
-  );
+    {thisWeek.length ? <div className="mt-5 overflow-hidden rounded-xl border border-[var(--border)]">{thisWeek.map((checkin, index) => {
+      const isExpanded = expanded === checkin.id;
+      const moodAlert = hasMoodAlert(checkins, checkin.user_id, weekStart);
+      const blockerAlert = hasBlockerAlert(checkins, checkin.user_id, weekStart);
+      return <div key={checkin.id} className={index ? "border-t border-[var(--border)]" : ""}><button type="button" className="flex w-full items-center justify-between gap-3 bg-[var(--surface)] px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)]" onClick={() => { setExpanded(isExpanded ? null : checkin.id); setComment(""); }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-xs font-bold text-[#f05d23]">{checkin.users?.name?.slice(0, 1).toUpperCase() ?? "?"}</span><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--text-hi)]">{checkin.users?.name ?? "Unknown teammate"}</span><span className="mt-0.5 block truncate text-xs text-[var(--text-lo)]">{checkin.users?.job_title ?? checkin.users?.department ?? "Team member"}</span></span></div><span className="flex shrink-0 items-center gap-2">{checkin.mood && <span className="text-base" title={`Mood: ${checkin.mood}/5`}>{MOODS[checkin.mood - 1]}</span>}{moodAlert && <AlertChip icon="solar:heart-pulse-broken" label="Mood" tone="red" />}{blockerAlert && <AlertChip icon="solar:danger-triangle-broken" label="Blocker" tone="amber" />}<StatusChip status={checkin.status} /><Icon icon={isExpanded ? "solar:alt-arrow-up-broken" : "solar:alt-arrow-down-broken"} className="h-4 w-4 text-[var(--text-lo)]" /></span></button>
+        {isExpanded && <div className="border-t border-[var(--border)] bg-[var(--surface-2)] p-4 sm:p-5"><div className="grid gap-3 md:grid-cols-3"><ReadSection label="Wins" icon="solar:cup-star-broken" value={checkin.wins} /><ReadSection label="Priorities" icon="solar:target-broken" value={checkin.priorities} /><ReadSection label="Blockers" icon="solar:danger-triangle-broken" value={checkin.blockers} /></div>{checkin.ai_summary && <div className="mt-3 rounded-xl border border-blue-500/15 bg-blue-500/5 p-3"><p className="text-xs font-semibold text-blue-600">AI summary</p><p className="mt-1 text-xs leading-relaxed text-[var(--text-hi)]">{checkin.ai_summary}</p></div>}{checkin.status !== "reviewed" ? <div className="mt-4 border-t border-[var(--border)] pt-4"><label className="text-xs font-semibold text-[var(--text-hi)]">Manager note <span className="font-normal text-[var(--text-lo)]">Optional</span></label><textarea rows={2} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Acknowledge progress or offer support…" className="mt-2 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" /><div className="mt-3 flex justify-end"><Button size="sm" icon="solar:check-circle-broken" loading={saving} disabled={saving} onClick={() => submitReview(checkin.id)}>Mark reviewed</Button></div></div> : checkin.manager_comment && <div className="mt-4 rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3"><p className="text-xs font-semibold text-emerald-600">Your feedback</p><p className="mt-1 whitespace-pre-wrap text-sm text-[var(--text-hi)]">{checkin.manager_comment}</p></div>}</div>}
+      </div>;
+    })}</div> : <div className="mt-5 flex min-h-36 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 text-center"><Icon icon="solar:clipboard-check-broken" className="h-6 w-6 text-[var(--text-lo)]" /><p className="mt-2 text-sm font-medium text-[var(--text-hi)]">No team updates yet</p><p className="mt-1 text-xs text-[var(--text-lo)]">Submitted check-ins will appear here for review.</p></div>}
+    {previous.length > 0 && <p className="mt-3 text-xs text-[var(--text-lo)]">{previous.length} check-in{previous.length === 1 ? "" : "s"} from previous weeks remain in history.</p>}
+  </section>;
 }
 
-function ReadSection({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
-  return (
-    <div className="pt-3">
-      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
-      <p className="text-sm text-slate-700 whitespace-pre-wrap">{value}</p>
-    </div>
-  );
+function Metric({ label, value, tone }: { label: string; value: number; tone: "blue" | "amber" | "red" | "orange" | "green" }) {
+  const tones = { blue: "bg-blue-500/10 text-blue-600", amber: "bg-amber-500/10 text-amber-600", red: "bg-red-500/10 text-red-500", orange: "bg-[#f05d23]/10 text-[#f05d23]", green: "bg-emerald-500/10 text-emerald-600" };
+  return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"><p className={`inline-flex rounded-md px-1.5 py-0.5 font-mono text-lg font-bold ${tones[tone]}`}>{value}</p><p className="mt-2 text-xs font-medium text-[var(--text-lo)]">{label}</p></div>;
+}
+
+function AlertChip({ icon, label, tone }: { icon: string; label: string; tone: "red" | "amber" }) {
+  return <span className={`hidden items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-semibold sm:inline-flex ${tone === "red" ? "bg-red-500/10 text-red-500" : "bg-amber-500/10 text-amber-600"}`}><Icon icon={icon} className="h-3 w-3" />{label}</span>;
+}
+
+function StatusChip({ status }: { status: string }) {
+  const tones: Record<string, string> = { draft: "bg-amber-500/10 text-amber-600", submitted: "bg-blue-500/10 text-blue-600", reviewed: "bg-emerald-500/10 text-emerald-600" };
+  return <span className={`hidden rounded-md px-1.5 py-1 text-[10px] font-semibold capitalize sm:inline-flex ${tones[status] ?? "bg-[var(--surface-2)] text-[var(--text-lo)]"}`}>{status}</span>;
+}
+
+function ReadSection({ label, icon, value }: { label: string; icon: string; value?: string | null }) {
+  return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"><div className="flex items-center gap-1.5"><Icon icon={icon} className="h-3.5 w-3.5 text-[#f05d23]" /><p className="text-xs font-semibold text-[var(--text-hi)]">{label}</p></div><p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-[var(--text-lo)]">{value || "Not filled in"}</p></div>;
 }

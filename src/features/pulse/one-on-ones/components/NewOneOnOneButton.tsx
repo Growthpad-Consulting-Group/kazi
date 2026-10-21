@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   managerId: string;
   reports: { id: string; name: string; job_title: string | null }[];
 }
 
-export function NewOneOnOneButton({ managerId, reports }: Props) {
+export function NewOneOnOneButton({ managerId, reports, size = "md" }: Props & { size?: "sm" | "md" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reportId, setReportId] = useState(reports[0]?.id ?? "");
@@ -30,12 +31,7 @@ export function NewOneOnOneButton({ managerId, reports }: Props) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition-colors"
-      >
-        + Schedule 1-on-1
-      </button>
+      <Button size={size} icon="solar:calendar-add-broken" onClick={() => setOpen(true)}>Schedule 1-on-1</Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>

@@ -1,31 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
 import type { Goal, GoalStatus } from "@/types/database";
 
-interface Props {
-  goals: Goal[];
-  childMap: Record<string, Goal[]>;
-  canEdit: boolean;
-  depth?: number;
-}
+interface Props { goals: Goal[]; childMap: Record<string, Goal[]>; canEdit: boolean; depth?: number; }
 
-const STATUS_STYLES: Record<GoalStatus, { dot: string; badge: string }> = {
-  not_started: { dot: "bg-slate-300", badge: "bg-slate-100 text-slate-500" },
-  in_progress: { dot: "bg-blue-500", badge: "bg-blue-100 text-blue-600" },
-  at_risk: { dot: "bg-amber-400", badge: "bg-amber-100 text-amber-700" },
-  completed: { dot: "bg-green-500", badge: "bg-green-100 text-green-700" },
-  cancelled: { dot: "bg-slate-200", badge: "bg-slate-100 text-slate-400" },
+const STATUS: Record<GoalStatus, { label: string; dot: string; bar: string; badge: string }> = {
+  not_started: { label: "Not started", dot: "bg-slate-400",   bar: "bg-slate-400",   badge: "bg-slate-500/10 text-slate-500" },
+  in_progress: { label: "In progress", dot: "bg-blue-500",    bar: "bg-blue-500",    badge: "bg-blue-500/10 text-blue-600" },
+  at_risk:     { label: "At risk",     dot: "bg-amber-500",   bar: "bg-amber-500",   badge: "bg-amber-500/10 text-amber-600" },
+  completed:   { label: "Completed",   dot: "bg-emerald-500", bar: "bg-emerald-500", badge: "bg-emerald-500/10 text-emerald-600" },
+  cancelled:   { label: "Cancelled",   dot: "bg-slate-300",   bar: "bg-slate-300",   badge: "bg-slate-500/10 text-slate-400" },
 };
 
 export function GoalTree({ goals, childMap, canEdit, depth = 0 }: Props) {
   return (
-    <div className={`space-y-2 ${depth > 0 ? "pl-6 border-l border-slate-100 ml-3" : ""}`}>
-      {goals.map((g) => (
+    <div className={depth ? "mt-2 space-y-2 border-l-2 border-[var(--border)] pl-4" : "space-y-2"}>
+      {goals.map((goal) => (
         <GoalCard
-          key={g.id}
-          goal={g}
-          children={childMap[g.id] ?? []}
+          key={goal.id}
+          goal={goal}
+          linkedGoals={childMap[goal.id] ?? []}
           childMap={childMap}
           canEdit={canEdit}
           depth={depth}
@@ -35,114 +32,145 @@ export function GoalTree({ goals, childMap, canEdit, depth = 0 }: Props) {
   );
 }
 
-function GoalCard({
-  goal,
-  children,
-  childMap,
-  canEdit,
-  depth,
-}: {
-  goal: Goal;
-  children: Goal[];
-  childMap: Record<string, Goal[]>;
-  canEdit: boolean;
-  depth: number;
+function GoalCard({ goal, linkedGoals, childMap, canEdit, depth }: {
+  goal: Goal; linkedGoals: Goal[]; childMap: Record<string, Goal[]>; canEdit: boolean; depth: number;
 }) {
+  const router = useRouter();
   const [progress, setProgress] = useState(goal.progress);
-  const [status, setStatus] = useState<GoalStatus>(goal.status);
-  const [saving, setSaving] = useState(false);
-  const s = STATUS_STYLES[status];
+  const [status, setStatus]     = useState<GoalStatus>(goal.status);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const meta = STATUS[status];
+  const due  = dueLabel(goal.due_date);
+  const overdue = due?.includes("overdue") ?? false;
 
-  async function saveProgress(newProg: number, newStatus: GoalStatus) {
-    setSaving(true);
-    await fetch("/api/pulse/goals/progress", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: goal.id, progress: newProg, status: newStatus }),
-    });
-    setSaving(false);
+  async function save(nextProgress: number, nextStatus: GoalStatus) {
+    setSaving(true); setError("");
+    try {
+      const res = await fetch("/api/pulse/goals/progress", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: goal.id, progress: nextProgress, status: nextStatus }),
+      });
+      if (!res.ok) throw new Error();
+      router.refresh();
+    } catch { setError("Could not save."); } finally { setSaving(false); }
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-      <div className="p-4">
+    <div className={`rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-shadow hover:shadow-sm ${depth > 0 ? "bg-[var(--surface-2)]" : ""}`}>
+      <div className="p-3.5 sm:p-4">
+        {/* Header row */}
         <div className="flex items-start gap-3">
-          <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${s.dot}`} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900 leading-snug">{goal.title}</p>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium flex-shrink-0 capitalize ${s.badge}`}>
-                {status.replace("_", " ")}
+          {/* Status dot */}
+          <span className={`mt-[5px] h-2 w-2 shrink-0 rounded-full ${meta.dot}`} />
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="text-sm font-semibold leading-snug text-[var(--text-hi)]">{goal.title}</p>
+              <span className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-semibold ${meta.badge}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                {meta.label}
               </span>
             </div>
+
             {goal.description && (
-              <p className="text-xs text-slate-500 mt-1">{goal.description}</p>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-lo)]">{goal.description}</p>
             )}
-            {goal.due_date && (
-              <p className="text-xs text-slate-400 mt-1">
-                Due {new Date(goal.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-              </p>
-            )}
+
+            {/* Meta row */}
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+              {due && (
+                <span className={`inline-flex items-center gap-1 text-[11px] ${overdue && status !== "completed" ? "text-red-500 font-semibold" : "text-[var(--text-lo)]"}`}>
+                  <Icon icon="solar:calendar-broken" className="h-3.5 w-3.5" />
+                  {due}
+                </span>
+              )}
+              {linkedGoals.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((v) => !v)}
+                  className="inline-flex items-center gap-1 text-[11px] text-[var(--text-lo)] hover:text-[var(--text-hi)] transition-colors"
+                >
+                  <Icon icon={expanded ? "solar:alt-arrow-up-broken" : "solar:alt-arrow-down-broken"} className="h-3 w-3" />
+                  {linkedGoals.length} sub-goal{linkedGoals.length === 1 ? "" : "s"}
+                </button>
+              )}
+            </div>
 
             {/* Progress bar */}
             <div className="mt-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-slate-500">Progress</span>
-                <span className="text-xs font-semibold text-slate-700">{progress}%</span>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[11px] text-[var(--text-lo)]">Progress</span>
+                <span className="font-mono text-[11px] font-bold text-[var(--text-hi)]">{progress}%</span>
               </div>
               {canEdit ? (
                 <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
+                  aria-label={`Progress for ${goal.title}`}
+                  type="range" min={0} max={100} step={5}
                   value={progress}
+                  disabled={saving}
                   onChange={(e) => setProgress(Number(e.target.value))}
-                  onMouseUp={() => saveProgress(progress, status)}
-                  onTouchEnd={() => saveProgress(progress, status)}
-                  className="w-full accent-blue-600"
+                  onPointerUp={(e) => save(Number(e.currentTarget.value), status)}
+                  onKeyUp={(e) => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) save(Number(e.currentTarget.value), status); }}
+                  className="goal-progress-slider w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: `linear-gradient(to right, #3b82f6 0%, #38bdf8 ${progress}%, var(--surface-2) ${progress}%, var(--surface-2) 100%)` }}
                 />
               ) : (
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all"
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                  <div className={`h-full rounded-full transition-all ${meta.bar}`} style={{ width: `${progress}%` }} />
                 </div>
               )}
             </div>
 
-            {/* Status selector for editors */}
+            {/* Status + saving row (manager only) */}
             {canEdit && (
-              <div className="flex gap-1.5 mt-3 flex-wrap">
-                {(Object.keys(STATUS_STYLES) as GoalStatus[]).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    disabled={saving}
-                    onClick={() => {
-                      setStatus(st);
-                      saveProgress(progress, st);
-                    }}
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors capitalize ${
-                      status === st ? STATUS_STYLES[st].badge + " ring-1 ring-inset ring-current" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                    }`}
-                  >
-                    {st.replace("_", " ")}
-                  </button>
-                ))}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                  value={status}
+                  disabled={saving}
+                  onChange={(e) => { const next = e.target.value as GoalStatus; setStatus(next); save(progress, next); }}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1 text-xs font-medium text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60"
+                >
+                  <option value="not_started">Not started</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="at_risk">At risk</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                {saving && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-lo)]">
+                    <Icon icon="solar:spinner-broken" className="h-3.5 w-3.5 animate-spin" />Saving…
+                  </span>
+                )}
+                {error && <span className="text-[11px] text-red-500">{error}</span>}
+                {overdue && status !== "completed" && (
+                  <span className="rounded-md bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">Past due</span>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Children */}
-      {children.length > 0 && (
-        <div className="px-4 pb-4">
-          <GoalTree goals={children} childMap={childMap} canEdit={canEdit} depth={depth + 1} />
+      {/* Sub-goals */}
+      {linkedGoals.length > 0 && expanded && (
+        <div className="border-t border-[var(--border)] px-4 pb-4 pt-3">
+          <GoalTree goals={linkedGoals} childMap={childMap} canEdit={canEdit} depth={depth + 1} />
         </div>
       )}
     </div>
   );
+}
+
+function dueLabel(date: string | null) {
+  if (!date) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due   = new Date(`${date}T12:00:00`); due.setHours(0, 0, 0, 0);
+  const days  = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0)  return `${Math.abs(days)}d overdue`;
+  if (days === 0) return "Due today";
+  if (days <= 7)  return `Due in ${days}d`;
+  return `Due ${due.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`;
 }

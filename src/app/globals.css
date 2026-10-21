@@ -48,3 +48,29 @@ h1, h2, h3, h4, h5, h6, nav {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+.goal-progress-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 8px;
+  border-radius: 9999px;
+}
+.goal-progress-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: #38bdf8;
+  box-shadow: 0 1px 4px rgb(14 116 144 / 35%);
+}
+.goal-progress-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: #38bdf8;
+  box-shadow: 0 1px 4px rgb(14 116 144 / 35%);
+}
+.goal-progress-slider::-moz-range-track { background: transparent; }

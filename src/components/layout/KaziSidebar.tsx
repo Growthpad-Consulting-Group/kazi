@@ -60,7 +60,7 @@ export default function KaziSidebar({
   return (
     <div
       ref={sidebarRef}
-      className={`shrink-0 z-50 transition-all duration-300 ${isMobile ? "fixed inset-y-0 left-0 m-0" : "sticky top-0 h-screen my-1 md:my-4 md:ml-4"}`}
+      className={`shrink-0 z-50 transition-all duration-300 ${isMobile ? "fixed inset-y-0 left-0 m-0" : "sticky top-0 h-full"}`}
       style={{ width: isOpen ? "240px" : isMobile ? "0" : "64px" }}
     >
       <div className={`relative h-full flex flex-col border transition-all duration-300 ${isMobile ? "rounded-none" : "rounded-3xl"} ${

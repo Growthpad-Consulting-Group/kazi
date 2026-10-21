@@ -19,12 +19,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <CommandPaletteProvider>
       <NotificationsProvider>
       <PageHeaderProvider>
-        <div className="flex h-screen flex-col overflow-hidden bg-[var(--canvas)]">
-          <div className="flex min-h-0 flex-1">
+        <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--canvas)] p-1 md:p-4">
+          <div className="flex min-h-0 flex-1 gap-1">
             <KaziSidebar isOpen={!!isSidebarOpen} toggleSidebar={toggleSidebar} />
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
               <KaziHeader isSidebarOpen={!!isSidebarOpen} toggleSidebar={toggleSidebar} />
-              <main className="flex-1 overflow-y-auto transition-all duration-300">
+              <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain transition-all duration-300">
                 <div className="p-6 md:p-8">
                   {children}
                 </div>

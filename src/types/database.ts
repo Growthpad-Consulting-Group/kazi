@@ -271,6 +271,28 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      asana_connections: {
+        Row: {
+          id: string;
+          user_id: string;
+          asana_user_gid: string;
+          asana_email: string | null;
+          workspace_gid: string;
+          workspace_name: string | null;
+          access_token_ciphertext: string;
+          refresh_token_ciphertext: string;
+          token_expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["asana_connections"]["Row"], "id" | "created_at" | "updated_at" | "asana_email" | "workspace_name" | "token_expires_at"> & {
+          asana_email?: string | null;
+          workspace_name?: string | null;
+          token_expires_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["asana_connections"]["Row"]>;
+        Relationships: [];
+      };
       // ── Phase 3: Reviews, Surveys, IDPs, PIPs ───────────────
       review_cycles: {
         Row: {
