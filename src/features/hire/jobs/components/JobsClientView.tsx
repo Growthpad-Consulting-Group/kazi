@@ -170,6 +170,13 @@ export default function JobsClientView({ jobs, departments }: Props) {
       label: "Edit",
       onClick: (row) => router.push(`/hire/jobs/${row.id}/edit`),
     },
+    {
+      icon: "solar:global-broken",
+      label: "Open application page",
+      variant: "success",
+      show: (row) => jobAvailability(row, new Date(), new Date()).live,
+      onClick: (row) => window.open(`/apply/${row.id}`, "_blank", "noopener,noreferrer"),
+    },
   ];
 
   return (

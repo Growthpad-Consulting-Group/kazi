@@ -11,7 +11,7 @@ export default async function PublicApplyPage({
 
   const { data: job } = await supabaseAdmin
     .from("jobs")
-    .select("id, title, department, status, published_at, closes_at")
+    .select("id, title, department, location, description, requirements, status, published_at, closes_at")
     .eq("id", jobId)
     .single();
 
@@ -23,5 +23,13 @@ export default async function PublicApplyPage({
     (job.closes_at && new Date(job.closes_at) <= now)
   ) notFound();
 
-  return <ApplyPage jobId={job.id} jobTitle={job.title} />;
+  return <ApplyPage job={{
+    id: job.id,
+    title: job.title,
+    department: job.department,
+    location: job.location,
+    description: job.description,
+    requirements: job.requirements as { must_haves?: string[]; nice_to_haves?: string[] } | null,
+    closesAt: job.closes_at,
+  }} />;
 }

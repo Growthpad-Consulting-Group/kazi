@@ -9,6 +9,10 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
   const job = await getJob(id).catch(() => null);
   if (!job) notFound();
   const departments = await getDepartments().catch(() => []);
+  const now = new Date();
+  const isPubliclyLive = job.status === "open"
+    && (!job.published_at || new Date(job.published_at) <= now)
+    && (!job.closes_at || new Date(job.closes_at) > now);
 
   return (
     <>
@@ -16,7 +20,10 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
         title="Edit Job"
         description={job.title}
         icon="solar:case-minimalistic-broken"
-        actions={[{ label: "View Job", icon: "solar:eye-broken", href: `/hire/jobs/${job.id}` }]}
+        actions={[
+          { label: "View Job", icon: "solar:eye-broken", href: `/hire/jobs/${job.id}` },
+          ...(isPubliclyLive ? [{ label: "Application page", icon: "solar:global-broken", href: `/apply/${job.id}`, variant: "primary" as const }] : []),
+        ]}
       />
       <JobForm job={job} departments={departments} />
     </>

@@ -1,173 +1,148 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@iconify/react";
+import Image from "next/image";
+
+type PublicJob = {
+  id: string;
+  title: string;
+  department: string | null;
+  location: string | null;
+  description: string | null;
+  requirements: { must_haves?: string[]; nice_to_haves?: string[] } | null;
+  closesAt: string | null;
+};
 
 interface Props {
-  jobId: string;
-  jobTitle: string;
+  job: PublicJob;
   company?: string;
 }
 
-export function ApplyPage({ jobId, jobTitle, company = "Growthpad Consulting Group" }: Props) {
-  const [form, setForm] = useState({
-    full_name: "",
-    email: "",
-    phone: "",
-    location: "",
-    source: "direct",
-    consented: false,
-  });
+const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#f05d23] focus:ring-4 focus:ring-[#f05d23]/10";
+
+export function ApplyPage({ job, company = "Growthpad Consulting Group" }: Props) {
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", location: "", source: "direct", consented: false });
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [step, setStep] = useState<"form" | "uploading" | "done" | "error">("form");
   const [errorMsg, setErrorMsg] = useState("");
 
-  function update(k: string, v: string | boolean) {
-    setForm((f) => ({ ...f, [k]: v }));
+  const mustHaves = job.requirements?.must_haves?.filter(Boolean) ?? [];
+  const niceToHaves = job.requirements?.nice_to_haves?.filter(Boolean) ?? [];
+  const closeDate = job.closesAt ? new Date(job.closesAt) : null;
+  const closingLabel = closeDate
+    ? `Applications close ${closeDate.toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}`
+    : "Applications are reviewed as they arrive";
+
+  function update(key: keyof typeof form, value: string | boolean) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     if (!form.consented) return;
     setStep("uploading");
     setErrorMsg("");
 
     try {
-      // 1. Create candidate record
-      const applyRes = await fetch("/api/hire/candidates/apply", {
+      const applyResponse = await fetch("/api/hire/candidates/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_id: jobId, ...form }),
+        body: JSON.stringify({ job_id: job.id, ...form }),
       });
-      const applyJson = await applyRes.json();
-      if (!applyRes.ok) throw new Error(applyJson.error);
+      const application = await applyResponse.json();
+      if (!applyResponse.ok) throw new Error(application.error);
 
-      const { candidateId } = applyJson;
-
-      // 2. Upload CV if provided
-      if (cvFile && candidateId) {
-        const fd = new FormData();
-        fd.append("cv", cvFile);
-        fd.append("candidateId", candidateId);
-        fd.append("jobId", jobId);
-        await fetch("/api/hire/candidates/upload-cv", { method: "POST", body: fd });
+      if (cvFile && application.candidateId) {
+        const payload = new FormData();
+        payload.append("cv", cvFile);
+        payload.append("candidateId", application.candidateId);
+        payload.append("jobId", job.id);
+        const uploadResponse = await fetch("/api/hire/candidates/upload-cv", { method: "POST", body: payload });
+        if (!uploadResponse.ok) throw new Error("Your application was received, but we could not upload your CV. Please contact us to add it.");
       }
 
       setStep("done");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Submission failed");
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "We could not submit your application. Please try again.");
       setStep("error");
     }
   }
 
   if (step === "done") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 hover:shadow-2xl p-10 transition-shadow duration-200">
-          <div className="text-4xl mb-4">✓</div>
-          <h1 className="text-xl font-bold text-slate-900">Application received</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Thank you for applying to <strong>{jobTitle}</strong> at {company}. We&apos;ll be in
-            touch if your profile matches our requirements.
-          </p>
-          <p className="mt-4 text-xs text-slate-400">
-            Note: AI technology assists our screening process. All hiring decisions are made by our
-            recruitment team.
-          </p>
+      <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#fffaf7] px-5 py-12">
+        <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-orange-100 bg-white p-8 text-center shadow-2xl shadow-orange-950/10 sm:p-12">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#f05d23]/15 blur-3xl" />
+          <div className="relative">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"><Icon icon="solar:check-circle-broken" className="h-8 w-8" /></span>
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#f05d23]">Kazi Hire</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Application received</h1>
+            <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-600">Thank you for applying for <span className="font-semibold text-slate-900">{job.title}</span> at {company}. If your experience is a fit, the team will be in touch.</p>
+            <div className="mt-7 rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">Kazi supports the hiring process, but every decision is made by people.</div>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4">
-      <div className="max-w-lg mx-auto">
-        <div className="mb-8">
-          <p className="text-sm text-slate-500">{company}</p>
-          <h1 className="text-2xl font-bold text-slate-900 mt-1">{jobTitle}</h1>
+    <main className="min-h-screen bg-[#fffaf7] text-slate-900">
+      <header className="border-b border-orange-100/80 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+          <div className="flex items-center gap-3"><Image src="/logo.svg" alt="Growthpad" width={94} height={36} priority className="h-9 w-auto" /><span className="h-6 w-px bg-orange-100" /><div><p className="text-sm font-semibold tracking-tight text-slate-950">Kazi Hire</p><p className="text-[11px] text-slate-500">Careers</p></div></div>
+          <span className="hidden rounded-full bg-orange-50 px-3 py-1.5 text-xs font-medium text-[#d94f1e] sm:inline-flex">A better way to apply</span>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
+        <div className="mb-7 rounded-3xl bg-gradient-to-br from-[#28150d] via-[#592511] to-[#f05d23] px-6 py-7 text-white shadow-xl shadow-orange-950/15 sm:px-9 sm:py-9">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-200">Open opportunity</p>
+          <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">{job.title}</h1>
+          <div className="mt-5 flex flex-wrap gap-2 text-sm text-orange-50"><Meta icon="solar:buildings-broken" value={job.department ?? "Growthpad"} /><Meta icon="solar:map-point-broken" value={job.location ?? "Location flexible"} /><Meta icon="solar:calendar-broken" value={closingLabel} /></div>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 hover:shadow-2xl p-8 space-y-5 transition-shadow duration-200">
-          <h2 className="font-semibold text-slate-900">Your details</h2>
+        <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,0.92fr)_minmax(430px,1.08fr)]">
+          <aside className="space-y-5 lg:sticky lg:top-7">
+            <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
+              <SectionHeading icon="solar:document-text-broken" title="About this role" />
+              <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600">{job.description?.trim() || "Join our team and help us deliver meaningful work for the organisations we serve."}</p>
+            </section>
+            {(mustHaves.length > 0 || niceToHaves.length > 0) && <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6"><SectionHeading icon="solar:medal-ribbon-star-broken" title="What to bring" /><div className="space-y-5">{mustHaves.length > 0 && <RequirementList title="Core requirements" items={mustHaves} tone="emerald" />}{niceToHaves.length > 0 && <RequirementList title="Nice to have" items={niceToHaves} tone="orange" />}</div></section>}
+            <p className="px-2 text-xs leading-5 text-slate-500">We welcome applications from qualified candidates of all backgrounds. Need an accommodation during the process? Let us know in your application.</p>
+          </aside>
 
-          {[
-            { key: "full_name", label: "Full Name *", type: "text", required: true },
-            { key: "email", label: "Email Address *", type: "email", required: true },
-            { key: "phone", label: "Phone Number", type: "tel", required: false },
-            { key: "location", label: "Location (City, Country)", type: "text", required: false },
-          ].map(({ key, label, type, required }) => (
-            <div key={key}>
-              <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
-              <input
-                type={type}
-                required={required}
-                value={form[key as keyof typeof form] as string}
-                onChange={(e) => update(key, e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
-            </div>
-          ))}
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              How did you hear about this role?
-            </label>
-            <select
-              value={form.source}
-              onChange={(e) => update("source", e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-            >
-              <option value="direct">Direct / Company website</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="referral">Referral</option>
-              <option value="job_board">Job board</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              CV / Resume (PDF or Word)
-            </label>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => setCvFile(e.target.files?.[0] ?? null)}
-              className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100"
-            />
-          </div>
-
-          <label className="flex gap-3 items-start cursor-pointer">
-            <input
-              type="checkbox"
-              required
-              checked={form.consented}
-              onChange={(e) => update("consented", e.target.checked)}
-              className="mt-0.5 rounded border-slate-300 text-blue-600"
-            />
-            <span className="text-xs text-slate-600">
-              I consent to {company} collecting and processing my personal data for recruitment
-              purposes in accordance with the Kenya Data Protection Act, 2019. My data will be
-              retained for up to 12 months and I may request deletion at any time.
-            </span>
-          </label>
-
-          {step === "error" && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={step === "uploading" || !form.consented}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {step === "uploading" ? "Submitting…" : "Submit Application"}
-          </button>
-
-          <p className="text-xs text-slate-400 text-center">
-            AI technology assists our screening process. All decisions are made by our team.
-          </p>
-        </form>
+          <section className="rounded-3xl border border-orange-100 bg-white p-5 shadow-xl shadow-orange-950/5 sm:p-7">
+            <div className="flex items-start gap-3 border-b border-slate-100 pb-5"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:pen-new-square-broken" className="h-5 w-5" /></span><div><h2 className="text-lg font-semibold text-slate-950">Start your application</h2><p className="mt-1 text-sm text-slate-500">Share a few details. This takes about three minutes.</p></div></div>
+            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2"><Field label="Full name *"><input autoFocus required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} placeholder="Your full name" className={inputClass} /></Field><Field label="Email address *"><input type="email" required value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="you@example.com" className={inputClass} /></Field><Field label="Phone number"><input type="tel" value={form.phone} onChange={(event) => update("phone", event.target.value)} placeholder="e.g. +254 700 000 000" className={inputClass} /></Field><Field label="Current location"><input value={form.location} onChange={(event) => update("location", event.target.value)} placeholder="City, country" className={inputClass} /></Field></div>
+              <Field label="How did you hear about this role?"><select value={form.source} onChange={(event) => update("source", event.target.value)} className={inputClass}><option value="direct">Growthpad / Kazi Hire</option><option value="linkedin">LinkedIn</option><option value="referral">Referral</option><option value="job_board">Job board</option><option value="other">Other</option></select></Field>
+              <Field label="CV or résumé"><label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 transition hover:border-[#f05d23]/50 hover:bg-orange-50/40"><span className="flex min-w-0 items-center gap-3"><Icon icon="solar:upload-minimalistic-broken" className="h-5 w-5 shrink-0 text-[#f05d23]" /><span className="min-w-0"><span className="block truncate text-sm font-medium text-slate-700">{cvFile?.name ?? "Upload PDF or Word document"}</span><span className="mt-0.5 block text-xs text-slate-500">Optional, but helps us understand your experience</span></span></span><span className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">Browse</span><input type="file" accept=".pdf,.doc,.docx" className="sr-only" onChange={(event) => setCvFile(event.target.files?.[0] ?? null)} /></label></Field>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-3.5"><input type="checkbox" required checked={form.consented} onChange={(event) => update("consented", event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#f05d23]" /><span className="text-xs leading-5 text-slate-600">I consent to {company} collecting and processing my data for recruitment in accordance with the Kenya Data Protection Act, 2019.</span></label>
+              {step === "error" && <p className="rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-700">{errorMsg}</p>}
+              <button type="submit" disabled={step === "uploading" || !form.consented} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#f05d23] px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-[#d94f1e] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"><Icon icon={step === "uploading" ? "solar:spinner-broken" : "solar:arrow-right-broken"} className={`h-4 w-4 ${step === "uploading" ? "animate-spin" : ""}`} />{step === "uploading" ? "Sending application…" : "Submit application"}</button>
+              <p className="text-center text-[11px] leading-5 text-slate-400">Kazi assists our hiring workflow. A person reviews every application and makes every decision.</p>
+            </form>
+          </section>
+        </div>
       </div>
-    </div>
+    </main>
   );
+}
+
+function Meta({ icon, value }: { icon: string; value: string }) {
+  return <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5"><Icon icon={icon} className="h-4 w-4 text-orange-200" />{value}</span>;
+}
+
+function SectionHeading({ icon, title }: { icon: string; title: string }) {
+  return <div className="mb-4 flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f05d23]/10 text-[#f05d23]"><Icon icon={icon} className="h-4 w-4" /></span><h2 className="text-sm font-semibold text-slate-900">{title}</h2></div>;
+}
+
+function RequirementList({ title, items, tone }: { title: string; items: string[]; tone: "emerald" | "orange" }) {
+  const colour = tone === "emerald" ? "text-emerald-600" : "text-[#f05d23]";
+  return <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.13em] text-slate-400">{title}</p><ul className="space-y-2.5">{items.map((item) => <li key={item} className="flex gap-2.5 text-sm leading-5 text-slate-600"><Icon icon={tone === "emerald" ? "solar:check-circle-broken" : "solar:star-broken"} className={`mt-0.5 h-4 w-4 shrink-0 ${colour}`} />{item}</li>)}</ul></div>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="block"><span className="mb-1.5 block text-xs font-semibold text-slate-700">{label}</span>{children}</div>;
 }
