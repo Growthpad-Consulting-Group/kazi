@@ -90,7 +90,7 @@ export function ApplyPage({ job, company = "Growthpad Consulting Group" }: Props
     <main className="min-h-screen bg-[#fffaf7] text-slate-900">
       <header className="border-b border-orange-100/80 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-          <div className="flex items-center gap-3"><Image src="/logo.svg" alt="Growthpad" width={94} height={36} priority className="h-9 w-auto" /><span className="h-6 w-px bg-orange-100" /><div><p className="text-sm font-semibold tracking-tight text-slate-950">Kazi Hire</p><p className="text-[11px] text-slate-500">Careers</p></div></div>
+          <div className="flex items-center gap-3"><Image src="/logo.svg" alt="Growthpad" width={94} height={36} priority className="h-14 w-auto" /><span className="h-6 w-px bg-orange-100" /><div><p className="text-sm font-semibold tracking-tight text-slate-950">Kazi Hire</p><p className="text-[11px] text-slate-500">Careers</p></div></div>
           <span className="hidden rounded-full bg-orange-50 px-3 py-1.5 text-xs font-medium text-[#d94f1e] sm:inline-flex">A better way to apply</span>
         </div>
       </header>
