@@ -3,6 +3,17 @@
 /* Tailwind v4: use .dark class (applied by ThemeContext) instead of prefers-color-scheme */
 @variant dark (&:where(.dark, .dark *));
 
+/* Compatibility tokens used by the imported Signoff canvas. */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-app-border: var(--border);
+  --color-text-hi: var(--text-hi);
+  --color-text-lo: var(--text-lo);
+  --color-brand-500: #f05d23;
+  --color-brand-600: #d94f1c;
+}
+
 :root {
   --canvas:    #f7f7f8;
   --surface:   #ffffff;
@@ -48,6 +59,12 @@ h1, h2, h3, h4, h5, h6, nav {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* The Signoff canvas has many utility controls. Kazi keeps those calm until interaction. */
+.signature-builder .border-app-border { border-color: color-mix(in srgb, var(--border) 52%, transparent); }
+.signature-builder button.border-app-border { border-color: transparent; background-color: color-mix(in srgb, var(--surface-2) 78%, transparent); }
+.signature-builder button.border-app-border:hover { background-color: color-mix(in srgb, #f05d23 8%, var(--surface)); }
+.signature-builder .border-dashed.border-app-border { border-color: color-mix(in srgb, var(--border) 66%, transparent); }
 
 .goal-progress-slider {
   appearance: none;

@@ -4,14 +4,51 @@
 
 Move Signoff's signature-management data, assets and operational configuration into Kazi so Kazi becomes the single product surface and the Signoff Supabase project can be retired safely.
 
-## Migration checkpoint — 21 October 2026
+## Shipping checklist
 
-- [x] Kazi Signatures schema deployed.
-- [x] Data imported and idempotency checked: 2 domains, 1 template, 52 template versions, 11 staff profiles, 11 assignments, 22 media records and 447 tracked-link clicks.
-- [x] 22 storage objects copied to Kazi R2; persisted media and template URLs now resolve through Kazi storage.
-- [ ] Re-encrypt any legacy domain credentials with a new `SIGNATURE_ENCRYPTION_KEY` in Kazi and verify deployment against a non-production mailbox.
-- [ ] Reconcile or invite the 11 signature staff profiles. None currently have a matching Kazi user email.
-- [ ] Build the Kazi Signatures user interface and server-side APIs, then complete the reconciliation window before retiring Signoff.
+### 1. Migration foundation
+
+- [x] Deploy the isolated Kazi Signatures schema and service-role access.
+- [x] Import 546 source records and prove the importer is idempotent.
+- [x] Copy 22 assets to Kazi R2 and verify a public Kazi asset URL.
+- [x] Provision and link the 11 real Growthpad staff accounts; deactivate 10 named demo accounts while preserving the analytics administrator.
+- [x] Validate copied encryption/Gmail environment configuration. No legacy Cloudflare tokens or zone IDs existed to re-encrypt; Gmail domain-wide delegation succeeds.
+
+### 2. Product foundation
+
+- [x] Add Kazi Signatures to the authenticated Kazi navigation and create its live overview.
+- [x] Add protected read APIs for the overview and staff profiles.
+- [x] Add protected read APIs for templates, assignments and domains.
+- [x] Add assignment write API for HR/admin.
+- [x] Add template write API with version snapshots and default-template management.
+- [x] Add domain write API.
+- [x] Add role rules: admins and HR can manage the module; staff can view only their own signature.
+
+### 3. Signature operations
+
+- [x] Build the staff and assignment workspace: search, assigned template and deployment state.
+- [x] Add editable signature profile fields to the staff workspace.
+- [x] Build the template workspace preview for migrated designs.
+- [x] Add editable HTML/content and default-template selection.
+- [x] Add version-history browsing and restore.
+- [x] Add the Kazi visual builder: a dedicated full-page canvas with click/drag block insertion, reordering, merge tags, per-staff photos and email-safe export.
+- [x] Extend the visual builder with a desktop/mobile responsive preview.
+- [x] Add the signature media library and image uploads inside the visual builder.
+- [x] Build the domain workspace: status, verification guidance and Gmail delivery readiness.
+- [x] Build the campaign reporting workspace using the migrated library and tracking data.
+
+### 4. Gmail rollout
+
+- [x] Add Kazi’s Gmail sync service and audit deployment outcomes per staff member.
+- [x] Sync and verify one approved Growthpad mailbox (`emmanuel.eshun@growthpad.net`) in Gmail. Gmail normalized the HTML but preserved staff identity and Kazi R2 assets.
+- [x] Batch-sync the remaining ten approved Growthpad mailboxes, excluding the separately verified Emmanuel mailbox. All ten completed successfully.
+
+### 5. Staff security and cutover
+
+- [ ] Replace the shared temporary password with individual credentials or password-reset invitations before staff adoption.
+- [ ] Reconcile templates, photos, assignments and tracked links in Kazi with the Growthpad team.
+- [ ] Keep Signoff read-only for the agreed reconciliation window.
+- [ ] Take a final external backup, revoke Signoff credentials, retire its deployment and then retire its Supabase project.
 
 ## Data ownership decisions
 

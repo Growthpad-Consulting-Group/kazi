@@ -10,7 +10,7 @@ import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
 
 export type CandidateWithJob = Candidate & {
-  jobs: { title: string; department: string | null } | null;
+  jobs: { title: string; department: string | null; location: string | null } | null;
 };
 
 export type NoteWithUser = {
@@ -35,7 +35,7 @@ export async function getCandidate(id: string): Promise<CandidateWithJob> {
 
   const { data, error } = await supabaseAdmin
     .from("candidates")
-    .select("*, jobs(title, department)")
+    .select("*, jobs(title, department, location)")
     .eq("id", id)
     .single();
 

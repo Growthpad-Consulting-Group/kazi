@@ -15,6 +15,15 @@ export async function POST(req: Request) {
   if (userId !== session.user.id && !["admin", "hr"].includes(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const { data: existing } = await supabaseAdmin
+    .from("checkins")
+    .select("status")
+    .eq("user_id", userId)
+    .eq("week_start", weekStart)
+    .maybeSingle();
+  if (existing?.status === "reviewed" && userId === session.user.id) {
+    return NextResponse.json({ error: "This check-in has already been reviewed and can no longer be changed." }, { status: 409 });
+  }
 
   const { error } = await supabaseAdmin.from("checkins").upsert(
     {

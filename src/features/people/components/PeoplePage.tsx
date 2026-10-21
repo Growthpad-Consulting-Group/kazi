@@ -5,14 +5,22 @@ import { getDepartments } from "@/features/departments/actions";
 import PeopleClientView from "./PeopleClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { NewPersonButton } from "./NewPersonButton";
+import { supabaseAdmin } from "@/lib/supabase";
+
+type SignatureProfileResult = { data: unknown; error: { message: string } | null };
+type SignatureProfileDatabase = { from: (table: string) => { select: (columns: string) => PromiseLike<SignatureProfileResult> } };
 
 export default async function PeoplePage() {
-  const [people, session] = await Promise.all([getCachedPeople(), getServerSession(authOptions)]);
+  const signatureDatabase = supabaseAdmin as unknown as SignatureProfileDatabase;
+  const [people, session, signatureProfiles] = await Promise.all([getCachedPeople(), getServerSession(authOptions), signatureDatabase.from("signature_staff_profiles").select("id, user_id")]);
   const byId = Object.fromEntries(people.map((p) => [p.id, p]));
 
+  if (signatureProfiles.error) throw new Error(signatureProfiles.error.message);
+  const signatureProfileByUser = new Map(((signatureProfiles.data ?? []) as { id: string; user_id: string | null }[]).filter((profile) => profile.user_id).map((profile) => [profile.user_id!, profile.id]));
   const enriched = people.map((p) => ({
     ...p,
     manager_name: p.manager_id ? byId[p.manager_id]?.name ?? null : null,
+    signature_profile_id: signatureProfileByUser.get(p.id) ?? null,
   }));
 
   const listed = await getDepartments().catch(() => [] as string[]);

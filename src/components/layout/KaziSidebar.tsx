@@ -7,7 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { signOut, useSession } from "next-auth/react";
-import { sidebarNavGroups } from "@/lib/nav";
+import { navigationForRole, sidebarNavGroups } from "@/lib/nav";
 import { useTheme } from "@/shared/contexts/ThemeContext";
 
 export default function KaziSidebar({
@@ -56,6 +56,7 @@ export default function KaziSidebar({
   const isMobile = windowWidth < 640;
   const isActive = (href: string) =>
     href === "/dashboard" || href === "/pulse" ? pathname === href : pathname.startsWith(href);
+  const navGroups = navigationForRole(session?.user?.role);
 
   return (
     <div
@@ -98,7 +99,7 @@ export default function KaziSidebar({
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 space-y-1 scrollbar-hide">
-          {sidebarNavGroups.map((group, gi) => (
+          {navGroups.map((group, gi) => (
             <div key={group.category} className={`w-full ${gi > 0 ? "pt-4" : ""} ${!isOpen ? "flex flex-col items-center" : ""}`}>
               {isOpen ? (
                 <div className="flex items-center justify-between px-3 py-2 cursor-pointer group transition-all duration-200" onClick={() => toggleCat(group.category)}>

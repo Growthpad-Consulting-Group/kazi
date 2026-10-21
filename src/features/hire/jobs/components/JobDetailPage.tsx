@@ -55,11 +55,17 @@ export default async function JobDetailPage({ id }: { id: string }) {
   const job = await getJob(id).catch(() => null);
   if (!job) notFound();
 
-  const { data: candidateRows } = await supabaseAdmin
-    .from("candidates")
-    .select("id, full_name, stage, ai_score, shortlisted, applied_at")
-    .eq("job_id", id)
-    .order("applied_at", { ascending: false });
+  const [candidateResult, departmentResult] = await Promise.all([
+    supabaseAdmin
+      .from("candidates")
+      .select("id, full_name, stage, ai_score, shortlisted, applied_at")
+      .eq("job_id", id)
+      .order("applied_at", { ascending: false }),
+    job.department
+      ? supabaseAdmin.from("departments").select("id").eq("name", job.department).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const candidateRows = candidateResult.data;
   const candidates = candidateRows ?? [];
   const stageCounts = Object.fromEntries(
     ["applied", "screened", "interview", "offer", "hired", "rejected"].map((stage) => [stage, candidates.filter((candidate) => candidate.stage === stage).length])
@@ -279,6 +285,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
         description={[job.department, job.location].filter(Boolean).join(" · ") || undefined}
         icon="solar:case-minimalistic-broken"
         actions={[
+          ...(departmentResult.data ? [{ label: "Department", icon: "solar:buildings-broken", href: `/departments/${departmentResult.data.id}`, variant: "secondary" as const }] : []),
           { label: "Edit", icon: "solar:pen-broken", href: `/hire/jobs/${job.id}/edit` },
           {
             label: "View candidates",

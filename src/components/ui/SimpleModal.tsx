@@ -83,7 +83,7 @@ export function SimpleModal({ open, onClose, title, icon, children, maxWidth = "
                 </button>
               </div>
               {/* Body */}
-              <div className="max-h-[calc(90vh-65px)] overflow-y-auto px-5 py-4">{children}</div>
+              <div className="max-h-[calc(60vh-65px)] overflow-y-auto px-5 py-4">{children}</div>
             </GlassPanel>
           </motion.div>
         </div>

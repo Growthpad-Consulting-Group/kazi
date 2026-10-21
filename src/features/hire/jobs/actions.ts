@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasRole } from "@/lib/rbac";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import { canonicalDepartment } from "@/lib/departments";
 import { getCachedJob, getCachedJobs } from "@/lib/cache/queries";
 import type { Database } from "@/types/database";
 import type { JobFormData } from "./types";
@@ -45,12 +46,13 @@ export async function createJob(form: JobFormData) {
   if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
 
   const { publishedAt, closesAt } = validateSchedule(form);
+  const department = await canonicalDepartment(form.department);
 
   const { data, error } = await supabaseAdmin
     .from("jobs")
     .insert({
       title: form.title,
-      department: form.department || null,
+      department,
       location: form.location || null,
       description: form.description || null,
       requirements: { must_haves: form.must_haves, nice_to_haves: form.nice_to_haves },
@@ -85,7 +87,7 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
     if (form.closes_at !== undefined) update.closes_at = closesAt;
   }
   if (form.title !== undefined) update.title = form.title;
-  if (form.department !== undefined) update.department = form.department || null;
+  if (form.department !== undefined) update.department = await canonicalDepartment(form.department);
   if (form.location !== undefined) update.location = form.location || null;
   if (form.description !== undefined) update.description = form.description || null;
   if (form.must_haves !== undefined || form.nice_to_haves !== undefined) {

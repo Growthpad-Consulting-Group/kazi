@@ -61,7 +61,9 @@ export default async function CheckinsPage({ userId: overrideUserId }: { userId?
   const thisWeek = myCheckins.find((checkin) => checkin.week_start === weekStart) ?? null;
   const status = statusMeta(thisWeek?.status);
   const weekRange = weekRangeLabel(weekStart);
-  const pastCheckins = myCheckins.filter((checkin) => checkin.week_start !== weekStart).slice(0, 5);
+  // Recent history is a record of submitted work, including the current week
+  // once it has been sent to a manager. Drafts deliberately stay out of it.
+  const pastCheckins = myCheckins.filter((checkin) => checkin.status !== "draft").slice(0, 5);
 
   if (canViewProfile && profile) {
     const initials = profile.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();

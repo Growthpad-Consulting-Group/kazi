@@ -7,11 +7,13 @@ import { StageAdvancer } from "./StageAdvancer";
 import { ScreenButton } from "./ScreenButton";
 import { NoteForm } from "./NoteForm";
 import { EmailPanel } from "./EmailPanel";
+import OnboardCandidateButton from "./OnboardCandidateButton";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import PageWithSidebar from "@/components/ui/PageWithSidebar";
 import SidebarWidget from "@/components/ui/SidebarWidget";
 import StatCard from "@/components/ui/StatCard";
 import type { CandidateStage } from "../types";
+import { supabaseAdmin } from "@/lib/supabase";
 
 type CvParsed = { skills?: string[]; experience?: { title: string; company: string; duration: string }[]; education?: { degree: string; institution: string; year: string }[]; };
 const STAGES: CandidateStage[] = ["applied", "screened", "interview", "offer", "hired"];
@@ -23,6 +25,9 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
   const job = candidate.jobs;
   const cvParsed = candidate.cv_parsed as CvParsed | null;
   const hasCv = !!(candidate.cv_text || candidate.cv_parsed || candidate.cv_url);
+  const { data: managersData } = candidate.stage === "hired" && !candidate.hired_user_id
+    ? await supabaseAdmin.from("users").select("id, name, job_title").in("role", ["admin", "hr", "manager", "hiring_manager"]).eq("is_active", true).order("name")
+    : { data: [] };
 
   const main = (
     <div className="space-y-5">
@@ -59,7 +64,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
     </div>
   );
 
-  const sidebar = <><SidebarWidget title="Application" icon="solar:case-minimalistic-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]"><div className="space-y-3"><MetaRow label="Role" value={job?.title ?? "Unassigned"} /><MetaRow label="Department" value={job?.department ?? "—"} /><MetaRow label="Source" value={candidate.source?.replaceAll("_", " ") ?? "Direct"} /><MetaRow label="Applied" value={new Date(candidate.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })} />{job && <Link href={`/hire/candidates?tab=pipeline&job=${candidate.job_id}`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#f05d23] hover:text-[#d94f1c]">View role pipeline <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" /></Link>}</div></SidebarWidget><SidebarWidget title="Current status" icon="solar:flag-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]"><div className="flex items-center justify-between gap-3"><div><p className="text-xs text-[var(--text-lo)]">Candidate stage</p><div className="mt-1"><StageBadge stage={candidate.stage} /></div></div>{candidate.shortlisted && <span className="rounded-lg bg-green-500/10 px-2 py-1 text-xs font-semibold text-green-600">Shortlisted</span>}</div></SidebarWidget></>;
+  const sidebar = <><SidebarWidget title="Application" icon="solar:case-minimalistic-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]"><div className="space-y-3"><MetaRow label="Role" value={job?.title ?? "Unassigned"} /><MetaRow label="Department" value={job?.department ?? "—"} /><MetaRow label="Source" value={candidate.source?.replaceAll("_", " ") ?? "Direct"} /><MetaRow label="Applied" value={new Date(candidate.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })} />{job && <Link href={`/hire/candidates?tab=pipeline&job=${candidate.job_id}`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#f05d23] hover:text-[#d94f1c]">View role pipeline <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" /></Link>}</div></SidebarWidget><SidebarWidget title="Current status" icon="solar:flag-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]"><div className="flex items-center justify-between gap-3"><div><p className="text-xs text-[var(--text-lo)]">Candidate stage</p><div className="mt-1"><StageBadge stage={candidate.stage} /></div></div>{candidate.shortlisted && <span className="rounded-lg bg-green-500/10 px-2 py-1 text-xs font-semibold text-green-600">Shortlisted</span>}</div>{candidate.stage === "hired" && <div className="mt-4 border-t border-[var(--border)] pt-4">{candidate.hired_user_id ? <Link href={`/people/${candidate.hired_user_id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#f05d23]">Open employee profile <Icon icon="solar:arrow-right-broken" className="h-4 w-4" /></Link> : <OnboardCandidateButton candidateId={candidate.id} candidateName={candidate.full_name} email={candidate.email} roleTitle={job?.title ?? null} department={job?.department ?? null} managers={(managersData ?? []) as never[]} />}</div>}</SidebarWidget></>;
 
   return <><SetPageHeader title={candidate.full_name} description={job ? `Candidate for ${job.title}` : "Candidate profile"} icon="solar:user-rounded-broken" actions={[{ label: "Interview kit", icon: "solar:clipboard-check-broken", href: `/hire/candidates/${candidate.id}/interview` }]} /><PageWithSidebar main={main} sidebar={sidebar} /></>;
 }

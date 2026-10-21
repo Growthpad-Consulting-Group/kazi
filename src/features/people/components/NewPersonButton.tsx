@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import { DatePicker } from "@/components/ui/DatePicker";
+import DepartmentSelect from "@/components/ui/DepartmentSelect";
 
 type Manager = { id: string; name: string; job_title: string | null };
 const ROLES = ["employee", "manager", "hiring_manager", "interviewer", "hr", "admin"];
@@ -53,14 +54,14 @@ export function NewPersonButton({
         Add staff
       </Button>
       <SimpleModal open={open} onClose={() => setOpen(false)} title="Add staff" icon="solar:user-plus-broken" maxWidth="max-w-2xl">
-        <p className="text-sm text-[var(--text-lo)]">Create a staff profile and set the temporary sign-in password to share securely with them.</p>
+        <p className="text-sm text-[var(--text-lo)]">Create a staff profile and set the temporary sign-in password to share securely with them. Addresses on a configured company email domain are also added to Signature staff automatically.</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field label="Full name *"><input autoFocus value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="e.g. Amina Wanjiku" className={inputClass} /></Field>
           <Field label="Email address *"><input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="amina@company.com" className={inputClass} /></Field>
           <Field label="Temporary password *"><input type="password" value={form.password} onChange={(event) => update("password", event.target.value)} placeholder="At least 8 characters" className={inputClass} /></Field>
           <Field label="Role"><select value={form.role} onChange={(event) => update("role", event.target.value)} className={inputClass}>{availableRoles.map((role) => <option key={role} value={role}>{role.replaceAll("_", " ")}</option>)}</select></Field>
           <Field label="Job title"><input value={form.jobTitle} onChange={(event) => update("jobTitle", event.target.value)} placeholder="e.g. Product Designer" className={inputClass} /></Field>
-          <Field label="Department"><select value={form.department} onChange={(event) => update("department", event.target.value)} className={inputClass}><option value="">No department yet</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></Field>
+          <Field label="Department"><DepartmentSelect value={form.department} onChange={(value) => update("department", value)} departments={departments} placeholder="Select department" /></Field>
           <Field label="Manager"><select value={form.managerId} onChange={(event) => update("managerId", event.target.value)} className={inputClass}><option value="">No manager assigned</option>{managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name}{manager.job_title ? ` · ${manager.job_title}` : ""}</option>)}</select></Field>
           <Field label="Location"><input value={form.location} onChange={(event) => update("location", event.target.value)} placeholder="e.g. Nairobi, Kenya" className={inputClass} /></Field>
           <Field label="Start date"><DatePicker value={form.startDate} onChange={(value) => update("startDate", value)} placeholder="Choose date" /></Field>

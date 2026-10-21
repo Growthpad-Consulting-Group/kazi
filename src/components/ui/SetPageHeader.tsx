@@ -8,6 +8,7 @@ interface ActionDef {
   icon?: string;
   variant?: "primary" | "secondary";
   href?: string;
+  onClick?: () => void;
   disabled?: boolean;
 }
 
@@ -32,7 +33,7 @@ export default function SetPageHeader({ title, description, icon, actions, trail
       icon: a.icon,
       variant: a.variant,
       disabled: a.disabled,
-      onClick: a.href ? () => router.push(a.href!) : () => {},
+      onClick: a.onClick ?? (a.href ? () => router.push(a.href!) : () => {}),
     })),
     content: trailing,
   };

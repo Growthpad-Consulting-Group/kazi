@@ -20,6 +20,7 @@ interface UserRow extends Record<string, unknown> {
   location: string | null;
   manager_id: string | null;
   manager_name?: string | null;
+  signature_profile_id?: string | null;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -199,13 +200,20 @@ export default function PeopleClientView({ people, departments, locations, curre
       icon: "solar:eye-broken",
       label: "View profile",
       variant: "info",
-      onClick: (row) => router.push(`/pulse/checkins?user=${row.id}`),
+      onClick: (row) => router.push(`/people/${row.id}`),
     },
     {
       icon: "solar:chat-line-broken",
       label: "1-on-1s",
       variant: "success",
       onClick: (row) => router.push(`/pulse/one-on-ones?report=${row.id}`),
+    },
+    {
+      icon: "solar:document-text-broken",
+      label: "Signature profile",
+      variant: "info",
+      show: (row) => canManageStaff && Boolean(row.signature_profile_id),
+      onClick: (row) => router.push(`/signatures/staff/${row.signature_profile_id}`),
     },
     {
       icon: "solar:trash-bin-trash-broken",

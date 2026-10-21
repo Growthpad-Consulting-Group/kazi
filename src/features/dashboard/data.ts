@@ -93,7 +93,7 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
         .select("id, status"),
       supabaseAdmin
         .from("candidates")
-        .select("id, full_name, stage, applied_at, ai_score, shortlisted, jobs(title)"),
+        .select("id, full_name, stage, applied_at, ai_score, shortlisted, hired_user_id, jobs(title)"),
       supabaseAdmin.from("users").select("id", { count: "exact" }).eq("is_active", true),
       supabaseAdmin
         .from("performance_reviews")
@@ -111,6 +111,7 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
     const jobs = currentJobsRes.data ?? [];
     const candidates = (currentCandidatesRes.data ?? []) as unknown as (RecentCandidate & {
       shortlisted?: boolean;
+      hired_user_id?: string | null;
     })[];
     const rangeCandidates = rangeCandidatesRes.data ?? [];
 
@@ -224,6 +225,7 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
     const stalledCandidates = candidates.filter((candidate) =>
       !["hired", "rejected"].includes(candidate.stage) && candidate.applied_at < fourteenDaysAgo
     ).length;
+    const hiresAwaitingStaffRecord = candidates.filter((candidate) => candidate.stage === "hired" && !candidate.hired_user_id).length;
     const checkins = checkinsRes.data ?? [];
     const submittedCheckins = checkins.filter((checkin) => checkin.status === "submitted" || checkin.status === "reviewed").length;
     const scheduledJobs = (scheduledJobsRes.data ?? []).flatMap((job) => [
@@ -258,6 +260,7 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
         actionItems: [
           { label: "Awaiting AI screen", count: pendingScreen, href: "/hire/candidates", tone: "amber" },
           { label: "Interview scorecards due", count: interviewQueue.length, href: "/hire/candidates?stage=interview", tone: "blue" },
+          { label: "New hires to add to staff", count: hiresAwaitingStaffRecord, href: "/hire/candidates?stage=hired", tone: "amber" },
           { label: "Stalled candidates", count: stalledCandidates, href: "/hire/candidates", tone: "red" },
         ].filter((item) => item.count > 0) as DashboardData["operations"]["actionItems"],
         health: { averageDaysToHire, stalledCandidates, offerPending: stageCounts.get("offer") ?? 0, offerAccepted: hired, offerDeclined: stageCounts.get("rejected") ?? 0 },

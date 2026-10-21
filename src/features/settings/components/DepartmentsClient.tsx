@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Icon } from "@iconify/react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
@@ -107,6 +108,9 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
                       {row.jobs} job{row.jobs !== 1 && "s"} · {row.people} {row.people === 1 ? "person" : "people"}
                     </p>
                   </div>
+                  <Link href={`/departments/${row.id}`} title="Open department workspace" className="rounded-lg p-2 text-[#f05d23] hover:bg-[#f05d23]/10">
+                    <Icon icon="solar:arrow-right-broken" className="h-4 w-4" />
+                  </Link>
                   <button
                     type="button"
                     title="Rename"

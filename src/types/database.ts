@@ -100,13 +100,14 @@ export interface Database {
           ai_justification: string | null;
           shortlisted: boolean;
           consented_at: string | null;
+          hired_user_id: string | null;
           applied_at: string;
           created_at: string;
           updated_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["candidates"]["Row"],
-          "id" | "created_at" | "updated_at" | "phone" | "location" | "cv_url" | "cv_text" | "cv_parsed" | "assigned_to" | "source" | "ai_score" | "ai_justification" | "consented_at" | "stage" | "shortlisted"
+          "id" | "created_at" | "updated_at" | "phone" | "location" | "cv_url" | "cv_text" | "cv_parsed" | "assigned_to" | "source" | "ai_score" | "ai_justification" | "consented_at" | "hired_user_id" | "stage" | "shortlisted"
         > & {
           phone?: string | null;
           location?: string | null;
@@ -120,6 +121,7 @@ export interface Database {
           stage?: CandidateStage;
           shortlisted?: boolean;
           consented_at?: string | null;
+          hired_user_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["candidates"]["Insert"]>;
         Relationships: [];
