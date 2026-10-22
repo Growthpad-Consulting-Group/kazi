@@ -32,8 +32,8 @@ beforeEach(() => {
 
 describe("invalidateTables", () => {
   it("drops the people group when users change", async () => {
-    const people = cacheKey("people", "list");
-    await setCached("people", people, [], "dynamic");
+    const people = cacheKey("staff", "list");
+    await setCached("staff", people, [], "dynamic");
 
     await invalidateTables("users");
 
@@ -66,9 +66,9 @@ describe("invalidateTables", () => {
   });
 
   it("leaves unrelated groups intact", async () => {
-    const people = cacheKey("people", "list");
+    const people = cacheKey("staff", "list");
     const notifications = cacheKey("notifications", "user", "u1");
-    await setCached("people", people, [], "dynamic");
+    await setCached("staff", people, [], "dynamic");
     await setCached("notifications", notifications, [], "realtime");
 
     await invalidateTables("checkins");

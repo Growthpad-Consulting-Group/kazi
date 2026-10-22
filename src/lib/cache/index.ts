@@ -73,7 +73,7 @@ export {
   getCachedMyCheckins,
   getCachedNotifications,
   getCachedOneOnOnes,
-  getCachedPeople,
+  getCachedStaff,
   getCachedPrivateFeedback,
   getCachedPublicFeedback,
   type CachedCandidate,

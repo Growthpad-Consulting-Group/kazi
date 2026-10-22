@@ -11,7 +11,7 @@ export const CACHE_GROUPS = [
   /** Reference data: departments, org structure. */
   "reference",
   /** Employee directory. */
-  "people",
+  "staff",
   /** Job postings. */
   "jobs",
   /** Candidates and the hiring pipeline. */

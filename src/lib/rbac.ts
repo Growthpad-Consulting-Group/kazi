@@ -111,7 +111,7 @@ export function can(userRole: UserRole, permission: Permission | Permission[]): 
 export const RECRUITMENT_ROLES: UserRole[] = ["admin", "hr", "hiring_manager", "interviewer"];
 export const HR_ROLES: UserRole[]          = ["admin", "hr"];
 export const ADMIN_ROLES: UserRole[]       = ["admin"];
-export const PEOPLE_ROLES: UserRole[]      = ["admin", "hr", "manager"];
+export const STAFF_ROLES: UserRole[]      = ["admin", "hr", "manager"];
 export const ANALYTICS_ROLES: UserRole[]   = ["admin", "hr", "manager"];
 export const SETTINGS_ROLES: UserRole[]    = ["admin", "hr"];
 export const DASHBOARD_ROLES: UserRole[]   = ["admin", "hr", "hiring_manager", "manager", "interviewer", "employee"];

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
+import { GenericTable, type BulkAction, type Column, type RowAction } from "@/components/ui/GenericTable";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
@@ -47,13 +47,15 @@ interface Props {
   canManageStaff: boolean;
 }
 
-export default function PeopleClientView({ people, departments, locations, currentUserId, canManageStaff }: Props) {
+export default function StaffClientView({ people, departments, locations, currentUserId, canManageStaff }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>([]);
   const [staffToRemove, setStaffToRemove] = useState<UserRow | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState("");
+  const [bulkToRemove, setBulkToRemove] = useState<UserRow[]>([]);
+  const [bulkRemoving, setBulkRemoving] = useState(false);
 
   const closeRemoveModal = () => {
     if (removing) return;
@@ -61,12 +63,26 @@ export default function PeopleClientView({ people, departments, locations, curre
     setRemoveError("");
   };
 
+  async function bulkRemoveStaff() {
+    setBulkRemoving(true);
+    try {
+      await Promise.all(bulkToRemove.map((row) => fetch(`/api/staff/${row.id}`, { method: "DELETE" })));
+      toast.success(`${bulkToRemove.length} staff member${bulkToRemove.length !== 1 ? "s" : ""} removed`);
+      setBulkToRemove([]);
+      router.refresh();
+    } catch {
+      toast.error("Some removals failed. Refresh and try again.");
+    } finally {
+      setBulkRemoving(false);
+    }
+  }
+
   async function removeStaff() {
     if (!staffToRemove) return;
     setRemoving(true);
     setRemoveError("");
     try {
-      const response = await fetch(`/api/people/${staffToRemove.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/staff/${staffToRemove.id}`, { method: "DELETE" });
       const data = await response.json().catch(() => null) as { error?: string } | null;
       if (!response.ok) throw new Error(data?.error ?? "Could not remove this staff member.");
       toast.success(`${staffToRemove.name} removed from staff`);
@@ -195,12 +211,21 @@ export default function PeopleClientView({ people, departments, locations, curre
     },
   ];
 
+  const bulkActions: BulkAction<UserRow>[] = canManageStaff ? [
+    {
+      icon: "solar:trash-bin-trash-broken",
+      label: "Remove selected",
+      variant: "danger",
+      onClick: (rows) => setBulkToRemove(rows.filter((r) => r.id !== currentUserId)),
+    },
+  ] : [];
+
   const actions: RowAction<UserRow>[] = [
     {
       icon: "solar:eye-broken",
       label: "View profile",
       variant: "info",
-      onClick: (row) => router.push(`/people/${row.id}`),
+      onClick: (row) => router.push(`/staff/${row.id}`),
     },
     {
       icon: "solar:chat-line-broken",
@@ -236,6 +261,7 @@ export default function PeopleClientView({ people, departments, locations, curre
       data={filtered}
       columns={columns}
       actions={actions}
+      bulkActions={bulkActions}
       emptyMessage="No staff match your filters."
       emptyIcon="solar:user-id-broken"
       icon="solar:user-id-broken"
@@ -259,6 +285,15 @@ export default function PeopleClientView({ people, departments, locations, curre
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
           <Button variant="secondary" disabled={removing} onClick={closeRemoveModal}>Cancel</Button>
           <Button variant="danger" icon="solar:trash-bin-trash-broken" loading={removing} onClick={removeStaff}>{removing ? "Removing" : "Remove staff"}</Button>
+        </div>
+      </SimpleModal>
+      <SimpleModal open={bulkToRemove.length > 0} onClose={() => { if (!bulkRemoving) setBulkToRemove([]); }} title="Remove staff members" icon="solar:trash-bin-trash-broken" maxWidth="max-w-md">
+        <p className="text-sm leading-6 text-[var(--text-lo)]">
+          Remove <span className="font-semibold text-[var(--text-hi)]">{bulkToRemove.length} staff member{bulkToRemove.length !== 1 ? "s" : ""}</span>? They will lose access immediately. Historical work is retained.
+        </p>
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button variant="secondary" disabled={bulkRemoving} onClick={() => setBulkToRemove([])}>Cancel</Button>
+          <Button variant="danger" icon="solar:trash-bin-trash-broken" loading={bulkRemoving} onClick={bulkRemoveStaff}>{bulkRemoving ? "Removing…" : `Remove ${bulkToRemove.length}`}</Button>
         </div>
       </SimpleModal>
     </div>

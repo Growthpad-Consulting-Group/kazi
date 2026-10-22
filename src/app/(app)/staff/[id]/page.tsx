@@ -1,4 +1,4 @@
-import EmployeeProfilePage from "@/features/people/components/EmployeeProfilePage";
+import EmployeeProfilePage from "@/features/staff/components/EmployeeProfilePage";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

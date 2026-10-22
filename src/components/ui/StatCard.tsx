@@ -39,7 +39,7 @@ export default function StatCard({ title, value, icon, color = "orange", variant
       <div className={`pointer-events-none absolute -right-10 -top-10 rounded-full bg-gradient-to-br ${palette.gradient} opacity-10 transition-transform duration-500 group-hover:scale-125 ${compact ? "h-20 w-20" : "h-28 w-28"}`} />
       <div className="relative flex items-center gap-3">
         <div className={`flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${palette.gradient} shadow-lg ${palette.shadow} ${compact ? "h-9 w-9" : "h-11 w-11"}`}><Icon icon={icon} className={`${compact ? "h-4 w-4" : "h-5 w-5"} text-white`} /></div>
-        <div className="min-w-0"><p className={`font-mono font-bold leading-none text-[var(--text-hi)] ${compact ? "text-xl" : "text-2xl"}`}>{value}</p><p className={`${compact ? "mt-1 text-xs" : "mt-1.5 text-sm"} font-semibold text-[var(--text-hi)]`}>{title}</p>{subtitle && <div className="mt-0.5 truncate font-mono text-[10px] text-[var(--text-lo)]">{subtitle}</div>}</div>
+        <div className="min-w-0"><p className={`font-bold leading-none text-[var(--text-hi)] ${compact ? "text-xl" : "text-2xl"}`}>{value}</p><p className={`${compact ? "mt-1 text-xs" : "mt-1.5 text-sm"} font-semibold text-[var(--text-hi)]`}>{title}</p>{subtitle && <div className="mt-0.5 truncate text-[10px] text-[var(--text-lo)]">{subtitle}</div>}</div>
       </div>
     </>
   ) : (
@@ -47,7 +47,7 @@ export default function StatCard({ title, value, icon, color = "orange", variant
       <span className={`flex ${compact ? "h-8 w-8" : "h-9 w-9"} items-center justify-center rounded-xl ${palette.flat}`}>
         <Icon icon={icon} className={compact ? "h-4 w-4" : "h-4.5 w-4.5"} />
       </span>
-      <p className={`mt-3 font-mono font-bold ${palette.flat.split(" ")[0]} ${compact ? "text-xl" : "text-2xl"}`}>{value}</p>
+      <p className={`mt-3 font-bold ${palette.flat.split(" ")[0]} ${compact ? "text-xl" : "text-2xl"}`}>{value}</p>
       <p className={`mt-0.5 ${compact ? "text-xs" : "text-sm"} font-semibold text-[var(--text-hi)]`}>{title}</p>
       {subtitle && <p className="mt-0.5 truncate text-[11px] text-[var(--text-lo)]">{subtitle}</p>}
     </>

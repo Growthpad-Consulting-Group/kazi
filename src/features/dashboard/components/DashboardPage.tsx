@@ -98,7 +98,7 @@ const QUICK_ACTIONS = [
   { label: "Pipeline",      href: "/hire/pipeline",       icon: "solar:graph-broken",                   color: "#a78bfa", bg: "bg-violet-500/10" },
   { label: "Candidates",    href: "/hire/candidates",     icon: "solar:users-group-two-rounded-broken",  color: "#60a5fa", bg: "bg-blue-500/10" },
   { label: "All Jobs",      href: "/hire/jobs",           icon: "solar:case-broken",                    color: "#4ade80", bg: "bg-green-500/10" },
-  { label: "Team",          href: "/people",              icon: "solar:people-nearby-broken",           color: "#fbbf24", bg: "bg-amber-500/10" },
+  { label: "Team",          href: "/staff",              icon: "solar:people-nearby-broken",           color: "#fbbf24", bg: "bg-amber-500/10" },
   { label: "Reviews",       href: "/pulse/reviews",       icon: "solar:star-circle-broken",             color: "#f472b6", bg: "bg-pink-500/10" },
   { label: "Check-ins",     href: "/pulse/checkins",      icon: "solar:clipboard-check-broken",         color: "#67e8f9", bg: "bg-cyan-500/10" },
   { label: "Analytics",     href: "/pulse/analytics",     icon: "solar:chart-square-broken",            color: "#5eead4", bg: "bg-teal-500/10" },
@@ -137,7 +137,7 @@ export default async function DashboardPage({
     { label: "Open Roles",        value: stats.openJobs,        icon: "solar:case-broken",                    accent: "text-[#f05d23]",  accentBg: "bg-[#f05d23]/10",     href: "/hire/jobs" },
     { label: "Active Pipeline",   value: stats.activePipeline,  icon: "solar:users-group-two-rounded-broken",  accent: "text-blue-500",   accentBg: "bg-blue-500/10",      href: "/hire/candidates" },
     { label: "Awaiting Screen",   value: stats.pendingScreen,   icon: "solar:cpu-bolt-broken",                accent: stats.pendingScreen > 0 ? "text-amber-500" : "text-[var(--text-lo)]", accentBg: stats.pendingScreen > 0 ? "bg-amber-500/10" : "bg-[var(--surface-2)]", href: "/hire/candidates", note: stats.pendingScreen > 0 ? "AI screening needed" : undefined },
-    { label: "Employees",         value: stats.activeEmployees, icon: "solar:people-nearby-broken",           accent: "text-green-500",  accentBg: "bg-green-500/10",     href: "/people" },
+    { label: "Employees",         value: stats.activeEmployees, icon: "solar:people-nearby-broken",           accent: "text-green-500",  accentBg: "bg-green-500/10",     href: "/staff" },
     { label: "Hired",             value: stats.hired,           icon: "solar:check-circle-broken",            accent: "text-violet-500", accentBg: "bg-violet-500/10",    href: "/hire/candidates?stage=hired" },
   ];
 

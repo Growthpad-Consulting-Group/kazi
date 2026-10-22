@@ -96,7 +96,7 @@ export async function renameDepartment(id: string, rawName: string): Promise<str
 
   revalidatePath("/settings/departments");
   revalidatePath("/hire/jobs");
-  revalidatePath("/people");
+  revalidatePath("/staff");
   await invalidateTables("departments");
   return data as string;
 }

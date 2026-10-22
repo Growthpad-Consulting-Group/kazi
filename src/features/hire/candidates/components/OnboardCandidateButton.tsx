@@ -23,11 +23,11 @@ export default function OnboardCandidateButton({ candidateId, candidateName, ema
       const response = await fetch(`/api/hire/candidates/${candidateId}/onboard`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password, managerId, startDate }) });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        if (body.userId) { router.push(`/people/${body.userId}`); return; }
+        if (body.userId) { router.push(`/staff/${body.userId}`); return; }
         throw new Error(body.error ?? "Could not create the staff record.");
       }
       toast.success(`${candidateName} is now a Kazi staff member`);
-      setOpen(false); router.push(`/people/${body.person.id}`);
+      setOpen(false); router.push(`/staff/${body.person.id}`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create the staff record."); }
     finally { setSaving(false); }
   };

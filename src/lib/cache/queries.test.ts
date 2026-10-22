@@ -43,7 +43,7 @@ import { mockRedis } from "@/test/mock-redis";
 import {
   getCachedMyCheckins,
   getCachedNotifications,
-  getCachedPeople,
+  getCachedStaff,
   getCachedPrivateFeedback,
   getCachedPublicFeedback,
 } from "@/lib/cache/queries";
@@ -105,8 +105,8 @@ describe("user-scoped queries", () => {
 
   it("shares the people directory across users", async () => {
     supabaseState.rows = [{ id: "u1" }];
-    await getCachedPeople();
-    await getCachedPeople();
+    await getCachedStaff();
+    await getCachedStaff();
 
     expect(supabaseState.calls).toHaveLength(1);
     expect(mockRedis.__has("kazi:people:list")).toBe(true);
@@ -118,7 +118,7 @@ describe("fail-open behaviour", () => {
     mockRedis.redisState.failing = true;
     supabaseState.rows = [{ id: "u1" }];
 
-    const people = await getCachedPeople();
+    const people = await getCachedStaff();
 
     expect(people).toEqual([{ id: "u1" }]);
   });

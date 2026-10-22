@@ -10,7 +10,7 @@ export const sidebarNavGroups: NavGroup[] = [
     icon: "solar:widget-2-broken",
     items: [
       { href: "/dashboard", icon: "solar:widget-2-broken",       label: "Dashboard" },
-      { href: "/people",    icon: "solar:user-id-broken",         label: "Staff" },
+      { href: "/staff",    icon: "solar:user-id-broken",         label: "Staff" },
     ],
   },
   {
@@ -62,7 +62,7 @@ export function navigationForRole(role: UserRole | undefined): NavGroup[] {
 
   return sidebarNavGroups
     .map((group) => {
-      if (group.category === "Home") return { ...group, items: group.items.filter((item) => item.href !== "/dashboard" || isManager).filter((item) => item.href !== "/people" || isManager) };
+      if (group.category === "Home") return { ...group, items: group.items.filter((item) => item.href !== "/dashboard" || isManager).filter((item) => item.href !== "/staff" || isManager) };
       if (group.category === "Kazi Hire") return { ...group, items: isRecruiter ? group.items : [] };
       if (group.category === "Kazi Pulse") return { ...group, items: group.items.filter((item) => item.href !== "/pulse/analytics" || isManager) };
       if (group.category === "Kazi Signatures") return { ...group, items: isSignatureManager ? group.items : group.items.filter((item) => item.href === "/signatures") };

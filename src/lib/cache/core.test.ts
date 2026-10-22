@@ -26,7 +26,7 @@ beforeEach(() => {
 
 describe("cache keys", () => {
   it("namespaces keys by group", () => {
-    expect(cacheKey("people", "list")).toBe("kazi:people:list");
+    expect(cacheKey("staff", "list")).toBe("kazi:people:list");
     expect(cacheKey("pulse", "checkins", "me", "u1")).toBe("kazi:pulse:checkins:me:u1");
   });
 
@@ -44,10 +44,10 @@ describe("cache keys", () => {
 describe("cached()", () => {
   it("returns the cached value on a hit without re-running the loader", async () => {
     const loader = vi.fn().mockResolvedValue([1, 2, 3]);
-    const key = cacheKey("people", "list");
+    const key = cacheKey("staff", "list");
 
-    const first = await cached("people", key, "dynamic", loader);
-    const second = await cached("people", key, "dynamic", loader);
+    const first = await cached("staff", key, "dynamic", loader);
+    const second = await cached("staff", key, "dynamic", loader);
 
     expect(first).toEqual([1, 2, 3]);
     expect(second).toEqual([1, 2, 3]);
@@ -55,11 +55,11 @@ describe("cached()", () => {
   });
 
   it("records a hit and a miss in the monitoring counters", async () => {
-    const key = cacheKey("people", "list");
-    await cached("people", key, "dynamic", async () => "value");
-    await cached("people", key, "dynamic", async () => "value");
+    const key = cacheKey("staff", "list");
+    await cached("staff", key, "dynamic", async () => "value");
+    await cached("staff", key, "dynamic", async () => "value");
 
-    const stats = getCacheStats().find((s) => s.group === "people");
+    const stats = getCacheStats().find((s) => s.group === "staff");
     expect(stats?.hits).toBe(1);
     expect(stats?.misses).toBe(1);
     expect(stats?.hitRate).toBe(0.5);
@@ -92,7 +92,7 @@ describe("cached()", () => {
     mockRedis.redisState.failing = true;
     const loader = vi.fn().mockResolvedValue("fallback");
 
-    const result = await cached("people", cacheKey("people", "list"), "dynamic", loader);
+    const result = await cached("staff", cacheKey("staff", "list"), "dynamic", loader);
 
     expect(result).toBe("fallback");
     expect(loader).toHaveBeenCalledTimes(1);
@@ -118,8 +118,8 @@ describe("cached()", () => {
   });
 
   it("indexes written keys under their group", async () => {
-    await cached("people", cacheKey("people", "list"), "dynamic", async () => []);
-    expect(mockRedis.__setIndexSize("people")).toBe(1);
+    await cached("staff", cacheKey("staff", "list"), "dynamic", async () => []);
+    expect(mockRedis.__setIndexSize("staff")).toBe(1);
   });
 });
 
@@ -146,9 +146,9 @@ describe("invalidation", () => {
 
   it("leaves other groups untouched", async () => {
     const jobs = cacheKey("jobs", "list");
-    const people = cacheKey("people", "list");
+    const people = cacheKey("staff", "list");
     await setCached("jobs", jobs, 1, "dynamic");
-    await setCached("people", people, 1, "dynamic");
+    await setCached("staff", people, 1, "dynamic");
 
     await invalidateGroup("jobs");
 
@@ -169,7 +169,7 @@ describe("invalidation", () => {
 
   it("removes every kazi key across groups with invalidateAll", async () => {
     await setCached("jobs", cacheKey("jobs", "list"), 1, "dynamic");
-    await setCached("people", cacheKey("people", "list"), 1, "dynamic");
+    await setCached("staff", cacheKey("staff", "list"), 1, "dynamic");
 
     const removed = await invalidateAll();
 
@@ -230,16 +230,16 @@ describe("deleteCachedInGroupMatching", () => {
 
 describe("getCached / setCached", () => {
   it("returns null for a missing key", async () => {
-    expect(await getCached("people", cacheKey("people", "missing"))).toBeNull();
+    expect(await getCached("staff", cacheKey("staff", "missing"))).toBeNull();
   });
 
   it("returns null instead of throwing when Redis fails", async () => {
     mockRedis.redisState.failing = true;
-    expect(await getCached("people", cacheKey("people", "list"))).toBeNull();
+    expect(await getCached("staff", cacheKey("staff", "list"))).toBeNull();
   });
 
   it("does not write when Redis fails", async () => {
     mockRedis.redisState.failing = true;
-    expect(await setCached("people", cacheKey("people", "list"), 1, "dynamic")).toBe(false);
+    expect(await setCached("staff", cacheKey("staff", "list"), 1, "dynamic")).toBe(false);
   });
 });

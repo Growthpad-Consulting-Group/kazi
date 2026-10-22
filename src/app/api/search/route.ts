@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       id: person.id,
       label: person.name,
       detail: [person.job_title, person.department, person.email].filter(Boolean).join(" · "),
-      href: `/people/${person.id}`,
+      href: `/staff/${person.id}`,
       kind: "staff" as const,
     })),
     ...((jobsResult.data ?? []) as unknown as JobRow[]).map((job) => ({

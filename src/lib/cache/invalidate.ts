@@ -32,8 +32,8 @@ import type { CacheGroup } from "./groups";
  * than serve a stale value.
  */
 const TABLE_GROUPS: Record<string, CacheGroup[]> = {
-  users: ["people", "dashboard", "pulse"],
-  departments: ["reference", "people", "jobs", "dashboard"],
+  users: ["staff", "dashboard", "pulse"],
+  departments: ["reference", "staff", "jobs", "dashboard"],
   jobs: ["jobs", "candidates", "dashboard", "reference"],
   candidates: ["candidates", "dashboard", "jobs"],
   candidate_notes: ["candidates"],
