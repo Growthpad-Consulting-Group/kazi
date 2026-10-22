@@ -36,7 +36,7 @@ export default function TabBar({ tabs, paramName = "tab" }: TabBarProps) {
             href={href}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
               isActive
-                ? "bg-[#f05d23] text-white shadow-sm"
+                ? "bg-brand-500 text-white shadow-sm"
                 : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
             }`}
           >

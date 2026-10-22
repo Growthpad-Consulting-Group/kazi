@@ -55,10 +55,10 @@ export default function AvatarUpload({ value, name, uploadEndpoint, onChange, si
   return (
     <div className="flex items-center gap-4">
       {/* Avatar circle */}
-      <div className={`relative shrink-0 ${dim.wrap} overflow-hidden rounded-2xl bg-gradient-to-br from-[#f05d23]/20 to-violet-500/10`}>
+      <div className={`relative shrink-0 ${dim.wrap} overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500/20 to-violet-500/10`}>
         {value
           ? <img src={value} alt={name} className="h-full w-full object-cover" />
-          : <span className={`flex h-full w-full items-center justify-center font-bold text-[#f05d23] ${dim.text}`}>{initials}</span>
+          : <span className={`flex h-full w-full items-center justify-center font-bold text-brand-500 ${dim.text}`}>{initials}</span>
         }
         {uploading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl">
@@ -73,7 +73,7 @@ export default function AvatarUpload({ value, name, uploadEndpoint, onChange, si
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-hi)] transition-all hover:border-[#f05d23]/40 hover:text-[#f05d23] disabled:opacity-50 active:scale-95"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-hi)] transition-all hover:border-brand-500/40 hover:text-brand-500 disabled:opacity-50 active:scale-95"
         >
           <Icon icon="solar:upload-broken" className={dim.icon} />
           {uploading ? "Uploading…" : "Upload photo"}

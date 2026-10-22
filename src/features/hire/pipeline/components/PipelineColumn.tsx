@@ -32,7 +32,7 @@ export function PipelineColumn({ stage, label, candidates }: Props) {
       <div
         ref={setNodeRef}
         className={`h-[calc(100dvh-18rem)] min-h-[30rem] max-h-[44rem] space-y-3 overflow-y-auto overscroll-contain rounded-2xl border p-3 pr-2 transition-all ${
-          isOver ? "border-[#f05d23]/40 bg-[#f05d23]/8 ring-2 ring-[#f05d23]/15" : "border-[var(--border)] bg-[var(--surface-2)]/40"
+          isOver ? "border-brand-500/40 bg-brand-500/8 ring-2 ring-brand-500/15" : "border-[var(--border)] bg-[var(--surface-2)]/40"
         }`}
       >
         {candidates.map((c) => (

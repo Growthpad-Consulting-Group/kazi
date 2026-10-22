@@ -79,7 +79,7 @@ export function PlainTextEditor({ value, onChange, placeholder, rows = 4, classN
   }
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] focus-within:border-[#f05d23]/60 focus-within:ring-2 focus-within:ring-[#f05d23]/10", className)}>
+    <div className={cn("overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] focus-within:border-brand-500/60 focus-within:ring-2 focus-within:ring-brand-500/10", className)}>
       <div className="flex items-center gap-1 border-b border-[var(--border)] bg-[var(--surface-2)] px-2 py-1.5">
         <ToolbarButton icon="solar:list-broken" label="Toggle bullet list" onClick={() => toggleList("bullet")} />
         <ToolbarButton icon="solar:list-check-minimalistic-broken" label="Toggle numbered list" onClick={() => toggleList("number")} />
@@ -91,5 +91,5 @@ export function PlainTextEditor({ value, onChange, placeholder, rows = 4, classN
 }
 
 function ToolbarButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
-  return <button type="button" aria-label={label} title={label} onMouseDown={(event) => event.preventDefault()} onClick={onClick} className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-lo)] transition-colors hover:bg-[var(--surface)] hover:text-[#f05d23]"><Icon icon={icon} className="h-4 w-4" /></button>;
+  return <button type="button" aria-label={label} title={label} onMouseDown={(event) => event.preventDefault()} onClick={onClick} className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-lo)] transition-colors hover:bg-[var(--surface)] hover:text-brand-500"><Icon icon={icon} className="h-4 w-4" /></button>;
 }

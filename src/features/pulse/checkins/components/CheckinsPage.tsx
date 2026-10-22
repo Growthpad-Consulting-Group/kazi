@@ -36,7 +36,7 @@ function statusMeta(status?: string) {
   if (status === "reviewed") return { label: "Reviewed", description: "Your manager has shared feedback.", icon: "solar:check-circle-broken", className: "bg-emerald-500/10 text-emerald-600" };
   if (status === "submitted") return { label: "Submitted", description: "Your update is with your manager.", icon: "solar:check-circle-broken", className: "bg-blue-500/10 text-blue-600" };
   if (status === "draft") return { label: "Draft saved", description: "Finish and submit when you are ready.", icon: "solar:document-text-broken", className: "bg-amber-500/10 text-amber-600" };
-  return { label: "Ready when you are", description: "A short update helps your manager support you well.", icon: "solar:pen-new-square-broken", className: "bg-[#f05d23]/10 text-[#f05d23]" };
+  return { label: "Ready when you are", description: "A short update helps your manager support you well.", icon: "solar:pen-new-square-broken", className: "bg-brand-500/10 text-brand-500" };
 }
 
 export default async function CheckinsPage({ userId: overrideUserId }: { userId?: string }) {
@@ -81,8 +81,8 @@ export default async function CheckinsPage({ userId: overrideUserId }: { userId?
           </section>
 
           <aside className="space-y-5">
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:history-broken" className="h-3.5 w-3.5" /></span><h2 className="text-sm font-semibold text-[var(--text-hi)]">Recent check-ins</h2></div>{pastCheckins.length ? <div className="mt-4 space-y-2">{pastCheckins.map((checkin) => <div key={checkin.id} className="flex items-center justify-between gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"><div><p className="text-xs font-semibold text-[var(--text-hi)]">{new Date(`${checkin.week_start}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</p><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">{checkin.mood ? `${MOODS[checkin.mood - 1]} ${checkin.status}` : checkin.status}</p></div><StatusBadge status={checkin.status} compact /></div>)}</div> : <EmptyHistory />}</section>
-            <section className="rounded-2xl border border-[#f05d23]/15 bg-[#f05d23]/[0.05] p-4"><div className="flex gap-2.5"><Icon icon="solar:lightbulb-broken" className="mt-0.5 h-4 w-4 shrink-0 text-[#f05d23]" /><div><p className="text-xs font-semibold text-[var(--text-hi)]">Keep it useful</p><p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">Specific wins and clear blockers make your next 1-on-1 more productive.</p></div></div></section>
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:history-broken" className="h-3.5 w-3.5" /></span><h2 className="text-sm font-semibold text-[var(--text-hi)]">Recent check-ins</h2></div>{pastCheckins.length ? <div className="mt-4 space-y-2">{pastCheckins.map((checkin) => <div key={checkin.id} className="flex items-center justify-between gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"><div><p className="text-xs font-semibold text-[var(--text-hi)]">{new Date(`${checkin.week_start}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</p><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">{checkin.mood ? `${MOODS[checkin.mood - 1]} ${checkin.status}` : checkin.status}</p></div><StatusBadge status={checkin.status} compact /></div>)}</div> : <EmptyHistory />}</section>
+            <section className="rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] p-4"><div className="flex gap-2.5"><Icon icon="solar:lightbulb-broken" className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /><div><p className="text-xs font-semibold text-[var(--text-hi)]">Keep it useful</p><p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">Specific wins and clear blockers make your next 1-on-1 more productive.</p></div></div></section>
           </aside>
         </div>
 
@@ -93,7 +93,7 @@ export default async function CheckinsPage({ userId: overrideUserId }: { userId?
 }
 
 function CheckinProfileBlock({ label, icon, value, tone = "default" }: { label: string; icon: string; value: string | null; tone?: "default" | "amber" | "orange" }) {
-  const styles = { default: "bg-[var(--surface-2)] text-[var(--text-lo)]", amber: "bg-amber-500/10 text-amber-700", orange: "bg-[#f05d23]/10 text-[#f05d23]" };
+  const styles = { default: "bg-[var(--surface-2)] text-[var(--text-lo)]", amber: "bg-amber-500/10 text-amber-700", orange: "bg-brand-500/10 text-brand-500" };
   return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/35 p-4"><div className="flex items-center gap-2"><span className={`flex h-7 w-7 items-center justify-center rounded-lg ${styles[tone]}`}><Icon icon={icon} className="h-3.5 w-3.5" /></span><h3 className="text-xs font-semibold text-[var(--text-hi)]">{label}</h3></div><p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-lo)]">{value || "Nothing shared."}</p></div>;
 }
 

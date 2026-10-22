@@ -188,7 +188,7 @@ export default function ExportModal({ isOpen, onClose, users, mode, type = "reco
 
       <div className={`relative w-full max-w-6xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-300 ${isAnimating ? "scale-100 opacity-100" : "scale-95 opacity-0"} ${mode === "dark" ? "bg-gray-900 text-white border border-gray-700/50" : "bg-white text-gray-900 border border-gray-200"}`}>
         {/* Header */}
-        <div className="shrink-0 bg-gradient-to-r from-[#f05d23] to-[#d94f1a] rounded-t-2xl p-4 flex items-center justify-between">
+        <div className="shrink-0 bg-gradient-to-r from-brand-500 to-[#d94f1a] rounded-t-2xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
               <Icon icon="solar:export-broken" className="w-6 h-6 text-white" />
@@ -211,8 +211,8 @@ export default function ExportModal({ isOpen, onClose, users, mode, type = "reco
               <div className={`p-5 border-b ${mode === "dark" ? "border-gray-700/50" : "border-gray-200"}`}>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === "dark" ? "bg-[#f05d23]/20" : "bg-gradient-to-br from-[#f05d23] to-[#d94f1a] shadow-lg shadow-[#f05d23]/30"}`}>
-                      <Icon icon="solar:check-square-broken" className={`w-5 h-5 ${mode === "dark" ? "text-[#f05d23]" : "text-white"}`} />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === "dark" ? "bg-brand-500/20" : "bg-gradient-to-br from-brand-500 to-[#d94f1a] shadow-lg shadow-brand-500/30"}`}>
+                      <Icon icon="solar:check-square-broken" className={`w-5 h-5 ${mode === "dark" ? "text-brand-500" : "text-white"}`} />
                     </div>
                     <div>
                       <h3 className={`text-base font-semibold ${mode === "dark" ? "text-gray-100" : "text-gray-900"}`}>Select Fields to Export</h3>
@@ -220,7 +220,7 @@ export default function ExportModal({ isOpen, onClose, users, mode, type = "reco
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={handleSelectAll} className={`text-sm px-4 py-2 rounded-xl font-medium transition-all duration-300 hover:scale-105 ${mode === "dark" ? "bg-[#f05d23]/20 text-[#f05d23] hover:bg-[#f05d23]/30 border border-[#f05d23]/30" : "bg-gradient-to-r from-[#f05d23] to-[#d94f1a] text-white hover:from-[#d94f1a] hover:to-[#f05d23] shadow-md"}`}>
+                    <button onClick={handleSelectAll} className={`text-sm px-4 py-2 rounded-xl font-medium transition-all duration-300 hover:scale-105 ${mode === "dark" ? "bg-brand-500/20 text-brand-500 hover:bg-brand-500/30 border border-brand-500/30" : "bg-gradient-to-r from-brand-500 to-[#d94f1a] text-white hover:from-[#d94f1a] hover:to-brand-500 shadow-md"}`}>
                       <span className="flex items-center gap-1.5"><Icon icon="solar:check-circle-broken" className="w-4 h-4" />Select All</span>
                     </button>
                     <button onClick={handleSelectNone} className={`text-sm px-4 py-2 rounded-xl font-medium transition-all duration-300 hover:scale-105 ${mode === "dark" ? "bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"}`}>
@@ -257,8 +257,8 @@ export default function ExportModal({ isOpen, onClose, users, mode, type = "reco
             <div className={`rounded-2xl border backdrop-blur-sm ${mode === "dark" ? "bg-gray-800/50 border-gray-700/50" : "bg-white/80 border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"}`}>
               <div className={`p-5 border-b ${mode === "dark" ? "border-gray-700/50" : "border-gray-200"}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === "dark" ? "bg-[#f05d23]/20" : "bg-gradient-to-br from-[#f05d23] to-[#d94f1a] shadow-lg shadow-[#f05d23]/30"}`}>
-                    <Icon icon="solar:eye-broken" className={`w-5 h-5 ${mode === "dark" ? "text-[#f05d23]" : "text-white"}`} />
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === "dark" ? "bg-brand-500/20" : "bg-gradient-to-br from-brand-500 to-[#d94f1a] shadow-lg shadow-brand-500/30"}`}>
+                    <Icon icon="solar:eye-broken" className={`w-5 h-5 ${mode === "dark" ? "text-brand-500" : "text-white"}`} />
                   </div>
                   <div>
                     <h3 className={`text-base font-semibold ${mode === "dark" ? "text-gray-100" : "text-gray-900"}`}>Data Preview</h3>

@@ -58,12 +58,12 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
 
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Title *</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Q3 Engagement Pulse" className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Q3 Engagement Pulse" className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10" />
           </div>
 
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Description</label>
-            <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" />
+            <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10" />
           </div>
 
           <label className="flex cursor-pointer items-center gap-2">
@@ -77,9 +77,9 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
               {questions.map((q, i) => (
               <div key={q.id} className="flex gap-2">
                   <input value={q.text} onChange={(e) => setQuestions(questions.map((x) => x.id === q.id ? { ...x, text: e.target.value } : x))}
-                    placeholder={`Question ${i + 1}`} className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" />
+                    placeholder={`Question ${i + 1}`} className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10" />
                   <select value={q.type} onChange={(e) => setQuestions(questions.map((x) => x.id === q.id ? { ...x, type: e.target.value as "scale" | "text" } : x))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2 text-xs text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60">
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2 text-xs text-[var(--text-hi)] outline-none focus:border-brand-500/60">
                     <option value="scale">1–5 scale</option>
                     <option value="text">Open text</option>
                   </select>
@@ -88,14 +88,14 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
                   )}
                 </div>
               ))}
-            <button type="button" onClick={addQuestion} className="text-xs font-medium text-[#f05d23] hover:underline">+ Add question</button>
+            <button type="button" onClick={addQuestion} className="text-xs font-medium text-brand-500 hover:underline">+ Add question</button>
           </div>
 
           {error && <p className="text-xs text-red-500">{error}</p>}
 
           <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
             <button onClick={() => setOpen(false)} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-hi)] hover:bg-[var(--surface-2)] transition-colors">Cancel</button>
-            <button onClick={submit} disabled={saving || !title.trim()} className="rounded-lg bg-[#f05d23] px-4 py-2 text-sm font-semibold text-white hover:bg-[#d94d18] disabled:opacity-50 transition-colors">
+            <button onClick={submit} disabled={saving || !title.trim()} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-[#d94d18] disabled:opacity-50 transition-colors">
               {saving ? "Creating…" : "Create Survey"}
             </button>
           </div>

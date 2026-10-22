@@ -8,7 +8,7 @@ export type StatCardColor = "orange" | "slate" | "violet" | "amber" | "green" | 
 export type StatCardVariant = "gradient" | "flat";
 
 const styles: Record<StatCardColor, { gradient: string; shadow: string; flat: string }> = {
-  orange: { gradient: "from-[#f05d23] to-orange-400", shadow: "shadow-[#f05d23]/25", flat: "text-[#f05d23] bg-[#f05d23]/10" },
+  orange: { gradient: "from-brand-500 to-orange-400", shadow: "shadow-brand-500/25", flat: "text-brand-500 bg-brand-500/10" },
   slate:  { gradient: "from-slate-500 to-slate-400",   shadow: "shadow-slate-500/20",  flat: "text-slate-500 bg-slate-500/10" },
   violet: { gradient: "from-violet-500 to-violet-400", shadow: "shadow-violet-500/25", flat: "text-violet-500 bg-violet-500/10" },
   amber:  { gradient: "from-amber-500 to-amber-400",   shadow: "shadow-amber-500/25",  flat: "text-amber-500 bg-amber-500/10" },

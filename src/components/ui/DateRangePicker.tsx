@@ -205,7 +205,7 @@ const DateRangePicker = function DateRangePicker(
         onClick={() => (isOpen ? handleCancel() : openPopover())}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#f05d23]/30 bg-[var(--surface)] border-[var(--border)] text-[var(--text-hi)] hover:border-[#f05d23]/40 hover:bg-[var(--surface-2)] ${fullWidth ? 'w-full justify-between' : ''} ${isOpen ? 'border-[#f05d23]/60 ring-2 ring-[#f05d23]/20' : ''}`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-[var(--surface)] border-[var(--border)] text-[var(--text-hi)] hover:border-brand-500/40 hover:bg-[var(--surface-2)] ${fullWidth ? 'w-full justify-between' : ''} ${isOpen ? 'border-brand-500/60 ring-2 ring-brand-500/20' : ''}`}
       >
         <Icon icon="solar:calendar-date-broken" className="w-4 h-4 shrink-0 text-[var(--text-lo)]" />
         <span className={fullWidth ? "min-w-0 flex-1 truncate text-left" : "max-w-[160px] truncate"}>
@@ -240,7 +240,7 @@ const DateRangePicker = function DateRangePicker(
                     onClick={() => handlePresetClick(label)}
                     className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
                       isActive
-                        ? 'bg-[#f05d23]/10 text-[#f05d23]'
+                        ? 'bg-brand-500/10 text-brand-500'
                         : 'text-[var(--text-hi)] hover:bg-[var(--surface-2)]'
                     }`}
                   >
@@ -255,7 +255,7 @@ const DateRangePicker = function DateRangePicker(
               {/* Date inputs row */}
               <div className="flex items-center gap-3 px-5 py-3 border-b border-[var(--border)]">
                 <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-[#f05d23]">Start date</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-brand-500">Start date</p>
                   <div className="px-3 py-1.5 rounded-lg border text-sm font-medium min-h-[34px] bg-[var(--surface-2)] border-[var(--border)] text-[var(--text-hi)]">
                     {fmt(draftRange.startDate) || <span className="opacity-40">—</span>}
                   </div>
@@ -309,7 +309,7 @@ const DateRangePicker = function DateRangePicker(
                   disabled={!canApply}
                   className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
                     canApply
-                      ? 'bg-[#f05d23] text-white hover:bg-[#d94f1a] shadow-sm'
+                      ? 'bg-brand-500 text-white hover:bg-[#d94f1a] shadow-sm'
                       : 'bg-[var(--surface-2)] text-[var(--text-lo)] cursor-not-allowed'
                   }`}
                 >

@@ -17,7 +17,7 @@ const ROLES: { value: UserRole; label: string; description: string }[] = [
 const BADGE: Record<UserRole, string> = {
   admin:          "bg-violet-500/10 text-violet-600",
   hr:             "bg-blue-500/10 text-blue-600",
-  manager:        "bg-[#f05d23]/10 text-[#f05d23]",
+  manager:        "bg-brand-500/10 text-brand-500",
   hiring_manager: "bg-amber-500/10 text-amber-600",
   interviewer:    "bg-sky-500/10 text-sky-600",
   employee:       "bg-slate-500/10 text-slate-500",

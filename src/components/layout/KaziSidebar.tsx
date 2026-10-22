@@ -61,7 +61,7 @@ export default function KaziSidebar({
   return (
     <div
       ref={sidebarRef}
-      className={`shrink-0 z-50 transition-all duration-300 ${isMobile ? "fixed inset-y-0 left-0 m-0" : "sticky top-0 h-full"}`}
+      className={`shrink-0 z-50 transition-all duration-300 ${isMobile ? "fixed inset-y-0 left-0 m-0" : "sticky top-0 h-screen p-1 md:py-4 md:pl-4"}`}
       style={{ width: isOpen ? "240px" : isMobile ? "0" : "64px" }}
     >
       <div className={`relative h-full flex flex-col border transition-all duration-300 ${isMobile ? "rounded-none" : "rounded-3xl"} ${
@@ -91,7 +91,7 @@ export default function KaziSidebar({
             </Link>
           )}
           {isMobile && (
-            <button onClick={toggleSidebar} className="text-gray-500 dark:text-gray-400 hover:text-[#f05d23] transition-all p-2 rounded-full hover:bg-white/10">
+            <button onClick={toggleSidebar} className="text-gray-500 dark:text-gray-400 hover:text-brand-500 transition-all p-2 rounded-full hover:bg-white/10">
               <Icon icon="solar:close-circle-broken" className="w-6 h-6" />
             </button>
           )}
@@ -108,7 +108,7 @@ export default function KaziSidebar({
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-2 cursor-pointer group" onClick={() => !isMobile && toggleSidebar()} title={group.category}>
-                  <Icon icon={group.icon} className="h-5 w-5 text-gray-400 group-hover:text-[#f05d23] transition-colors" />
+                  <Icon icon={group.icon} className="h-5 w-5 text-gray-400 group-hover:text-brand-500 transition-colors" />
                 </div>
               )}
 
@@ -134,13 +134,13 @@ export default function KaziSidebar({
                               whileTap={{ scale: 0.98 }}
                               className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all duration-300 ${
                                 active
-                                  ? "bg-[#f05d23]/10 text-[#f05d23]"
+                                  ? "bg-brand-500/10 text-brand-500"
                                   : mode === "dark"
                                     ? "text-gray-400 hover:bg-white/5 hover:text-white"
                                     : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                               } ${!isOpen ? "justify-center" : ""}`}
                             >
-                              {active && <div className="absolute left-0 w-1 h-1/2 bg-[#f05d23] rounded-r-full" />}
+                              {active && <div className="absolute left-0 w-1 h-1/2 bg-brand-500 rounded-r-full" />}
                               <Icon icon={icon} className={`h-4 w-4 shrink-0 transition-all duration-300 ${active ? "scale-105" : "group-hover:scale-110"}`} />
                               {isOpen && <span className="flex-1 truncate">{label}</span>}
                             </motion.div>
@@ -166,12 +166,12 @@ export default function KaziSidebar({
           <div className="px-3 py-4 mt-auto">
             <div
               onClick={() => setShowUserMenu((p) => !p)}
-              className={`flex items-center space-x-3 cursor-pointer rounded-xl p-2.5 transition-all duration-300 border-t border-[#f05d23] ${
+              className={`flex items-center space-x-3 cursor-pointer rounded-xl p-2.5 transition-all duration-300 border-t border-brand-500 ${
                 mode === "dark" ? "hover:bg-white/5 text-gray-300 hover:text-white" : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
               }`}
             >
               <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-white/20">
-                <Icon icon="solar:user-circle-broken" className="h-5 w-5 text-[#f05d23]" />
+                <Icon icon="solar:user-circle-broken" className="h-5 w-5 text-brand-500" />
               </div>
               {isOpen && (
                 <div className="flex items-center justify-between w-full min-w-0">

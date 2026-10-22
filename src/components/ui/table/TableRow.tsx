@@ -21,7 +21,7 @@ function actionVariantClass(variant: RowActionVariant = "default"): string {
     case "info":
       return "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25";
     default:
-      return "bg-[#f05d23]/10 text-[#f05d23] hover:bg-[#f05d23]/20";
+      return "bg-brand-500/10 text-brand-500 hover:bg-brand-500/20";
   }
 }
 
@@ -81,7 +81,7 @@ export default function TableRow<T extends Record<string, unknown>>({
   }, [showDropdown]);
 
   const visibleActions = actions.filter((a) => !a.show || a.show(row));
-  const rowBg = selected ? "bg-[#f05d23]/5" : isEven ? "bg-[var(--surface)]" : "bg-[var(--surface-2)]/30";
+  const rowBg = selected ? "bg-brand-500/5" : isEven ? "bg-[var(--surface)]" : "bg-[var(--surface-2)]/30";
 
   const handleRowClick = (e: MouseEvent<HTMLTableRowElement>) => {
     if ((e.target as Element).closest("button") || (e.target as Element).closest('input[type="checkbox"]')) return;
@@ -94,7 +94,7 @@ export default function TableRow<T extends Record<string, unknown>>({
       className={cn(
         "group border-b border-slate-200/60 dark:border-slate-800/60 last:border-0 transition-colors duration-150",
         rowBg,
-        onRowClick ? "cursor-pointer hover:bg-[#f05d23]/5" : "hover:bg-[var(--surface-2)]/60",
+        onRowClick ? "cursor-pointer hover:bg-brand-500/5" : "hover:bg-[var(--surface-2)]/60",
         showDropdown && "relative z-60"
       )}
     >
@@ -102,7 +102,7 @@ export default function TableRow<T extends Record<string, unknown>>({
         <td
           className={cn(
             "sticky left-0 z-10 w-10 px-3 py-3.5 border-r border-[var(--border)] transition-colors duration-150",
-            rowBg, "group-hover:bg-[#f05d23]/5"
+            rowBg, "group-hover:bg-brand-500/5"
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -110,7 +110,7 @@ export default function TableRow<T extends Record<string, unknown>>({
             type="checkbox"
             checked={selected}
             onChange={onToggleSelect}
-            className="h-4 w-4 rounded border-[var(--border)] accent-[#f05d23] cursor-pointer"
+            className="h-4 w-4 rounded border-[var(--border)] accent-brand-500 cursor-pointer"
           />
         </td>
       )}
@@ -143,7 +143,7 @@ export default function TableRow<T extends Record<string, unknown>>({
         <td
           className={cn(
             "sticky right-0 z-10 px-3 py-3.5 border-l border-slate-200/60 dark:border-slate-800/60 transition-colors duration-150",
-            rowBg, "group-hover:bg-[#f05d23]/5"
+            rowBg, "group-hover:bg-brand-500/5"
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -179,7 +179,7 @@ export default function TableRow<T extends Record<string, unknown>>({
                       <button
                         onClick={openDropdown}
                         title="More actions"
-                        className="rounded-xl bg-[var(--surface-2)] p-1.5 text-[var(--text-lo)] hover:bg-[#f05d23]/10 hover:text-[#f05d23] transition-all"
+                        className="rounded-xl bg-[var(--surface-2)] p-1.5 text-[var(--text-lo)] hover:bg-brand-500/10 hover:text-brand-500 transition-all"
                       >
                         <Icon icon="solar:menu-dots-broken" className="h-4 w-4" />
                       </button>

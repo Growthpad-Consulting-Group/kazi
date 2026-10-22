@@ -72,9 +72,9 @@ export function NewGoalButton({ userId, size = "md" }: { userId: string; size?: 
                   key={item}
                   type="button"
                   onClick={() => setLevel(item)}
-                  className={`rounded-xl border p-3 text-left transition-colors ${level === item ? "border-[#f05d23]/35 bg-[#f05d23]/[0.06]" : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
+                  className={`rounded-xl border p-3 text-left transition-colors ${level === item ? "border-brand-500/35 bg-brand-500/[0.06]" : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
                 >
-                  <Icon icon={LEVEL_META[item].icon} className={`h-4 w-4 ${level === item ? "text-[#f05d23]" : "text-[var(--text-lo)]"}`} />
+                  <Icon icon={LEVEL_META[item].icon} className={`h-4 w-4 ${level === item ? "text-brand-500" : "text-[var(--text-lo)]"}`} />
                   <span className="mt-2 block text-xs font-semibold capitalize text-[var(--text-hi)]">{item}</span>
                   <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-lo)]">{LEVEL_META[item].description}</span>
                 </button>
@@ -89,7 +89,7 @@ export function NewGoalButton({ userId, size = "md" }: { userId: string; size?: 
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="e.g. Improve customer onboarding completion"
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10"
             />
           </div>
 
@@ -100,13 +100,13 @@ export function NewGoalButton({ userId, size = "md" }: { userId: string; size?: 
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="What does success look like?"
-              className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10"
+              className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10"
             />
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Due date <span className="font-normal text-[var(--text-lo)]">Optional</span></label>
-            <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60" />
+            <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60" />
           </div>
 
           {error && <p className="text-xs font-medium text-red-500">{error}</p>}

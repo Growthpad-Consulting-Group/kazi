@@ -55,6 +55,9 @@ export interface DashboardData {
     health: { averageDaysToHire: number | null; stalledCandidates: number; offerPending: number; offerAccepted: number; offerDeclined: number };
     pulse: { pendingCheckins: number; lowMood: number; blockers: number; atRiskGoals: number };
     scheduledJobs: { id: string; title: string; published_at: string | null; closes_at: string | null; kind: "publishes" | "closes" }[];
+    goals: { onTrack: number; atRisk: number; completed: number; notStarted: number };
+    newHires: { id: string; name: string; job_title: string | null; department: string | null; start_date: string }[];
+    activeSurveys: { id: string; title: string; response_count: number }[];
   };
 }
 
@@ -82,7 +85,9 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
     const sixWeeksAgo = new Date(now);
     sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
 
-    const [rangeCandidatesRes, currentJobsRes, currentCandidatesRes, employeesRes, reviewsRes, scorecardsRes, checkinsRes, pulseHistoryRes, goalsRes, conversationsRes, scheduledJobsRes] = await Promise.all([
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const [rangeCandidatesRes, currentJobsRes, currentCandidatesRes, employeesRes, reviewsRes, scorecardsRes, checkinsRes, pulseHistoryRes, goalsRes, conversationsRes, scheduledJobsRes, allGoalsRes, newHiresRes, activeSurveysRes] = await Promise.all([
       supabaseAdmin
         .from("candidates")
         .select("id, applied_at")
@@ -106,6 +111,9 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
       supabaseAdmin.from("goals").select("id").eq("status", "at_risk"),
       supabaseAdmin.from("one_on_ones").select("id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(name), report:users!one_on_ones_report_id_fkey(name)").gte("scheduled_at", now.toISOString()).order("scheduled_at").limit(5),
       supabaseAdmin.from("jobs").select("id, title, published_at, closes_at").eq("status", "open").or(`published_at.gte.${now.toISOString()},closes_at.gte.${now.toISOString()}`),
+      supabaseAdmin.from("goals").select("id, status"),
+      supabaseAdmin.from("users").select("id, name, job_title, department, start_date").eq("is_active", true).gte("start_date", thirtyDaysAgo).order("start_date", { ascending: false }).limit(6),
+      supabaseAdmin.from("surveys").select("id, title, survey_responses(id)").eq("status", "active").limit(5),
     ]);
 
     const jobs = currentJobsRes.data ?? [];
@@ -232,6 +240,28 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
       ...(job.published_at && new Date(job.published_at) >= now ? [{ id: job.id, title: job.title, published_at: job.published_at, closes_at: job.closes_at, kind: "publishes" as const }] : []),
       ...(job.closes_at && new Date(job.closes_at) >= now ? [{ id: job.id, title: job.title, published_at: job.published_at, closes_at: job.closes_at, kind: "closes" as const }] : []),
     ]).sort((a, b) => new Date(a.kind === "publishes" ? a.published_at! : a.closes_at!).getTime() - new Date(b.kind === "publishes" ? b.published_at! : b.closes_at!).getTime()).slice(0, 5);
+    const allGoals = allGoalsRes.data ?? [];
+    const goalsBreakdown = {
+      onTrack: allGoals.filter((g) => g.status === "in_progress").length,
+      atRisk: allGoals.filter((g) => g.status === "at_risk").length,
+      completed: allGoals.filter((g) => g.status === "completed").length,
+      notStarted: allGoals.filter((g) => g.status === "not_started").length,
+    };
+
+    const newHires = (newHiresRes.data ?? []).map((u) => ({
+      id: u.id,
+      name: u.name,
+      job_title: u.job_title,
+      department: u.department,
+      start_date: u.start_date!,
+    }));
+
+    const activeSurveys = (activeSurveysRes.data ?? []).map((s) => ({
+      id: s.id,
+      title: s.title,
+      response_count: Array.isArray(s.survey_responses) ? s.survey_responses.length : 0,
+    }));
+
     const upcomingOneOnOnes = (conversationsRes.data ?? []).map((meeting) => ({
       id: meeting.id,
       scheduled_at: meeting.scheduled_at!,
@@ -266,6 +296,9 @@ export async function getDashboardData(range: DashboardRange): Promise<Dashboard
         health: { averageDaysToHire, stalledCandidates, offerPending: stageCounts.get("offer") ?? 0, offerAccepted: hired, offerDeclined: stageCounts.get("rejected") ?? 0 },
         pulse: { pendingCheckins: Math.max((employeesRes.count ?? 0) - submittedCheckins, 0), lowMood: checkins.filter((checkin) => (checkin.mood ?? 5) <= 2).length, blockers: checkins.filter((checkin) => !!checkin.blockers?.trim()).length, atRiskGoals: goalsRes.data?.length ?? 0 },
         scheduledJobs,
+        goals: goalsBreakdown,
+        newHires,
+        activeSurveys,
       },
     };
   });

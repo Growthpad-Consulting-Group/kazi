@@ -72,7 +72,7 @@ function IntegrationCard({
             type="button"
             disabled={pending}
             onClick={() => startTransition(async () => { try { await onConnect(); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } })}
-            className="rounded-xl bg-[#f05d23] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#d94f1c] disabled:opacity-50"
+            className="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
           >
             {pending ? "…" : "Connect"}
           </button>

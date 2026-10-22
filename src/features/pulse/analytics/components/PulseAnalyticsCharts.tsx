@@ -39,7 +39,7 @@ export function PulseAnalyticsCharts({ trend, goals }: { trend: TrendPoint[]; go
 }
 
 function ChartCard({ icon, tone, title, description, children }: { icon: string; tone: "orange" | "blue"; title: string; description: string; children: React.ReactNode }) {
-  const colors = tone === "orange" ? "bg-[#f05d23]/10 text-[#f05d23]" : "bg-blue-500/10 text-blue-600";
+  const colors = tone === "orange" ? "bg-brand-500/10 text-brand-500" : "bg-blue-500/10 text-blue-600";
   return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/30 dark:shadow-black/20"><div className="mb-3 flex items-center gap-2.5"><span className={`flex h-8 w-8 items-center justify-center rounded-xl ${colors}`}><Icon icon={icon} className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">{title}</h2><p className="text-[11px] text-[var(--text-lo)]">{description}</p></div></div>{children}</div>;
 }
 

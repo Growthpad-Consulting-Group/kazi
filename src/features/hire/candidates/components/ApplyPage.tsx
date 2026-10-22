@@ -19,7 +19,7 @@ interface Props {
   company?: string;
 }
 
-const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#f05d23] focus:ring-4 focus:ring-[#f05d23]/10";
+const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10";
 
 export function ApplyPage({ job, company = "Growthpad Consulting Group" }: Props) {
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", location: "", source: "direct", consented: false });
@@ -73,10 +73,10 @@ export function ApplyPage({ job, company = "Growthpad Consulting Group" }: Props
     return (
       <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#fffaf7] px-5 py-12">
         <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-orange-100 bg-white p-8 text-center shadow-2xl shadow-orange-950/10 sm:p-12">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#f05d23]/15 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-brand-500/15 blur-3xl" />
           <div className="relative">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"><Icon icon="solar:check-circle-broken" className="h-8 w-8" /></span>
-            <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#f05d23]">Kazi Hire</p>
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-brand-500">Kazi Hire</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Application received</h1>
             <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-600">Thank you for applying for <span className="font-semibold text-slate-900">{job.title}</span> at {company}. If your experience is a fit, the team will be in touch.</p>
             <div className="mt-7 rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">Kazi supports the hiring process, but every decision is made by people.</div>
@@ -91,12 +91,12 @@ export function ApplyPage({ job, company = "Growthpad Consulting Group" }: Props
       <header className="border-b border-orange-100/80 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <div className="flex items-center gap-3"><Image src="/logo.svg" alt="Growthpad" width={94} height={36} priority className="h-14 w-auto" /><span className="h-6 w-px bg-orange-100" /><div><p className="text-sm font-semibold tracking-tight text-slate-950">Kazi Hire</p><p className="text-[11px] text-slate-500">Careers</p></div></div>
-          <span className="hidden rounded-full bg-orange-50 px-3 py-1.5 text-xs font-medium text-[#d94f1e] sm:inline-flex">A better way to apply</span>
+          <span className="hidden rounded-full bg-orange-50 px-3 py-1.5 text-xs font-medium text-brand-600 sm:inline-flex">A better way to apply</span>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
-        <div className="mb-7 rounded-3xl bg-gradient-to-br from-[#28150d] via-[#592511] to-[#f05d23] px-6 py-7 text-white shadow-xl shadow-orange-950/15 sm:px-9 sm:py-9">
+        <div className="mb-7 rounded-3xl bg-gradient-to-br from-[#28150d] via-[#592511] to-brand-500 px-6 py-7 text-white shadow-xl shadow-orange-950/15 sm:px-9 sm:py-9">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-200">Open opportunity</p>
           <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">{job.title}</h1>
           <div className="mt-5 flex flex-wrap gap-2 text-sm text-orange-50"><Meta icon="solar:buildings-broken" value={job.department ?? "Growthpad"} /><Meta icon="solar:map-point-broken" value={job.location ?? "Location flexible"} /><Meta icon="solar:calendar-broken" value={closingLabel} /></div>
@@ -113,14 +113,14 @@ export function ApplyPage({ job, company = "Growthpad Consulting Group" }: Props
           </aside>
 
           <section className="rounded-3xl border border-orange-100 bg-white p-5 shadow-xl shadow-orange-950/5 sm:p-7">
-            <div className="flex items-start gap-3 border-b border-slate-100 pb-5"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:pen-new-square-broken" className="h-5 w-5" /></span><div><h2 className="text-lg font-semibold text-slate-950">Start your application</h2><p className="mt-1 text-sm text-slate-500">Share a few details. This takes about three minutes.</p></div></div>
+            <div className="flex items-start gap-3 border-b border-slate-100 pb-5"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:pen-new-square-broken" className="h-5 w-5" /></span><div><h2 className="text-lg font-semibold text-slate-950">Start your application</h2><p className="mt-1 text-sm text-slate-500">Share a few details. This takes about three minutes.</p></div></div>
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               <div className="grid gap-4 sm:grid-cols-2"><Field label="Full name *"><input autoFocus required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} placeholder="Your full name" className={inputClass} /></Field><Field label="Email address *"><input type="email" required value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="you@example.com" className={inputClass} /></Field><Field label="Phone number"><input type="tel" value={form.phone} onChange={(event) => update("phone", event.target.value)} placeholder="e.g. +254 700 000 000" className={inputClass} /></Field><Field label="Current location"><input value={form.location} onChange={(event) => update("location", event.target.value)} placeholder="City, country" className={inputClass} /></Field></div>
               <Field label="How did you hear about this role?"><select value={form.source} onChange={(event) => update("source", event.target.value)} className={inputClass}><option value="direct">Growthpad / Kazi Hire</option><option value="linkedin">LinkedIn</option><option value="referral">Referral</option><option value="job_board">Job board</option><option value="other">Other</option></select></Field>
-              <Field label="CV or résumé"><label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 transition hover:border-[#f05d23]/50 hover:bg-orange-50/40"><span className="flex min-w-0 items-center gap-3"><Icon icon="solar:upload-minimalistic-broken" className="h-5 w-5 shrink-0 text-[#f05d23]" /><span className="min-w-0"><span className="block truncate text-sm font-medium text-slate-700">{cvFile?.name ?? "Upload PDF or Word document"}</span><span className="mt-0.5 block text-xs text-slate-500">Optional, but helps us understand your experience</span></span></span><span className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">Browse</span><input type="file" accept=".pdf,.doc,.docx" className="sr-only" onChange={(event) => setCvFile(event.target.files?.[0] ?? null)} /></label></Field>
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-3.5"><input type="checkbox" required checked={form.consented} onChange={(event) => update("consented", event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#f05d23]" /><span className="text-xs leading-5 text-slate-600">I consent to {company} collecting and processing my data for recruitment in accordance with the Kenya Data Protection Act, 2019.</span></label>
+              <Field label="CV or résumé"><label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 transition hover:border-brand-500/50 hover:bg-orange-50/40"><span className="flex min-w-0 items-center gap-3"><Icon icon="solar:upload-minimalistic-broken" className="h-5 w-5 shrink-0 text-brand-500" /><span className="min-w-0"><span className="block truncate text-sm font-medium text-slate-700">{cvFile?.name ?? "Upload PDF or Word document"}</span><span className="mt-0.5 block text-xs text-slate-500">Optional, but helps us understand your experience</span></span></span><span className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">Browse</span><input type="file" accept=".pdf,.doc,.docx" className="sr-only" onChange={(event) => setCvFile(event.target.files?.[0] ?? null)} /></label></Field>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-3.5"><input type="checkbox" required checked={form.consented} onChange={(event) => update("consented", event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand-500" /><span className="text-xs leading-5 text-slate-600">I consent to {company} collecting and processing my data for recruitment in accordance with the Kenya Data Protection Act, 2019.</span></label>
               {step === "error" && <p className="rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-700">{errorMsg}</p>}
-              <button type="submit" disabled={step === "uploading" || !form.consented} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#f05d23] px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-[#d94f1e] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"><Icon icon={step === "uploading" ? "solar:spinner-broken" : "solar:arrow-right-broken"} className={`h-4 w-4 ${step === "uploading" ? "animate-spin" : ""}`} />{step === "uploading" ? "Sending application…" : "Submit application"}</button>
+              <button type="submit" disabled={step === "uploading" || !form.consented} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"><Icon icon={step === "uploading" ? "solar:spinner-broken" : "solar:arrow-right-broken"} className={`h-4 w-4 ${step === "uploading" ? "animate-spin" : ""}`} />{step === "uploading" ? "Sending application…" : "Submit application"}</button>
               <p className="text-center text-[11px] leading-5 text-slate-400">Kazi assists our hiring workflow. A person reviews every application and makes every decision.</p>
             </form>
           </section>
@@ -135,11 +135,11 @@ function Meta({ icon, value }: { icon: string; value: string }) {
 }
 
 function SectionHeading({ icon, title }: { icon: string; title: string }) {
-  return <div className="mb-4 flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f05d23]/10 text-[#f05d23]"><Icon icon={icon} className="h-4 w-4" /></span><h2 className="text-sm font-semibold text-slate-900">{title}</h2></div>;
+  return <div className="mb-4 flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500"><Icon icon={icon} className="h-4 w-4" /></span><h2 className="text-sm font-semibold text-slate-900">{title}</h2></div>;
 }
 
 function RequirementList({ title, items, tone }: { title: string; items: string[]; tone: "emerald" | "orange" }) {
-  const colour = tone === "emerald" ? "text-emerald-600" : "text-[#f05d23]";
+  const colour = tone === "emerald" ? "text-emerald-600" : "text-brand-500";
   return <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.13em] text-slate-400">{title}</p><ul className="space-y-2.5">{items.map((item) => <li key={item} className="flex gap-2.5 text-sm leading-5 text-slate-600"><Icon icon={tone === "emerald" ? "solar:check-circle-broken" : "solar:star-broken"} className={`mt-0.5 h-4 w-4 shrink-0 ${colour}`} />{item}</li>)}</ul></div>;
 }
 

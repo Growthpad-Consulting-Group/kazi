@@ -35,7 +35,7 @@ export default function FieldSelector({ fieldsOrder, selectedFields, handleField
                       mode === "dark"
                         ? "bg-gray-800 border border-gray-700 text-white"
                         : "bg-white border border-gray-200 text-gray-900"
-                    } ${snapshot.isDragging ? "shadow-xl border-[#f05d23] opacity-90" : "shadow-sm"}`}
+                    } ${snapshot.isDragging ? "shadow-xl border-brand-500 opacity-90" : "shadow-sm"}`}
                     style={provided.draggableProps.style}
                   >
                     <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing shrink-0">
@@ -46,9 +46,9 @@ export default function FieldSelector({ fieldsOrder, selectedFields, handleField
                         type="checkbox"
                         checked={!!selectedFields[field.key]}
                         onChange={() => handleFieldToggle(field.key)}
-                        className="h-4 w-4 shrink-0 rounded accent-[#f05d23] cursor-pointer"
+                        className="h-4 w-4 shrink-0 rounded accent-brand-500 cursor-pointer"
                       />
-                      <Icon icon={field.icon} className="w-4 h-4 shrink-0 text-[#f05d23]" />
+                      <Icon icon={field.icon} className="w-4 h-4 shrink-0 text-brand-500" />
                       <span className="text-xs truncate">{field.label}</span>
                     </label>
                   </div>

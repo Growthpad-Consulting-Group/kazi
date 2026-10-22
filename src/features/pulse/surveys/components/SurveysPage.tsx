@@ -45,7 +45,7 @@ export default async function SurveysPage() {
 
         <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4 sm:px-6">
-            <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:chat-round-dots-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">All surveys</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Create space for honest feedback and shared learning.</p></div></div>
+            <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:chat-round-dots-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">All surveys</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Create space for honest feedback and shared learning.</p></div></div>
             <span className="rounded-lg bg-[var(--surface-2)] px-2.5 py-1 font-mono text-[10px] font-semibold text-[var(--text-lo)]">{surveys.length} total</span>
           </div>
 
@@ -64,7 +64,7 @@ export default async function SurveysPage() {
               })}
             </div>
           ) : (
-            <div className="flex min-h-72 flex-col items-center justify-center px-5 text-center"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:chat-round-dots-broken" className="h-6 w-6" /></span><h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No surveys yet</h2><p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">{isAdmin ? "Start with a short pulse to understand what your team needs most." : "When a survey is shared with you, it will appear here."}</p></div>
+            <div className="flex min-h-72 flex-col items-center justify-center px-5 text-center"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500"><Icon icon="solar:chat-round-dots-broken" className="h-6 w-6" /></span><h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No surveys yet</h2><p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">{isAdmin ? "Start with a short pulse to understand what your team needs most." : "When a survey is shared with you, it will appear here."}</p></div>
           )}
         </section>
       </div>

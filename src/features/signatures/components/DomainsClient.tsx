@@ -82,7 +82,7 @@ export default function DomainsClient({ domains }: { domains: Domain[] }) {
               </div>
 
               <div className="mt-5 flex items-center gap-2">
-                <button type="button" onClick={() => setEditing(domain)} className="inline-flex items-center gap-1.5 rounded-xl bg-[#f05d23]/10 px-3 py-2 text-sm font-semibold text-[#f05d23] hover:bg-[#f05d23] hover:text-white">
+                <button type="button" onClick={() => setEditing(domain)} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500/10 px-3 py-2 text-sm font-semibold text-brand-500 hover:bg-brand-500 hover:text-white">
                   <Icon icon="solar:pen-broken" className="h-4 w-4" />Manage readiness
                 </button>
                 <button type="button" onClick={() => setToDelete(domain)} className="inline-flex items-center gap-1.5 rounded-xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-500 hover:text-white">

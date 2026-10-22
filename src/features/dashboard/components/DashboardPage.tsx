@@ -25,7 +25,7 @@ function KpiCard({ stat }: { stat: StatDef }) {
   return (
     <Link
       href={stat.href}
-      className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-all duration-300 hover:border-[#f05d23]/30 hover:-translate-y-0.5 block"
+      className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-all duration-300 hover:border-brand-500/30 hover:-translate-y-0.5 block"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -46,7 +46,7 @@ function KpiCard({ stat }: { stat: StatDef }) {
         </div>
       </div>
       {/* Bottom accent line on hover */}
-      <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-gradient-to-r from-[#f05d23] to-[#f05d23]/0 transition-all duration-500 group-hover:w-full" />
+      <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-gradient-to-r from-brand-500 to-brand-500/0 transition-all duration-500 group-hover:w-full" />
     </Link>
   );
 }
@@ -123,6 +123,9 @@ export default async function DashboardPage({
     health: { averageDaysToHire: null, stalledCandidates: 0, offerPending: 0, offerAccepted: 0, offerDeclined: 0 },
     pulse: { pendingCheckins: 0, lowMood: 0, blockers: 0, atRiskGoals: 0 },
     scheduledJobs: [],
+    goals: { onTrack: 0, atRisk: 0, completed: 0, notStarted: 0 },
+    newHires: [],
+    activeSurveys: [],
   };
 
   const firstName = session?.user.name?.split(" ")[0] ?? "there";
@@ -134,7 +137,7 @@ export default async function DashboardPage({
     : { text: "Working late", icon: "solar:moon-sleep-broken" };
 
   const kpis: StatDef[] = [
-    { label: "Open Roles",        value: stats.openJobs,        icon: "solar:case-broken",                    accent: "text-[#f05d23]",  accentBg: "bg-[#f05d23]/10",     href: "/hire/jobs" },
+    { label: "Open Roles",        value: stats.openJobs,        icon: "solar:case-broken",                    accent: "text-brand-500",  accentBg: "bg-brand-500/10",     href: "/hire/jobs" },
     { label: "Active Pipeline",   value: stats.activePipeline,  icon: "solar:users-group-two-rounded-broken",  accent: "text-blue-500",   accentBg: "bg-blue-500/10",      href: "/hire/candidates" },
     { label: "Awaiting Screen",   value: stats.pendingScreen,   icon: "solar:cpu-bolt-broken",                accent: stats.pendingScreen > 0 ? "text-amber-500" : "text-[var(--text-lo)]", accentBg: stats.pendingScreen > 0 ? "bg-amber-500/10" : "bg-[var(--surface-2)]", href: "/hire/candidates", note: stats.pendingScreen > 0 ? "AI screening needed" : undefined },
     { label: "Employees",         value: stats.activeEmployees, icon: "solar:people-nearby-broken",           accent: "text-green-500",  accentBg: "bg-green-500/10",     href: "/staff" },
@@ -152,14 +155,14 @@ export default async function DashboardPage({
       {/* ── Hero banner ── */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a0a04] via-[#2d1107] to-[#0f0f14] p-7 shadow-2xl">
         {/* Decorative orbs */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#f05d23] opacity-[0.07] blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-500 opacity-[0.07] blur-3xl" />
         <div className="pointer-events-none absolute -bottom-12 left-1/3 h-48 w-48 rounded-full bg-violet-500 opacity-[0.06] blur-3xl" />
         <div className="pointer-events-none absolute right-1/4 top-1/2 h-32 w-32 rounded-full bg-amber-400 opacity-[0.05] blur-2xl" />
 
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#f05d23]/20 backdrop-blur-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-500/20 backdrop-blur-sm">
                 <Icon icon={greeting.icon} className="h-5 w-5 text-amber-300" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
@@ -214,12 +217,12 @@ export default async function DashboardPage({
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="mb-4 flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15"><Icon icon="solar:checklist-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></div>
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15"><Icon icon="solar:checklist-broken" className="h-3.5 w-3.5 text-brand-500" /></div>
             <div><h2 className="text-md font-semibold text-[var(--text-hi)]">My action items</h2><p className="text-[11px] text-[var(--text-lo)]">Items that need attention</p></div>
           </div>
           <div className="space-y-2">
             {operations.actionItems.length ? operations.actionItems.map((item) => (
-              <Link key={item.label} href={item.href} className="flex items-center justify-between rounded-xl bg-[var(--surface-2)] px-3 py-2.5 transition-colors hover:bg-[#f05d23]/10">
+              <Link key={item.label} href={item.href} className="flex items-center justify-between rounded-xl bg-[var(--surface-2)] px-3 py-2.5 transition-colors hover:bg-brand-500/10">
                 <span className="text-sm text-[var(--text-hi)]">{item.label}</span>
                 <span className={`rounded-lg px-2 py-0.5 font-mono text-xs font-bold ${item.tone === "red" ? "bg-red-500/10 text-red-500" : item.tone === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"}`}>{item.count}</span>
               </Link>
@@ -228,7 +231,7 @@ export default async function DashboardPage({
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5 text-violet-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Interview queue</h2><p className="text-[11px] text-[var(--text-lo)]">Scorecards still to complete</p></div></div><Link href="/hire/candidates?stage=interview" className="text-xs text-[#f05d23] hover:underline">View all</Link></div>
+          <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5 text-violet-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Interview queue</h2><p className="text-[11px] text-[var(--text-lo)]">Scorecards still to complete</p></div></div><Link href="/hire/candidates?stage=interview" className="text-xs text-brand-500 hover:underline">View all</Link></div>
           <div className="space-y-2">
             {operations.interviewQueue.length ? operations.interviewQueue.map((candidate) => <Link key={candidate.id} href={`/hire/candidates/${candidate.id}/interview`} className="flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"><div><p className="text-sm font-medium text-[var(--text-hi)]">{candidate.full_name}</p><p className="text-[11px] text-[var(--text-lo)]">{candidate.jobs?.title ?? "Role"}</p></div><Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)]" /></Link>) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No interviews waiting for a scorecard.</p>}
           </div>
@@ -242,6 +245,145 @@ export default async function DashboardPage({
         </section>
       </div>
 
+      {/* ── Second ops row: 1-on-1s, Goals, New hires, Surveys ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+        {/* Upcoming 1-on-1s */}
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15">
+                <Icon icon="solar:chat-round-dots-broken" className="h-3.5 w-3.5 text-violet-500" />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">Upcoming 1-on-1s</h2>
+                <p className="text-[11px] text-[var(--text-lo)]">Next scheduled meetings</p>
+              </div>
+            </div>
+            <Link href="/pulse/one-on-ones" className="text-xs text-brand-500 hover:underline">View all</Link>
+          </div>
+          <div className="space-y-2">
+            {operations.upcomingOneOnOnes.length ? operations.upcomingOneOnOnes.map((m) => (
+              <Link key={m.id} href="/pulse/one-on-ones" className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[10px] font-bold text-violet-500">
+                  {m.report.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold text-[var(--text-hi)]">{m.report}</p>
+                  <p className="text-[11px] text-[var(--text-lo)]">with {m.manager} · {new Date(m.scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+                </div>
+              </Link>
+            )) : (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No 1-on-1s scheduled.</p>
+            )}
+          </div>
+        </section>
+
+        {/* Goals summary */}
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/15">
+                <Icon icon="solar:target-broken" className="h-3.5 w-3.5 text-emerald-500" />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">Goals</h2>
+                <p className="text-[11px] text-[var(--text-lo)]">Org-wide progress</p>
+              </div>
+            </div>
+            <Link href="/pulse/goals" className="text-xs text-brand-500 hover:underline">View all</Link>
+          </div>
+          <div className="space-y-2">
+            {([
+              { label: "On track",    value: operations.goals.onTrack,    color: "bg-blue-500",    text: "text-blue-500",    href: "/pulse/goals" },
+              { label: "At risk",     value: operations.goals.atRisk,     color: "bg-red-500",     text: "text-red-500",     href: "/pulse/goals" },
+              { label: "Completed",   value: operations.goals.completed,  color: "bg-emerald-500", text: "text-emerald-500", href: "/pulse/goals" },
+              { label: "Not started", value: operations.goals.notStarted, color: "bg-slate-400",   text: "text-[var(--text-lo)]", href: "/pulse/goals" },
+            ] as const).map(({ label, value, color, text, href }) => {
+              const total = operations.goals.onTrack + operations.goals.atRisk + operations.goals.completed + operations.goals.notStarted || 1;
+              const pct = Math.round((value / total) * 100);
+              return (
+                <Link key={label} href={href} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
+                  <div className={`h-2 w-2 shrink-0 rounded-full ${color}`} />
+                  <span className="flex-1 text-xs text-[var(--text-hi)]">{label}</span>
+                  <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                    <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className={`w-6 text-right font-mono text-xs font-bold ${text}`}>{value}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* New hires onboarding */}
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/15">
+                <Icon icon="solar:confetti-minimalistic-broken" className="h-3.5 w-3.5 text-amber-500" />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">New hires</h2>
+                <p className="text-[11px] text-[var(--text-lo)]">Joined in the last 30 days</p>
+              </div>
+            </div>
+            <Link href="/staff" className="text-xs text-brand-500 hover:underline">View all</Link>
+          </div>
+          <div className="space-y-2">
+            {operations.newHires.length ? operations.newHires.map((hire) => (
+              <Link key={hire.id} href={`/staff/${hire.id}`} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/20 to-brand-500/20 text-[10px] font-bold text-amber-500">
+                  {hire.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-[var(--text-hi)]">{hire.name}</p>
+                  <p className="truncate text-[11px] text-[var(--text-lo)]">{hire.job_title ?? hire.department ?? "New employee"}</p>
+                </div>
+                <span className="shrink-0 text-[11px] text-[var(--text-lo)]">
+                  {new Date(hire.start_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                </span>
+              </Link>
+            )) : (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No new hires this month.</p>
+            )}
+          </div>
+        </section>
+
+        {/* Active surveys */}
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-pink-500/15">
+                <Icon icon="solar:chart-2-broken" className="h-3.5 w-3.5 text-pink-500" />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">Active surveys</h2>
+                <p className="text-[11px] text-[var(--text-lo)]">Live and collecting responses</p>
+              </div>
+            </div>
+            <Link href="/pulse/surveys" className="text-xs text-brand-500 hover:underline">View all</Link>
+          </div>
+          <div className="space-y-2">
+            {operations.activeSurveys.length ? operations.activeSurveys.map((survey) => (
+              <Link key={survey.id} href={`/pulse/surveys/${survey.id}`} className="flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--surface-2)]">
+                <p className="truncate text-xs font-medium text-[var(--text-hi)]">{survey.title}</p>
+                <span className="ml-2 shrink-0 rounded-lg bg-pink-500/10 px-2 py-0.5 font-mono text-xs font-bold text-pink-500">
+                  {survey.response_count}
+                </span>
+              </Link>
+            )) : (
+              <div className="flex flex-col items-center gap-2 py-4 text-center">
+                <Icon icon="solar:chart-2-broken" className="h-8 w-8 text-[var(--text-lo)] opacity-40" />
+                <p className="text-xs text-[var(--text-lo)]">No active surveys.</p>
+                <Link href="/pulse/surveys" className="text-xs font-semibold text-brand-500 hover:underline">Create one</Link>
+              </div>
+            )}
+          </div>
+        </section>
+
+      </div>
+
       {/* ── Middle row: Pipeline + Quick actions ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
@@ -249,12 +391,12 @@ export default async function DashboardPage({
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
-                <Icon icon="solar:graph-broken" className="h-3.5 w-3.5 text-[#f05d23]" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15">
+                <Icon icon="solar:graph-broken" className="h-3.5 w-3.5 text-brand-500" />
               </div>
               <h2 className="text-md font-semibold text-[var(--text-hi)]">Hiring Pipeline</h2>
             </div>
-            <Link href="/hire/pipeline" className="flex items-center gap-1 text-xs text-[#f05d23] hover:underline">
+            <Link href="/hire/pipeline" className="flex items-center gap-1 text-xs text-brand-500 hover:underline">
               View <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -310,8 +452,8 @@ export default async function DashboardPage({
           <div className="mt-4"><OfferTrackerChart pending={operations.health.offerPending} accepted={operations.health.offerAccepted} declined={operations.health.offerDeclined} /></div>
         </section>
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="flex items-center justify-between"><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Role schedule</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Publishing and closing soon</p></div><Link href="/hire/jobs" className="text-xs text-[#f05d23] hover:underline">Jobs</Link></div>
-          <div className="mt-3 space-y-2">{operations.scheduledJobs.length ? operations.scheduledJobs.map((job) => { const date = job.kind === "publishes" ? job.published_at : job.closes_at; return <Link key={`${job.id}-${job.kind}`} href={`/hire/jobs/${job.id}`} className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-[var(--surface-2)]"><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--text-hi)]">{job.title}</p><p className="text-[11px] text-[var(--text-lo)]">{job.kind === "publishes" ? "Publishes" : "Closes"} {date ? new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : ""}</p></div><Icon icon="solar:calendar-mark-broken" className="h-4 w-4 shrink-0 text-[#f05d23]" /></Link>; }) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No scheduled role changes.</p>}</div>
+          <div className="flex items-center justify-between"><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Role schedule</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Publishing and closing soon</p></div><Link href="/hire/jobs" className="text-xs text-brand-500 hover:underline">Jobs</Link></div>
+          <div className="mt-3 space-y-2">{operations.scheduledJobs.length ? operations.scheduledJobs.map((job) => { const date = job.kind === "publishes" ? job.published_at : job.closes_at; return <Link key={`${job.id}-${job.kind}`} href={`/hire/jobs/${job.id}`} className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-[var(--surface-2)]"><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--text-hi)]">{job.title}</p><p className="text-[11px] text-[var(--text-lo)]">{job.kind === "publishes" ? "Publishes" : "Closes"} {date ? new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : ""}</p></div><Icon icon="solar:calendar-mark-broken" className="h-4 w-4 shrink-0 text-brand-500" /></Link>; }) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No scheduled role changes.</p>}</div>
         </section>
       </div>
 
@@ -325,7 +467,7 @@ export default async function DashboardPage({
               </div>
               <h2 className="text-md font-semibold text-[var(--text-hi)]">Recent Candidates</h2>
             </div>
-            <Link href="/hire/candidates" className="flex items-center gap-1 text-xs text-[#f05d23] hover:underline">
+            <Link href="/hire/candidates" className="flex items-center gap-1 text-xs text-brand-500 hover:underline">
               View all <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -338,7 +480,7 @@ export default async function DashboardPage({
                 className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[var(--surface-2)]"
               >
                 {/* Avatar initials */}
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#f05d23]/20 to-violet-500/20 text-xs font-bold text-[var(--text-hi)]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500/20 to-violet-500/20 text-xs font-bold text-[var(--text-hi)]">
                   {c.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
 

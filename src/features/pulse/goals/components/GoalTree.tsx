@@ -131,7 +131,7 @@ function GoalCard({ goal, linkedGoals, childMap, canEdit, depth }: {
                   value={status}
                   disabled={saving}
                   onChange={(e) => { const next = e.target.value as GoalStatus; setStatus(next); save(progress, next); }}
-                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1 text-xs font-medium text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60"
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1 text-xs font-medium text-[var(--text-hi)] outline-none focus:border-brand-500/60"
                 >
                   <option value="not_started">Not started</option>
                   <option value="in_progress">In progress</option>

@@ -38,7 +38,7 @@ export default function HeaderProfileDropdown() {
         ref={buttonRef}
         onClick={handleOpen}
         title="Profile"
-        className="group flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#f05d23]/30 to-violet-500/20 text-xs font-bold text-[var(--text-hi)] ring-2 ring-[var(--border)] transition-all active:scale-95 hover:ring-[#f05d23]/40"
+        className="group flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-xs font-bold text-[var(--text-hi)] ring-2 ring-[var(--border)] transition-all active:scale-95 hover:ring-brand-500/40"
       >
         {initials}
       </button>
@@ -52,13 +52,13 @@ export default function HeaderProfileDropdown() {
             <div className="rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-black/10 dark:shadow-black/40">
               {/* User info */}
               <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#f05d23]/30 to-violet-500/20 text-sm font-bold text-[var(--text-hi)]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-sm font-bold text-[var(--text-hi)]">
                   {initials}
                 </div>
                 <div className="min-w-0">
                   <p className="text-md font-semibold text-[var(--text-hi)] truncate">{session?.user?.name ?? "—"}</p>
                   <p className="text-xs text-[var(--text-lo)] truncate">{session?.user?.email ?? ""}</p>
-                  <p className="text-[10px] text-[#f05d23] capitalize font-medium mt-0.5">{session?.user?.role?.replace("_", " ") ?? ""}</p>
+                  <p className="text-[10px] text-brand-500 capitalize font-medium mt-0.5">{session?.user?.role?.replace("_", " ") ?? ""}</p>
                 </div>
               </div>
 

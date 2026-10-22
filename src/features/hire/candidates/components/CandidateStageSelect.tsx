@@ -31,7 +31,7 @@ export default function CandidateStageSelect({ candidateId, stage }: { candidate
           }
         });
       }}
-      className="max-w-28 cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] font-medium text-[var(--text-hi)] outline-none transition-colors hover:border-[#f05d23]/40 disabled:cursor-wait disabled:opacity-50"
+      className="max-w-28 cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] font-medium text-[var(--text-hi)] outline-none transition-colors hover:border-brand-500/40 disabled:cursor-wait disabled:opacity-50"
     >
       {STAGES.map((value) => <option key={value} value={value}>{STAGE_LABELS[value]}</option>)}
     </select>

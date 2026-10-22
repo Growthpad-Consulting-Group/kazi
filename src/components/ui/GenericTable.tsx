@@ -274,8 +274,8 @@ export function GenericTable<T extends Record<string, unknown>>({
             {title && (
               <div className="flex items-center gap-2.5 shrink-0">
                 {icon && (
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
-                    <Icon icon={icon} className="h-3.5 w-3.5 text-[#f05d23]" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15">
+                    <Icon icon={icon} className="h-3.5 w-3.5 text-brand-500" />
                   </div>
                 )}
                 <h2 className="text-base font-semibold text-[var(--text-hi)]">{title}</h2>
@@ -301,7 +301,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                   <div key={filterKey} className="flex-1 min-w-0">{unifiedSearchFilter}</div>
                 )}
                 {!unifiedSearchFilter && searchable && (
-                  <div className="flex flex-1 min-w-[180px] items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm transition-all focus-within:border-[#f05d23]/50 focus-within:ring-2 focus-within:ring-[#f05d23]/20">
+                  <div className="flex flex-1 min-w-[180px] items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm transition-all focus-within:border-brand-500/50 focus-within:ring-2 focus-within:ring-brand-500/20">
                     <Icon icon="solar:magnifer-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
                     <input
                       value={searchTerm}
@@ -363,7 +363,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                   <TooltipIconButton
                     label={addNewLabel}
                     onClick={onAddNew}
-                    className="bg-[#f05d23] text-white hover:bg-[#d94f1a] transition-all shadow-sm"
+                    className="bg-brand-500 text-white hover:bg-[#d94f1a] transition-all shadow-sm"
                     iconClassName="h-4 w-4"
                     position="bottom"
                   >

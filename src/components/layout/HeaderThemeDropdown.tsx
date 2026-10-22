@@ -64,7 +64,7 @@ export default function HeaderThemeDropdown() {
                     title={opt.label}
                     className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all ${
                       mode === opt.value
-                        ? "bg-white/40 dark:bg-white/20 text-[#f05d23] shadow-md ring-1 ring-inset ring-white/30"
+                        ? "bg-white/40 dark:bg-white/20 text-brand-500 shadow-md ring-1 ring-inset ring-white/30"
                         : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-white/20 dark:hover:bg-white/10"
                     }`}
                   >

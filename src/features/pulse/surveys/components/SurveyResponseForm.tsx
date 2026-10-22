@@ -43,7 +43,7 @@ export function SurveyResponseForm({ surveyId, questions, respondentId }: Props)
             <div className="flex flex-wrap items-center gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} type="button" onClick={() => setAnswers({ ...answers, [q.id]: n })}
-                  className={`h-10 w-10 rounded-xl text-sm font-semibold transition-colors ${answers[q.id] === n ? "bg-[#f05d23] text-white shadow-sm" : "bg-[var(--surface-2)] text-[var(--text-lo)] hover:bg-[#f05d23]/10 hover:text-[#f05d23]"}`}>
+                  className={`h-10 w-10 rounded-xl text-sm font-semibold transition-colors ${answers[q.id] === n ? "bg-brand-500 text-white shadow-sm" : "bg-[var(--surface-2)] text-[var(--text-lo)] hover:bg-brand-500/10 hover:text-brand-500"}`}>
                   {n}
                 </button>
               ))}
@@ -52,7 +52,7 @@ export function SurveyResponseForm({ surveyId, questions, respondentId }: Props)
           ) : (
             <textarea rows={3} value={(answers[q.id] as string) ?? ""}
               onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10" />
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10" />
           )}
         </div>
       ))}

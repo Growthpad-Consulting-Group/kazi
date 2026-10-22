@@ -30,7 +30,7 @@ const DEFAULT_MODELS: Record<string, string> = {
 };
 
 const inputCls =
-  "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-[#f05d23] focus:ring-2 focus:ring-[#f05d23]/30";
+  "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
 
 export default function AISettingsClient({ initial }: Props) {
   const [provider, setProvider] = useState(initial.provider);
@@ -73,17 +73,17 @@ export default function AISettingsClient({ initial }: Props) {
               onClick={() => pickProvider(p.id)}
               className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
                 provider === p.id
-                  ? "border-[#f05d23] bg-[#f05d23]/5 shadow-sm shadow-[#f05d23]/10"
-                  : "border-[var(--border)] bg-[var(--surface-2)] hover:border-[#f05d23]/40"
+                  ? "border-brand-500 bg-brand-500/5 shadow-sm shadow-brand-500/10"
+                  : "border-[var(--border)] bg-[var(--surface-2)] hover:border-brand-500/40"
               }`}
             >
-              <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${provider === p.id ? "bg-[#f05d23]/10 text-[#f05d23]" : "bg-[var(--surface)] text-[var(--text-lo)]"}`}>
+              <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${provider === p.id ? "bg-brand-500/10 text-brand-500" : "bg-[var(--surface)] text-[var(--text-lo)]"}`}>
                 <Icon icon={p.icon} className="h-4 w-4" />
               </span>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-[var(--text-hi)]">{p.label}</p>
-                  {provider === p.id && <Icon icon="solar:check-circle-broken" className="h-4 w-4 text-[#f05d23]" />}
+                  {provider === p.id && <Icon icon="solar:check-circle-broken" className="h-4 w-4 text-brand-500" />}
                 </div>
                 <p className="mt-0.5 text-xs text-[var(--text-lo)]">{p.description}</p>
               </div>
@@ -158,7 +158,7 @@ export default function AISettingsClient({ initial }: Props) {
             { icon: "solar:chart-broken", label: "Pulse insights", desc: "Surfaces patterns in engagement survey responses" },
           ].map((f) => (
             <div key={f.label} className="flex items-start gap-3 rounded-xl bg-[var(--surface-2)] px-3.5 py-3">
-              <Icon icon={f.icon} className="mt-0.5 h-4 w-4 shrink-0 text-[#f05d23]" />
+              <Icon icon={f.icon} className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
               <div>
                 <p className="text-sm font-medium text-[var(--text-hi)]">{f.label}</p>
                 <p className="text-xs text-[var(--text-lo)]">{f.desc}</p>

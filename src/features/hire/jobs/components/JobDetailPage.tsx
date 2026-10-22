@@ -78,10 +78,10 @@ export default async function JobDetailPage({ id }: { id: string }) {
   const mainContent = (
     <div className="space-y-5">
       <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#f05d23]/10 blur-2xl" />
+        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brand-500/10 blur-2xl" />
         <div className="relative flex flex-col gap-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div><p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f05d23]">Role overview</p><h2 className="mt-1 text-lg font-semibold text-[var(--text-hi)]">Hiring activity at a glance</h2></div>
+            <div><p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-500">Role overview</p><h2 className="mt-1 text-lg font-semibold text-[var(--text-hi)]">Hiring activity at a glance</h2></div>
             <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${status.chip}`}><Icon icon={status.icon} className="h-3.5 w-3.5" />{job.status}</div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -97,8 +97,8 @@ export default async function JobDetailPage({ id }: { id: string }) {
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
         <SectionHeader
           icon="solar:document-text-broken"
-          iconBg="bg-[#f05d23]/10"
-          iconColor="text-[#f05d23]"
+          iconBg="bg-brand-500/10"
+          iconColor="text-brand-500"
           title="Description"
         />
         {job.description ? (
@@ -114,7 +114,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
           <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-[var(--text-hi)]">
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5 text-brand-500" /></span>
             Must-haves
           </div>
           {job.requirements.must_haves.length ? (
@@ -133,7 +133,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
           <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-[var(--text-hi)]">
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10"><Icon icon="solar:star-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10"><Icon icon="solar:star-broken" className="h-3.5 w-3.5 text-brand-500" /></span>
             Nice-to-haves
           </div>
           {job.requirements.nice_to_haves.length ? (
@@ -157,8 +157,8 @@ export default async function JobDetailPage({ id }: { id: string }) {
           <div className="mb-5 flex items-start justify-between gap-3">
             <SectionHeader
               icon="solar:chart-square-broken"
-              iconBg="bg-[#f05d23]/10"
-              iconColor="text-[#f05d23]"
+              iconBg="bg-brand-500/10"
+              iconColor="text-brand-500"
               title="AI Screening Rubric"
             />
             <span
@@ -194,8 +194,8 @@ export default async function JobDetailPage({ id }: { id: string }) {
       )}
 
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-3"><SectionHeader icon="solar:users-group-two-rounded-broken" iconBg="bg-[#f05d23]/10" iconColor="text-[#f05d23]" title="Recent applicants" /><Link href={`/hire/candidates?job=${job.id}`} className="text-xs font-semibold text-[#f05d23] hover:text-[#d94f1c]">View pipeline</Link></div>
-        {candidates.length ? <div className="divide-y divide-[var(--border)]">{candidates.slice(0, 5).map((candidate) => <Link key={candidate.id} href={`/hire/candidates/${candidate.id}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:text-[#f05d23]"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-xs font-bold text-[var(--text-lo)]">{candidate.full_name.slice(0, 1)}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-[var(--text-hi)]">{candidate.full_name}</p><p className="text-[11px] text-[var(--text-lo)]">Applied {new Date(candidate.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</p></div><span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] font-medium capitalize text-[var(--text-lo)]">{candidate.stage}</span>{candidate.ai_score !== null && <span className="font-mono text-xs font-bold text-green-600">{candidate.ai_score}</span>}<Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)]" /></Link>)}</div> : <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text-lo)]">Applicants will appear here once this role is live.</div>}
+        <div className="mb-4 flex items-center justify-between gap-3"><SectionHeader icon="solar:users-group-two-rounded-broken" iconBg="bg-brand-500/10" iconColor="text-brand-500" title="Recent applicants" /><Link href={`/hire/candidates?job=${job.id}`} className="text-xs font-semibold text-brand-500 hover:text-brand-600">View pipeline</Link></div>
+        {candidates.length ? <div className="divide-y divide-[var(--border)]">{candidates.slice(0, 5).map((candidate) => <Link key={candidate.id} href={`/hire/candidates/${candidate.id}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:text-brand-500"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-xs font-bold text-[var(--text-lo)]">{candidate.full_name.slice(0, 1)}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-[var(--text-hi)]">{candidate.full_name}</p><p className="text-[11px] text-[var(--text-lo)]">Applied {new Date(candidate.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</p></div><span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] font-medium capitalize text-[var(--text-lo)]">{candidate.stage}</span>{candidate.ai_score !== null && <span className="font-mono text-xs font-bold text-green-600">{candidate.ai_score}</span>}<Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)]" /></Link>)}</div> : <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text-lo)]">Applicants will appear here once this role is live.</div>}
       </section>
     </div>
   );
@@ -203,9 +203,9 @@ export default async function JobDetailPage({ id }: { id: string }) {
   const sidebar = (
     <>
       {/* ── Status ── */}
-      <SidebarWidget title="Status" icon="solar:eye-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]">
+      <SidebarWidget title="Status" icon="solar:eye-broken" iconClass="bg-brand-500/10 text-brand-500">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
             <Icon icon={status.icon} className="h-5 w-5" />
           </div>
           <div>
@@ -219,13 +219,13 @@ export default async function JobDetailPage({ id }: { id: string }) {
       <SidebarWidget
         title="Pipeline"
         icon="solar:users-group-two-rounded-broken"
-        iconClass="bg-[#f05d23]/10 text-[#f05d23]"
+        iconClass="bg-brand-500/10 text-brand-500"
       >
         <div className="flex items-end justify-between gap-3">
           <div><p className="font-mono text-3xl font-bold text-[var(--text-hi)]">{candidates.length}</p><p className="text-xs text-[var(--text-lo)]">total applicants</p></div>
           <Link
             href={`/hire/candidates?job=${job.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#f05d23] transition-colors hover:bg-[#f05d23]/10"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-500 transition-colors hover:bg-brand-500/10"
           >
             View all
             <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
@@ -235,7 +235,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
       </SidebarWidget>
 
       {/* ── Meta ── */}
-      <SidebarWidget title="Meta" icon="solar:calendar-broken" iconClass="bg-[#f05d23]/10 text-[#f05d23]">
+      <SidebarWidget title="Meta" icon="solar:calendar-broken" iconClass="bg-brand-500/10 text-brand-500">
         <dl className="space-y-2.5">
           <div className="flex items-center justify-between">
             <dt className="text-xs text-[var(--text-lo)]">Created</dt>

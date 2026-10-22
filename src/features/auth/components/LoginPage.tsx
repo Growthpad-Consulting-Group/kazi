@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
@@ -47,7 +47,9 @@ export default function LoginPage() {
       if (res?.error) throw new Error("Invalid email or password.");
       if (rememberMe) localStorage.setItem("kazi_remembered_email", email);
       else localStorage.removeItem("kazi_remembered_email");
-      toast.success("Welcome back!", { id: loadingToast, icon: "✅" });
+      const session = await getSession();
+      const firstName = session?.user?.name?.split(" ")[0];
+      toast.success(firstName ? `Welcome back, ${firstName}!` : "Welcome back!", { id: loadingToast, icon: "✅" });
       router.push("/dashboard");
     } catch (err: unknown) {
       toast.error((err as Error).message, { id: loadingToast, icon: "❌" });
@@ -86,7 +88,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f05d23] focus:border-transparent transition-all duration-200 text-[#231812] placeholder-gray-400"
+                  className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 text-[#231812] placeholder-gray-400"
                   placeholder="you@growthpad.co.ke"
                   autoComplete="email"
                   required
@@ -103,7 +105,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f05d23] focus:border-transparent transition-all duration-200 text-[#231812] placeholder-gray-400"
+                  className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 text-[#231812] placeholder-gray-400"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   required
@@ -111,7 +113,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 text-gray-400 hover:text-[#f05d23] focus:outline-none transition-colors"
+                  className="absolute right-3 text-gray-400 hover:text-brand-500 focus:outline-none transition-colors"
                 >
                   <Icon icon={showPassword ? "solar:eye-closed-broken" : "solar:eye-broken"} className="h-5 w-5" />
                 </button>
@@ -125,7 +127,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded accent-[#f05d23] border-gray-300"
+                  className="h-4 w-4 rounded accent-brand-500 border-gray-300"
                 />
                 Remember me
               </label>
@@ -142,7 +144,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#f05d23] to-[#d94f1e] text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#f05d23] focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               {loading ? (
                 <><Icon icon="solar:wheel-angle-broken" className="h-5 w-5 animate-spin" />Signing in…</>
@@ -154,16 +156,16 @@ export default function LoginPage() {
 
           <p className="mt-8 text-center text-sm text-gray-500">
             Don&apos;t have an account?{" "}
-            <span className="text-[#f05d23] font-medium">Contact your administrator.</span>
+            <span className="text-brand-500 font-medium">Contact your administrator.</span>
           </p>
 
           <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-500">
-            <a href="https://growthpad.co.ke" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-[#f05d23] transition-colors">
+            <a href="https://growthpad.co.ke" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-brand-500 transition-colors">
               <Icon icon="solar:arrow-left-broken" className="h-4 w-4" />
               Back to Home
             </a>
             <span className="text-gray-300">•</span>
-            <a href="mailto:support@growthpad.co.ke" className="flex items-center gap-1 hover:text-[#f05d23] transition-colors">
+            <a href="mailto:support@growthpad.co.ke" className="flex items-center gap-1 hover:text-brand-500 transition-colors">
               <Icon icon="solar:info-circle-broken" className="h-4 w-4" />
               Need Help?
             </a>
@@ -172,7 +174,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-xs text-gray-400 space-y-1">
             <p>
               Powered by{" "}
-              <a href="https://growthpad.co.ke" target="_blank" rel="noopener noreferrer" className="text-[#f05d23] font-medium hover:text-[#d94f1e] transition-colors">
+              <a href="https://growthpad.co.ke" target="_blank" rel="noopener noreferrer" className="text-brand-500 font-medium hover:text-brand-600 transition-colors">
                 Growthpad Consulting Group
               </a>
             </p>
@@ -200,7 +202,7 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-5">
             <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
               <div className="h-10 w-10 rounded-xl bg-[#fdf1e7] flex items-center justify-center mb-4">
-                <Icon icon="solar:user-id-broken" className="h-5 w-5 text-[#f05d23]" />
+                <Icon icon="solar:user-id-broken" className="h-5 w-5 text-brand-500" />
               </div>
               <h3 className="font-bold text-[#231812] mb-1">Staff</h3>
               <p className="text-sm text-gray-500">Manage your entire workforce in one place</p>

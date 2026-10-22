@@ -30,9 +30,9 @@ export default function AppFooter() {
 
         {/* Right: links */}
         <div className="flex items-center gap-4 text-xs font-semibold">
-          <a href="https://growthpad.africa" target="_blank" rel="noopener noreferrer" className="hover:text-[#f05d23] transition-colors">Website</a>
+          <a href="https://growthpad.africa" target="_blank" rel="noopener noreferrer" className="hover:text-brand-500 transition-colors">Website</a>
           <div className="h-3 w-px bg-[var(--border)]" />
-          <a href="mailto:strategic@growthpad.co.ke" className="hover:text-[#f05d23] transition-colors">Support</a>
+          <a href="mailto:strategic@growthpad.co.ke" className="hover:text-brand-500 transition-colors">Support</a>
         </div>
       </div>
     </footer>

@@ -92,7 +92,7 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
                   active
-                    ? "bg-gradient-to-r from-[#f05d23] to-[#d94f1e] text-white shadow-lg shadow-[#f05d23]/20"
+                    ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/20"
                     : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
                 )}
               >
@@ -111,7 +111,7 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
   return (
     <div className="relative flex w-full flex-col self-start">
       <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 md:hidden">
-        <div className="flex items-center gap-2 px-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:settings-broken" className="h-4 w-4" /></span><span className="text-sm font-semibold text-[var(--text-hi)]">Settings</span></div>
+        <div className="flex items-center gap-2 px-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500"><Icon icon="solar:settings-broken" className="h-4 w-4" /></span><span className="text-sm font-semibold text-[var(--text-hi)]">Settings</span></div>
         <button type="button" onClick={() => setMobileOpen((prev) => !prev)} aria-expanded={mobileOpen} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-medium text-[var(--text-hi)]"><Icon icon={mobileOpen ? "solar:close-circle-broken" : "solar:hamburger-menu-broken"} className="h-4 w-4" />{mobileOpen ? "Close" : "Browse"}</button>
       </div>
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:gap-6">
@@ -142,7 +142,7 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
                   className={cn(
                     "flex items-center justify-center rounded-xl p-2.5 transition-all duration-200",
                     isActive(pathname, item.href)
-                      ? "bg-gradient-to-r from-[#f05d23] to-[#d94f1e] text-white shadow-lg shadow-[#f05d23]/20"
+                      ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/20"
                       : "text-[var(--text-lo)] hover:bg-[var(--surface-2)]"
                   )}
                 >

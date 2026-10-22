@@ -56,7 +56,7 @@ export function CheckinForm({ userId, weekStart, existing }: Props) {
       </div>
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-[var(--text-hi)]">How are you feeling?</p><p className="mt-1 text-xs text-[var(--text-lo)]">A quick signal helps your manager know when to check in.</p></div><div className="flex gap-1.5">{MOODS.map((item) => <button key={item.value} type="button" onClick={() => setMood(item.value)} title={item.label} className={`flex h-10 w-10 flex-col items-center justify-center rounded-xl transition-all ${mood === item.value ? "bg-[#f05d23] text-white shadow-md shadow-[#f05d23]/25" : "bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[#f05d23]/10"}`}><span className="text-lg leading-none">{item.emoji}</span><span className="sr-only">{item.label}</span></button>)}</div></div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-[var(--text-hi)]">How are you feeling?</p><p className="mt-1 text-xs text-[var(--text-lo)]">A quick signal helps your manager know when to check in.</p></div><div className="flex gap-1.5">{MOODS.map((item) => <button key={item.value} type="button" onClick={() => setMood(item.value)} title={item.label} className={`flex h-10 w-10 flex-col items-center justify-center rounded-xl transition-all ${mood === item.value ? "bg-brand-500 text-white shadow-md shadow-brand-500/25" : "bg-[var(--surface)] text-[var(--text-lo)] hover:bg-brand-500/10"}`}><span className="text-lg leading-none">{item.emoji}</span><span className="sr-only">{item.label}</span></button>)}</div></div>
         <p className="mt-3 text-xs font-medium text-[var(--text-lo)]">{MOODS.find((item) => item.value === mood)?.label}</p>
       </div>
 
@@ -66,7 +66,7 @@ export function CheckinForm({ userId, weekStart, existing }: Props) {
 }
 
 function Field({ label, hint, icon, value, onChange, accessory, optional = false }: { label: string; hint: string; icon: string; value: string; onChange: (value: string) => void; accessory?: ReactNode; optional?: boolean }) {
-  return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div className="flex gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon={icon} className="h-3.5 w-3.5" /></span><div><label className="block text-sm font-semibold text-[var(--text-hi)]">{label}{optional && <span className="ml-1 text-xs font-normal text-[var(--text-lo)]">Optional</span>}</label><p className="mt-0.5 text-xs text-[var(--text-lo)]">{hint}</p></div></div>{accessory}</div><PlainTextEditor value={value} onChange={onChange} ariaLabel={label} className="mt-3" /></div>;
+  return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div className="flex gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon={icon} className="h-3.5 w-3.5" /></span><div><label className="block text-sm font-semibold text-[var(--text-hi)]">{label}{optional && <span className="ml-1 text-xs font-normal text-[var(--text-lo)]">Optional</span>}</label><p className="mt-0.5 text-xs text-[var(--text-lo)]">{hint}</p></div></div>{accessory}</div><PlainTextEditor value={value} onChange={onChange} ariaLabel={label} className="mt-3" /></div>;
 }
 
 function ReadOnlyCheckin({ checkin, reviewed = false, onEdit }: { checkin: Checkin; reviewed?: boolean; onEdit?: () => void }) {
@@ -77,5 +77,5 @@ function ReadOnlyCheckin({ checkin, reviewed = false, onEdit }: { checkin: Check
 }
 
 function ReadField({ label, icon, value }: { label: string; icon: string; value?: string | null }) {
-  return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4"><div className="flex items-center gap-2"><Icon icon={icon} className="h-4 w-4 text-[#f05d23]" /><p className="text-xs font-semibold text-[var(--text-hi)]">{label}</p></div><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-lo)]">{value || "Not filled in"}</p></div>;
+  return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4"><div className="flex items-center gap-2"><Icon icon={icon} className="h-4 w-4 text-brand-500" /><p className="text-xs font-semibold text-[var(--text-hi)]">{label}</p></div><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-lo)]">{value || "Not filled in"}</p></div>;
 }

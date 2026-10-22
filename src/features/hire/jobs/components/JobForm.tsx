@@ -20,7 +20,7 @@ interface Props {
 const EMPTY_RUBRIC: RubricItem = { criterion: "", weight: 20, description: "" };
 
 const inputCls =
-  "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-[#f05d23] focus:ring-2 focus:ring-[#f05d23]/30";
+  "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
 
 function toScheduleRange(job?: Job): DateRangeValue | undefined {
   if (!job?.published_at || !job.closes_at) return undefined;
@@ -73,7 +73,7 @@ function AddRowButton({ label, onClick }: { label: string; onClick: () => void }
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border)] px-3 py-2.5 text-xs font-medium text-[var(--text-lo)] transition-all hover:border-[#f05d23]/40 hover:bg-[#f05d23]/5 hover:text-[#f05d23] active:scale-[0.99]"
+      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border)] px-3 py-2.5 text-xs font-medium text-[var(--text-lo)] transition-all hover:border-brand-500/40 hover:bg-brand-500/5 hover:text-brand-500 active:scale-[0.99]"
     >
       <Icon icon="solar:add-circle-broken" className="h-3.5 w-3.5" />
       {label}
@@ -221,8 +221,8 @@ export function JobForm({ job, departments = [] }: Props) {
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200">
         <SectionHeader
           icon="solar:case-broken"
-          iconBg="bg-[#f05d23]/15"
-          iconColor="text-[#f05d23]"
+          iconBg="bg-brand-500/15"
+          iconColor="text-brand-500"
           title="Basic Information"
         />
 
@@ -263,17 +263,17 @@ export function JobForm({ job, departments = [] }: Props) {
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200">
         <SectionHeader
           icon="solar:document-text-broken"
-          iconBg="bg-[#f05d23]/15"
-          iconColor="text-[#f05d23]"
+          iconBg="bg-brand-500/15"
+          iconColor="text-brand-500"
           title="Job Description"
         />
 
         {/* AI brief panel */}
-        <div className="mb-4 rounded-xl border border-[#f05d23]/20 bg-[#f05d23]/5 p-4">
+        <div className="mb-4 rounded-xl border border-brand-500/20 bg-brand-500/5 p-4">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:cpu-bolt-broken" className="h-4 w-4 text-[#f05d23]" />
+            <Icon icon="solar:cpu-bolt-broken" className="h-4 w-4 text-brand-500" />
             <p className="text-md font-semibold text-[var(--text-hi)]">AI Draft</p>
-            <span className="ml-auto rounded-full bg-[#f05d23]/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#f05d23]">
+            <span className="ml-auto rounded-full bg-brand-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-brand-500">
               Groq
             </span>
           </div>
@@ -284,7 +284,7 @@ export function JobForm({ job, departments = [] }: Props) {
             value={brief}
             onChange={(e) => setBrief(e.target.value)}
             rows={3}
-            className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-[#f05d23] focus:ring-2 focus:ring-[#f05d23]/30"
+            className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
             placeholder="e.g. We need someone to own our social media and paid campaigns across Kenya and Ghana, with 3+ years experience…"
           />
           {draftError && <p className="mt-2 text-xs text-red-500">{draftError}</p>}
@@ -292,7 +292,7 @@ export function JobForm({ job, departments = [] }: Props) {
             type="button"
             disabled={drafting || !title || !brief}
             onClick={draftDescription}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#f05d23] to-[#d94f1e] px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {drafting ? (
               <>
@@ -324,8 +324,8 @@ export function JobForm({ job, departments = [] }: Props) {
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200">
         <SectionHeader
           icon="solar:checklist-broken"
-          iconBg="bg-[#f05d23]/15"
-          iconColor="text-[#f05d23]"
+          iconBg="bg-brand-500/15"
+          iconColor="text-brand-500"
           title="Requirements"
           hint="Must-haves are used to screen candidates. Nice-to-haves give AI extra context."
         />
@@ -394,8 +394,8 @@ export function JobForm({ job, departments = [] }: Props) {
         <div className="mb-5 flex items-start justify-between gap-3">
           <SectionHeader
             icon="solar:chart-square-broken"
-            iconBg="bg-[#f05d23]/15"
-            iconColor="text-[#f05d23]"
+            iconBg="bg-brand-500/15"
+            iconColor="text-brand-500"
             title="AI Screening Rubric"
             hint="Criteria used to score candidates. Weights should sum to 100."
           />
@@ -466,7 +466,7 @@ export function JobForm({ job, departments = [] }: Props) {
   const sidebar = (
     <>
       {/* ── Status ── */}
-      <SidebarWidget title="Status" icon="solar:eye-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
+      <SidebarWidget title="Status" icon="solar:eye-broken" iconClass="bg-brand-500/15 text-brand-500">
         <div className="flex rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1">
           {(["draft", "open"] as const).map((s) => (
             <button
@@ -475,7 +475,7 @@ export function JobForm({ job, departments = [] }: Props) {
               onClick={() => setStatus(s)}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-all ${
                 status === s
-                  ? "bg-[#f05d23] text-white shadow-sm"
+                  ? "bg-brand-500 text-white shadow-sm"
                   : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"
               }`}
             >
@@ -496,7 +496,7 @@ export function JobForm({ job, departments = [] }: Props) {
         </p>
       </SidebarWidget>
 
-      <SidebarWidget title="Publishing schedule" icon="solar:calendar-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
+      <SidebarWidget title="Publishing schedule" icon="solar:calendar-broken" iconClass="bg-brand-500/15 text-brand-500">
         <div className="space-y-3">
           <Field label="Live dates">
             <DateRangePicker
@@ -515,7 +515,7 @@ export function JobForm({ job, departments = [] }: Props) {
             <button
               type="button"
               onClick={() => setSchedule(undefined)}
-              className="text-xs font-semibold text-[#f05d23] hover:underline"
+              className="text-xs font-semibold text-brand-500 hover:underline"
             >
               Clear schedule
             </button>
@@ -527,7 +527,7 @@ export function JobForm({ job, departments = [] }: Props) {
       </SidebarWidget>
 
       {/* ── Live summary ── */}
-      <SidebarWidget title="Summary" icon="solar:chart-square-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
+      <SidebarWidget title="Summary" icon="solar:chart-square-broken" iconClass="bg-brand-500/15 text-brand-500">
         <dl className="space-y-2.5">
           <div className="flex items-center justify-between">
             <dt className="text-sm text-[var(--text-lo)]">Must-haves</dt>
@@ -562,7 +562,7 @@ export function JobForm({ job, departments = [] }: Props) {
 
       {/* ── Meta (edit mode) ── */}
       {job && (
-        <SidebarWidget title="Meta" icon="solar:calendar-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
+        <SidebarWidget title="Meta" icon="solar:calendar-broken" iconClass="bg-brand-500/15 text-brand-500">
           <dl className="space-y-2.5">
             <div className="flex items-center justify-between">
               <dt className="text-sm text-[var(--text-lo)]">Created</dt>
@@ -605,7 +605,7 @@ export function JobForm({ job, departments = [] }: Props) {
       )}
 
       {/* ── Actions ── */}
-      <SidebarWidget title="Actions" icon="solar:settings-broken" iconClass="bg-[#f05d23]/15 text-[#f05d23]">
+      <SidebarWidget title="Actions" icon="solar:settings-broken" iconClass="bg-brand-500/15 text-brand-500">
         <FormActions layout="vertical" {...actionsProps} />
       </SidebarWidget>
     </>

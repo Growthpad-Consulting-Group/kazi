@@ -32,7 +32,7 @@ export default function TablePagination({ page, pageSize, total, totalPages, onP
           <select
             value={pageSize}
             onChange={(e) => { onPageSizeChange(Number(e.target.value)); }}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text-hi)] outline-none focus:border-[#f05d23]/60 cursor-pointer"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text-hi)] outline-none focus:border-brand-500/60 cursor-pointer"
           >
             {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
@@ -59,7 +59,7 @@ export default function TablePagination({ page, pageSize, total, totalPages, onP
               className={cn(
                 "h-7 w-7 rounded-lg text-xs font-medium transition-all",
                 page === p
-                  ? "bg-[#f05d23] text-white shadow-sm"
+                  ? "bg-brand-500 text-white shadow-sm"
                   : "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
               )}
             >

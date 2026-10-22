@@ -14,7 +14,7 @@ import {
 } from "@/features/departments/actions";
 
 const inputCls =
-  "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-[#f05d23] focus:ring-2 focus:ring-[#f05d23]/30";
+  "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
 
 export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
   const [rows, setRows] = useState(initial);
@@ -76,7 +76,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
       <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-[var(--text-hi)]">Department directory</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">Use clear, reusable names for people and job records.</p></div><div className="flex gap-2 sm:w-[360px]"><input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} className={inputCls} placeholder="Add department" /><Button size="sm" icon="solar:add-circle-broken" loading={pending} disabled={!newName.trim()} onClick={add}>Add</Button></div></div>
 
       {rows.length === 0 ? (
-        <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No departments yet</p><p className="mt-1 text-xs text-[var(--text-lo)]">Add one to organize your people and roles.</p></div>
+        <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No departments yet</p><p className="mt-1 text-xs text-[var(--text-lo)]">Add one to organize your people and roles.</p></div>
       ) : (
         <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto">
           {rows.map((row) => (
@@ -93,7 +93,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
                     }}
                     className={inputCls}
                   />
-                  <button type="button" onClick={() => save(row)} disabled={pending} className="text-xs font-semibold text-[#f05d23]">
+                  <button type="button" onClick={() => save(row)} disabled={pending} className="text-xs font-semibold text-brand-500">
                     Save
                   </button>
                   <button type="button" onClick={() => setEditingId(null)} className="text-xs text-[var(--text-lo)]">
@@ -108,7 +108,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
                       {row.jobs} job{row.jobs !== 1 && "s"} · {row.people} {row.people === 1 ? "person" : "people"}
                     </p>
                   </div>
-                  <Link href={`/departments/${row.id}`} title="Open department workspace" className="rounded-lg p-2 text-[#f05d23] hover:bg-[#f05d23]/10">
+                  <Link href={`/departments/${row.id}`} title="Open department workspace" className="rounded-lg p-2 text-brand-500 hover:bg-brand-500/10">
                     <Icon icon="solar:arrow-right-broken" className="h-4 w-4" />
                   </Link>
                   <button

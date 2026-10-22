@@ -86,7 +86,7 @@ export default function TableHeader({
               checked={table.allPageSel}
               ref={(el) => { if (el) el.indeterminate = table.somePageSel && !table.allPageSel; }}
               onChange={table.toggleAll}
-              className="h-4 w-4 rounded border-[var(--border)] accent-[#f05d23] cursor-pointer"
+              className="h-4 w-4 rounded border-[var(--border)] accent-brand-500 cursor-pointer"
             />
           </th>
         )}
@@ -114,11 +114,11 @@ export default function TableHeader({
                   <div className="flex flex-col shrink-0">
                     <Icon
                       icon="solar:alt-arrow-up-broken"
-                      className={cn("h-2.5 w-2.5", table.sortKey === accessor && table.sortDir === "asc" ? "text-[#f05d23]" : "opacity-20")}
+                      className={cn("h-2.5 w-2.5", table.sortKey === accessor && table.sortDir === "asc" ? "text-brand-500" : "opacity-20")}
                     />
                     <Icon
                       icon="solar:alt-arrow-down-broken"
-                      className={cn("h-2.5 w-2.5 -mt-0.5", table.sortKey === accessor && table.sortDir === "desc" ? "text-[#f05d23]" : "opacity-20")}
+                      className={cn("h-2.5 w-2.5 -mt-0.5", table.sortKey === accessor && table.sortDir === "desc" ? "text-brand-500" : "opacity-20")}
                     />
                   </div>
                 )}
@@ -131,7 +131,7 @@ export default function TableHeader({
                   onClick={(e) => e.stopPropagation()}
                   className="group/handle absolute top-0 -right-1.5 h-full w-3 cursor-col-resize select-none z-10 flex justify-center"
                 >
-                  <div className="w-px h-full opacity-0 group-hover/handle:opacity-100 bg-[#f05d23]/50 group-active/handle:bg-[#f05d23] transition-opacity" />
+                  <div className="w-px h-full opacity-0 group-hover/handle:opacity-100 bg-brand-500/50 group-active/handle:bg-brand-500 transition-opacity" />
                 </div>
               )}
             </th>

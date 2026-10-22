@@ -42,16 +42,16 @@ export default async function ExportsPage() {
               key={label}
               href={href}
               download
-              className="group flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:bg-[#f05d23]/5"
+              className="group flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:bg-brand-500/5"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f05d23]/10 transition-colors group-hover:bg-[#f05d23]/15">
-                <Icon icon={icon} className="h-4.5 w-4.5 text-[#f05d23]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 transition-colors group-hover:bg-brand-500/15">
+                <Icon icon={icon} className="h-4.5 w-4.5 text-brand-500" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-[var(--text-hi)]">{label}</p>
                 <p className="mt-0.5 text-xs text-[var(--text-lo)]">{description}</p>
               </div>
-              <div className="mt-auto flex items-center gap-1.5 text-xs font-medium text-[#f05d23]">
+              <div className="mt-auto flex items-center gap-1.5 text-xs font-medium text-brand-500">
                 <Icon icon="solar:download-broken" className="h-3.5 w-3.5" />
                 Download CSV
               </div>

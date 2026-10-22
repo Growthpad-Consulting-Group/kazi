@@ -467,7 +467,7 @@ function PaletteButton({ type, label, icon, onClick }: { type: Block["type"]; la
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-xl border border-transparent bg-surface-2/65 px-3 py-2.5 text-sm text-text-hi transition-colors hover:bg-[#f05d23]/8 hover:text-[#f05d23] ${
+      className={`flex w-full items-center gap-2 rounded-xl border border-transparent bg-surface-2/65 px-3 py-2.5 text-sm text-text-hi transition-colors hover:bg-brand-500/8 hover:text-brand-500 ${
         isDragging ? "cursor-grabbing opacity-50" : "cursor-grab"
       }`}
     >
@@ -488,7 +488,7 @@ function PresetButton({ id, label, icon, onClick }: { id: string; label: string;
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-xl border border-transparent bg-surface-2/65 px-3 py-2.5 text-sm text-text-hi transition-colors hover:bg-[#f05d23]/8 hover:text-[#f05d23] ${
+      className={`flex w-full items-center gap-2 rounded-xl border border-transparent bg-surface-2/65 px-3 py-2.5 text-sm text-text-hi transition-colors hover:bg-brand-500/8 hover:text-brand-500 ${
         isDragging ? "cursor-grabbing opacity-50" : "cursor-grab"
       }`}
     >
@@ -507,7 +507,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputClass = "w-full rounded-lg border border-transparent bg-surface-2 px-2.5 py-1.5 text-sm text-text-hi outline-none transition-colors focus:border-[#f05d23]/35 focus:bg-surface focus:ring-2 focus:ring-[#f05d23]/10";
+const inputClass = "w-full rounded-lg border border-transparent bg-surface-2 px-2.5 py-1.5 text-sm text-text-hi outline-none transition-colors focus:border-brand-500/35 focus:bg-surface focus:ring-2 focus:ring-brand-500/10";
 
 const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function BlockEditor(
   { templateId, initialBlocks, initialHtml, initialCanvasWidth, onChange, onHistoryChange, previewDark },
@@ -845,8 +845,8 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
         <div className="mx-auto mb-3 flex w-full items-center justify-between gap-3" style={{ maxWidth: previewMode === "mobile" ? 390 : Math.max(canvasWidth, paletteCollapsed ? 1400 : 900) }}>
           <p className="text-xs font-medium text-text-lo">{previewMode === "mobile" ? "Mobile preview · columns stack" : "Desktop preview · email-safe canvas"}</p>
           <div className="inline-flex rounded-lg bg-surface p-1 shadow-sm">
-            <button type="button" onClick={() => setPreviewMode("desktop")} className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${previewMode === "desktop" ? "bg-[#f05d23]/12 text-[#d94f1c]" : "text-text-lo hover:text-text-hi"}`}><Icon icon="solar:monitor-broken" className="h-3.5 w-3.5" />Desktop</button>
-            <button type="button" onClick={() => setPreviewMode("mobile")} className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${previewMode === "mobile" ? "bg-[#f05d23]/12 text-[#d94f1c]" : "text-text-lo hover:text-text-hi"}`}><Icon icon="solar:smartphone-broken" className="h-3.5 w-3.5" />Mobile</button>
+            <button type="button" onClick={() => setPreviewMode("desktop")} className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${previewMode === "desktop" ? "bg-brand-500/12 text-brand-600" : "text-text-lo hover:text-text-hi"}`}><Icon icon="solar:monitor-broken" className="h-3.5 w-3.5" />Desktop</button>
+            <button type="button" onClick={() => setPreviewMode("mobile")} className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${previewMode === "mobile" ? "bg-brand-500/12 text-brand-600" : "text-text-lo hover:text-text-hi"}`}><Icon icon="solar:smartphone-broken" className="h-3.5 w-3.5" />Mobile</button>
           </div>
         </div>
         <div className="mx-auto w-full transition-[max-width] duration-200" style={{ maxWidth: previewMode === "mobile" ? 390 : Math.max(canvasWidth, paletteCollapsed ? 1400 : 900) }}>

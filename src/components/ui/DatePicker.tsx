@@ -78,7 +78,7 @@ export function DatePicker({ value, onChange, placeholder = "Select date", minDa
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none transition-colors hover:border-[#f05d23]/40 focus:border-[#f05d23]/60 focus:ring-2 focus:ring-[#f05d23]/10 ${open ? "border-[#f05d23]/60" : "border-[var(--border)]"}`}
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none transition-colors hover:border-brand-500/40 focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10 ${open ? "border-brand-500/60" : "border-[var(--border)]"}`}
       >
         <span className={selected ? "" : "text-[var(--text-lo)]"}>{selected ? format(selected, "MMM d, yyyy") : placeholder}</span>
         <Icon icon="solar:calendar-date-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />

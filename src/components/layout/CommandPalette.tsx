@@ -105,7 +105,7 @@ export default function CommandPalette() {
             {results.map((result) => {
               const meta = resultMeta[result.kind];
               return <Command.Item key={`${result.kind}-${result.id}`} value={`${result.label} ${result.detail}`} onSelect={() => go(result.href)} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-[var(--text-hi)] data-[selected=true]:bg-[var(--surface-2)] aria-selected:bg-[var(--surface-2)]">
-                <Icon icon={meta.icon} width={16} className="text-[#f05d23]" />
+                <Icon icon={meta.icon} width={16} className="text-brand-500" />
                 <span className="min-w-0 flex-1"><span className="block truncate font-medium">{result.label}</span><span className="block truncate text-xs text-[var(--text-lo)]">{result.detail}</span></span>
                 <span className="hidden rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--text-lo)] sm:block">{meta.label}</span>
               </Command.Item>;

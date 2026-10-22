@@ -25,14 +25,14 @@ export default function Notifications({
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide">Notifications</h3>
         {hasUnread && (
-          <button onClick={onClearAll} className="font-mono text-[11px] uppercase tracking-wide text-[#f05d23] hover:text-[#d94f1e]">
+          <button onClick={onClearAll} className="font-mono text-[11px] uppercase tracking-wide text-brand-500 hover:text-brand-600">
             Clear all
           </button>
         )}
       </div>
       {isLoading ? (
         <div className="flex h-24 items-center justify-center">
-          <Icon icon="mdi:loading" width={20} height={20} className="animate-spin text-[#f05d23]" />
+          <Icon icon="mdi:loading" width={20} height={20} className="animate-spin text-brand-500" />
         </div>
       ) : notifications.length === 0 ? (
         <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>No notifications to display.</p>
@@ -41,13 +41,13 @@ export default function Notifications({
           <ul className="flex flex-col divide-y divide-[var(--border)]">
             {notifications.map((notification) => (
               <li key={notification.id} className="flex items-start gap-2.5 py-2.5">
-                <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${notification.read ? "bg-transparent" : "bg-[#f05d23]"}`} aria-hidden />
+                <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${notification.read ? "bg-transparent" : "bg-brand-500"}`} aria-hidden />
                 <div className="min-w-0 flex-1">
                   {notification.link ? (
                     <Link
                       href={notification.link}
                       onClick={() => { if (!notification.read) onMarkAsRead(notification.id); onNavigate?.(); }}
-                      className="block truncate text-sm hover:text-[#f05d23] hover:underline"
+                      className="block truncate text-sm hover:text-brand-500 hover:underline"
                     >
                       {notification.message}
                     </Link>

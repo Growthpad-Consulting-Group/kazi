@@ -30,7 +30,7 @@ export function SurveyResults({ survey, responses }: Props) {
             <div key={q.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-4">
               <p className="mb-3 text-sm font-semibold text-[var(--text-hi)]">{q.text}</p>
               <div className="flex items-end gap-2 mb-2">
-                <span className="font-mono text-3xl font-bold text-[#f05d23]">{avg}</span>
+                <span className="font-mono text-3xl font-bold text-brand-500">{avg}</span>
                 <span className="mb-1 text-sm text-[var(--text-lo)]">/5</span>
               </div>
               <div className="flex items-end gap-1.5 h-16">
@@ -52,7 +52,7 @@ export function SurveyResults({ survey, responses }: Props) {
             <p className="mb-3 text-sm font-semibold text-[var(--text-hi)]">{q.text}</p>
             <div className="space-y-2">
               {texts.map((t, i) => (
-                <p key={i} className="border-l-2 border-[#f05d23]/30 pl-3 text-sm text-[var(--text-lo)]">{t}</p>
+                <p key={i} className="border-l-2 border-brand-500/30 pl-3 text-sm text-[var(--text-lo)]">{t}</p>
               ))}
             </div>
           </div>

@@ -40,7 +40,7 @@ export function ScreenButton({ candidateId, hasCV, compact = false }: Props) {
         onClick={screen}
         disabled={loading || !hasCV}
         title={!hasCV ? "Upload a CV first" : "Run AI screening"}
-        className={`${compact ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-xs"} rounded-lg bg-[#f05d23] font-semibold text-white transition-colors hover:bg-[#d94f1c] disabled:opacity-40`}
+        className={`${compact ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-xs"} rounded-lg bg-brand-500 font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-40`}
       >
         {loading ? "Screening…" : "Screen with AI"}
       </button>

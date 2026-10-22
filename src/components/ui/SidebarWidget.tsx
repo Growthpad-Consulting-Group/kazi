@@ -4,7 +4,7 @@ import React from "react";
 interface SidebarWidgetProps {
   title: string;
   icon?: string;
-  /** Icon chip classes, e.g. "bg-[#f05d23]/15 text-[#f05d23]" */
+  /** Icon chip classes, e.g. "bg-brand-500/15 text-brand-500" */
   iconClass?: string;
   children: React.ReactNode;
   headerAction?: React.ReactNode;

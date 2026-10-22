@@ -18,7 +18,7 @@ function Avatar({ person }: { person: Staff }) {
     return <img src={person.photo_url} alt={person.full_name} className="h-9 w-9 rounded-full object-cover" />;
   }
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f05d23]/10 text-xs font-bold text-[#f05d23]">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-xs font-bold text-brand-500">
       {initials}
     </div>
   );
@@ -118,8 +118,8 @@ export default function StaffAssignmentsClient({ staff, templates, assignments }
                     <td className="px-4 py-3.5 text-sm text-[var(--text-lo)]">{assignment?.gmail_sync_status ?? "pending"}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/signatures/staff/${person.id}`} className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-[#f05d23]/10 hover:text-[#f05d23]">Profile</Link>
-                        <button onClick={() => openAssignment(person)} className="rounded-lg bg-[#f05d23]/10 px-3 py-1.5 text-xs font-semibold text-[#f05d23] transition-colors hover:bg-[#f05d23] hover:text-white">Assign</button>
+                        <Link href={`/signatures/staff/${person.id}`} className="rounded-lg bg-[var(--surface-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-brand-500/10 hover:text-brand-500">Profile</Link>
+                        <button onClick={() => openAssignment(person)} className="rounded-lg bg-brand-500/10 px-3 py-1.5 text-xs font-semibold text-brand-500 transition-colors hover:bg-brand-500 hover:text-white">Assign</button>
                         <button
                           disabled={!canSync || isSyncing}
                           onClick={() => syncGmail(person)}
@@ -141,14 +141,14 @@ export default function StaffAssignmentsClient({ staff, templates, assignments }
         <div className="space-y-4">
           <p className="text-sm text-[var(--text-lo)]">Choose the template for {selected?.email}. It won't push to Gmail until the delivery rollout is approved.</p>
           <label className="block text-sm font-medium text-[var(--text-hi)]">Signature template
-            <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm outline-none focus:border-[#f05d23]">
+            <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm outline-none focus:border-brand-500">
               <option value="">Select a template</option>
               {templates.map((t) => <option key={t.id} value={t.id}>{t.name}{t.is_default ? " · Default" : ""}</option>)}
             </select>
           </label>
           <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
             <button onClick={() => setSelected(null)} className="rounded-xl px-3.5 py-2 text-sm font-semibold text-[var(--text-lo)] hover:bg-[var(--surface-2)]">Cancel</button>
-            <button disabled={!templateId || saving} onClick={saveAssignment} className="rounded-xl bg-[#f05d23] px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Save assignment"}</button>
+            <button disabled={!templateId || saving} onClick={saveAssignment} className="rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Save assignment"}</button>
           </div>
         </div>
       </SimpleModal>

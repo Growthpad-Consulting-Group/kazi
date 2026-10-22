@@ -51,11 +51,11 @@ export default function EmailPillInput({ value = [], onChange, placeholder = "En
     <div className="space-y-2">
       <div
         onClick={() => inputRef.current?.focus()}
-        className={`min-h-[42px] w-full px-3 py-2 border rounded-lg cursor-text transition-all duration-200 ${!isValid ? 'border-red-500 ring-2 ring-red-200' : 'focus-within:ring-2 focus-within:ring-[#f05d23] focus-within:border-transparent'} ${mode === "dark" ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500" : "bg-white border-gray-300 text-gray-900 hover:border-gray-400"} ${className}`}
+        className={`min-h-[42px] w-full px-3 py-2 border rounded-lg cursor-text transition-all duration-200 ${!isValid ? 'border-red-500 ring-2 ring-red-200' : 'focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent'} ${mode === "dark" ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500" : "bg-white border-gray-300 text-gray-900 hover:border-gray-400"} ${className}`}
       >
         <div className="flex flex-wrap gap-2 items-center">
           {value.map((email, i) => (
-            <div key={i} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${mode === "dark" ? "bg-[#f05d23]/20 text-[#f05d23]" : "bg-[#f05d23]/10 text-[#d94f1a]"}`}>
+            <div key={i} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${mode === "dark" ? "bg-brand-500/20 text-brand-500" : "bg-brand-500/10 text-[#d94f1a]"}`}>
               <Icon icon="solar:letter-broken" className="w-3 h-3 opacity-70" />
               <span>{email}</span>
               <button type="button" onClick={(e) => { e.stopPropagation(); removeEmail(email); }} className="ml-1 hover:bg-black/10 rounded-full p-0.5 transition-colors">

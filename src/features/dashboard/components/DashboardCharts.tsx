@@ -46,15 +46,15 @@ export default function DashboardCharts({ trend, pipeline, rolePipeline, teamPul
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/15">
-              <Icon icon="solar:chart-broken" className="h-3.5 w-3.5 text-[#f05d23]" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15">
+              <Icon icon="solar:chart-broken" className="h-3.5 w-3.5 text-brand-500" />
             </div>
             <div>
               <h2 className="text-md font-semibold text-[var(--text-hi)]">Application activity</h2>
               <p className="text-[11px] text-[var(--text-lo)]">Candidates who applied in the selected period</p>
             </div>
           </div>
-          <span className="font-mono text-lg font-bold text-[#f05d23]">{trendTotal}</span>
+          <span className="font-mono text-lg font-bold text-brand-500">{trendTotal}</span>
         </div>
         <ApplicationsTrendChart data={trend} />
       </div>

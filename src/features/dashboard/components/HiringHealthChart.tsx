@@ -10,7 +10,7 @@ export default function HiringHealthChart({ stages, stalled, averageDays }: { st
   return (
     <div>
       <div className="mb-3 flex items-end justify-between gap-3">
-        <div><p className="font-mono text-3xl font-bold text-[#f05d23]">{averageDays ?? "—"}<span className="ml-1 text-xs font-medium text-[var(--text-lo)]">days</span></p><p className="mt-1 text-[10px] text-[var(--text-lo)]">average time to hire</p></div>
+        <div><p className="font-mono text-3xl font-bold text-brand-500">{averageDays ?? "—"}<span className="ml-1 text-xs font-medium text-[var(--text-lo)]">days</span></p><p className="mt-1 text-[10px] text-[var(--text-lo)]">average time to hire</p></div>
         <div className={`rounded-xl px-2.5 py-1.5 text-right ${stalled ? "bg-amber-500/10" : "bg-green-500/10"}`}><p className={`font-mono text-sm font-bold ${stalled ? "text-amber-500" : "text-green-500"}`}>{stalled}</p><p className="text-[9px] text-[var(--text-lo)]">stalled 14+ days</p></div>
       </div>
       <ResponsiveContainer width="100%" height={116}>

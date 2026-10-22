@@ -73,7 +73,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
 
   return (
     <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
-      <div className="flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f05d23]/10"><Icon icon="solar:letter-broken" className="h-3.5 w-3.5 text-[#f05d23]" /></span><div><h2 className="text-base font-semibold text-[var(--text-hi)]">Candidate communications</h2><p className="text-[11px] text-[var(--text-lo)]">Draft and send thoughtful updates with AI assistance.</p></div></div>
+      <div className="flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10"><Icon icon="solar:letter-broken" className="h-3.5 w-3.5 text-brand-500" /></span><div><h2 className="text-base font-semibold text-[var(--text-hi)]">Candidate communications</h2><p className="text-[11px] text-[var(--text-lo)]">Draft and send thoughtful updates with AI assistance.</p></div></div>
 
       {sent && (
         <p className="rounded-xl bg-green-500/10 px-3 py-2 text-sm text-green-600">
@@ -88,7 +88,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
             onClick={() => { setType(t); setDraft(null); setSent(false); }}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               type === t
-                ? "bg-[#f05d23] text-white shadow-sm"
+                ? "bg-brand-500 text-white shadow-sm"
                 : "text-[var(--text-lo)] hover:bg-[var(--surface)] hover:text-[var(--text-hi)]"
             }`}
           >
@@ -112,7 +112,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
             <input
               value={draft.subject}
               onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-[#f05d23]/30"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-brand-500/30"
             />
           </div>
           <div>

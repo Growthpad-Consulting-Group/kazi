@@ -134,8 +134,8 @@ export default function UnifiedSearchFilter({
         onClick={() => { setIsOpen(true); setPanel("search"); inputRef.current?.focus(); }}
         className={`flex w-full cursor-text items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
           dark
-            ? `border-white/10 ${isOpen ? "bg-white/10 ring-2 ring-[#f05d23]/40" : "bg-white/5 hover:bg-white/10"}`
-            : `border-[var(--border)] ${isOpen ? "bg-white ring-2 ring-[#f05d23]/30" : "bg-[var(--surface-2)] hover:bg-white"}`
+            ? `border-white/10 ${isOpen ? "bg-white/10 ring-2 ring-brand-500/40" : "bg-white/5 hover:bg-white/10"}`
+            : `border-[var(--border)] ${isOpen ? "bg-white ring-2 ring-brand-500/30" : "bg-[var(--surface-2)] hover:bg-white"}`
         }`}
       >
         <Icon icon="solar:magnifer-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
@@ -145,7 +145,7 @@ export default function UnifiedSearchFilter({
             <button
               key={i}
               onClick={(e) => { e.stopPropagation(); setActiveFilters((p) => p.filter((_, j) => j !== i)); }}
-              className="inline-flex items-center gap-1 rounded-full border border-[#f05d23]/30 bg-[#f05d23]/10 px-2.5 py-0.5 text-xs font-medium text-[#f05d23] whitespace-nowrap hover:bg-[#f05d23]/20 transition-colors"
+              className="inline-flex items-center gap-1 rounded-full border border-brand-500/30 bg-brand-500/10 px-2.5 py-0.5 text-xs font-medium text-brand-500 whitespace-nowrap hover:bg-brand-500/20 transition-colors"
             >
               {f.label}
               <Icon icon="solar:close-circle-broken" className="h-3 w-3" />
@@ -185,7 +185,7 @@ export default function UnifiedSearchFilter({
                   filterCategories.map((cat) => (
                     <button key={cat.id} onClick={() => selectCategory(cat.id)}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${dark ? "text-gray-300 hover:bg-white/10" : "text-[var(--text-hi)] hover:bg-[var(--surface-2)]"}`}>
-                      <Icon icon={cat.icon} className="h-4 w-4 text-[#f05d23]" />
+                      <Icon icon={cat.icon} className="h-4 w-4 text-brand-500" />
                       <span className="flex-1 text-left">{cat.label}</span>
                       <Icon icon="solar:alt-arrow-right-broken" className="h-3.5 w-3.5 opacity-40" />
                     </button>
@@ -199,7 +199,7 @@ export default function UnifiedSearchFilter({
                       }}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                         s.type === "val"
-                          ? "border border-[#f05d23]/20 bg-[#f05d23]/5 text-[#f05d23] hover:bg-[#f05d23]/10"
+                          ? "border border-brand-500/20 bg-brand-500/5 text-brand-500 hover:bg-brand-500/10"
                           : dark ? "text-gray-300 hover:bg-white/10" : "text-[var(--text-hi)] hover:bg-[var(--surface-2)]"
                       }`}>
                       <Icon icon={s.type === "val" ? "solar:check-circle-bold" : "solar:alt-arrow-right-broken"} className="h-4 w-4" />
@@ -220,7 +220,7 @@ export default function UnifiedSearchFilter({
 
                 <div className={`border-b px-3 py-2 ${dark ? "border-white/10" : "border-[var(--border)]"}`}>
                   <input value={valueSearch} onChange={(e) => setValueSearch(e.target.value)} placeholder="Search values…" autoFocus
-                    className={`w-full rounded-lg border px-2 py-1.5 text-sm outline-none transition-all ${dark ? "bg-white/10 border-white/10 text-gray-100 placeholder-gray-500 focus:border-[#f05d23]" : "bg-[var(--surface-2)] border-[var(--border)] text-[var(--text-hi)] placeholder-[var(--text-lo)] focus:border-[#f05d23]"}`}
+                    className={`w-full rounded-lg border px-2 py-1.5 text-sm outline-none transition-all ${dark ? "bg-white/10 border-white/10 text-gray-100 placeholder-gray-500 focus:border-brand-500" : "bg-[var(--surface-2)] border-[var(--border)] text-[var(--text-hi)] placeholder-[var(--text-lo)] focus:border-brand-500"}`}
                   />
                 </div>
 
@@ -236,7 +236,7 @@ export default function UnifiedSearchFilter({
                         replaceValues(vals, operator);
                       }}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${dark ? "text-gray-300 hover:bg-white/10" : "text-[var(--text-hi)] hover:bg-[var(--surface-2)]"}`}>
-                      <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${selectedValues.includes(opt.value) ? "bg-[#f05d23] border-[#f05d23]" : dark ? "border-white/20" : "border-[var(--border)]"}`}>
+                      <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${selectedValues.includes(opt.value) ? "bg-brand-500 border-brand-500" : dark ? "border-white/20" : "border-[var(--border)]"}`}>
                         {selectedValues.includes(opt.value) && <Icon icon="solar:check-circle-bold" className="h-3 w-3 text-white" />}
                       </div>
                       {opt.label}
@@ -248,7 +248,7 @@ export default function UnifiedSearchFilter({
                   <div className={`flex gap-1 rounded-xl p-1 ${dark ? "bg-white/5" : "bg-[var(--surface-2)]"}`}>
                     {(["is", "is_not"] as const).map((op) => (
                       <button key={op} onClick={() => { setOperator(op); replaceValues(selectedValues, op); }}
-                        className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${operator === op ? "bg-[#f05d23] text-white shadow-sm" : dark ? "text-gray-400 hover:text-gray-200" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}>
+                        className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${operator === op ? "bg-brand-500 text-white shadow-sm" : dark ? "text-gray-400 hover:text-gray-200" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}>
                         {op === "is" ? "Include" : "Exclude"}
                       </button>
                     ))}

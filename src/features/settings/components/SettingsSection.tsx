@@ -15,7 +15,7 @@ export default function SettingsSection({
   title,
   description,
   icon,
-  iconBg = "bg-[#f05d23]/10 text-[#f05d23]",
+  iconBg = "bg-brand-500/10 text-brand-500",
   children,
   className,
 }: Props) {

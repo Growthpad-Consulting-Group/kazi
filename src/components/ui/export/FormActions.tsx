@@ -21,9 +21,9 @@ interface FormActionsProps {
 
 const sizeClasses = { small: "px-3 py-1.5 text-xs", default: "px-4 py-2 text-sm", large: "px-5 py-2.5 text-sm" };
 const variantClasses = {
-  primary: "bg-[#f05d23] text-white hover:bg-[#d94f1a] focus:ring-[#f05d23]/50",
+  primary: "bg-brand-500 text-white hover:bg-[#d94f1a] focus:ring-brand-500/50",
   secondary: "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50",
-  success: "bg-[#f05d23] text-white hover:bg-[#d94f1a] focus:ring-[#f05d23]/50",
+  success: "bg-brand-500 text-white hover:bg-[#d94f1a] focus:ring-brand-500/50",
   danger: "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
   warning: "border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100",
 };

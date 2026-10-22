@@ -24,7 +24,7 @@ export default function PageHeader({
   title,
   description,
   icon,
-  iconBgColor = "bg-[#f05d23]/10",
+  iconBgColor = "bg-brand-500/10",
   actions = [],
   children,
   className = "",
@@ -36,7 +36,7 @@ export default function PageHeader({
           <div className="flex items-center gap-3">
             {icon && (
               <div className={`w-11 h-11 ${iconBgColor} rounded-xl flex items-center justify-center shrink-0`}>
-                <Icon icon={icon} className="w-5 h-5 text-[#f05d23]" />
+                <Icon icon={icon} className="w-5 h-5 text-brand-500" />
               </div>
             )}
             <div>
@@ -55,7 +55,7 @@ export default function PageHeader({
                     href={action.href}
                     className={
                       action.variant === "primary"
-                        ? "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#f05d23] text-white hover:bg-[#d94f1e] transition-colors"
+                        ? "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors"
                         : "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-[var(--border)] bg-[var(--surface)] text-[var(--text-hi)] hover:bg-[var(--surface-2)] transition-colors"
                     }
                   >
@@ -69,7 +69,7 @@ export default function PageHeader({
                     disabled={action.disabled}
                     className={
                       action.variant === "primary"
-                        ? "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#f05d23] text-white hover:bg-[#d94f1e] transition-colors disabled:opacity-50"
+                        ? "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors disabled:opacity-50"
                         : "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-[var(--border)] bg-[var(--surface)] text-[var(--text-hi)] hover:bg-[var(--surface-2)] transition-colors disabled:opacity-50"
                     }
                   >

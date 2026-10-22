@@ -39,10 +39,10 @@ export default function KaziHeader({
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 mb-1 flex items-stretch gap-3 bg-transparent animate-header-slide-in md:mx-8 md:mb-4 transition-all duration-300">
+    <header className="sticky top-0 z-40 flex items-stretch gap-3 animate-header-slide-in transition-all duration-300 m-1 md:mx-8 md:mt-4 md:mb-0">
 
       {/* Left — sidebar toggle + page title + actions */}
-      <GlassPanel mode={mode} className="flex-1 min-w-0 rounded-2xl">
+      <GlassPanel mode={mode} className={`flex-1 min-w-0 rounded-2xl ${mode === "dark" ? "bg-gray-900/80" : "bg-white"}`}>
         <div className="flex h-full items-center gap-2 px-2 py-1.5">
           <button
             onClick={toggleSidebar}
@@ -60,7 +60,7 @@ export default function KaziHeader({
               <div className="h-4 w-px bg-[var(--border)] shrink-0" />
 
               {pageHeader.icon && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#f05d23] to-[#d94f1e] shadow-sm">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-sm">
                   <Icon icon={pageHeader.icon} className="h-3.5 w-3.5 text-white" />
                 </div>
               )}
@@ -83,7 +83,7 @@ export default function KaziHeader({
                       title={action.title}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                         action.variant === "primary"
-                          ? "bg-[#f05d23] text-white hover:bg-[#d94f1e] shadow-sm"
+                          ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
                           : mode === "dark"
                             ? "border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
                             : "border border-[var(--border)] bg-[var(--surface)] text-gray-700 hover:bg-[var(--surface-2)]"
@@ -101,7 +101,7 @@ export default function KaziHeader({
       </GlassPanel>
 
       {/* Right — search, notifications, theme, profile */}
-      <GlassPanel mode={mode} className="shrink-0 rounded-2xl">
+      <GlassPanel mode={mode} className={`shrink-0 rounded-2xl ${mode === "dark" ? "bg-gray-900/80" : "bg-white"}`}>
         <div className="flex h-full items-center gap-0.5 px-2 py-1.5">
 
           {/* Search / Command Palette */}

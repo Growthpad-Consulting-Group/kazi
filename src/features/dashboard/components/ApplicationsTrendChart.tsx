@@ -19,7 +19,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   return (
     <div className="rounded-xl border border-white/10 bg-[#1a1c1f]/90 px-3 py-2 text-xs shadow-xl backdrop-blur-sm">
       <p className="font-medium text-white/70">{label}</p>
-      <p className="font-mono font-bold text-[#f05d23]">{payload[0].value} applications</p>
+      <p className="font-mono font-bold text-brand-500">{payload[0].value} applications</p>
     </div>
   );
 }

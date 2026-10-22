@@ -41,7 +41,7 @@ export function ReportingCharts({ funnel, applications, sources }: Props) {
 }
 
 function ChartCard({ icon, tone, title, description, children }: { icon: string; tone: "orange" | "blue" | "green"; title: string; description: string; children: React.ReactNode }) {
-  const tones = { orange: "bg-[#f05d23]/10 text-[#d94f1c]", blue: "bg-blue-500/10 text-blue-600", green: "bg-green-500/10 text-green-600" };
+  const tones = { orange: "bg-brand-500/10 text-brand-600", blue: "bg-blue-500/10 text-blue-600", green: "bg-green-500/10 text-green-600" };
   return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/30 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20"><div className="mb-3 flex items-center gap-2.5"><span className={`flex h-8 w-8 items-center justify-center rounded-xl ${tones[tone]}`}><Icon icon={icon} className="h-4 w-4" /></span><div><h2 className="text-base font-semibold text-[var(--text-hi)]">{title}</h2><p className="text-[11px] text-[var(--text-lo)]">{description}</p></div></div>{children}</div>;
 }
 
