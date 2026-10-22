@@ -39,7 +39,7 @@ export function SurveyResults({ survey, responses }: Props) {
           );
         }
 
-        if (q.type === "choice") {
+        if (q.type === "choice" || q.type === "quiz") {
           const options = q.options ?? [];
           const counts = new Map(options.map((option) => [option, 0]));
           qAnswers.forEach((answer) => { if (typeof answer === "string" && counts.has(answer)) counts.set(answer, (counts.get(answer) ?? 0) + 1); });

@@ -16,6 +16,8 @@ const DEFAULT_PREFS: NotifPrefs = {
   one_on_one_scheduled: true,
   one_on_one_reminder: true,
   survey_published: true,
+  campaign_updates: true,
+  side_quest_updates: true,
   system_announcements: true,
 };
 

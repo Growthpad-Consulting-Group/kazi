@@ -1,0 +1,14 @@
+{
+  "task_id": "task-kazi-integration",
+  "task_description": "Implement all 12 remaining pending items from the Kazi Suite Integration Plan: staff groups, rich media attachments, engagement calendar actions, notification reminders/digest, rewards catalogue+redemption, milestones, automation rules, notification templates, recognition analytics, culture health indicators, exportable culture report, and privacy-safe leaderboard extensions.",
+  "status": "pending",
+  "feature_order": [
+    "FEAT-001",
+    "FEAT-002",
+    "FEAT-003",
+    "FEAT-004",
+    "FEAT-005",
+    "FEAT-006"
+  ],
+  "blocked_reason": null
+}
