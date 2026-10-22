@@ -83,6 +83,8 @@ export interface NotifPrefs {
   one_on_one_scheduled: boolean;
   one_on_one_reminder: boolean;
   survey_published: boolean;
+  campaign_updates: boolean;
+  side_quest_updates: boolean;
   system_announcements: boolean;
 }
 
@@ -133,6 +135,7 @@ export interface CompanySettings {
   country: string | null;
   timezone: string;
   fiscal_year_start: number;
+  culture_leaderboards_enabled: boolean;
 }
 
 export async function saveCompanySettings(values: CompanySettings) {
@@ -154,6 +157,7 @@ export async function saveCompanySettings(values: CompanySettings) {
       country: str(values.country),
       timezone: values.timezone || "Africa/Nairobi",
       fiscal_year_start: values.fiscal_year_start,
+      culture_leaderboards_enabled: values.culture_leaderboards_enabled,
       updated_at: new Date().toISOString(),
     })
     .eq("id", "default");

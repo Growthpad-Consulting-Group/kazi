@@ -16,6 +16,7 @@ const DEFAULTS: CompanySettings = {
   country: null,
   timezone: "Africa/Nairobi",
   fiscal_year_start: 1,
+  culture_leaderboards_enabled: false,
 };
 
 export default async function OverviewPage() {
@@ -33,7 +34,7 @@ export default async function OverviewPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabaseAdmin as any)
       .from("company_settings")
-      .select("company_name, logo_url, website, industry, company_size, country, timezone, fiscal_year_start")
+      .select("company_name, logo_url, website, industry, company_size, country, timezone, fiscal_year_start, culture_leaderboards_enabled")
       .eq("id", "default")
       .maybeSingle(),
     supabaseAdmin.from("users").select("id", { count: "exact", head: true }).eq("is_active", true),

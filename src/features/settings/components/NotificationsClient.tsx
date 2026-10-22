@@ -78,6 +78,7 @@ const GROUPS: { title: string; icon: string; keys: (keyof NotifPrefs)[]; labels:
       survey_published: { label: "Survey published", description: "When a new survey you're invited to goes live" },
     },
   },
+  { title: "Culture", icon: "solar:cup-star-broken", keys: ["campaign_updates", "side_quest_updates"], labels: { campaign_updates: { label: "Campaign updates", description: "When a recognition campaign becomes relevant to you" }, side_quest_updates: { label: "Side Quest updates", description: "When a challenge opens or is nearing its deadline" } } },
   {
     title: "System",
     icon: "solar:bell-broken",

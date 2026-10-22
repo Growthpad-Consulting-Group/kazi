@@ -16,7 +16,7 @@ export default async function DepartmentsPage() {
     <div className="space-y-6">
       <SetPageHeader
         title="Departments"
-        description="Manage the list used by job and people forms"
+        description="Manage the list used by job and staff forms"
         icon="solar:users-group-two-rounded-broken"
       />
       <DepartmentsClient initial={departments} />

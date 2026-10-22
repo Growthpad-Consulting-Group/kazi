@@ -131,6 +131,13 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
         </div>
       </SettingsSection>
 
+      <SettingsSection title="Culture participation" description="Choose whether Kazi may show organisation-wide participation leaderboards" icon="solar:cup-star-broken" iconBg="bg-amber-500/10 text-amber-600">
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-[var(--surface-2)] p-3.5">
+          <input type="checkbox" checked={fields.culture_leaderboards_enabled} onChange={(event) => set("culture_leaderboards_enabled", event.target.checked)} className="mt-0.5 rounded" />
+          <span><span className="block text-sm font-semibold text-[var(--text-hi)]">Enable culture leaderboards</span><span className="mt-1 block text-xs leading-relaxed text-[var(--text-lo)]">Show recognition and Side Quest participation rankings. Keep this off when your culture prefers private participation.</span></span>
+        </label>
+      </SettingsSection>
+
       {/* Locale */}
       <SettingsSection title="Locale & calendar" description="Affects dates, reports, and review cycles" icon="solar:calendar-mark-broken" iconBg="bg-blue-500/10 text-blue-500">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -12,9 +12,11 @@ export async function POST(req: Request) {
   }
 
   const { title, description, anonymous, questions, created_by } = await req.json();
-  if (!title || !questions?.length) {
+  if (!title || !Array.isArray(questions) || !questions.length) {
     return NextResponse.json({ error: "title and questions required" }, { status: 400 });
   }
+  const validQuestions = questions.every((question) => question && typeof question.id === "string" && typeof question.text === "string" && ["scale", "text", "choice", "quiz"].includes(question.type) && ((question.type !== "choice" && question.type !== "quiz") || (Array.isArray(question.options) && question.options.filter((option: unknown) => typeof option === "string" && option.trim()).length >= 2)) && (question.type !== "quiz" || (typeof question.correct_answer === "string" && question.options.includes(question.correct_answer) && typeof question.time_limit_seconds === "number" && question.time_limit_seconds >= 10)));
+  if (!validQuestions) return NextResponse.json({ error: "Each question must be valid; polls need at least two options." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
     .from("surveys")

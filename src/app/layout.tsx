@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     default: "Kazi | Growthpad",
     template: "%s | Kazi",
   },
-  description: "Growthpad's recruitment and people-performance workspace.",
+  description: "Growthpad's recruitment and staff-performance workspace.",
   applicationName: "Kazi",
   manifest: "/manifest.webmanifest",
   alternates: { canonical: "/" },
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Kazi | Growthpad",
-    description: "Growthpad's recruitment and people-performance workspace.",
+    description: "Growthpad's recruitment and staff-performance workspace.",
     siteName: "Kazi",
     type: "website",
     locale: "en_KE",
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "Kazi | Growthpad",
-    description: "Growthpad's recruitment and people-performance workspace.",
+    description: "Growthpad's recruitment and staff-performance workspace.",
   },
   robots: {
     index: false,

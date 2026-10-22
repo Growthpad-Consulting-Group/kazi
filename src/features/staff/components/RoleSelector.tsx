@@ -7,7 +7,7 @@ import type { UserRole } from "@/types/database";
 
 const ROLES: { value: UserRole; label: string; description: string }[] = [
   { value: "admin",          label: "Admin",          description: "Full access to everything" },
-  { value: "hr",             label: "HR",             description: "People, hiring & settings" },
+  { value: "hr",             label: "HR",             description: "Staff, hiring & settings" },
   { value: "manager",        label: "Manager",        description: "Team oversight & check-ins" },
   { value: "hiring_manager", label: "Hiring Manager", description: "Post jobs & review candidates" },
   { value: "interviewer",    label: "Interviewer",    description: "Score interviews only" },

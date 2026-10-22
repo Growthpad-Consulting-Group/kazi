@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Kazi by Growthpad",
     short_name: "Kazi",
-    description: "Growthpad's recruitment and people-performance workspace.",
+    description: "Growthpad's recruitment and staff-performance workspace.",
     start_url: "/",
     scope: "/",
     display: "standalone",

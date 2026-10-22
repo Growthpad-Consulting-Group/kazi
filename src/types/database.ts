@@ -5,6 +5,8 @@ export type GoalStatus = "not_started" | "in_progress" | "at_risk" | "completed"
 export type GoalLevel = "company" | "team" | "individual";
 export type CheckinStatus = "draft" | "submitted" | "reviewed";
 export type FeedbackVisibility = "public" | "private";
+export type VoiceOutStatus = "new" | "in_review" | "resolved" | "archived";
+export type VoiceOutPriority = "low" | "normal" | "high" | "urgent";
 export type ReviewCycle = "quarterly" | "biannual" | "annual";
 export type ReviewStatus = "pending" | "self_review" | "manager_review" | "peer_review" | "completed";
 export type ReviewType = "self" | "manager" | "peer";
@@ -264,12 +266,83 @@ export interface Database {
           message: string;
           visibility: FeedbackVisibility;
           emoji: string | null;
+          value_id: string | null;
+          campaign_id: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["feedback"]["Row"], "id" | "created_at" | "visibility" | "emoji"> & {
+        Insert: Omit<Database["public"]["Tables"]["feedback"]["Row"], "id" | "created_at" | "visibility" | "emoji" | "value_id" | "campaign_id"> & {
           visibility?: FeedbackVisibility;
           emoji?: string | null;
+          value_id?: string | null;
+          campaign_id?: string | null;
         };
+        Update: never;
+        Relationships: [];
+      };
+      feedback_recipients: {
+        Row: { feedback_id: string; user_id: string; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["feedback_recipients"]["Row"], "created_at">;
+        Update: never;
+        Relationships: [];
+      };
+      recognition_values: {
+        Row: { id: string; name: string; description: string | null; color: string; is_active: boolean; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["recognition_values"]["Row"], "id" | "created_at" | "description" | "color" | "is_active"> & { description?: string | null; color?: string; is_active?: boolean };
+        Update: Partial<Database["public"]["Tables"]["recognition_values"]["Insert"]>;
+        Relationships: [];
+      };
+      recognition_campaigns: {
+        Row: { id: string; name: string; goal: string | null; audience_type: "company" | "department" | "location" | "manager_group" | "staff"; audience_filters: string[]; value_ids: string[]; starts_at: string | null; ends_at: string | null; status: "draft" | "upcoming" | "live" | "paused" | "completed" | "archived"; visual_color: string; created_by: string; created_at: string; updated_at: string };
+        Insert: Omit<Database["public"]["Tables"]["recognition_campaigns"]["Row"], "id" | "created_at" | "updated_at" | "goal" | "audience_filters" | "value_ids" | "starts_at" | "ends_at" | "status" | "visual_color"> & { goal?: string | null; audience_filters?: string[]; value_ids?: string[]; starts_at?: string | null; ends_at?: string | null; status?: "draft" | "upcoming" | "live" | "paused" | "completed" | "archived"; visual_color?: string };
+        Update: Partial<Database["public"]["Tables"]["recognition_campaigns"]["Insert"]>;
+        Relationships: [];
+      };
+      side_quests: {
+        Row: { id: string; title: string; brief: string; completion_criteria: string; audience_type: "company" | "department" | "location" | "manager_group" | "staff"; audience_filters: string[]; starts_at: string | null; ends_at: string | null; status: "draft" | "upcoming" | "live" | "closed" | "archived"; created_by: string; created_at: string; updated_at: string };
+        Insert: Omit<Database["public"]["Tables"]["side_quests"]["Row"], "id" | "created_at" | "updated_at" | "audience_filters" | "starts_at" | "ends_at" | "status"> & { audience_filters?: string[]; starts_at?: string | null; ends_at?: string | null; status?: "draft" | "upcoming" | "live" | "closed" | "archived" };
+        Update: Partial<Database["public"]["Tables"]["side_quests"]["Insert"]>;
+        Relationships: [];
+      };
+      side_quest_completions: {
+        Row: { side_quest_id: string; user_id: string; completed_at: string };
+        Insert: Omit<Database["public"]["Tables"]["side_quest_completions"]["Row"], "completed_at">;
+        Update: never;
+        Relationships: [];
+      };
+      voice_out_reports: {
+        Row: {
+          id: string;
+          topic: "workplace" | "wellbeing" | "inclusion" | "leadership" | "other";
+          message: string;
+          status: VoiceOutStatus;
+          priority: VoiceOutPriority;
+          owner_id: string | null;
+          internal_notes: string | null;
+          resolved_at: string | null;
+          attachments: string[];
+          allows_follow_up: boolean;
+          reply_access_hash: string | null;
+          sentiment: "negative" | "neutral" | "positive";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["voice_out_reports"]["Row"], "id" | "created_at" | "updated_at" | "status" | "priority" | "owner_id" | "internal_notes" | "resolved_at" | "attachments" | "allows_follow_up" | "reply_access_hash" | "sentiment"> & {
+          status?: VoiceOutStatus;
+          priority?: VoiceOutPriority;
+          owner_id?: string | null;
+          internal_notes?: string | null;
+          resolved_at?: string | null;
+          attachments?: string[];
+          allows_follow_up?: boolean;
+          reply_access_hash?: string | null;
+          sentiment?: "negative" | "neutral" | "positive";
+        };
+        Update: Partial<Database["public"]["Tables"]["voice_out_reports"]["Insert"]>;
+        Relationships: [];
+      };
+      voice_out_messages: {
+        Row: { id: string; report_id: string; author_role: "staff" | "hr"; message: string; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["voice_out_messages"]["Row"], "id" | "created_at">;
         Update: never;
         Relationships: [];
       };
@@ -344,7 +417,7 @@ export interface Database {
           id: string;
           title: string;
           description: string | null;
-          questions: { id: string; text: string; type: "scale" | "text" }[];
+          questions: { id: string; text: string; type: "scale" | "text" | "choice" | "quiz"; options?: string[]; correct_answer?: string; time_limit_seconds?: number }[];
           status: SurveyStatus;
           anonymous: boolean;
           created_by: string;
@@ -468,6 +541,8 @@ export interface Database {
       goal_level: GoalLevel;
       checkin_status: CheckinStatus;
       feedback_visibility: FeedbackVisibility;
+      voice_out_status: VoiceOutStatus;
+      voice_out_priority: VoiceOutPriority;
       review_cycle: ReviewCycle;
       review_status: ReviewStatus;
       review_type: ReviewType;
@@ -492,6 +567,9 @@ export type Checkin = Database["public"]["Tables"]["checkins"]["Row"];
 export type Goal = Database["public"]["Tables"]["goals"]["Row"];
 export type OneOnOne = Database["public"]["Tables"]["one_on_ones"]["Row"];
 export type Feedback = Database["public"]["Tables"]["feedback"]["Row"];
+export type RecognitionValue = Database["public"]["Tables"]["recognition_values"]["Row"];
+export type VoiceOutReport = Database["public"]["Tables"]["voice_out_reports"]["Row"];
+export type VoiceOutMessage = Database["public"]["Tables"]["voice_out_messages"]["Row"];
 
 // Reviews & Development types
 export type ReviewCycleRow = Database["public"]["Tables"]["review_cycles"]["Row"];

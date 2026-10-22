@@ -73,10 +73,10 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
   return (
     <>
       <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-      <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-[var(--text-hi)]">Department directory</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">Use clear, reusable names for people and job records.</p></div><div className="flex gap-2 sm:w-[360px]"><input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} className={inputCls} placeholder="Add department" /><Button size="sm" icon="solar:add-circle-broken" loading={pending} disabled={!newName.trim()} onClick={add}>Add</Button></div></div>
+      <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-[var(--text-hi)]">Department directory</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">Use clear, reusable names for staff and job records.</p></div><div className="flex gap-2 sm:w-[360px]"><input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} className={inputCls} placeholder="Add department" /><Button size="sm" icon="solar:add-circle-broken" loading={pending} disabled={!newName.trim()} onClick={add}>Add</Button></div></div>
 
       {rows.length === 0 ? (
-        <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No departments yet</p><p className="mt-1 text-xs text-[var(--text-lo)]">Add one to organize your people and roles.</p></div>
+        <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No departments yet</p><p className="mt-1 text-xs text-[var(--text-lo)]">Add one to organize your staff and roles.</p></div>
       ) : (
         <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto">
           {rows.map((row) => (
@@ -105,7 +105,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-md font-semibold text-[var(--text-hi)]">{row.name}</p>
                     <p className="text-xs text-[var(--text-lo)]">
-                      {row.jobs} job{row.jobs !== 1 && "s"} · {row.people} {row.people === 1 ? "person" : "people"}
+                      {row.jobs} job{row.jobs !== 1 && "s"} · {row.people} staff member{row.people === 1 ? "" : "s"}
                     </p>
                   </div>
                   <Link href={`/departments/${row.id}`} title="Open department workspace" className="rounded-lg p-2 text-brand-500 hover:bg-brand-500/10">
@@ -138,7 +138,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
       </ul>
       )}
       </section>
-      <SimpleModal open={!!departmentToDelete} onClose={() => setDepartmentToDelete(null)} title="Delete department" icon="solar:trash-bin-minimalistic-broken" maxWidth="max-w-md"><p className="text-sm text-[var(--text-lo)]">Delete <strong className="text-[var(--text-hi)]">{departmentToDelete?.name}</strong>? This can only be done when the department is not used by people or jobs.</p><div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4"><Button variant="secondary" onClick={() => setDepartmentToDelete(null)}>Cancel</Button><Button variant="danger" icon="solar:trash-bin-minimalistic-broken" loading={pending} onClick={() => departmentToDelete && remove(departmentToDelete)}>Delete department</Button></div></SimpleModal>
+      <SimpleModal open={!!departmentToDelete} onClose={() => setDepartmentToDelete(null)} title="Delete department" icon="solar:trash-bin-minimalistic-broken" maxWidth="max-w-md"><p className="text-sm text-[var(--text-lo)]">Delete <strong className="text-[var(--text-hi)]">{departmentToDelete?.name}</strong>? This can only be done when the department is not used by staff or jobs.</p><div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4"><Button variant="secondary" onClick={() => setDepartmentToDelete(null)}>Cancel</Button><Button variant="danger" icon="solar:trash-bin-minimalistic-broken" loading={pending} onClick={() => departmentToDelete && remove(departmentToDelete)}>Delete department</Button></div></SimpleModal>
     </>
   );
 }

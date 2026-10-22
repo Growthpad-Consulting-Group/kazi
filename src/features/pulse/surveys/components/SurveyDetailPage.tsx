@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import StatCard from "@/components/ui/StatCard";
 import { SurveyResponseForm } from "./SurveyResponseForm";
 import { SurveyResults } from "./SurveyResults";
 import { SurveyStatusToggle } from "./SurveyStatusToggle";
@@ -45,11 +46,13 @@ export default async function SurveyDetailPage({ surveyId }: { surveyId: string 
   const showResults = (isAdmin || survey.status === "closed") && (!survey.anonymous || responses.length >= minimumResponses);
   const status = STATUS[survey.status];
   const responseLabel = survey.anonymous ? "Responses are anonymous" : "Responses are identifiable";
+  const responseQuestions = survey.questions.map((question) => ({ id: question.id, text: question.text, type: question.type, options: question.options, time_limit_seconds: question.time_limit_seconds }));
 
   return (
     <>
       <SetPageHeader title={survey.title} description={`${status.label} · ${survey.questions.length} question${survey.questions.length === 1 ? "" : "s"}`} icon="solar:chat-round-dots-broken" />
       <div className="mx-auto max-w-7xl space-y-5">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4"><StatCard compact title="Questions" value={survey.questions.length} icon="solar:question-circle-broken" color="orange" subtitle="In this survey" /><StatCard compact title="Responses" value={responses.length} icon="solar:users-group-rounded-broken" color={responses.length ? "green" : "slate"} subtitle="Collected so far" /><StatCard compact title="Status" value={status.label} icon={status.icon} color={survey.status === "active" ? "green" : "slate"} subtitle="Survey lifecycle" /><StatCard compact title="Privacy" value={survey.anonymous ? "Anonymous" : "Named"} icon={survey.anonymous ? "solar:incognito-broken" : "solar:user-id-broken"} color="blue" subtitle="Response identity" /></section>
         <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:px-6">
           <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl" />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -62,7 +65,7 @@ export default async function SurveyDetailPage({ surveyId }: { surveyId: string 
           <main className="min-w-0 space-y-5">
             {isAdmin && <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600"><Icon icon="solar:chart-square-broken" className="h-4 w-4" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">Survey controls</p><p className="mt-0.5 text-xs text-[var(--text-lo)]"><span className="font-semibold text-[var(--text-hi)]">{responses.length}</span> response{responses.length === 1 ? "" : "s"} collected so far</p></div></div><SurveyStatusToggle surveyId={survey.id} currentStatus={survey.status} /></section>}
 
-            {survey.status === "active" && !alreadyResponded && <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="border-b border-[var(--border)] px-5 py-4 sm:px-6"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500"><Icon icon="solar:pen-new-square-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Your response</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Take a moment to answer honestly. Your perspective matters.</p></div></div></div><div className="p-5 sm:p-6"><SurveyResponseForm surveyId={surveyId} questions={survey.questions} respondentId={survey.anonymous ? null : session.user.id} /></div></section>}
+            {survey.status === "active" && !alreadyResponded && <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="border-b border-[var(--border)] px-5 py-4 sm:px-6"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500"><Icon icon="solar:pen-new-square-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Your response</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Take a moment to answer honestly. Your perspective matters.</p></div></div></div><div className="p-5 sm:p-6"><SurveyResponseForm surveyId={surveyId} questions={responseQuestions} respondentId={survey.anonymous ? null : session.user.id} /></div></section>}
 
             {survey.status === "active" && alreadyResponded && <section className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600"><Icon icon="solar:check-circle-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Response submitted</h2><p className="mt-1 text-xs leading-relaxed text-emerald-700 dark:text-emerald-400">Thank you for sharing your perspective. Your response has been recorded.</p></div></section>}
 

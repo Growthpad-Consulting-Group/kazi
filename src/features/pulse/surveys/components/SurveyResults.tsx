@@ -1,4 +1,5 @@
 import type { Survey, SurveyResponse } from "@/types/database";
+import { SurveyDistributionChart } from "./SurveyDistributionChart";
 
 interface Props {
   survey: Survey;
@@ -10,7 +11,7 @@ export function SurveyResults({ survey, responses }: Props) {
 
   return (
     <div className="space-y-5">
-      <div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Survey results</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Based on {responses.length} respondent{responses.length !== 1 ? "s" : ""}</p></div>
+      <div className="flex items-end justify-between gap-3"><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Response insights</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Based on {responses.length} respondent{responses.length !== 1 ? "s" : ""}</p></div><span className="rounded-lg bg-brand-500/10 px-2.5 py-1 font-mono text-xs font-bold text-brand-500">{responses.length}</span></div>
 
       {survey.questions.map((q) => {
         const qAnswers = responses
@@ -27,22 +28,23 @@ export function SurveyResults({ survey, responses }: Props) {
           const maxCount = Math.max(...Object.values(dist), 1);
 
           return (
-            <div key={q.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-4">
+            <div key={q.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-4 shadow-sm">
               <p className="mb-3 text-sm font-semibold text-[var(--text-hi)]">{q.text}</p>
-              <div className="flex items-end gap-2 mb-2">
+              <div className="flex items-end gap-2 mb-3">
                 <span className="font-mono text-3xl font-bold text-brand-500">{avg}</span>
                 <span className="mb-1 text-sm text-[var(--text-lo)]">/5</span>
               </div>
-              <div className="flex items-end gap-1.5 h-16">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <div key={n} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full rounded-t bg-gradient-to-t from-[#f05d23] to-orange-400 transition-all" style={{ height: `${(dist[n] / maxCount) * 52}px` }} />
-                    <span className="text-xs text-[var(--text-lo)]">{n}</span>
-                  </div>
-                ))}
-              </div>
+              <SurveyDistributionChart data={[1, 2, 3, 4, 5].map((label) => ({ label: String(label), count: dist[label] }))} />
             </div>
           );
+        }
+
+        if (q.type === "choice") {
+          const options = q.options ?? [];
+          const counts = new Map(options.map((option) => [option, 0]));
+          qAnswers.forEach((answer) => { if (typeof answer === "string" && counts.has(answer)) counts.set(answer, (counts.get(answer) ?? 0) + 1); });
+          const total = [...counts.values()].reduce((sum, count) => sum + count, 0) || 1;
+          return <div key={q.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-4 shadow-sm"><div className="mb-3 flex items-start justify-between gap-3"><p className="text-sm font-semibold text-[var(--text-hi)]">{q.text}</p><span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-lo)]">{q.type === "quiz" ? "Quiz" : "Poll"}</span></div><SurveyDistributionChart data={options.map((label) => ({ label, count: counts.get(label) ?? 0 }))} /></div>;
         }
 
         // Text responses

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 
 interface Props {
   surveyId: string;
-  questions: { id: string; text: string; type: "scale" | "text" }[];
+  questions: { id: string; text: string; type: "scale" | "text" | "choice" | "quiz"; options?: string[]; time_limit_seconds?: number }[];
   respondentId: string | null;
 }
 
@@ -49,6 +49,11 @@ export function SurveyResponseForm({ surveyId, questions, respondentId }: Props)
               ))}
               <span className="ml-1 self-center text-xs text-[var(--text-lo)]">1 = Strongly disagree · 5 = Strongly agree</span>
             </div>
+          ) : q.type === "choice" || q.type === "quiz" ? (
+            <>
+            {q.type === "quiz" && <p className="mb-2 text-[11px] font-medium text-brand-500">Quiz question · {q.time_limit_seconds ?? 60}s suggested limit</p>}
+            <div className="grid gap-2 sm:grid-cols-2">{(q.options ?? []).map((option) => <button key={option} type="button" onClick={() => setAnswers({ ...answers, [q.id]: option })} className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${answers[q.id] === option ? "border-brand-500 bg-brand-500/[0.08] font-semibold text-brand-600" : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-hi)] hover:border-brand-500/30"}`}><span className={`mr-2 inline-flex h-4 w-4 rounded-full border align-[-2px] ${answers[q.id] === option ? "border-brand-500 bg-brand-500 shadow-[inset_0_0_0_3px_var(--surface-2)]" : "border-[var(--text-lo)]/40"}`} />{option}</button>)}</div>
+            </>
           ) : (
             <textarea rows={3} value={(answers[q.id] as string) ?? ""}
               onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}

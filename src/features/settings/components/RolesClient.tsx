@@ -32,7 +32,7 @@ const ROLES: RoleRow[] = [
   {
     role: "hr",
     label: "HR",
-    description: "People operations — staff, pulse, hiring, and signatures.",
+    description: "Staff operations — staff, pulse, hiring, and signatures.",
     color: "text-violet-500",
     iconBg: "bg-violet-500/10 text-violet-500",
     permissions: [
@@ -147,7 +147,7 @@ export default function RolesClient() {
       >
         <div className="flex items-start gap-3 text-sm text-[var(--text-lo)]">
           <Icon icon="solar:info-circle-broken" className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
-          <p>Go to <strong className="text-[var(--text-hi)]">Staff → Employee profile → Role</strong> to change a user's role. Only admins can assign roles.</p>
+          <p>Go to <strong className="text-[var(--text-hi)]">Staff → Employee profile → Role</strong> to change a staff member&apos;s role. Only admins can assign roles.</p>
         </div>
       </SettingsSection>
     </div>

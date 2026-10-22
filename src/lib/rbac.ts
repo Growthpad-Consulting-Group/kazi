@@ -30,6 +30,9 @@ export type Permission =
   | "manage_checkins"       // create check-ins for anyone; review them
   | "manage_goals"          // create / update / delete goals
   | "manage_surveys"        // create and publish engagement surveys
+  | "manage_voice_out"      // review and resolve anonymous employee reports
+  | "manage_recognition_campaigns" // create and run recognition campaigns
+  | "manage_side_quests"    // create and run time-bound staff challenges
   | "manage_reviews"        // create review cycles; submit manager reviews
   | "manage_one_on_ones"    // schedule and manage 1-on-1 meetings
   | "manage_pips"           // create / manage performance improvement plans
@@ -65,6 +68,9 @@ const PERMISSION_MAP: Record<Permission, readonly UserRole[]> = {
   manage_checkins:    ["admin", "hr", "manager"],
   manage_goals:       ["admin", "hr", "manager"],
   manage_surveys:     ["admin", "hr"],
+  manage_voice_out:   ["admin", "hr"],
+  manage_recognition_campaigns: ["admin", "hr"],
+  manage_side_quests:     ["admin", "hr", "manager"],
   manage_reviews:     ["admin", "hr"],
   manage_one_on_ones: ["admin", "hr", "manager"],
   manage_pips:        ["admin", "hr", "manager"],
