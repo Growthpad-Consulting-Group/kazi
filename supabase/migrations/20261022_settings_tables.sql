@@ -22,3 +22,7 @@ create table if not exists public.system_settings (
   ai_api_key  text,
   updated_at  timestamptz not null default now()
 );
+
+-- Grants
+grant select, insert, update on public.user_notification_preferences to service_role, authenticated;
+grant select, insert, update on public.system_settings to service_role, authenticated;

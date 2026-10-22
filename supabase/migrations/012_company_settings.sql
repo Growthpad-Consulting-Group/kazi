@@ -12,5 +12,8 @@ create table if not exists public.company_settings (
   updated_at          timestamptz not null default now()
 );
 
+-- Grant access
+grant select, insert, update on public.company_settings to service_role, authenticated, anon;
+
 -- Seed one row so updates always work
 insert into public.company_settings (id) values ('default') on conflict do nothing;
