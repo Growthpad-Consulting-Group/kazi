@@ -1,0 +1,106 @@
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import {
+  notifyQuestEndingSoon,
+  notifySurveyClosingSoon,
+  notifyWeeklyDigest,
+} from "@/lib/notifications";
+
+export async function POST(req: Request): Promise<Response> {
+  // Auth: Bearer CRON_SECRET
+  const auth = req.headers.get("authorization") ?? "";
+  const secret = process.env.CRON_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let sent = 0;
+
+  // ── 1. Active users (needed for surveys + digest) ─────────────────────────
+  const { data: activeUsers } = await supabaseAdmin
+    .from("users")
+    .select("id, department, location, manager_id")
+    .eq("is_active", true);
+
+  const users = activeUsers ?? [];
+  const allUserIds = users.map((u) => u.id);
+
+  // ── 2. Side Quests ending within 48 h ─────────────────────────────────────
+  const { data: endingQuests } = await supabaseAdmin
+    .from("side_quests")
+    .select("id, title, ends_at, audience_type, audience_filters")
+    .eq("status", "live")
+    .gte("ends_at", new Date().toISOString())
+    .lte("ends_at", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString());
+
+  for (const quest of endingQuests ?? []) {
+    const filters: string[] = Array.isArray(quest.audience_filters) ? quest.audience_filters : [];
+    const eligible =
+      quest.audience_type === "company"
+        ? allUserIds
+        : users
+            .filter((u) => {
+              if (quest.audience_type === "department") return u.department != null && filters.includes(u.department);
+              if (quest.audience_type === "location") return u.location != null && filters.includes(u.location);
+              if (quest.audience_type === "manager_group") return u.manager_id != null && filters.includes(u.manager_id);
+              if (quest.audience_type === "staff") return filters.includes(u.id);
+              return false;
+            })
+            .map((u) => u.id);
+
+    for (const userId of eligible) {
+      await notifyQuestEndingSoon(userId, quest.title, quest.ends_at!);
+      sent++;
+    }
+  }
+
+  // ── 3. Surveys closing within 48 h ────────────────────────────────────────
+  const { data: closingSurveys } = await supabaseAdmin
+    .from("surveys")
+    .select("id, title, closes_at")
+    .eq("status", "active")
+    .gte("closes_at", new Date().toISOString())
+    .lte("closes_at", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString());
+
+  for (const survey of closingSurveys ?? []) {
+    for (const userId of allUserIds) {
+      await notifySurveyClosingSoon(userId, survey.title, survey.closes_at!);
+      sent++;
+    }
+  }
+
+  // ── 4. Weekly digest ──────────────────────────────────────────────────────
+  // Compute Monday of the current week at 00:00 UTC.
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0 = Sunday
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const weekStart = new Date(now);
+  weekStart.setUTCDate(now.getUTCDate() - daysToMonday);
+  weekStart.setUTCHours(0, 0, 0, 0);
+  const weekStartIso = weekStart.toISOString();
+
+  for (const userId of allUserIds) {
+    const [{ count: recognitionCount }, { count: questsCount }] = await Promise.all([
+      supabaseAdmin
+        .from("feedback_recipients")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", weekStartIso),
+      supabaseAdmin
+        .from("side_quest_completions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("completed_at", weekStartIso),
+    ]);
+
+    const questsCompleted = questsCount ?? 0;
+    const recognitionReceived = recognitionCount ?? 0;
+
+    if (questsCompleted > 0 || recognitionReceived > 0) {
+      await notifyWeeklyDigest(userId, { questsCompleted, recognitionReceived });
+      sent++;
+    }
+  }
+
+  return NextResponse.json({ sent });
+}

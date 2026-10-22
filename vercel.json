@@ -1,1 +1,7 @@
-{}
+{
+  "crons": [
+    { "path": "/api/pulse/notifications/reminders", "schedule": "0 9 * * 1" },
+    { "path": "/api/pulse/milestones/generate", "schedule": "0 8 * * *" },
+    { "path": "/api/pulse/automations/run", "schedule": "0 8 * * *" }
+  ]
+}
