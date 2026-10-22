@@ -3,7 +3,7 @@ import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { NewPipButton } from "./NewPipButton";
@@ -13,7 +13,7 @@ export default async function PipsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
   const { id: userId, role } = session.user;
-  const isManager = hasRole(role, "manager");
+  const isManager = can(role, "manage_pips");
   const [pipsResult, reportsResult] = await Promise.all([
     isManager ? supabaseAdmin.from("pips").select("*").or(`user_id.eq.${userId},manager_id.eq.${userId}`).order("created_at", { ascending: false }) : supabaseAdmin.from("pips").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
     isManager ? supabaseAdmin.from("users").select("id, name").eq("manager_id", userId).eq("is_active", true) : Promise.resolve({ data: [] as { id: string; name: string }[] }),

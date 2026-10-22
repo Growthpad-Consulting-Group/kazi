@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { PipDetail } from "@/features/pulse/pips/components/PipDetail";
 import type { Pip } from "@/types/database";
 
@@ -12,7 +12,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!session) return null;
 
   const { id: userId, role } = session.user;
-  const isManager = hasRole(role, "manager");
+  const isManager = can(role, "manage_pips");
 
   const { data } = await supabaseAdmin.from("pips").select("*").eq("id", id).single();
   if (!data) notFound();

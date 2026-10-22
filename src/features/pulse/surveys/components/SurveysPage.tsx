@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -23,7 +23,7 @@ export default async function SurveysPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
-  const isAdmin = hasRole(session.user.role, "hr");
+  const isAdmin = can(session.user.role, "manage_surveys");
   const { data } = await supabaseAdmin.from("surveys").select("*").order("created_at", { ascending: false });
   const surveys = (data ?? []) as unknown as Survey[];
   const active = surveys.filter((survey) => survey.status === "active");

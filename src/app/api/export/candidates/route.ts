@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 
 type Row = {
   id: string; full_name: string; email: string; phone: string | null;
@@ -21,7 +21,7 @@ function toCsv(rows: Row[]): string {
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) {
+  if (!session || !can(session.user.role, "manage_system")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

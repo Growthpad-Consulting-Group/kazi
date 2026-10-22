@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SignatureCanvasEditor from "./SignatureCanvasEditor";
 
@@ -10,7 +10,7 @@ type Database = { from: (table: string) => { select: (columns: string) => { eq: 
 
 export default async function SignatureTemplateEditorPage({ id }: { id: string }) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) redirect("/signatures/templates");
+  if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures/templates");
   const database = supabaseAdmin as unknown as Database;
   const { data, error } = await database.from("signature_templates").select("id, name, description, html, blocks, canvas_width").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getDepartments } from "@/features/departments/actions";
 import StaffProfileClient from "./StaffProfileClient";
@@ -11,7 +11,7 @@ type Database = { from: (table: string) => { select: (fields: string) => { eq: (
 
 export default async function StaffProfilePage({ id }: { id: string }) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) redirect("/signatures/staff");
+  if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures/staff");
   const db = supabaseAdmin as unknown as Database;
   const [{ data, error }, departments] = await Promise.all([
     db.from("signature_staff_profiles").select("id,user_id,email,full_name,role_title,department,phone,mobile,photo_url,status").eq("id", id).maybeSingle(),

@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { invalidateTables } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasRole(session.user.role, "manager")) {
+  if (!can(session.user.role, "manage_pips")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

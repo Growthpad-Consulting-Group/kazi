@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { SurveyResponseForm } from "./SurveyResponseForm";
@@ -28,7 +28,7 @@ export default async function SurveyDetailPage({ surveyId }: { surveyId: string 
   const { data } = await supabaseAdmin.from("surveys").select("*").eq("id", surveyId).single();
   if (!data) notFound();
   const survey = data as unknown as Survey;
-  const isAdmin = hasRole(session.user.role, "hr");
+  const isAdmin = can(session.user.role, "manage_surveys");
 
   const { data: myResponse } = !survey.anonymous
     ? await supabaseAdmin.from("survey_responses").select("id").eq("survey_id", surveyId).eq("respondent_id", session.user.id).maybeSingle()

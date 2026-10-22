@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "@/lib/r2";
 import { invalidateTables } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) {
+  if (!session || !can(session.user.role, "manage_hiring")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

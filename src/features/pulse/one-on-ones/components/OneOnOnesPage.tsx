@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -28,8 +28,8 @@ export default async function OneOnOnesPage({ reportId }: { reportId?: string })
   if (!session) return null;
 
   const userId = session.user.id;
-  const isManager = hasRole(session.user.role, "manager");
-  const isHr = hasRole(session.user.role, "hr");
+  const isManager = can(session.user.role, "manage_one_on_ones");
+  const isHr = can(session.user.role, "manage_surveys");
   const { data: focusData } = reportId && isManager
     ? await supabaseAdmin.from("users").select("id, name, job_title, department, manager_id").eq("id", reportId).maybeSingle()
     : { data: null };

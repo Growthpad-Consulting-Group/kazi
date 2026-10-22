@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type QueryResult = { data: unknown; count: number | null; error: { message: string } | null };
@@ -12,7 +12,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const database = supabaseAdmin as unknown as Database;
-  const canManage = hasRole(session.user.role, "hr");
+  const canManage = can(session.user.role, "manage_signatures");
   if (!canManage) {
     const { data, error } = await database.from("signature_staff_profiles").select("id, email, full_name, role_title, department, photo_url, status, user_id");
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

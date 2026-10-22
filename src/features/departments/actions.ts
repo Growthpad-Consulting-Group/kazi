@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { getCachedDepartments } from "@/lib/cache/queries";
 import { invalidateTables } from "@/lib/cache/invalidate";
 
@@ -18,7 +18,7 @@ export async function getDepartments(): Promise<string[]> {
 /** Creates a department, or returns the existing one (case-insensitive match). */
 export async function createDepartment(rawName: string): Promise<string> {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
 
   const name = rawName.trim().replace(/\s+/g, " ");
   if (!name) throw new Error("Department name is required");
@@ -50,7 +50,7 @@ export interface DepartmentRow {
 
 export async function getDepartmentsWithUsage(): Promise<DepartmentRow[]> {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
 
   const [{ data: depts, error }, { data: jobs }, { data: users }] = await Promise.all([
     supabaseAdmin.from("departments").select("id, name").order("name", { ascending: true }),
@@ -82,7 +82,7 @@ export async function getDepartmentsWithUsage(): Promise<DepartmentRow[]> {
 /** Renames a department and updates every job/user that uses the old name. */
 export async function renameDepartment(id: string, rawName: string): Promise<string> {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
 
   const name = rawName.trim().replace(/\s+/g, " ");
   if (!name) throw new Error("Department name is required");
@@ -104,7 +104,7 @@ export async function renameDepartment(id: string, rawName: string): Promise<str
 /** Deletes a department only when no job or person uses it. */
 export async function deleteDepartment(id: string): Promise<void> {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
 
   const { data: current } = await supabaseAdmin
     .from("departments")

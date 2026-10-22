@@ -2,7 +2,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { getMyCheckins, getTeamCheckins } from "../actions";
@@ -44,8 +44,8 @@ export default async function CheckinsPage({ userId: overrideUserId }: { userId?
   if (!session) return null;
 
   const userId = session.user.id;
-  const isManager = hasRole(session.user.role, "manager");
-  const isHr = hasRole(session.user.role, "hr");
+  const isManager = can(session.user.role, "manage_checkins");
+  const isHr = can(session.user.role, "manage_surveys");
   const requestedProfileId = overrideUserId && overrideUserId !== userId ? overrideUserId : null;
   const { data: profileData } = requestedProfileId && (isManager || isHr)
     ? await supabaseAdmin.from("users").select("id, name, email, job_title, department, manager_id").eq("id", requestedProfileId).maybeSingle()

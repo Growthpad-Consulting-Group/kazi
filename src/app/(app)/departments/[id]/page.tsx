@@ -3,14 +3,14 @@ import { Icon } from "@iconify/react";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 
 export default async function DepartmentPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "manager")) notFound();
+  if (!session || !can(session.user.role, "manage_departments")) notFound();
   const { id } = await params;
   const { data: department } = await supabaseAdmin.from("departments").select("id, name").eq("id", id).maybeSingle();
   if (!department) notFound();

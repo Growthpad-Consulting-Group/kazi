@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
@@ -45,7 +45,7 @@ export async function getCandidate(id: string): Promise<CandidateWithJob> {
 
 export async function updateCandidateStage(id: string, stage: CandidateStage) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hiring_manager")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "view_hiring")) throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin
     .from("candidates")
@@ -61,7 +61,7 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
 
 export async function assignCandidate(id: string, userId: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin
     .from("candidates")
@@ -75,7 +75,7 @@ export async function assignCandidate(id: string, userId: string) {
 
 export async function addNote(candidateId: string, note: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "interviewer")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "conduct_interviews")) throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin.from("candidate_notes").insert({
     candidate_id: candidateId,
@@ -104,7 +104,7 @@ export async function getCandidateNotes(candidateId: string): Promise<NoteWithUs
 
 export async function shortlistCandidate(id: string, shortlisted: boolean) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin
     .from("candidates")

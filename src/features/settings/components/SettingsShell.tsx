@@ -31,7 +31,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     title: "Organization",
     items: [
       { id: "overview",    label: "Company & System", icon: "solar:shop-2-broken",                 href: "/settings/overview" },
-      { id: "departments", label: "Departments",     icon: "solar:users-group-two-rounded-broken", href: "/settings/departments" },
+      { id: "departments", label: "Departments",      icon: "solar:users-group-two-rounded-broken", href: "/settings/departments" },
     ],
   },
   {
@@ -49,6 +49,7 @@ const isActive = (pathname: string, href: string) =>
 export default function SettingsShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
+
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Persist the collapsed state; read after mount to avoid SSR/client mismatch

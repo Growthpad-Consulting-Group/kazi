@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -16,7 +16,7 @@ function dateRange(cycle: ReviewCycleRow) { const date = (value: string) => new 
 export default async function ReviewsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
-  const isAdmin = hasRole(session.user.role, "hr");
+  const isAdmin = can(session.user.role, "manage_reviews");
   const [{ data: cyclesData }, { data: myReviews }] = await Promise.all([
     supabaseAdmin.from("review_cycles").select("*").order("start_date", { ascending: false }),
     supabaseAdmin.from("performance_reviews").select("id").eq("reviewer_id", session.user.id).is("submitted_at", null),

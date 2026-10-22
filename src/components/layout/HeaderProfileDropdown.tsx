@@ -4,11 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 import { signOut, useSession } from "next-auth/react";
-import GlassPanel from "./GlassPanel";
-import { useTheme } from "@/shared/contexts/ThemeContext";
 
 export default function HeaderProfileDropdown() {
-  const { resolvedMode: mode } = useTheme();
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -51,7 +48,7 @@ export default function HeaderProfileDropdown() {
             ref={dropdownRef}
             style={{ position: "fixed", top: rect.bottom + 8, right: window.innerWidth - rect.right, zIndex: 9999, width: 280 }}
           >
-            <GlassPanel mode={mode} className="rounded-2xl overflow-hidden">
+            <div className="rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-black/10 dark:shadow-black/40">
               {/* User info */}
               <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#f05d23]/30 to-violet-500/20 text-sm font-bold text-[var(--text-hi)]">
@@ -74,7 +71,7 @@ export default function HeaderProfileDropdown() {
                   Sign Out
                 </button>
               </div>
-            </GlassPanel>
+            </div>
           </div>,
           document.body
         )}

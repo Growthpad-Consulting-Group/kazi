@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
 
@@ -12,7 +12,7 @@ type SignatureDatabase = { from: (table: string) => { select: (columns: string) 
 
 export async function POST(request: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !can(session.user.role, "manage_hiring")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const body = await request.json() as Record<string, unknown>;
   const password = typeof body.password === "string" ? body.password : "";

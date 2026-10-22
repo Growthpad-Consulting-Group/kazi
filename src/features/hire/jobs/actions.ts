@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { canonicalDepartment } from "@/lib/departments";
 import { getCachedJob, getCachedJobs } from "@/lib/cache/queries";
@@ -43,7 +43,7 @@ export async function getJob(id: string) {
 
 export async function createJob(form: JobFormData) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
 
   const { publishedAt, closesAt } = validateSchedule(form);
   const department = await canonicalDepartment(form.department);
@@ -74,7 +74,7 @@ export async function createJob(form: JobFormData) {
 
 export async function updateJob(id: string, form: Partial<JobFormData>) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
 
   type JobUpdate = Database["public"]["Tables"]["jobs"]["Update"];
   const update: JobUpdate = {};
@@ -126,7 +126,7 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
 
 export async function deleteJob(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "admin")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_system")) throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin.from("jobs").delete().eq("id", id);
   if (error) throw new Error(error.message);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import type { UserRole } from "@/types/database";
@@ -11,7 +11,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 /** Removes access without destroying the staff member's historical HR record. */
 export async function DELETE(_request: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) {
+  if (!session || !can(session.user.role, "view_people")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

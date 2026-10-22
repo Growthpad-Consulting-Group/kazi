@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { OneOnOneDetail } from "@/features/pulse/one-on-ones/components/OneOnOneDetail";
 import type { OneOnOne } from "@/types/database";
@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   };
 
   // Only manager or report can view
-  const isManager = oo.manager_id === session.user.id || hasRole(session.user.role, "admin");
+  const isManager = oo.manager_id === session.user.id || can(session.user.role, "manage_system");
   const isReport = oo.report_id === session.user.id;
   if (!isManager && !isReport) notFound();
 

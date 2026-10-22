@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type UpsertResult = { error: { message: string } | null };
@@ -9,7 +9,7 @@ type Database = { from: (table: string) => { upsert: (values: Record<string, unk
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !can(session.user.role, "manage_signatures")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json() as Record<string, unknown>;
   const staffProfileId = typeof body.staffProfileId === "string" ? body.staffProfileId : "";
   const templateId = typeof body.templateId === "string" ? body.templateId : "";

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import SettingsSection from "./SettingsSection";
@@ -29,7 +29,7 @@ const EXPORTS = [
 
 export default async function ExportsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) redirect("/dashboard");
+  if (!session || !can(session.user.role, "manage_system")) redirect("/dashboard");
 
   return (
     <div className="space-y-6">

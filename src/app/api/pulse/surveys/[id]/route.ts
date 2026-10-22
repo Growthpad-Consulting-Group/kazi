@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import type { SurveyStatus } from "@/types/database";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) {
+  if (!session || !can(session.user.role, "manage_surveys")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

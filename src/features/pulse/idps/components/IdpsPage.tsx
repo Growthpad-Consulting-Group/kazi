@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -14,7 +14,7 @@ const STATUS: Record<IdpStatus, { className: string; label: string }> = { active
 export default async function IdpsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
-  const isManager = hasRole(session.user.role, "manager");
+  const isManager = can(session.user.role, "manage_idps");
   const filters = [`user_id.eq.${session.user.id}`, ...(isManager ? [`manager_id.eq.${session.user.id}`] : [])];
   const { data } = await supabaseAdmin.from("idps").select("*").or(filters.join(",")).order("created_at", { ascending: false });
   const plans = (data ?? []) as unknown as Idp[];

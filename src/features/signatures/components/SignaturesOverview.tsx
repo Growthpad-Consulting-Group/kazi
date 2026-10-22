@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type QueryResult = { data: unknown; count: number | null; error: { message: string } | null };
@@ -24,7 +24,7 @@ function renderStaffSignature(html: string, profile: StaffProfile) {
 export default async function SignaturesOverview() {
   const session = await getServerSession(authOptions);
   const database = supabaseAdmin as unknown as Database;
-  const canManage = Boolean(session && hasRole(session.user.role, "hr"));
+  const canManage = Boolean(session && can(session.user.role, "manage_signatures"));
   if (!canManage) {
     const [profiles, assignments, templates] = await Promise.all([
       database.from("signature_staff_profiles").select("id, user_id, email, full_name, role_title, department, photo_url"),

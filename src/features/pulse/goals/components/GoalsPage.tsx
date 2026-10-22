@@ -1,7 +1,7 @@
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { getGoals } from "../actions";
@@ -20,7 +20,7 @@ export default async function GoalsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
-  const canEdit = hasRole(session.user.role, "manager");
+  const canEdit = can(session.user.role, "manage_goals");
   const goals = await getGoals();
   const active    = goals.filter((g) => !["completed", "cancelled"].includes(g.status));
   const atRisk    = active.filter((g) => g.status === "at_risk");

@@ -3,14 +3,14 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import StaffAssignmentsClient from "./StaffAssignmentsClient";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
 type Database = { from: (table: string) => { select: (columns: string) => PromiseLike<QueryResult> } };
 
 export default async function StaffAssignmentsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) redirect("/signatures");
+  if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures");
   const database = supabaseAdmin as unknown as Database;
   const [staff, templates, assignments] = await Promise.all([
     database.from("signature_staff_profiles").select("id, email, full_name, role_title, department, photo_url, status"),

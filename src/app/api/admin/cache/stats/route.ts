@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { ADMIN_ROLES, hasRole } from "@/lib/rbac";
+import { ADMIN_ROLES, can } from "@/lib/rbac";
 import {
   CACHE_ENABLED,
   CACHE_GROUPS,
@@ -20,7 +20,7 @@ import {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasRole(session.user.role, ADMIN_ROLES)) {
+  if (!can(session.user.role, "manage_system")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

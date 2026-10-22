@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -46,7 +46,7 @@ export default async function PulseDashboard() {
   if (!session) return null;
 
   const userId = session.user.id;
-  const isManager = hasRole(session.user.role, "manager");
+  const isManager = can(session.user.role, "manage_one_on_ones");
   const weekStart = getCurrentWeekStart();
   const now = new Date();
   const firstName = session.user.name?.split(" ")[0] ?? "there";

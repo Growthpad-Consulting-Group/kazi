@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
@@ -24,7 +24,7 @@ function campaignState(campaign: Campaign) {
 
 export default async function SignatureCampaignsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) redirect("/signatures");
+  if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures");
   const db = supabaseAdmin as unknown as Database;
   const [campaignResult, statResult] = await Promise.all([
     db.from("signature_campaigns").select("id, name, image_url, link_url, active, starts_at, ends_at, variant_label, weight, created_at"),

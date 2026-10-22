@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
@@ -19,7 +19,7 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as { user_id: string | null }[];
-  const canManage = hasRole(session.user.role, "hr");
+  const canManage = can(session.user.role, "manage_signatures");
   return NextResponse.json({
     staff: canManage ? rows : rows.filter((row) => row.user_id === session.user.id),
     canManage,

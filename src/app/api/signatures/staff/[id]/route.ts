@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { canonicalDepartment } from "@/lib/departments";
 
@@ -11,7 +11,7 @@ type Database = { from: (table: string) => { update: (values: Record<string, unk
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !can(session.user.role, "manage_signatures")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Invalid staff profile." }, { status: 400 });
 

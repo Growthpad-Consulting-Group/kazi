@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole, RECRUITMENT_ROLES } from "@/lib/rbac";
+import { can, RECRUITMENT_ROLES } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type SearchResult = {
@@ -32,9 +32,9 @@ export async function GET(request: Request) {
   if (term.length < 2) return NextResponse.json({ results: [] satisfies SearchResult[] });
 
   const pattern = `%${term}%`;
-  const canSearchStaff = hasRole(session.user.role, "manager");
+  const canSearchStaff = can(session.user.role, "view_people");
   const canSearchHiring = RECRUITMENT_ROLES.includes(session.user.role);
-  const canManageSignatures = hasRole(session.user.role, "hr");
+  const canManageSignatures = can(session.user.role, "manage_signatures");
 
   const peopleQuery = canSearchStaff
     ? supabaseAdmin.from("users").select("id, name, email, job_title, department").or(`name.ilike.${pattern},email.ilike.${pattern}`).limit(6)

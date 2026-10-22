@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { uploadToR2 } from "@/lib/r2";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -23,7 +23,7 @@ function safeFilename(filename: string) {
 
 async function requireSignatureManager() {
   const session = await getServerSession(authOptions);
-  return session && hasRole(session.user.role, "hr") ? session : null;
+  return session && can(session.user.role, "manage_signatures") ? session : null;
 }
 
 export async function GET() {

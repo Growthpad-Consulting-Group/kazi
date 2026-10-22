@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "manager")) {
+  if (!session || !can(session.user.role, "manage_checkins")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

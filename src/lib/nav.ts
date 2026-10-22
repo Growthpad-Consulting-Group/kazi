@@ -1,4 +1,5 @@
 import type { UserRole } from "@/types/database";
+import { can } from "@/lib/rbac";
 
 export type NavItem  = { href: string; icon: string; label: string };
 export type NavGroup = { category: string; icon: string; items: NavItem[] };
@@ -52,15 +53,12 @@ export const sidebarNavGroups: NavGroup[] = [
   },
 ];
 
-const RECRUITMENT_ROLES: UserRole[] = ["admin", "hr", "hiring_manager", "interviewer"];
-const MANAGER_ROLES: UserRole[] = ["admin", "hr", "hiring_manager", "manager"];
-
 /** Navigation is an affordance, not the access-control boundary. Protected
  * route layouts enforce the same rules for direct URLs. */
 export function navigationForRole(role: UserRole | undefined): NavGroup[] {
-  const isManager = role ? MANAGER_ROLES.includes(role) : false;
-  const isRecruiter = role ? RECRUITMENT_ROLES.includes(role) : false;
-  const isSignatureManager = role === "admin" || role === "hr";
+  const isManager        = role ? can(role, "view_people") : false;
+  const isRecruiter      = role ? can(role, "view_hiring") : false;
+  const isSignatureManager = role ? can(role, "manage_signatures") : false;
 
   return sidebarNavGroups
     .map((group) => {

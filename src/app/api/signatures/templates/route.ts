@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type QueryResult = { data: unknown; error: { message: string } | null };
@@ -27,7 +27,7 @@ export async function GET() {
     if (result) return NextResponse.json({ error: result.message }, { status: 500 });
   }
 
-  const canManage = hasRole(session.user.role, "hr");
+  const canManage = can(session.user.role, "manage_signatures");
   const templates = (templateData ?? []) as Template[];
   if (canManage) return NextResponse.json({ templates, canManage: true });
 
@@ -42,7 +42,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !can(session.user.role, "manage_signatures")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json().catch(() => ({})) as { name?: unknown; description?: unknown };
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name) return NextResponse.json({ error: "A template name is required." }, { status: 400 });

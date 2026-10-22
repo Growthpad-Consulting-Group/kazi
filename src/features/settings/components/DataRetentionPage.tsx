@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { hasRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -14,7 +14,7 @@ type StaleCandidate = {
 
 export default async function DataRetentionPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !hasRole(session.user.role, "hr")) redirect("/dashboard");
+  if (!session || !can(session.user.role, "access_settings")) redirect("/dashboard");
 
   // Candidates rejected or hired more than 12 months ago
   const cutoff = new Date();
