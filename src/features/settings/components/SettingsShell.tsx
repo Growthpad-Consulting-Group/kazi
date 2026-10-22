@@ -23,21 +23,24 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
   {
     title: "Personal",
     items: [
-      { id: "profile",  label: "Profile",  icon: "solar:user-broken",           href: "/settings/profile" },
-      { id: "security", label: "Security", icon: "solar:shield-keyhole-broken", href: "/settings/security" },
+      { id: "profile",       label: "Profile",       icon: "solar:user-broken",           href: "/settings/profile" },
+      { id: "security",      label: "Security",      icon: "solar:shield-keyhole-broken", href: "/settings/security" },
+      { id: "notifications", label: "Notifications", icon: "solar:bell-broken",           href: "/settings/notifications" },
     ],
   },
   {
     title: "Organization",
     items: [
-      { id: "overview",    label: "Company & System", icon: "solar:shop-2-broken",                 href: "/settings/overview" },
-      { id: "departments", label: "Departments",      icon: "solar:users-group-two-rounded-broken", href: "/settings/departments" },
+      { id: "overview",      label: "Company & System", icon: "solar:shop-2-broken",                  href: "/settings/overview" },
+      { id: "departments",   label: "Departments",      icon: "solar:users-group-two-rounded-broken",  href: "/settings/departments" },
+      { id: "roles",         label: "Roles",            icon: "solar:shield-check-broken",             href: "/settings/roles" },
+      { id: "integrations",  label: "Integrations",     icon: "solar:widget-2-broken",                href: "/settings/integrations" },
     ],
   },
   {
     title: "Data",
     items: [
-      { id: "exports",        label: "Data Exports",   icon: "solar:download-minimalistic-broken",   href: "/settings/exports" },
+      { id: "exports",        label: "Data Exports",   icon: "solar:download-minimalistic-broken",  href: "/settings/exports" },
       { id: "data-retention", label: "Data Retention", icon: "solar:trash-bin-minimalistic-broken", href: "/settings/data-retention" },
     ],
   },

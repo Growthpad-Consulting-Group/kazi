@@ -13,9 +13,11 @@ export async function GET(request: Request) {
 
   try {
     const url = new URL(request.url);
-    const returnTo = url.searchParams.get("returnTo")?.startsWith("/pulse/checkins")
-      ? url.searchParams.get("returnTo")!
-      : "/pulse/checkins";
+    const ALLOWED_RETURN = ["/pulse/checkins", "/settings/integrations"];
+    const requestedReturn = url.searchParams.get("returnTo") ?? "";
+    const returnTo = ALLOWED_RETURN.some((prefix) => requestedReturn.startsWith(prefix))
+      ? requestedReturn
+      : "/settings/integrations";
     const state = randomUUID();
     const config = getAsanaConfig(url.origin);
     const store = await cookies();

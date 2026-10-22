@@ -11,7 +11,7 @@ type AsanaMe = { gid: string; email?: string; workspaces?: { gid: string; name?:
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const fallback = new URL("/pulse/checkins?asana=error", url.origin);
+  const fallback = new URL("/settings/integrations?asana=error", url.origin);
   const session = await getServerSession(authOptions);
   const store = await cookies();
   const oauthCookie = store.get(STATE_COOKIE)?.value;

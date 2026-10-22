@@ -78,7 +78,7 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
       {rows.length === 0 ? (
         <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f05d23]/10 text-[#f05d23]"><Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No departments yet</p><p className="mt-1 text-xs text-[var(--text-lo)]">Add one to organize your people and roles.</p></div>
       ) : (
-        <ul className="divide-y divide-[var(--border)]">
+        <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto">
           {rows.map((row) => (
             <li key={row.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)]">
               {editingId === row.id ? (

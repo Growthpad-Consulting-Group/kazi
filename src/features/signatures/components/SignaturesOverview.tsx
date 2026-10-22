@@ -56,7 +56,7 @@ export default async function SignaturesOverview() {
       <SetPageHeader
         title="Kazi Signatures"
         description="Keep every Growthpad email on brand."
-        icon="solar:signature-broken"
+        icon="solar:letter-broken"
         actions={[{ label: "New template", icon: "solar:add-circle-broken", variant: "primary", href: "/signatures/templates/new" }, { label: "Signature staff", icon: "solar:users-group-rounded-broken", variant: "secondary", href: "/signatures/staff" }, { label: "Campaigns", icon: "solar:flag-2-broken", variant: "secondary", href: "/signatures/campaigns" }, { label: "Domains", icon: "solar:global-broken", variant: "secondary", href: "/signatures/domains" }]}
       />
 

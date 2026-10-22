@@ -35,9 +35,9 @@ export const sidebarNavGroups: NavGroup[] = [
   },
   {
     category: "Kazi Signatures",
-    icon: "solar:widget-2-broken",
+    icon: "solar:letter-broken",
     items: [
-      { href: "/signatures", icon: "solar:widget-2-broken", label: "Overview" },
+      { href: "/signatures", icon: "solar:letter-broken", label: "Overview" },
       { href: "/signatures/templates", icon: "solar:document-text-broken", label: "Templates" },
       { href: "/signatures/staff", icon: "solar:users-group-rounded-broken", label: "Signature staff" },
       { href: "/signatures/campaigns", icon: "solar:flag-2-broken", label: "Campaigns" },
@@ -66,7 +66,7 @@ export function navigationForRole(role: UserRole | undefined): NavGroup[] {
       if (group.category === "Kazi Hire") return { ...group, items: isRecruiter ? group.items : [] };
       if (group.category === "Kazi Pulse") return { ...group, items: group.items.filter((item) => item.href !== "/pulse/analytics" || isManager) };
       if (group.category === "Kazi Signatures") return { ...group, items: isSignatureManager ? group.items : group.items.filter((item) => item.href === "/signatures") };
-      if (group.category === "System") return { ...group, items: isSignatureManager ? group.items : [] };
+      if (group.category === "System") return group;
       return group;
     })
     .filter((group) => group.items.length > 0);

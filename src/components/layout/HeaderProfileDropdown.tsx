@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
+import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 
 export default function HeaderProfileDropdown() {
@@ -62,13 +63,21 @@ export default function HeaderProfileDropdown() {
               </div>
 
               {/* Actions */}
-              <div className="p-2">
+              <div className="p-2 space-y-0.5">
+                <Link
+                  href="/settings/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-hi)] transition-all hover:bg-[var(--surface-2)] active:scale-95"
+                >
+                  <Icon icon="solar:user-circle-broken" className="h-4 w-4 text-[var(--text-lo)]" />
+                  Profile settings
+                </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition-all hover:bg-red-500/10 active:scale-95"
                 >
                   <Icon icon="solar:logout-broken" className="h-4 w-4" />
-                  Sign Out
+                  Sign out
                 </button>
               </div>
             </div>
