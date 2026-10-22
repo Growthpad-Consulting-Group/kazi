@@ -12,6 +12,10 @@ export type ReviewStatus = "pending" | "self_review" | "manager_review" | "peer_
 export type ReviewType = "self" | "manager" | "peer";
 export type SurveyStatus = "draft" | "active" | "closed";
 export type IdpStatus = "active" | "completed" | "cancelled";
+export type RedemptionStatus = "pending" | "approved" | "fulfilled" | "rejected";
+export type MilestoneType = "work_anniversary" | "birthday" | "onboarding_complete" | "service_achievement";
+export type AutomationTrigger = "milestone_anniversary" | "campaign_start" | "quest_ends_soon" | "recognition_received";
+export type AutomationAction = "send_notification" | "award_points";
 
 export interface Database {
   public: {
@@ -268,13 +272,15 @@ export interface Database {
           emoji: string | null;
           value_id: string | null;
           campaign_id: string | null;
+          media_url: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["feedback"]["Row"], "id" | "created_at" | "visibility" | "emoji" | "value_id" | "campaign_id"> & {
+        Insert: Omit<Database["public"]["Tables"]["feedback"]["Row"], "id" | "created_at" | "visibility" | "emoji" | "value_id" | "campaign_id" | "media_url"> & {
           visibility?: FeedbackVisibility;
           emoji?: string | null;
           value_id?: string | null;
           campaign_id?: string | null;
+          media_url?: string | null;
         };
         Update: never;
         Relationships: [];
@@ -525,6 +531,55 @@ export interface Database {
         Update: Partial<{ name: string }>;
         Relationships: [];
       };
+      // ── New tables (FEAT-001) ─────────────────────────────────
+      staff_groups: {
+        Row: { id: string; name: string; member_ids: string[]; created_by: string; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["staff_groups"]["Row"], "id" | "created_at">;
+        Update: Partial<{ name: string; member_ids: string[] }>;
+        Relationships: [];
+      };
+      engagement_notification_preferences: {
+        Row: { user_id: string; show_on_leaderboard: boolean; campaign_updates: boolean; side_quest_updates: boolean; created_at: string; updated_at: string };
+        Insert: { user_id: string; show_on_leaderboard?: boolean; campaign_updates?: boolean; side_quest_updates?: boolean };
+        Update: Partial<Database["public"]["Tables"]["engagement_notification_preferences"]["Insert"]>;
+        Relationships: [];
+      };
+      reward_wallets: {
+        Row: { user_id: string; balance: number; updated_at: string };
+        Insert: { user_id: string; balance?: number };
+        Update: { balance?: number };
+        Relationships: [];
+      };
+      reward_ledger: {
+        Row: { id: string; user_id: string; amount: number; reason: string; reference_type: string | null; reference_id: string | null; created_by: string | null; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["reward_ledger"]["Row"], "id" | "created_at"> & { reference_type?: string | null; reference_id?: string | null; created_by?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      reward_catalogue: {
+        Row: { id: string; name: string; description: string | null; points_cost: number; image_url: string | null; is_active: boolean; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["reward_catalogue"]["Row"], "id" | "created_at" | "description" | "image_url" | "is_active"> & { description?: string | null; image_url?: string | null; is_active?: boolean };
+        Update: Partial<Database["public"]["Tables"]["reward_catalogue"]["Insert"]>;
+        Relationships: [];
+      };
+      reward_redemptions: {
+        Row: { id: string; user_id: string; catalogue_item_id: string; points_spent: number; status: RedemptionStatus; approved_by: string | null; fulfilled_at: string | null; notes: string | null; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["reward_redemptions"]["Row"], "id" | "created_at" | "status" | "approved_by" | "fulfilled_at" | "notes"> & { status?: RedemptionStatus; approved_by?: string | null; fulfilled_at?: string | null; notes?: string | null };
+        Update: Partial<{ status: RedemptionStatus; approved_by: string | null; fulfilled_at: string | null; notes: string | null }>;
+        Relationships: [];
+      };
+      milestones: {
+        Row: { id: string; user_id: string; type: MilestoneType; milestone_date: string; years_count: number | null; acknowledged: boolean; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["milestones"]["Row"], "id" | "created_at" | "acknowledged" | "years_count"> & { acknowledged?: boolean; years_count?: number | null };
+        Update: Partial<{ acknowledged: boolean }>;
+        Relationships: [];
+      };
+      automation_rules: {
+        Row: { id: string; trigger_type: AutomationTrigger; action_type: AutomationAction; config: Record<string, unknown>; is_active: boolean; created_by: string; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["automation_rules"]["Row"], "id" | "created_at" | "config" | "is_active"> & { config?: Record<string, unknown>; is_active?: boolean };
+        Update: Partial<{ config: Record<string, unknown>; is_active: boolean }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -578,3 +633,13 @@ export type Survey = Database["public"]["Tables"]["surveys"]["Row"];
 export type SurveyResponse = Database["public"]["Tables"]["survey_responses"]["Row"];
 export type Idp = Database["public"]["Tables"]["idps"]["Row"];
 export type Pip = Database["public"]["Tables"]["pips"]["Row"];
+
+// New types (FEAT-001)
+export type StaffGroup = Database["public"]["Tables"]["staff_groups"]["Row"];
+export type RewardWallet = Database["public"]["Tables"]["reward_wallets"]["Row"];
+export type RewardLedger = Database["public"]["Tables"]["reward_ledger"]["Row"];
+export type RewardCatalogue = Database["public"]["Tables"]["reward_catalogue"]["Row"];
+export type RewardRedemption = Database["public"]["Tables"]["reward_redemptions"]["Row"];
+export type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
+export type AutomationRule = Database["public"]["Tables"]["automation_rules"]["Row"];
+export type EngagementNotificationPreferences = Database["public"]["Tables"]["engagement_notification_preferences"]["Row"];

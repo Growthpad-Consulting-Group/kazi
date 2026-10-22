@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { from_user_id, to_user_id, to_user_ids, message, visibility, emoji, value_id, campaign_id } = await req.json();
+  const { from_user_id, to_user_id, to_user_ids, message, visibility, emoji, value_id, campaign_id, media_url } = await req.json();
   const recipientIds = [...new Set(Array.isArray(to_user_ids) ? to_user_ids.filter((id): id is string => typeof id === "string") : [to_user_id].filter((id): id is string => typeof id === "string"))];
 
   if (from_user_id !== session.user.id) {
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
     emoji: visibility === "public" ? (emoji ?? null) : null,
     value_id: visibility === "public" ? (value_id ?? null) : null,
     campaign_id: visibility === "public" ? (campaign_id ?? null) : null,
+    media_url: visibility === "public" ? (media_url ?? null) : null,
   }).select("id").single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

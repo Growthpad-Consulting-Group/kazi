@@ -33,6 +33,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { id: "overview",      label: "Company & System", icon: "solar:shop-2-broken",                  href: "/settings/overview" },
       { id: "departments",   label: "Departments",      icon: "solar:users-group-two-rounded-broken",  href: "/settings/departments" },
+      { id: "staff-groups",  label: "Staff Groups",     icon: "solar:users-group-rounded-broken",       href: "/settings/staff-groups" },
       { id: "roles",         label: "Roles",            icon: "solar:shield-check-broken",             href: "/settings/roles" },
       { id: "integrations",  label: "Integrations",     icon: "solar:widget-2-broken",                href: "/settings/integrations" },
     ],

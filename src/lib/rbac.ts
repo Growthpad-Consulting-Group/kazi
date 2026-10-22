@@ -54,7 +54,10 @@ export type Permission =
   | "view_admin_cache"      // cache stats / monitoring
   | "search_people"         // search returns staff results
   | "search_hiring"         // search returns hiring results
-  | "search_signatures";    // search returns signature results
+  | "search_signatures"     // search returns signature results
+  // Rewards & automations
+  | "manage_rewards"        // manage reward catalogue, wallets, redemptions
+  | "manage_automations";   // manage automation rules
 
 // Which roles hold each permission.
 const PERMISSION_MAP: Record<Permission, readonly UserRole[]> = {
@@ -99,6 +102,10 @@ const PERMISSION_MAP: Record<Permission, readonly UserRole[]> = {
   search_people:      ["admin", "hr", "manager"],
   search_hiring:      ["admin", "hr", "hiring_manager", "interviewer"],
   search_signatures:  ["admin", "hr"],
+
+  // Rewards & automations
+  manage_rewards:      ["admin", "hr"],
+  manage_automations:  ["admin", "hr"],
 };
 
 /**
