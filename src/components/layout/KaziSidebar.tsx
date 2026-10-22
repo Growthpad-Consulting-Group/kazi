@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { signOut, useSession } from "next-auth/react";
+import { useAvatar } from "@/shared/hooks/useAvatar";
 import { navigationForRole, sidebarNavGroups } from "@/lib/nav";
 import { useTheme } from "@/shared/contexts/ThemeContext";
 
@@ -19,6 +20,7 @@ export default function KaziSidebar({
 }) {
   const { resolvedMode: mode } = useTheme();
   const { data: session } = useSession();
+  const avatarUrl = useAvatar();
   const [windowWidth, setWindowWidth] = useState<number | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
@@ -170,8 +172,10 @@ export default function KaziSidebar({
                 mode === "dark" ? "hover:bg-white/5 text-gray-300 hover:text-white" : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
               }`}
             >
-              <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-white/20">
-                <Icon icon="solar:user-circle-broken" className="h-5 w-5 text-brand-500" />
+              <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-white/20">
+                {avatarUrl
+                  ? <Image src={avatarUrl} alt={session?.user?.name ?? ""} width={32} height={32} className="h-full w-full object-cover" />
+                  : <span className="text-xs font-bold text-brand-500">{session?.user?.name?.split(" ").map((n) => n[0]).slice(0, 2).join("") ?? "?"}</span>}
               </div>
               {isOpen && (
                 <div className="flex items-center justify-between w-full min-w-0">

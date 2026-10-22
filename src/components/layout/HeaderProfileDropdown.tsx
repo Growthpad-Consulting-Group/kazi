@@ -3,8 +3,10 @@
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
+import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { useAvatar } from "@/shared/hooks/useAvatar";
 
 export default function HeaderProfileDropdown() {
   const { data: session } = useSession();
@@ -31,6 +33,7 @@ export default function HeaderProfileDropdown() {
 
   const initials = session?.user?.name
     ?.split(" ").map((n) => n[0]).slice(0, 2).join("") ?? "U";
+  const avatarUrl = useAvatar();
 
   return (
     <div className="relative flex items-center">
@@ -38,9 +41,11 @@ export default function HeaderProfileDropdown() {
         ref={buttonRef}
         onClick={handleOpen}
         title="Profile"
-        className="group flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-xs font-bold text-[var(--text-hi)] ring-2 ring-[var(--border)] transition-all active:scale-95 hover:ring-brand-500/40"
+        className="group flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-xs font-bold text-[var(--text-hi)] ring-2 ring-[var(--border)] transition-all active:scale-95 hover:ring-brand-500/40"
       >
-        {initials}
+        {avatarUrl
+          ? <Image src={avatarUrl} alt={initials} width={32} height={32} className="h-full w-full object-cover" />
+          : initials}
       </button>
 
       {isOpen && rect && typeof document !== "undefined" &&
@@ -52,8 +57,10 @@ export default function HeaderProfileDropdown() {
             <div className="rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-black/10 dark:shadow-black/40">
               {/* User info */}
               <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-sm font-bold text-[var(--text-hi)]">
-                  {initials}
+                <div className="flex h-10 w-10 shrink-0 overflow-hidden items-center justify-center rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-sm font-bold text-[var(--text-hi)]">
+                  {avatarUrl
+                    ? <Image src={avatarUrl} alt={initials} width={40} height={40} className="h-full w-full object-cover" />
+                    : initials}
                 </div>
                 <div className="min-w-0">
                   <p className="text-md font-semibold text-[var(--text-hi)] truncate">{session?.user?.name ?? "—"}</p>

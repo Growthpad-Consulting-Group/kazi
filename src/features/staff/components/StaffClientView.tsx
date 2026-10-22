@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
+import Image from "next/image";
 import { GenericTable, type BulkAction, type Column, type RowAction } from "@/components/ui/GenericTable";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
@@ -21,6 +22,8 @@ interface UserRow extends Record<string, unknown> {
   manager_id: string | null;
   manager_name?: string | null;
   signature_profile_id?: string | null;
+  avatar_url?: string | null;
+  sig_photo_url?: string | null;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -161,12 +164,23 @@ export default function StaffClientView({ people, departments, locations, curren
       header: "Name",
       accessor: "name",
       sortable: true,
-      render: (row) => (
-        <div>
-          <div className="font-medium text-[var(--text-hi)]">{row.name}</div>
-          <div className="text-xs text-[var(--text-lo)]">{row.email}</div>
+      render: (row) => {
+        const avatarSrc = row.avatar_url ?? row.sig_photo_url ?? null;
+        const initials = row.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("");
+        return (
+          <div className="flex items-center gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-brand-500/10">
+              {avatarSrc
+                ? <Image src={avatarSrc} alt={row.name} width={32} height={32} className="h-full w-full object-cover" />
+                : <span className="text-xs font-bold text-brand-500">{initials}</span>}
+            </div>
+            <div>
+              <div className="font-medium text-[var(--text-hi)]">{row.name}</div>
+              <div className="text-xs text-[var(--text-lo)]">{row.email}</div>
+            </div>
           </div>
-      ),
+        );
+      },
     },
     {
       header: "Job Title",

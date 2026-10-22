@@ -52,6 +52,7 @@ export interface CachedUserRow {
   job_title: string | null;
   location: string | null;
   manager_id: string | null;
+  avatar_url: string | null;
 }
 
 /** The employee directory. Read by the People page and by dashboard counts. */
@@ -59,7 +60,7 @@ export async function getCachedStaff(): Promise<CachedUserRow[]> {
   return cached("staff", cacheKey("staff", "list"), "dynamic", async () => {
     const { data, error } = await supabaseAdmin
       .from("users")
-      .select("id, name, email, role, department, job_title, location, manager_id")
+      .select("id, name, email, role, department, job_title, location, manager_id, avatar_url")
       .eq("is_active", true)
       .order("name");
     if (error) throw new Error(error.message);

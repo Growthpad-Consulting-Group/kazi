@@ -12,16 +12,20 @@ type SignatureProfileDatabase = { from: (table: string) => { select: (columns: s
 
 export default async function StaffPage() {
   const signatureDatabase = supabaseAdmin as unknown as SignatureProfileDatabase;
-  const [staff, session, signatureProfiles] = await Promise.all([getCachedStaff(), getServerSession(authOptions), signatureDatabase.from("signature_staff_profiles").select("id, user_id")]);
+  const [staff, session, signatureProfiles] = await Promise.all([getCachedStaff(), getServerSession(authOptions), signatureDatabase.from("signature_staff_profiles").select("id, user_id, photo_url")]);
   const byId = Object.fromEntries(staff.map((p) => [p.id, p]));
 
   if (signatureProfiles.error) throw new Error(signatureProfiles.error.message);
-  const signatureProfileByUser = new Map(((signatureProfiles.data ?? []) as { id: string; user_id: string | null }[]).filter((profile) => profile.user_id).map((profile) => [profile.user_id!, profile.id]));
-  const enriched = staff.map((p) => ({
-    ...p,
-    manager_name: p.manager_id ? byId[p.manager_id]?.name ?? null : null,
-    signature_profile_id: signatureProfileByUser.get(p.id) ?? null,
-  }));
+  const signatureProfileByUser = new Map(((signatureProfiles.data ?? []) as { id: string; user_id: string | null; photo_url: string | null }[]).filter((profile) => profile.user_id).map((profile) => [profile.user_id!, profile]));
+  const enriched = staff.map((p) => {
+    const sig = signatureProfileByUser.get(p.id);
+    return {
+      ...p,
+      manager_name: p.manager_id ? byId[p.manager_id]?.name ?? null : null,
+      signature_profile_id: sig?.id ?? null,
+      sig_photo_url: sig?.photo_url ?? null,
+    };
+  });
 
   const listed = await getDepartments().catch(() => [] as string[]);
   const departments = Array.from(

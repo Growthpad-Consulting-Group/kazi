@@ -27,13 +27,24 @@ export const authOptions: NextAuthOptions = {
         const valid = await bcrypt.compare(credentials.password, user.password_hash);
         if (!valid) return null;
 
+        // Fallback to signature staff photo if no avatar set
+        let avatarUrl = user.avatar_url ?? null;
+        if (!avatarUrl) {
+          const { data: sig } = await supabaseAdmin
+            .from("signature_staff_profiles")
+            .select("photo_url")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          avatarUrl = (sig as { photo_url?: string | null } | null)?.photo_url ?? null;
+        }
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
           department: user.department,
-          image: user.avatar_url,
+          image: avatarUrl,
         };
       },
     }),
@@ -44,6 +55,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as unknown as { role: UserRole }).role;
         token.department = (user as unknown as { department: string | null }).department;
+        token.picture = user.image ?? null;
       }
       return token;
     },
@@ -52,6 +64,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.department = token.department as string | null;
+        session.user.image = (token.picture as string | null) ?? null;
       }
       return session;
     },
