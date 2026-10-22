@@ -31,6 +31,7 @@ export const sidebarNavGroups: NavGroup[] = [
       { href: "/pulse/campaigns", icon: "solar:flag-2-broken",          label: "Campaigns" },
       { href: "/pulse/side-quests", icon: "solar:cup-star-broken",      label: "Side Quests" },
       { href: "/pulse/leaderboards", icon: "solar:medal-ribbon-broken", label: "Leaderboards" },
+      { href: "/pulse/rewards",      icon: "solar:gift-broken",          label: "Rewards" },
       { href: "/pulse/engagement-calendar", icon: "solar:calendar-broken", label: "Engagement calendar" },
       { href: "/pulse/voice-out", icon: "solar:incognito-broken",       label: "Voice Out" },
       { href: "/pulse/reviews",   icon: "solar:clipboard-list-broken",  label: "Performance" },
