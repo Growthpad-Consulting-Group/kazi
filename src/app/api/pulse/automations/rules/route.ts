@@ -44,6 +44,12 @@ export async function POST(req: Request): Promise<Response> {
   if (!ACTION_TYPES.includes(action_type as AutomationAction)) {
     return NextResponse.json({ error: "Invalid action_type." }, { status: 400 });
   }
+  if (action_type === "award_points" && config?.points !== undefined) {
+    const points = Number(config.points);
+    if (!Number.isInteger(points) || points < 1 || points > 10_000) {
+      return NextResponse.json({ error: "Points must be a whole number between 1 and 10,000." }, { status: 400 });
+    }
+  }
 
   const { data, error } = await supabaseAdmin
     .from("automation_rules")
@@ -53,9 +59,9 @@ export async function POST(req: Request): Promise<Response> {
       created_by: session.user.id,
       config: config ?? {},
     })
-    .select("id")
+    .select("*")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ id: data.id }, { status: 201 });
+  return NextResponse.json({ rule: data }, { status: 201 });
 }

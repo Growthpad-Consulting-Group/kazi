@@ -63,7 +63,7 @@ export default function KaziSidebar({
   return (
     <div
       ref={sidebarRef}
-      className={`shrink-0 z-50 transition-all duration-300 ${isMobile ? "fixed inset-y-0 left-0 m-0" : "sticky top-0 h-screen p-1 md:py-4 md:pl-4"}`}
+      className={`shrink-0 z-50 transition-all duration-300 ${isMobile ? "fixed inset-y-0 left-0 m-0" : `sticky top-0 h-screen p-1 ${isOpen ? "md:py-4 md:pl-4" : "md:p-1"}`}`}
       style={{ width: isOpen ? "240px" : isMobile ? "0" : "64px" }}
     >
       <div className={`relative h-full flex flex-col border transition-all duration-300 ${isMobile ? "rounded-none" : "rounded-3xl"} ${
@@ -165,10 +165,10 @@ export default function KaziSidebar({
 
         {/* User menu */}
         {!(isMobile && !isOpen) && (
-          <div className="px-3 py-4 mt-auto">
+          <div className={`${isOpen ? "px-3" : "px-1"} py-4 mt-auto`}>
             <div
               onClick={() => setShowUserMenu((p) => !p)}
-              className={`flex items-center space-x-3 cursor-pointer rounded-xl p-2.5 transition-all duration-300 border-t border-brand-500 ${
+              className={`flex items-center space-x-3 cursor-pointer rounded-xl transition-all duration-300 border-t border-brand-500 ${isOpen ? "p-2.5" : "justify-center p-1"} ${
                 mode === "dark" ? "hover:bg-white/5 text-gray-300 hover:text-white" : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
               }`}
             >

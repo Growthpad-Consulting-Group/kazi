@@ -286,6 +286,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
         icon="solar:case-minimalistic-broken"
         actions={[
           ...(departmentResult.data ? [{ label: "Department", icon: "solar:buildings-broken", href: `/departments/${departmentResult.data.id}`, variant: "secondary" as const }] : []),
+          { label: "Public page", icon: "solar:global-broken", href: `/apply/${job.id}`, variant: "secondary" as const },
           { label: "Edit", icon: "solar:pen-broken", href: `/hire/jobs/${job.id}/edit` },
           {
             label: "View candidates",

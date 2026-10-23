@@ -1,2 +1,5 @@
-import SecurityPage from "@/features/settings/components/SecurityPage";
-export default SecurityPage;
+import { redirect } from "next/navigation";
+
+export default function SecurityPage() {
+  redirect("/settings/profile");
+}

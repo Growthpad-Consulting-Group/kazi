@@ -31,7 +31,6 @@ export default function ProfileClient({ initial }: Props) {
 
   // Profile fields
   const [name, setName] = useState(initial.name);
-  const [email, setEmail] = useState(initial.email);
   const [jobTitle, setJobTitle] = useState(initial.job_title ?? "");
   const [location, setLocation] = useState(initial.location ?? "");
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? "");
@@ -45,7 +44,6 @@ export default function ProfileClient({ initial }: Props) {
 
   const profileDirty =
     name !== initial.name ||
-    email !== initial.email ||
     jobTitle !== (initial.job_title ?? "") ||
     location !== (initial.location ?? "") ||
     avatarUrl !== (initial.avatar_url ?? "");
@@ -53,8 +51,8 @@ export default function ProfileClient({ initial }: Props) {
   function saveProfile() {
     startTransition(async () => {
       try {
-        const saved = await updateProfile({ name, email, job_title: jobTitle || null, location: location || null, avatar_url: avatarUrl || null });
-        await updateSession({ name: saved.name, email: saved.email });
+        const saved = await updateProfile({ name, job_title: jobTitle || null, location: location || null, avatar_url: avatarUrl || null });
+        await updateSession({ name: saved.name });
         toast.success("Profile updated");
         router.refresh();
       } catch (e) {
@@ -98,7 +96,7 @@ export default function ProfileClient({ initial }: Props) {
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Email</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+            <input type="email" value={initial.email} readOnly aria-readonly="true" className={inputCls + " cursor-not-allowed opacity-70"} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Job title</span>
@@ -114,7 +112,7 @@ export default function ProfileClient({ initial }: Props) {
           </label>
         </div>
         <p className="mt-3 text-xs text-[var(--text-lo)]">
-          Your email is also your sign-in address — changing it changes how you sign in.
+          Your email is your fixed sign-in address. Contact an administrator if it needs to change.
         </p>
 
         <div className="mt-5 flex justify-end border-t border-[var(--border)] pt-4">

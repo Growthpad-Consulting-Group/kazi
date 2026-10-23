@@ -9,28 +9,17 @@ import { invalidateTables } from "@/lib/cache/invalidate";
 import { can } from "@/lib/rbac";
 
 /** Updates the signed-in user's own profile fields. */
-export async function updateProfile(values: { name: string; email: string; job_title?: string | null; location?: string | null; avatar_url?: string | null }) {
+export async function updateProfile(values: { name: string; job_title?: string | null; location?: string | null; avatar_url?: string | null }) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
   const name = values.name.trim();
-  const email = values.email.trim().toLowerCase();
   if (!name) throw new Error("Name is required");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address");
-
-  const { data: clash } = await supabaseAdmin
-    .from("users")
-    .select("id")
-    .ilike("email", email)
-    .neq("id", session.user.id)
-    .maybeSingle();
-  if (clash) throw new Error("That email is already in use");
 
   const { error } = await supabaseAdmin
     .from("users")
     .update({
       name,
-      email,
       ...(values.job_title !== undefined && { job_title: values.job_title?.trim() || null }),
       ...(values.location !== undefined && { location: values.location?.trim() || null }),
       ...(values.avatar_url !== undefined && { avatar_url: values.avatar_url?.trim() || null }),
@@ -40,7 +29,7 @@ export async function updateProfile(values: { name: string; email: string; job_t
 
   revalidatePath("/settings/profile");
   await invalidateTables("users");
-  return { name, email };
+  return { name };
 }
 
 /** Changes the signed-in user's own password. */

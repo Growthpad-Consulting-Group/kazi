@@ -584,6 +584,12 @@ export interface Database {
         Update: Partial<{ config: Record<string, unknown>; is_active: boolean }>;
         Relationships: [];
       };
+      automation_rule_executions: {
+        Row: { id: string; rule_id: string; event_key: string; user_id: string; action_type: AutomationAction; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["automation_rule_executions"]["Row"], "id" | "created_at">;
+        Update: never;
+        Relationships: [];
+      };
       // ── FEAT-001: Slack ───────────────────────────────────────
       slack_connections: {
         Row: {

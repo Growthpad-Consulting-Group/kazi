@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
@@ -17,12 +16,14 @@ interface Props {
 }
 
 export function StaffGroupsClient({ initial, users }: Props) {
-  const router = useRouter();
   const [groups, setGroups] = useState(initial);
   const [modalOpen, setModalOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [groupToManage, setGroupToManage] = useState<StaffGroup | null>(null);
+  const [managingIds, setManagingIds] = useState<string[]>([]);
+  const [updatingMembers, setUpdatingMembers] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<StaffGroup | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -38,6 +39,17 @@ export function StaffGroupsClient({ initial, users }: Props) {
     setModalOpen(true);
   }
 
+  function openManageModal(group: StaffGroup) {
+    setGroupToManage(group);
+    setManagingIds(group.member_ids);
+  }
+
+  function toggleManagedMember(id: string) {
+    setManagingIds((prev) =>
+      prev.includes(id) ? prev.filter((memberId) => memberId !== id) : [...prev, id]
+    );
+  }
+
   async function handleCreate() {
     if (!groupName.trim() || selectedIds.length < 2) return;
     setSaving(true);
@@ -47,11 +59,13 @@ export function StaffGroupsClient({ initial, users }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: groupName.trim(), member_ids: selectedIds }),
       });
-      const data = await res.json() as { error?: string };
+      const data = await res.json() as { error?: string; group?: StaffGroup };
       if (!res.ok) throw new Error(data.error ?? "Could not create group.");
+      if (data.group) {
+        setGroups((prev) => [...prev, data.group!].sort((a, b) => a.name.localeCompare(b.name)));
+      }
       toast.success("Staff group created.");
       setModalOpen(false);
-      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create group.");
     } finally {
@@ -76,6 +90,29 @@ export function StaffGroupsClient({ initial, users }: Props) {
       toast.error(err instanceof Error ? err.message : "Could not delete group.");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleUpdateMembers() {
+    if (!groupToManage || managingIds.length < 2) return;
+    setUpdatingMembers(true);
+    try {
+      const res = await fetch("/api/pulse/staff-groups", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: groupToManage.id, member_ids: managingIds }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Could not update group members.");
+      setGroups((prev) => prev.map((group) => (
+        group.id === groupToManage.id ? { ...group, member_ids: managingIds } : group
+      )));
+      setGroupToManage(null);
+      toast.success("Group members updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update group members.");
+    } finally {
+      setUpdatingMembers(false);
     }
   }
 
@@ -117,6 +154,14 @@ export function StaffGroupsClient({ initial, users }: Props) {
                     {group.member_ids.length} member{group.member_ids.length !== 1 ? "s" : ""}
                   </p>
                 </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon="solar:users-group-rounded-broken"
+                  onClick={() => openManageModal(group)}
+                >
+                  Members
+                </Button>
                 <button
                   type="button"
                   title="Delete group"
@@ -198,6 +243,55 @@ export function StaffGroupsClient({ initial, users }: Props) {
           >
             Create group
           </Button>
+        </div>
+      </SimpleModal>
+
+      {/* Members modal */}
+      <SimpleModal
+        open={!!groupToManage}
+        onClose={() => setGroupToManage(null)}
+        title={groupToManage?.name ?? "Group members"}
+        icon="solar:users-group-rounded-broken"
+        maxWidth="max-w-md"
+      >
+        <p className="mb-4 text-sm text-[var(--text-lo)]">
+          Choose the staff members included in this reusable group.
+        </p>
+        <div className="max-h-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)]">
+          {users.map((user) => {
+            const checked = managingIds.includes(user.id);
+            return (
+              <label
+                key={user.id}
+                className="flex cursor-pointer items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-[var(--surface)]"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleManagedMember(user.id)}
+                  className="accent-brand-500"
+                />
+                <span className="text-sm text-[var(--text-hi)]">{user.name}</span>
+              </label>
+            );
+          })}
+        </div>
+        <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+          <p className="text-xs text-[var(--text-lo)]">
+            {managingIds.length} member{managingIds.length !== 1 ? "s" : ""} selected
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setGroupToManage(null)}>
+              Cancel
+            </Button>
+            <Button
+              loading={updatingMembers}
+              disabled={updatingMembers || managingIds.length < 2}
+              onClick={handleUpdateMembers}
+            >
+              Save members
+            </Button>
+          </div>
         </div>
       </SimpleModal>
 

@@ -1,171 +1,75 @@
 import { NextResponse } from "next/server";
+import { getAutomationAudience, runAutomationEvent } from "@/lib/automations";
+import { notifyCampaignLive, notifyMilestone, notifyQuestEndingSoon } from "@/lib/notifications";
 import { supabaseAdmin } from "@/lib/supabase";
-import { notifyMilestone, notifyCampaignLive } from "@/lib/notifications";
-import { awardPoints } from "@/lib/award-points";
-import { postSlackMessage } from "@/lib/slack";
 
 export async function POST(req: Request): Promise<Response> {
-  // Auth: Bearer CRON_SECRET
   const auth = req.headers.get("authorization") ?? "";
   const secret = process.env.CRON_SECRET;
   if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const startOfDay = `${today}T00:00:00.000Z`;
+  const endOfDay = `${today}T23:59:59.999Z`;
   let processed = 0;
 
-  // Fetch active automation rules
-  const { data: rules } = await supabaseAdmin
-    .from("automation_rules")
-    .select("*")
-    .eq("is_active", true);
+  const { data: milestones } = await supabaseAdmin
+    .from("milestones")
+    .select("id, user_id, type, years_count")
+    .eq("milestone_date", today)
+    .in("type", ["work_anniversary", "service_achievement"]);
 
-  for (const rule of rules ?? []) {
-    // ── Milestone anniversary → send notification ─────────────────────────
-    if (rule.trigger_type === "milestone_anniversary" && rule.action_type === "send_notification") {
-      const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+  for (const milestone of milestones ?? []) {
+    processed += await runAutomationEvent({
+      trigger: "milestone_anniversary",
+      eventKey: `milestone:${milestone.id}`,
+      recipientIds: [milestone.user_id],
+      notification: (userId) => notifyMilestone(userId, milestone.type, milestone.years_count ?? undefined),
+      pointReason: `${milestone.type.replaceAll("_", " ")} automation reward`,
+      referenceId: milestone.id,
+    });
+  }
 
-      const { data: milestones } = await supabaseAdmin
-        .from("milestones")
-        .select("user_id, years_count")
-        .eq("milestone_date", todayStr)
-        .eq("type", "work_anniversary");
+  const { data: campaigns } = await supabaseAdmin
+    .from("recognition_campaigns")
+    .select("id, name, starts_at, audience_type, audience_filters")
+    .gte("starts_at", startOfDay)
+    .lte("starts_at", endOfDay)
+    .in("status", ["upcoming", "live"]);
 
-      for (const milestone of milestones ?? []) {
-        await notifyMilestone(milestone.user_id, "work_anniversary", milestone.years_count ?? undefined);
+  for (const campaign of campaigns ?? []) {
+    const recipientIds = await getAutomationAudience(campaign.audience_type, campaign.audience_filters);
+    processed += await runAutomationEvent({
+      trigger: "campaign_start",
+      eventKey: `campaign:${campaign.id}:start:${campaign.starts_at}`,
+      recipientIds,
+      notification: (userId) => notifyCampaignLive(userId, campaign.name),
+      pointReason: `Campaign started: ${campaign.name}`,
+      referenceId: campaign.id,
+    });
+  }
 
-        // Slack Block Kit notification (non-blocking)
-        try {
-          const { data: userRow } = await supabaseAdmin
-            .from("users")
-            .select("name")
-            .eq("id", milestone.user_id)
-            .maybeSingle();
-          const name = (userRow as unknown as { name: string } | null)?.name ?? "A team member";
-          const years = milestone.years_count ?? null;
-          const milestoneLabel = `work anniversary${years ? ` — ${years} year${years === 1 ? "" : "s"}` : ""}`;
+  const { data: quests } = await supabaseAdmin
+    .from("side_quests")
+    .select("id, title, ends_at, audience_type, audience_filters")
+    .eq("status", "live")
+    .gte("ends_at", now.toISOString())
+    .lte("ends_at", new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString());
 
-          await postSlackMessage(
-            `🎉 ${name} is celebrating their ${milestoneLabel} today!`,
-            [
-              {
-                type: "header",
-                text: { type: "plain_text", text: "🎉 Milestone Celebration" },
-              },
-              {
-                type: "section",
-                text: { type: "mrkdwn", text: `*${name}* is celebrating their *${milestoneLabel}* today!` },
-              },
-              {
-                type: "context",
-                elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse|View in Kazi>` }],
-              },
-            ]
-          );
-        } catch (slackErr) {
-          console.error("Slack notification failed (non-blocking)", slackErr);
-        }
-
-        processed++;
-      }
-
-      // service achievements
-      const { data: svcMilestones } = await supabaseAdmin
-        .from("milestones")
-        .select("user_id, years_count")
-        .eq("milestone_date", todayStr)
-        .eq("type", "service_achievement");
-
-      for (const milestone of svcMilestones ?? []) {
-        await notifyMilestone(milestone.user_id, "service_achievement", milestone.years_count ?? undefined);
-
-        // Slack Block Kit notification (non-blocking)
-        try {
-          const { data: userRow } = await supabaseAdmin
-            .from("users")
-            .select("name")
-            .eq("id", milestone.user_id)
-            .maybeSingle();
-          const name = (userRow as unknown as { name: string } | null)?.name ?? "A team member";
-
-          await postSlackMessage(
-            `🎉 ${name} is celebrating a service achievement today!`,
-            [
-              {
-                type: "header",
-                text: { type: "plain_text", text: "🎉 Milestone Celebration" },
-              },
-              {
-                type: "section",
-                text: { type: "mrkdwn", text: `*${name}* is celebrating a *service achievement* today!` },
-              },
-              {
-                type: "context",
-                elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse|View in Kazi>` }],
-              },
-            ]
-          );
-        } catch (slackErr) {
-          console.error("Slack notification failed (non-blocking)", slackErr);
-        }
-
-        processed++;
-      }
-    }
-
-    // ── Milestone anniversary / service achievement → award points ────────
-    if (rule.trigger_type === "milestone_anniversary" && rule.action_type === "award_points") {
-      const pts = Number((rule.config as Record<string, unknown>)?.points ?? 50);
-      for (const type of ["work_anniversary", "service_achievement"] as const) {
-        const { data: milestones } = await supabaseAdmin
-          .from("milestones")
-          .select("user_id, years_count")
-          .eq("milestone_date", todayStr)
-          .eq("type", type);
-
-        for (const milestone of milestones ?? []) {
-          try {
-            await awardPoints({
-              userId: milestone.user_id,
-              amount: pts,
-              reason: `${type.replaceAll("_", " ")} award`,
-              referenceType: "milestone",
-              referenceId: milestone.user_id,
-              createdBy: null,
-            });
-          } catch { /* non-blocking */ }
-          processed++;
-        }
-      }
-    }
-
-    // ── Campaign start → send notification ───────────────────────────────
-    if (rule.trigger_type === "campaign_start" && rule.action_type === "send_notification") {
-      const dayStart = `${todayStr}T00:00:00.000Z`;
-      const dayEnd = `${todayStr}T23:59:59.999Z`;
-
-      const { data: campaigns } = await supabaseAdmin
-        .from("recognition_campaigns")
-        .select("id, name")
-        .gte("starts_at", dayStart)
-        .lte("starts_at", dayEnd)
-        .in("status", ["upcoming", "live"] as const);
-
-      if (campaigns?.length) {
-        const { data: users } = await supabaseAdmin
-          .from("users")
-          .select("id")
-          .eq("is_active", true);
-
-        for (const campaign of campaigns) {
-          for (const user of users ?? []) {
-            await notifyCampaignLive(user.id, campaign.name);
-            processed++;
-          }
-        }
-      }
-    }
+  for (const quest of quests ?? []) {
+    if (!quest.ends_at) continue;
+    const recipientIds = await getAutomationAudience(quest.audience_type, quest.audience_filters);
+    processed += await runAutomationEvent({
+      trigger: "quest_ends_soon",
+      eventKey: `quest:${quest.id}:ending:${quest.ends_at}`,
+      recipientIds,
+      notification: (userId) => notifyQuestEndingSoon(userId, quest.title, quest.ends_at!),
+      pointReason: `Side Quest ending soon: ${quest.title}`,
+      referenceId: quest.id,
+    });
   }
 
   return NextResponse.json({ ok: true, processed });

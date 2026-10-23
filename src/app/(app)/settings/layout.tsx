@@ -5,7 +5,7 @@ import SettingsShell from "@/features/settings/components/SettingsShell";
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
-  // All authenticated users may access Personal settings (profile, security).
+  // All authenticated users may access their personal settings.
   // Org/data sections guard themselves individually.
   if (!session) redirect("/login");
   return <SettingsShell>{children}</SettingsShell>;

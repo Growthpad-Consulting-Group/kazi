@@ -24,7 +24,6 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     title: "Personal",
     items: [
       { id: "profile",       label: "Profile",       icon: "solar:user-broken",           href: "/settings/profile" },
-      { id: "security",      label: "Security",      icon: "solar:shield-keyhole-broken", href: "/settings/security" },
       { id: "notifications", label: "Notifications", icon: "solar:bell-broken",           href: "/settings/notifications" },
     ],
   },

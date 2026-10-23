@@ -7,6 +7,8 @@ import {
   invalidateUserPrivateFeedback,
 } from "@/lib/cache/invalidate";
 import { awardPoints } from "@/lib/award-points";
+import { runAutomationEvent } from "@/lib/automations";
+import { notifyRecognitionReceived } from "@/lib/notifications";
 import type { FeedbackVisibility } from "@/types/database";
 
 export async function POST(req: Request) {
@@ -66,5 +68,13 @@ export async function POST(req: Request) {
       });
     } catch { /* non-blocking */ }
   }
+  await runAutomationEvent({
+    trigger: "recognition_received",
+    eventKey: `feedback:${feedback.id}`,
+    recipientIds,
+    notification: (userId) => notifyRecognitionReceived(userId, session.user.name ?? "A colleague", message.trim()),
+    pointReason: "Recognition received automation",
+    referenceId: feedback.id,
+  });
   return NextResponse.json({ ok: true });
 }

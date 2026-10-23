@@ -10,6 +10,8 @@ interface ActionDef {
   href?: string;
   onClick?: () => void;
   disabled?: boolean;
+  /** Smooth-scroll to an element in the current page. Takes precedence over href. */
+  scrollToId?: string;
 }
 
 interface Props {
@@ -33,7 +35,7 @@ export default function SetPageHeader({ title, description, icon, actions, trail
       icon: a.icon,
       variant: a.variant,
       disabled: a.disabled,
-      onClick: a.onClick ?? (a.href ? () => router.push(a.href!) : () => {}),
+      onClick: a.onClick ?? (a.scrollToId ? () => document.getElementById(a.scrollToId!)?.scrollIntoView({ behavior: "smooth", block: "start" }) : a.href ? () => router.push(a.href!) : () => {}),
     })),
     content: trailing,
   };

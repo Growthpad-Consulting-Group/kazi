@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import {
   createDepartment,
+  getDepartmentsWithUsage,
   renameDepartment,
   deleteDepartment,
   type DepartmentRow,
@@ -34,8 +35,9 @@ export function DepartmentsClient({ initial }: { initial: DepartmentRow[] }) {
           toast.error(`"${saved}" already exists`);
           return;
         }
-        // id is unknown client-side; reload to pick it up
-        window.location.reload();
+        setRows(await getDepartmentsWithUsage());
+        setNewName("");
+        toast.success(`"${saved}" added`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not add department");
       }
