@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Walk of Fame page. A new dedicated page at /pulse/walk-of-fame showing all-time top 20 recognition receivers with podium treatment (top 3 gold/silver/bronze), tenure badges, recency badge, and opt-out filtering. Follows the same server component pattern as LeaderboardsPage.tsx. Add nav item under Kazi Pulse. Independent of FEAT-001 through FEAT-003.",
+  "status": "completed",
+  "steps": [
+    "1. Create src/features/pulse/walk-of-fame/data.ts: export async function getWalkOfFameData(). Query 1: join feedback_recipients with users to get all-time recognition counts per recipient, filtered to opted-in users (LEFT JOIN engagement_notification_preferences, WHERE show_on_leaderboard IS NOT FALSE). Query 2: get users with a recognition in the last 30 days (for recency badge). Combine: for each user compute tenure years from start_date, assign tenure badge label ('10yr'|'5yr'|'3yr'|'1yr'|null, take highest matching). Return top 20 sorted by count desc, each entry: { id, name, department, count, tenureBadge: string | null, isRecent: boolean }. Use supabaseAdmin. Because Supabase does not support complex joins in the typed client, use two queries: (a) SELECT user_id, count(*) FROM feedback_recipients GROUP BY user_id to get counts; (b) SELECT user_id FROM feedback_recipients WHERE created_at >= 30daysAgo to get recent receivers; (c) SELECT user_id FROM engagement_notification_preferences WHERE show_on_leaderboard = false to get opted-out users; (d) SELECT id, name, department, start_date FROM users WHERE is_active = true to get user details. Merge in JS: filter out opted-out, join names/dept/start_date onto counts, sort, slice top 20, attach recency + tenure.",
+    "2. Create src/features/pulse/walk-of-fame/components/WalkOfFamePage.tsx: async server component. Calls getWalkOfFameData(). Renders: (a) SetPageHeader with title='Walk of Fame', description='All-time recognition champions', icon='solar:cup-star-broken'. (b) Top 3 podium section: a flex row, center=1st (taller pedestal, gold ring bg-amber-500/15), left=2nd (silver bg-slate-400/15), right=3rd (bronze bg-orange-700/15). Each shows avatar initials circle, name, department, count badge. (c) Ranks 4-20 as a clean ranked list: each row has rank number, avatar initials circle, name/department text, tenure badge pill (e.g. '5yr service' in brand-500/10), recency badge pill ('Active' in emerald), and recognition count. (d) A footer link to /pulse/leaderboards ('View 90-day leaderboards →'). Use Tailwind classes and CSS variables matching existing pages (var(--border), var(--surface), var(--surface-2), var(--text-hi), var(--text-lo), brand-500). Avatar initials: first two initials of name, uppercase, in a circle. Empty state if no data.",
+    "3. Create src/app/(app)/pulse/walk-of-fame/page.tsx: thin server page that imports WalkOfFamePage and renders it. Pattern matches src/app/(app)/pulse/leaderboards/page.tsx — add auth check (getServerSession, redirect if null).",
+    "4. Update src/lib/nav.ts: add { href: '/pulse/walk-of-fame', icon: 'solar:cup-star-broken', label: 'Walk of Fame' } to the Kazi Pulse group items array, after the leaderboards entry (line after '/pulse/leaderboards')."
+  ],
+  "acceptance_criteria": [
+    "src/features/pulse/walk-of-fame/data.ts exists and exports getWalkOfFameData",
+    "src/features/pulse/walk-of-fame/components/WalkOfFamePage.tsx renders podium + ranked list",
+    "src/app/(app)/pulse/walk-of-fame/page.tsx exists",
+    "'Walk of Fame' appears in sidebar nav under Kazi Pulse",
+    "Opted-out users (show_on_leaderboard=false) are excluded",
+    "Top 3 have gold/silver/bronze visual treatment",
+    "Tenure badges appear for users with 1/3/5/10+ years of service",
+    "Recency badge appears for users with a recognition in last 30 days",
+    "npm run build exits 0"
+  ],
+  "verification": [
+    "npm run build — must exit 0",
+    "npm run lint — no new errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
