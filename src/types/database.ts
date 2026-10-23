@@ -580,6 +580,20 @@ export interface Database {
         Update: Partial<{ config: Record<string, unknown>; is_active: boolean }>;
         Relationships: [];
       };
+      // ── FEAT-001: Slack ───────────────────────────────────────
+      slack_connections: {
+        Row: {
+          id: string;
+          webhook_url: string;
+          channel_name: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["slack_connections"]["Row"], "id" | "created_at" | "updated_at">;
+        Update: Partial<{ webhook_url: string; channel_name: string }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -643,3 +657,6 @@ export type RewardRedemption = Database["public"]["Tables"]["reward_redemptions"
 export type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
 export type AutomationRule = Database["public"]["Tables"]["automation_rules"]["Row"];
 export type EngagementNotificationPreferences = Database["public"]["Tables"]["engagement_notification_preferences"]["Row"];
+
+// FEAT-001: Slack
+export type SlackConnection = Database["public"]["Tables"]["slack_connections"]["Row"];

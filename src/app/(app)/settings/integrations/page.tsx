@@ -21,6 +21,13 @@ export default async function IntegrationsPage() {
     .eq("user_id", session.user.id)
     .maybeSingle() as { data: { workspace_name?: string; created_at?: string } | null };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: slackRow } = await (supabaseAdmin as any)
+    .from("slack_connections")
+    .select("channel_name")
+    .limit(1)
+    .maybeSingle() as { data: { channel_name: string } | null };
+
   const googleConnected = Boolean(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_KEY
   );
@@ -41,6 +48,10 @@ export default async function IntegrationsPage() {
           connectedAt: asanaRow?.created_at,
         }}
         googleWorkspaceConnected={googleConnected}
+        slackStatus={{
+          connected: Boolean(slackRow),
+          channelName: slackRow?.channel_name ?? null,
+        }}
       />
       {isAdmin && aiSettings && <AISettingsClient initial={aiSettings} />}
     </div>
