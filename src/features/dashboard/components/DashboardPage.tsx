@@ -8,6 +8,7 @@ import { resolveRange } from "./DashboardRange";
 import { getDashboardData } from "../data";
 import HiringHealthChart from "./HiringHealthChart";
 import OfferTrackerChart from "./OfferTrackerChart";
+import GoalsWidget from "./GoalsWidget";
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 type StatDef = {
@@ -256,41 +257,12 @@ export default async function DashboardPage({
         </section>
 
         {/* Goals summary */}
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/15">
-                <Icon icon="solar:target-broken" className="h-3.5 w-3.5 text-emerald-500" />
-              </div>
-              <div>
-                <h2 className="text-md font-semibold text-[var(--text-hi)]">Goals</h2>
-                <p className="text-[11px] text-[var(--text-lo)]">Org-wide progress</p>
-              </div>
-            </div>
-            <Link href="/pulse/goals" className="text-xs text-brand-500 hover:underline">View all</Link>
-          </div>
-          <div className="space-y-2">
-            {([
-              { label: "On track",    value: operations.goals.onTrack,    color: "bg-blue-500",    text: "text-blue-500",    href: "/pulse/goals" },
-              { label: "At risk",     value: operations.goals.atRisk,     color: "bg-red-500",     text: "text-red-500",     href: "/pulse/goals" },
-              { label: "Completed",   value: operations.goals.completed,  color: "bg-emerald-500", text: "text-emerald-500", href: "/pulse/goals" },
-              { label: "Not started", value: operations.goals.notStarted, color: "bg-slate-400",   text: "text-[var(--text-lo)]", href: "/pulse/goals" },
-            ] as const).map(({ label, value, color, text, href }) => {
-              const total = operations.goals.onTrack + operations.goals.atRisk + operations.goals.completed + operations.goals.notStarted || 1;
-              const pct = Math.round((value / total) * 100);
-              return (
-                <Link key={label} href={href} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
-                  <div className={`h-2 w-2 shrink-0 rounded-full ${color}`} />
-                  <span className="flex-1 text-xs text-[var(--text-hi)]">{label}</span>
-                  <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--surface-2)]">
-                    <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className={`w-6 text-right font-mono text-xs font-bold ${text}`}>{value}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
+        <GoalsWidget
+          onTrack={operations.goals.onTrack}
+          atRisk={operations.goals.atRisk}
+          completed={operations.goals.completed}
+          notStarted={operations.goals.notStarted}
+        />
 
         {/* New hires onboarding */}
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
@@ -412,9 +384,13 @@ export default async function DashboardPage({
                   { key: "offer",     val: r.offer,     color: "#fbbf24" },
                 ];
                 return (
-                  <div key={r.role}>
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <span className="truncate text-xs font-medium text-[var(--text-hi)]">{r.role}</span>
+                  <Link
+                    key={r.role}
+                    href={`/hire/candidates?role=${encodeURIComponent(r.role)}`}
+                    className="group -mx-2 block rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"
+                  >
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-medium text-[var(--text-hi)] group-hover:text-brand-500 transition-colors">{r.role}</span>
                       <span className="shrink-0 font-mono text-xs text-[var(--text-lo)]">{r.applied}</span>
                     </div>
                     <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
@@ -427,7 +403,7 @@ export default async function DashboardPage({
                         />
                       ))}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
               {/* Legend */}
