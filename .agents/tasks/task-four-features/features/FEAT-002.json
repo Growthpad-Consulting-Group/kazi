@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Reward points awarding mechanism. The wallet, ledger, catalogue and redemption tables and UI already exist. The gap is the credit side: nothing ever inserts positive amounts into reward_ledger or increments reward_wallets.balance. The pattern for debiting is already in src/app/api/pulse/rewards/redeem/route.ts — upsert wallet then update balance then insert ledger. This FEAT replicates that pattern for credits across four touchpoints: automation runner, feedback posting, side quest completion, check-in submission, and adds a manual grant endpoint + UI button.",
+  "status": "completed",
+  "steps": [
+    "1. Create src/lib/award-points.ts: export async function awardPoints({ userId, amount, reason, referenceType, referenceId, createdBy }: { userId: string; amount: number; reason: string; referenceType?: string; referenceId?: string; createdBy?: string }). Pattern: (a) upsert reward_wallets { user_id: userId, balance: 0 } with onConflict: 'user_id', ignoreDuplicates: true; (b) UPDATE reward_wallets SET balance = balance + amount WHERE user_id = userId; (c) INSERT reward_ledger { user_id: userId, amount, reason, reference_type: referenceType ?? null, reference_id: referenceId ?? null, created_by: createdBy ?? null }. Returns { ok: true } or throws on DB error. Export from here so all four call-sites share the logic.",
+    "2. Update src/app/api/pulse/automations/run/route.ts: import awardPoints from src/lib/award-points. Add a new block for trigger_type === 'milestone_anniversary' && action_type === 'award_points': fetch today's work_anniversary milestones (same query as the send_notification block), for each call awardPoints({ userId: milestone.user_id, amount: Number(rule.config.points ?? 50), reason: 'Work anniversary award', referenceType: 'milestone', referenceId: milestone.user_id, createdBy: null }). Add a second block for service_achievement milestone type with the same pattern (needed for FEAT-003 compatibility). Increment processed count.",
+    "3. Update src/app/api/pulse/feedback/route.ts: after the successful insert (after invalidatePublicFeedback), if visibility === 'public', call awardPoints({ userId: from_user_id, amount: 5, reason: 'Public recognition given', referenceType: 'feedback', referenceId: feedback.id, createdBy: null }). Import awardPoints at top. Wrap in try/catch so a points failure does not fail the feedback POST.",
+    "4. Update src/app/api/pulse/side-quests/[id]/progress/route.ts: after the successful upsert of side_quest_completions, call awardPoints({ userId: session.user.id, amount: 10, reason: `Side quest completed: ${quest.id}`, referenceType: 'side_quest_completion', referenceId: id, createdBy: null }). Wrap in try/catch. Import awardPoints. Note: side_quests table has no points column (confirmed by migration 20261023000007) — use hardcoded default of 10.",
+    "5. Update src/app/api/pulse/checkins/route.ts: after the successful upsert (after invalidateUserCheckins), if status === 'submitted', call awardPoints({ userId, amount: 2, reason: 'Check-in submitted', referenceType: 'checkin', referenceId: weekStart, createdBy: null }). Wrap in try/catch. Import awardPoints.",
+    "6. Create src/app/api/pulse/rewards/grant/route.ts: POST handler. Auth: getServerSession + can(role, 'manage_rewards'). Body: { user_id: string, points: number, reason: string }. Validate: user_id is UUID format, points is integer 1-10000, reason non-empty string. Check user exists and is active in users table. Call awardPoints({ userId: user_id, amount: points, reason, referenceType: 'manual_grant', referenceId: null, createdBy: session.user.id }). Returns { ok: true }.",
+    "7. Update src/features/staff/components/EmployeeProfilePage.tsx: (a) Fetch the subject user's wallet balance (SELECT balance FROM reward_wallets WHERE user_id = id). (b) In the JSX, when canManage is true, add a 'Grant Points' button (Button component) below the action buttons in the hero section. (c) Create a new client component src/features/staff/components/GrantPointsModal.tsx: receives userId and userName as props; has useState for open, points (number input 1-9999), reason (text input); on submit POST /api/pulse/rewards/grant; uses SimpleModal, Button, toast pattern matching EditStaffModal. (d) Render <GrantPointsModal userId={user.id} userName={user.name} /> alongside the edit modal."
+  ],
+  "acceptance_criteria": [
+    "src/lib/award-points.ts exists and exports awardPoints",
+    "automations runner handles award_points action for milestone_anniversary trigger",
+    "feedback route awards +5 points to giver on public feedback",
+    "side quest progress route awards +10 points on completion",
+    "checkin route awards +2 points on status=submitted",
+    "POST /api/pulse/rewards/grant returns 200 for manage_rewards role, 403 otherwise",
+    "GrantPointsModal appears on staff profile page for HR/Admin only",
+    "npm run build exits 0"
+  ],
+  "verification": [
+    "npm run build — must exit 0",
+    "npm run lint — no new errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

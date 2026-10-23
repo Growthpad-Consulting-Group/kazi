@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { awardPoints } from "@/lib/award-points";
 
 export async function POST(_req: Request, context: RouteContext<"/api/pulse/side-quests/[id]/progress">) {
   const session = await getServerSession(authOptions);
@@ -16,5 +17,16 @@ export async function POST(_req: Request, context: RouteContext<"/api/pulse/side
   if (!eligible) return NextResponse.json({ error: "This Side Quest is not assigned to you." }, { status: 403 });
   const { error } = await supabaseAdmin.from("side_quest_completions").upsert({ side_quest_id: id, user_id: session.user.id }, { onConflict: "side_quest_id,user_id", ignoreDuplicates: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Award +10 points for quest completion (non-blocking)
+  try {
+    await awardPoints({
+      userId: session.user.id,
+      amount: 10,
+      reason: `Side quest completed: ${id}`,
+      referenceType: "side_quest_completion",
+      referenceId: id,
+      createdBy: null,
+    });
+  } catch { /* non-blocking */ }
   return NextResponse.json({ ok: true });
 }

@@ -6,6 +6,7 @@ import {
   invalidatePublicFeedback,
   invalidateUserPrivateFeedback,
 } from "@/lib/cache/invalidate";
+import { awardPoints } from "@/lib/award-points";
 import type { FeedbackVisibility } from "@/types/database";
 
 export async function POST(req: Request) {
@@ -52,5 +53,18 @@ export async function POST(req: Request) {
   // The recipient's private list changed; the public wall only if it was public.
   await Promise.all(recipientIds.map((recipientId) => invalidateUserPrivateFeedback(recipientId)));
   if (visibility === "public") await invalidatePublicFeedback();
+  // Award +5 points to giver for public recognition (non-blocking)
+  if (visibility === "public") {
+    try {
+      await awardPoints({
+        userId: from_user_id,
+        amount: 5,
+        reason: "Public recognition given",
+        referenceType: "feedback",
+        referenceId: feedback.id,
+        createdBy: null,
+      });
+    } catch { /* non-blocking */ }
+  }
   return NextResponse.json({ ok: true });
 }
