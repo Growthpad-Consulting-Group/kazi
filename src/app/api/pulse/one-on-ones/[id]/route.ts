@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
+import { postSlackMessage } from "@/lib/slack";
 
 type UserRow = { id: string; name: string; email: string };
 
@@ -94,6 +95,55 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     } catch (calErr) {
       console.error("Calendar event update failed (non-blocking)", calErr);
+    }
+  }
+
+  // Slack notification (non-blocking)
+  if (scheduledAt !== undefined && scheduledAt && participants?.manager_id) {
+    try {
+      const managerId = participants.manager_id;
+      const reportId = participants.report_id ?? "";
+
+      const { data: slackUsers } = await supabaseAdmin
+        .from("users")
+        .select("id, name")
+        .in("id", [managerId, reportId].filter(Boolean));
+
+      type SlackUserRow = { id: string; name: string };
+      const slackUserList = (slackUsers ?? []) as SlackUserRow[];
+      const managerName = slackUserList.find((u) => u.id === managerId)?.name ?? "Manager";
+      const reportName = slackUserList.find((u) => u.id === reportId)?.name ?? "Report";
+      const formattedDate = new Date(scheduledAt).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+      });
+      const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+
+      await postSlackMessage(
+        `@${managerName} has a 1-on-1 with @${reportName} scheduled for ${formattedDate}`,
+        [
+          {
+            type: "header",
+            text: { type: "plain_text", text: "📅 1-on-1 Scheduled" },
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `@${managerName} has a 1-on-1 with @${reportName} scheduled for ${formattedDate}. <${appUrl}/pulse/one-on-ones|View 1-on-1s>`,
+              },
+            ],
+          },
+        ]
+      );
+    } catch (slackErr) {
+      console.error("Slack notification failed (non-blocking)", slackErr);
     }
   }
 

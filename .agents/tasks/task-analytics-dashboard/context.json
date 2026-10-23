@@ -1,0 +1,33 @@
+{
+  "project_type": "Next.js 16 (App Router) + React 19 + TypeScript + Supabase (postgres) monolith, Cloudflare OpenNext deploy target",
+  "language": "TypeScript / TSX",
+  "build_system": "npm (no lockfile shown); scripts: dev=next dev, build=next build, lint=eslint, test=vitest run. Next.js 16 ships breaking changes — read node_modules/next/dist/docs/ (dirs 01-app, 02-pages, 03-architecture exist) before writing App Router code. Route handlers default to Node runtime (Resend/xlsx/jsPDF need it).",
+  "test_framework": "vitest (node env, glob src/**/*.test.ts, no globals). Only src/lib/cache/*.test.ts exist today; no Supabase mock harness, so query-layer code is verified via tsc + lint, pure helpers via unit tests.",
+  "build_command": "npx tsc --noEmit && npm run lint",
+  "test_command": "npm test",
+  "verification_instructions": "1) npx tsc --noEmit (must be clean — the task explicitly requires this). 2) npm run lint (eslint). 3) npm test (vitest). Run all three after the work; fix only errors you introduced. Do not claim tests passed unless executed.",
+  "snapshot_or_generated_files": "next build emits .next/ (gitignored, do not commit). No codegen snapshots to refresh. No DB migrations are required for these gaps (all referenced tables/columns already exist).",
+  "environment_constraints": "Do NOT stage or modify the pre-existing uncommitted files src/lib/rbac.ts, src/features/auth/components/LoginPage.tsx, src/features/pulse/checkins/components/AsanaTaskImport.tsx — they are unrelated to this task. Stage only the files your FEAT touches (never `git add -A`). Commit locally on the current branch; never push. Supabase access is via supabaseAdmin from @/lib/supabase (service role). Resend via resend/EMAIL_FROM from @/lib/email (requires RESEND_API_KEY env at runtime; absence only fails at request time, not at build/tsc).",
+  "contribution_requirements": "From AGENTS.md: reuse existing components/utilities/tokens; preserve auth + RBAC; validate inputs and handle errors; never expose secrets; avoid destructive DB ops; run focused lint/tests for small changes and broader checks for cross-cutting changes; fix only errors you introduced; report unrelated failures; don't claim tests passed unless run. Follow existing Tailwind + var(--border)/var(--surface)/var(--text-hi)/var(--text-lo)/brand-500 (#f05d23) styling and solar:* broken iconify icons.",
+  "key_patterns": "Auth in server components/routes: `const session = await getServerSession(authOptions); if (!session) ...` plus `can(session.user.role, PERM)` from @/lib/rbac. Role tiers verified in src/lib/rbac.ts: manage_system=admin/hr (org), manage_one_on_ones=admin/hr/manager (team), view_people/view_analytics=admin/hr/manager. session.user = {id, role, department, email, name} (src/lib/auth.ts). 3-tier scoping model to copy lives in src/features/pulse/analytics/components/LeadershipDashboard.tsx (isHr=can(role,'manage_surveys'); members query: isHr ? all : .eq('manager_id', session.user.id)). Walk of Fame opt-out + podium pattern in src/features/pulse/walk-of-fame/{data.ts,components/WalkOfFamePage.tsx} (exclude engagement_notification_preferences.show_on_leaderboard=false; PodiumCard top 3 + ranked list). Resend email pattern in src/app/api/hire/candidates/send-email/route.ts; Resend Attachment type = {content: string|Buffer, filename, contentType}. CSV helper pattern in src/app/api/pulse/reports/culture-export/route.ts (toCsv).",
+  "relevant_files": [
+    "src/features/dashboard/data.ts (getDashboardData — rewrite signature + scoping)",
+    "src/features/dashboard/components/DashboardPage.tsx (pass ctx, render personal view)",
+    "src/app/(app)/dashboard/page.tsx (auth route guard)",
+    "src/lib/nav.ts (show /dashboard to all roles)",
+    "src/lib/auth.ts (session shape — read only)",
+    "src/lib/rbac.ts (can() + permission map — read only, do NOT modify)",
+    "src/features/pulse/analytics/components/LeadershipDashboard.tsx (scoping pattern to copy + Top Performers host)",
+    "src/features/pulse/walk-of-fame/components/WalkOfFamePage.tsx (podium/opt-out pattern to copy)",
+    "src/features/pulse/walk-of-fame/data.ts (opt-out pattern to copy)",
+    "src/components/ui/export/ExportModal.tsx (email payload shape + toast tweak)",
+    "src/components/ui/export/exportUtils.ts (xlsx/csv label mapping pattern)",
+    "src/lib/email.ts (resend + EMAIL_FROM)",
+    "src/app/api/hire/candidates/send-email/route.ts (resend.emails.send pattern)",
+    "src/app/api/export/employees/route.ts (auth gate pattern)",
+    "src/features/pulse/analytics/components/ExportReportButton.tsx (add CSV option)",
+    "src/app/api/pulse/reports/culture-export/route.ts (already supports format=csv — read only)",
+    "src/types/database.ts (schemas: users.manager_id/department, jobs.department, candidates.job_id, reward_ledger.user_id/amount, goals.owner_id/status, performance_reviews.reviewee_id/overall_rating/cycle_id, review_cycles.id/start_date, engagement_notification_preferences.show_on_leaderboard, feedback.from_user_id, feedback_recipients.user_id)"
+  ],
+  "directory_structure": "src/app/(app)/... = App Router pages; src/app/api/... = route handlers; src/features/<domain>/{components,data.ts} = feature modules; src/lib/ = shared (auth, rbac, supabase, email, cache, nav); src/components/ui/ = shared UI (export modal, SetPageHeader, StatCard); src/types/database.ts = generated Supabase schema + enums. .agents/tasks/ = workflow artifacts (not committed)."
+}

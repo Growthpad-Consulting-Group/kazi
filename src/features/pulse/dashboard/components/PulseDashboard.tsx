@@ -98,8 +98,9 @@ export default async function PulseDashboard() {
         description={`Week of ${weekLabel(weekStart)}`}
         icon="solar:heart-pulse-broken"
         actions={[
-          { label: checkin ? "View check-in" : "Check in", icon: "solar:pen-new-square-broken", href: checkinHref, variant: "primary" },
-          { label: "My goals", icon: "solar:target-broken", href: "/pulse/goals", variant: "secondary" },
+          { label: checkin ? "View check-in" : "Check in", icon: "solar:pen-new-square-broken", href: checkinHref, variant: isManager ? "secondary" : "primary" },
+          ...(isManager ? [{ label: "Team check-ins", icon: "solar:users-group-two-rounded-broken", href: "/pulse/checkins", variant: "primary" as const }] : []),
+          { label: "My goals", icon: "solar:target-broken", href: "/pulse/goals", variant: "secondary" as const },
         ]}
       />
 
@@ -114,7 +115,7 @@ export default async function PulseDashboard() {
             </div>
             <Link href={checkinHref} className="group flex min-w-64 items-center gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-3.5 transition-colors hover:bg-brand-500/10">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/25"><Icon icon={checkinStatus.icon} className="h-5 w-5" /></span>
-              <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-lo)]">This week&apos;s check-in</span><span className="mt-0.5 block text-sm font-semibold text-[var(--text-hi)]">{checkin ? checkinStatus.label : "Share your weekly update"}</span></span>
+              <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-lo)]">This week&apos;s check-in</span><span className="mt-0.5 block text-sm font-semibold text-[var(--text-hi)]">{checkin ? checkinStatus.label : isManager ? "Submit your update" : "Share your weekly update"}</span></span>
               <Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-brand-500 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>

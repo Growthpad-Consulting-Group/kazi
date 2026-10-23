@@ -125,4 +125,4 @@ export const ADMIN_ROLES: UserRole[]       = ["admin"];
 export const STAFF_ROLES: UserRole[]      = ["admin", "hr", "manager"];
 export const ANALYTICS_ROLES: UserRole[]   = ["admin", "hr", "manager"];
 export const SETTINGS_ROLES: UserRole[]    = ["admin", "hr"];
-export const DASHBOARD_ROLES: UserRole[]   = ["admin", "hr", "hiring_manager", "manager", "interviewer", "employee"];
+export const DASHBOARD_ROLES: UserRole[]   = ["admin", "hr", "hiring_manager", "manager", "interviewer"];

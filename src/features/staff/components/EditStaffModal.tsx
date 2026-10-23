@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
+import { DatePicker } from "@/components/ui/DatePicker";
+import AvatarUpload from "@/components/ui/AvatarUpload";
 
 interface StaffFields {
   name: string;
@@ -104,17 +106,23 @@ export default function EditStaffModal({ userId, initial, managers, departments 
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Start date</span>
-            <input type="date" value={fields.start_date ?? ""} onChange={(e) => set("start_date", e.target.value || null)} className={inputCls} />
+            <DatePicker value={fields.start_date ?? ""} onChange={(v) => set("start_date", v || null)} placeholder="Choose start date" />
           </label>
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Date of birth</span>
-            <input type="date" value={fields.date_of_birth ?? ""} onChange={(e) => set("date_of_birth", e.target.value || null)} className={inputCls} />
+            <DatePicker value={fields.date_of_birth ?? ""} onChange={(v) => set("date_of_birth", v || null)} placeholder="Choose date of birth" maxDate={new Date()} />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Avatar URL</span>
-            <input value={fields.avatar_url ?? ""} onChange={(e) => set("avatar_url", e.target.value || null)} placeholder="https://…" className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Profile photo</span>
+            <AvatarUpload
+              value={fields.avatar_url ?? ""}
+              name={fields.name || "S"}
+              uploadEndpoint={`/api/users/avatar?userId=${userId}`}
+              onChange={(url) => set("avatar_url", url || null)}
+              size="md"
+            />
           </label>
         </div>
 

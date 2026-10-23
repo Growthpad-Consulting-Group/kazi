@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Gap 4 — Add performance-based Top Performers. Existing rankings (Walk of Fame, Culture Leaderboards) are recognition/activity-based. Add rankings by (1) reward points earned, (2) goal completion rate, (3) average review rating, to the Leadership Analytics page. All three have schema support (verified in src/types/database.ts): reward_ledger.user_id/amount, goals.owner_id/status (GoalStatus includes 'completed'), performance_reviews.reviewee_id/overall_rating joined via review_cycles.id/start_date. Respect the same opt-out (engagement_notification_preferences.show_on_leaderboard=false, the Walk of Fame opt-out) and the same isHr/direct-reports scoping already in LeadershipDashboard. Render in the Walk of Fame podium + ranked-list visual style.",
+  "status": "pending",
+  "steps": [
+    "1. In src/features/pulse/analytics/components/LeadershipDashboard.tsx: extend the existing data Promise.all (the one that fetches checkins/goals for memberIds) to also fetch: (a) engagement_notification_preferences where show_on_leaderboard=false → optedOutSet = new Set(rows.map(r=>r.user_id)); (b) reward_ledger select user_id, amount .in('user_id', memberIds); (c) review_cycles select id, start_date order('start_start', { ascending: false }).limit(1). After resolving the latest cycle id, fetch performance_reviews select reviewee_id, overall_rating .eq('cycle_id', latestId) .not('overall_rating','is',null) .in('reviewee_id', memberIds). (If no cycle exists, the review-ratings list is empty.)",
+    "2. Still in LeadershipDashboard.tsx, build three Top-10 lists over the scoped members, joined to the existing `members` array (which already has {id, name, department}) and excluding optedOutSet: (1) rewardPoints: group reward_ledger rows by user_id summing amount where amount > 0 ('sum of positive amounts' per brief), map to {id, name, department, value: points, sub: 'pts'}, sort desc, top 10. (2) goalCompletion: group the already-fetched `goals` array by owner_id; for each owner with ≥3 goals compute Math.round(completedCount/totalCount*100); map to {id, name, department, value: pct, sub: `${completed}/${total}`}, sort desc, top 10. (3) reviewRatings: group performance_reviews by reviewee_id averaging overall_rating; map to {id, name, department, value: avg.toFixed(1), sub: 'avg rating'}, sort desc, top 10. (Use a shared shape so one renderer handles all three.)",
+    "3. Add a TopPerformersSection component (define inline in LeadershipDashboard.tsx, or a new file src/features/pulse/analytics/components/TopPerformersSection.tsx and import it) that takes the three lists and a members-scoped label ('Organisation-wide' vs 'Your team' from the existing isHr flag). Render a SectionCard titled 'Top Performers' with three tabs — 'Reward points', 'Goal completion', 'Review ratings' — using a small client sub-component with useState for the active tab (or simple anchor buttons). Each tab shows a podium for its top 3 (2nd, 1st, 3rd order) and a ranked list for 4–10, mirroring src/features/pulse/walk-of-fame/components/WalkOfFamePage.tsx: emoji medals (🥇🥈🥉), brand-500/10 avatars with initials, var(--border)/var(--surface) cards, monospace value badges. Omit the tenure/Active badges. Show 'No data yet' inside a tab when its list is empty. The whole section renders only when at least one list is non-empty. Place it after the Department Breakdown section so it inherits the same scoping.",
+    "4. Ensure the new section respects the existing guard (the component already early-returns 'No team members found' before this point, so Top Performers only renders for a non-empty scoped member set). For isHr the lists cover all active members; for a non-HR manager they cover only that manager's direct reports. Apply optedOutSet to all three lists."
+  ],
+  "acceptance_criteria": [
+    "Leadership Analytics shows a 'Top Performers' section with three tabs: Reward points, Goal completion, Review ratings",
+    "Each tab ranks the scoped member set (all active members for admin/hr; direct reports for a manager) and excludes users with show_on_leaderboard=false",
+    "Reward points = sum of positive reward_ledger.amount per user; goal completion = completed/total per owner with ≥3 goals; review ratings = average performance_reviews.overall_rating for the latest review_cycle, all Top 10",
+    "The visual style matches Walk of Fame (podium top 3 + ranked list 4–10)",
+    "`npx tsc --noEmit` and `npm run lint` are clean"
+  ],
+  "verification": [
+    "npx tsc --noEmit  (no type errors)",
+    "npm run lint  (no errors in changed files)"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,7 @@
+{
+  "task_id": "task-analytics-dashboard",
+  "task_description": "Fix four gaps in the Analytics & Dashboards feature: (1) role-scoped main dashboard, (2) working email export route, (3) culture-report CSV exposed in the UI, (4) performance-based Top Performers rankings.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

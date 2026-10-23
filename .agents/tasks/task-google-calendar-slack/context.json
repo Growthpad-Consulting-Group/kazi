@@ -1,0 +1,31 @@
+{
+  "project_type": "Next.js 16 App Router + React 19 + TypeScript + Supabase",
+  "language": "TypeScript",
+  "build_system": "Next.js 16 (next dev / next build). No special monorepo quirks. Uses @/ path alias mapped to src/.",
+  "test_framework": "vitest (npm test or npx vitest run)",
+  "build_command": "npm run build",
+  "test_command": "npx tsc --noEmit",
+  "verification_instructions": "Run `npx tsc --noEmit` from /Users/Apple/code/clients/kazi after all changes. Fix every type error before finishing. Also run `npm run build` to confirm no build failures.",
+  "snapshot_or_generated_files": null,
+  "environment_constraints": "Never restart the dev server. Do not push directly — work on the existing branch. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are already blank placeholders in .env.local. GOOGLE_REDIRECT_URI and GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY must also be added.",
+  "contribution_requirements": "Follow auth patterns (getServerSession + can() from src/lib/rbac.ts). All API routes: Node runtime (no edge). Use supabaseAdmin from src/lib/supabase. Match existing error handling (NextResponse.json({error}, {status})). No new dependencies — googleapis package is already installed but not needed; use plain fetch for Google Calendar REST API to match the Asana pattern.",
+  "key_patterns": "AES-256-GCM encryption: see src/lib/asana.ts — encryptionKey() reads base64 env var, encryptAsanaToken/decryptAsanaToken use 'v1:iv:tag:ciphertext' format. OAuth flow: see src/app/api/integrations/asana/connect/route.ts (state cookie kazi_asana_oauth, randomUUID state, JSON cookie). Callback: src/app/api/integrations/asana/callback/route.ts (validate state cookie, exchange code, upsert DB row). Disconnect: src/app/api/integrations/asana/disconnect/route.ts (DELETE row by user_id). IntegrationsClient.tsx: useEffect reads window.location.search for ?param=connected|error, replaces history. Slack: src/lib/slack.ts exports postSlackMessage(text, blocks?). Goal status update route: src/app/api/pulse/goals/progress/route.ts (PATCH). Supabase migrations: CREATE TABLE + RLS + service_role GRANT + set_updated_at trigger (see 20261023000017_slack_connections.sql for pattern).",
+  "relevant_files": [
+    "src/lib/asana.ts",
+    "src/lib/slack.ts",
+    "src/app/api/integrations/asana/connect/route.ts",
+    "src/app/api/integrations/asana/callback/route.ts",
+    "src/app/api/integrations/asana/disconnect/route.ts",
+    "src/app/api/pulse/one-on-ones/route.ts",
+    "src/app/api/pulse/one-on-ones/[id]/route.ts",
+    "src/app/api/pulse/checkins/route.ts",
+    "src/app/api/pulse/goals/progress/route.ts",
+    "src/app/api/pulse/automations/run/route.ts",
+    "src/features/settings/components/IntegrationsClient.tsx",
+    "src/app/(app)/settings/integrations/page.tsx",
+    "src/types/database.ts",
+    "supabase/migrations/20261023000017_slack_connections.sql",
+    "supabase/migrations/20261023000018_users_dob.sql"
+  ],
+  "directory_structure": "src/app/api/ — all route handlers. src/lib/ — shared utilities (asana.ts, slack.ts, supabase.ts, auth.ts, rbac.ts). src/features/settings/components/ — IntegrationsClient.tsx, AISettingsClient.tsx. src/app/(app)/settings/integrations/ — integrations page server component. src/types/database.ts — single-file Database interface + type aliases. supabase/migrations/ — timestamped SQL migrations, latest is 20261023000018."
+}

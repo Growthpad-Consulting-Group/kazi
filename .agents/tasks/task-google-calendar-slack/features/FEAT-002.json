@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Slack Block Kit notifications for four key events: 1-on-1 scheduled (POST + PATCH), check-in submitted, milestone anniversary, and goal completed. FEAT-002 is independent of FEAT-001 — it only touches existing routes and the existing postSlackMessage helper.",
+  "status": "pending",
+  "steps": [
+    "1. Update src/app/api/pulse/one-on-ones/route.ts (POST). After the successful insert + invalidateOneOnOneParticipants call (and after the Google Calendar block added by FEAT-001, if present — use a separate try/catch): fetch manager and report user records from supabaseAdmin if not already fetched. If scheduledAt is provided, post to Slack (non-blocking try/catch): import postSlackMessage from src/lib/slack.ts. Message text: '@{managerName} has a 1-on-1 with @{reportName} scheduled for {formattedDate}'. Blocks: [ { type: 'header', text: { type: 'plain_text', text: '📅 1-on-1 Scheduled' } }, { type: 'context', elements: [{ type: 'mrkdwn', text: '@{managerName} has a 1-on-1 with @{reportName} scheduled for {formattedDate}. <{appUrl}/pulse/one-on-ones|View 1-on-1s>' }] } ]. Format date with toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }). appUrl = process.env.PRODUCTION_APP_URL ?? 'http://localhost:3000'.",
+
+    "2. Update src/app/api/pulse/one-on-ones/[id]/route.ts (PATCH). After successful DB update: if scheduledAt is in the request body, post Slack notification with same Block Kit shape as step 1. Fetch manager/report names using existing row's manager_id/report_id (already read for cache invalidation). Non-blocking try/catch.",
+
+    "3. Update src/app/api/pulse/checkins/route.ts (POST). After the successful upsert and awardPoints call: if status === 'submitted', post to Slack (non-blocking try/catch). Fetch employee name: supabaseAdmin.from('users').select('name').eq('id', userId).maybeSingle(). Format weekStart for display (e.g. new Date(weekStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })). postSlackMessage with text: '{employeeName} submitted their weekly check-in for week of {weekStart}'. Blocks: [ { type: 'header', text: { type: 'plain_text', text: '✅ Check-in Submitted' } }, { type: 'context', elements: [{ type: 'mrkdwn', text: '{employeeName} submitted their weekly check-in for the week of {formattedWeekStart}. <{appUrl}/pulse/checkins|View Check-ins>' }] } ].",
+
+    "4. Update src/app/api/pulse/automations/run/route.ts. In the milestone_anniversary → send_notification branch, for both work_anniversary and service_achievement milestone loops: after the existing notifyMilestone call, add a non-blocking try/catch that fetches the user name from supabaseAdmin.from('users').select('name').eq('id', milestone.user_id).maybeSingle(), then calls postSlackMessage. Import postSlackMessage from src/lib/slack.ts. For work_anniversary: text '🎉 {name} is celebrating their work anniversary today!', blocks: [ { type: 'header', text: { type: 'plain_text', text: '🎉 Work Anniversary!' } }, { type: 'context', elements: [{ type: 'mrkdwn', text: '{name} is celebrating their{yearsText} work anniversary today!' }] } ] where yearsText = milestone.years_count ? ` ${milestone.years_count}-year` : ''. For service_achievement: header '🏆 Service Achievement!' and text '{name} is celebrating a service achievement milestone today!'.",
+
+    "5. Update src/app/api/pulse/goals/progress/route.ts (PATCH). After the successful supabaseAdmin update and cache invalidation: if the request body contains status === 'completed', post to Slack (non-blocking try/catch). Fetch the goal title from the existing before read (the route already reads owner_id and parent_id; add title to the select: .select('owner_id, parent_id, title')). Fetch owner name: supabaseAdmin.from('users').select('name').eq('id', ownerId).maybeSingle(). postSlackMessage with text: '🎯 {ownerName} just completed their goal: {title}'. Blocks: [ { type: 'header', text: { type: 'plain_text', text: '🎯 Goal Completed!' } }, { type: 'context', elements: [{ type: 'mrkdwn', text: '{ownerName} just completed their goal: *{title}*. <{appUrl}/pulse/goals|View Goals>' }] } ]. Note: fetch owner name only if ownerId is non-empty."
+  ],
+  "acceptance_criteria": [
+    "POST /api/pulse/one-on-ones posts a Slack Block Kit message when scheduledAt is provided; no error thrown if Slack is not configured.",
+    "PATCH /api/pulse/one-on-ones/[id] posts a Slack Block Kit message when scheduledAt is in the request body.",
+    "POST /api/pulse/checkins posts a Slack Block Kit message when status === 'submitted'.",
+    "POST /api/pulse/automations/run posts Slack messages for both work_anniversary and service_achievement milestones (non-blocking).",
+    "PATCH /api/pulse/goals/progress posts a Slack Block Kit message when status changes to 'completed'.",
+    "All Slack calls are wrapped in try/catch and never cause the parent route to fail.",
+    "`npx tsc --noEmit` passes with no errors after FEAT-002 changes."
+  ],
+  "verification": [
+    "npx tsc --noEmit  (run from /Users/Apple/code/clients/kazi — must exit 0 with no errors)",
+    "npm run build  (must complete without errors)"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

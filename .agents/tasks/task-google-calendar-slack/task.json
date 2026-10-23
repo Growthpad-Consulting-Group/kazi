@@ -1,0 +1,7 @@
+{
+  "task_id": "task-google-calendar-slack",
+  "task_description": "Implement Google Calendar OAuth integration for 1-on-1 scheduling, and add Slack Block Kit notifications for 1-on-1 scheduled, check-in submitted, milestone anniversary, and goal completed events.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

@@ -46,7 +46,10 @@ export default async function EmployeeProfilePage({ id }: { id: string }) {
   ]);
   for (const result of [managersListResult, departmentsListResult, managerResult, checkinResult, goalsResult, meetingsResult, signatureResult, departmentResult, reviewsResult, idpsResult]) if (result.error) throw new Error(result.error.message);
   const managersList = (managersListResult.data ?? []) as { id: string; name: string }[];
-  const departmentsList = ((departmentsListResult.data ?? []) as { name: string }[]).map((d) => d.name);
+  const departmentsList = Array.from(new Set([
+    ...((departmentsListResult.data ?? []) as { name: string }[]).map((d) => d.name),
+    ...(user.department ? [user.department] : []),
+  ])).sort();
   const manager = managerResult.data as { id: string; name: string; job_title: string | null } | null;
   const checkin = (checkinResult.data ?? [])[0] as { id: string; week_start: string; mood: number | null; status: string; updated_at: string } | undefined;
   const goals = goalsResult.data ?? [];

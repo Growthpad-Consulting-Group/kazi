@@ -1,0 +1,22 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Gap 3 — Expose the culture-report CSV in the UI. The endpoint src/app/api/pulse/reports/culture-export/route.ts already supports format=csv, but src/features/pulse/analytics/components/ExportReportButton.tsx only ever requests ?format=json. Add a JSON/CSV choice to the button (small dropdown, matching existing style) and trigger a CSV download when CSV is selected, keeping JSON working. The route is already auth-gated (view_analytics) — do not modify it.",
+  "status": "pending",
+  "steps": [
+    "1. In src/features/pulse/analytics/components/ExportReportButton.tsx: add a `format` state ('json' | 'csv') and an `open` dropdown state. Refactor the export into a single async function `runExport(fmt: 'json'|'csv')` that sets loading, calls fetch(`/api/pulse/reports/culture-export?format=${fmt}`), throws on !res.ok, then downloads: for json → `await res.json()` → Blob([JSON.stringify(data,null,2)], {type:'application/json'}) → filename `culture-report-DATE.json`; for csv → `await res.text()` → Blob([text], {type:'text/csv;charset=utf-8'}) → filename `culture-report-DATE.csv`. Add a local `download(blob, filename)` helper (URL.createObjectURL → hidden <a> click → revoke) reused by both. Keep the existing error/finally/loading behavior.",
+    "2. Replace the single button JSX with a relative wrapper holding the primary 'Export report' button (calls runExport('json') for backward compat) plus a caret button that toggles `open`; when open, render a small absolute dropdown (matches existing style: rounded-xl border var(--border) bg var(--surface) shadow) with two options — 'Download JSON' (onClick runExport('json')) and 'Download CSV' (onClick runExport('csv')) — each closing the dropdown. Keep the loading spinner icon and the red error text. Use solar:* broken icons (e.g. solar:arrow-down-broken for the caret) and brand-500 accents to match the page."
+  ],
+  "acceptance_criteria": [
+    "The button offers both JSON and CSV downloads; selecting CSV requests ?format=csv and downloads a culture-report-DATE.csv file",
+    "The existing JSON download still works unchanged",
+    "The dropdown matches the existing var(--border)/var(--surface)/brand-500 UI style",
+    "`npx tsc --noEmit` and `npm run lint` are clean"
+  ],
+  "verification": [
+    "npx tsc --noEmit  (no type errors)",
+    "npm run lint  (no errors in the changed file)"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

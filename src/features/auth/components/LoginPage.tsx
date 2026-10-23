@@ -50,7 +50,8 @@ export default function LoginPage() {
       const session = await getSession();
       const firstName = session?.user?.name?.split(" ")[0];
       toast.success(firstName ? `Welcome back, ${firstName}!` : "Welcome back!", { id: loadingToast, icon: "✅" });
-      router.push("/dashboard");
+      const role = session?.user?.role;
+      router.push(role === "employee" ? "/pulse" : "/dashboard");
     } catch (err: unknown) {
       toast.error((err as Error).message, { id: loadingToast, icon: "❌" });
       recaptchaRef.current?.reset();

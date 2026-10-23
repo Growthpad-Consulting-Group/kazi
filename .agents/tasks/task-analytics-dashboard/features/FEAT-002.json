@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Gap 2 — Fix the broken email export. ExportModal.handleEmailExport POSTs to /api/export/email which does not exist (404). src/lib/email.ts exists (resend + EMAIL_FROM), so create the route. Per the brief, the route MUST deliver to the authenticated session user's email and ignore client-provided recipients (open-relay/spam risk). Build the export file (CSV/XLSX/PDF) as an email attachment using the existing resend.emails.send pattern from src/app/api/hire/candidates/send-email/route.ts. The Resend SDK Attachment type is { content: string|Buffer; filename?: string; contentType?: string } (verified in node_modules/resend/dist/index.d.cts).",
+  "status": "pending",
+  "steps": [
+    "1. Create src/lib/export-attachment.ts exporting buildExportAttachment(format: 'csv'|'xlsx'|'pdf', data: Record<string, unknown>[], headers: { label: string; key: string }[], filename: string): { content: Buffer; filename: string; contentType: string }. CSV: join header labels then value rows, RFC-style quoting (escape commas/quotes/newlines — copy the toCsv escape logic from src/app/api/pulse/reports/culture-export/route.ts). XLSX: `const XLSX = await import('xlsx')`; map data rows to label-keyed objects (headers[].label → row[key]); `XLSX.utils.json_to_sheet`, `!cols` wch:20, `XLSX.utils.book_new`/`book_append_sheet`, `XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })`. PDF: `const { default: jsPDF } = await import('jspdf')` + `const autoTable = (await import('jspdf-autotable')).default`; `const doc = new jsPDF(); autoTable(doc, { head: [headers.map(h=>h.label)], body: data.map(r=>headers.map(h=>String(r[h.key] ?? ''))), startY: 30, theme: 'striped', headStyles: { fillColor: [240,93,35] } }); const buf = doc.output('arraybuffer');`. Return content=Buffer.from(...), filename=`${filename}.${ext}` (ext = format), contentType = csv→'text/csv', xlsx→'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', pdf→'application/pdf'. Throw on unknown format or empty data/headers.",
+    "2. Create src/lib/export-attachment.test.ts (vitest) importing buildExportAttachment. Test CSV: given data [{a:'1,2',b:'x'}] and headers [{label:'A',key:'a'},{label:'B',key:'b'}], expect content to start with 'A,B', the value '1,2' to be quoted as '\"1,2\"', filename ends '.csv', contentType 'text/csv'. Test XLSX: expect Buffer instance, filename ends '.xlsx', contentType is the xlsx mime. Test PDF: expect Buffer with non-zero length, filename ends '.pdf'. Test invalid format throws.",
+    "3. Create src/app/api/export/email/route.ts as a POST handler (Node runtime — do not set `export const runtime = 'edge'`). Gate: `const session = await getServerSession(authOptions); if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });` (any authenticated role — the exported data is what the caller already sees on their list page). Parse body as { data?, headers?, format?, recipients?, subject?, message?, filename?, user? }. SECURITY: ignore `recipients` and `user`; set `const to = session.user.email;` and return 400 if !to. Validate data is a non-empty array, headers non-empty, format ∈ {csv,xlsx,pdf}; else 400. Build the attachment via buildExportAttachment(format, data, headers, filename ?? `${'export'}_${date}`). Compose subject = body.subject?.trim() || `${'Data'} export - ${date}` and a plain-text/html message from body.message?.trim() || 'Please find your requested data export attached.' (wrap html in a simple div like send-email/route.ts). Send via `const { data: sent, error } = await resend.emails.send({ from: EMAIL_FROM, to, subject, text, html, attachments: [{ content, filename, contentType }] });` using `resend, EMAIL_FROM` from @/lib/email. On error return 500 with error.message. On success return NextResponse.json({ id: sent?.id }).",
+    "4. In src/components/ui/export/ExportModal.tsx handleEmailExport: after `if (response.ok)` change the success toast to toast.success('Export email sent to your email!') (the route ignores recipients). Do not change the payload or the recipient input. Leave the EmailConfiguration recipient field in place (documented limitation: collected but ignored)."
+  ],
+  "acceptance_criteria": [
+    "POST /api/export/email with a valid authenticated session returns 200 and sends one email to session.user.email with the generated file attached",
+    "The route ignores client-provided recipients and uses session.user.email; returns 401 unauthenticated and 400 when the session user has no email or the payload is invalid",
+    "CSV, XLSX, and PDF attachments are all generated; CSV quotes values containing commas/quotes/newlines",
+    "buildExportAttachment unit tests pass",
+    "`npx tsc --noEmit`, `npm run lint`, and `npm test` are clean / passing"
+  ],
+  "verification": [
+    "npm test  (new src/lib/export-attachment.test.ts passes)",
+    "npx tsc --noEmit  (no type errors)",
+    "npm run lint  (no errors in changed files)"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
