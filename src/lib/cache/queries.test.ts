@@ -109,7 +109,7 @@ describe("user-scoped queries", () => {
     await getCachedStaff();
 
     expect(supabaseState.calls).toHaveLength(1);
-    expect(mockRedis.__has("kazi:people:list")).toBe(true);
+    expect(mockRedis.__has("kazi:staff:list")).toBe(true);
   });
 });
 

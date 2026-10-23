@@ -90,7 +90,7 @@ export default async function RecognitionAnalyticsSection({
   let recipientsData: RecipRow[] = [];
 
   if (ids.length > 0) {
-    let recipQuery = supabaseAdmin
+    const recipQuery = supabaseAdmin
       .from("feedback_recipients")
       .select("user_id, user:user_id(name, department)")
       .in("feedback_id", ids);

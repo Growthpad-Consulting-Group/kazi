@@ -26,7 +26,7 @@ beforeEach(() => {
 
 describe("cache keys", () => {
   it("namespaces keys by group", () => {
-    expect(cacheKey("staff", "list")).toBe("kazi:people:list");
+    expect(cacheKey("staff", "list")).toBe("kazi:staff:list");
     expect(cacheKey("pulse", "checkins", "me", "u1")).toBe("kazi:pulse:checkins:me:u1");
   });
 
