@@ -7,6 +7,8 @@ import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { PulseAnalyticsCharts } from "./PulseAnalyticsCharts";
+import TopPerformersSection from "./TopPerformersSection";
+import type { TopPerformerEntry } from "./TopPerformersSection";
 
 type TeamMember = { id: string; name: string; department: string | null; manager_id: string | null };
 type Checkin = { user_id: string; week_start: string; mood: number | null; blockers: string | null; status: string };
@@ -62,14 +64,48 @@ export default async function LeadershipDashboard() {
     );
   }
 
-  const [{ data: rawCheckins }, { data: rawGoals }] = await Promise.all([
+  const [
+    { data: rawCheckins },
+    { data: rawGoals },
+    { data: optedOutRows },
+    { data: rewardRows },
+    { data: latestCycleRows },
+  ] = await Promise.all([
     supabaseAdmin
       .from("checkins")
       .select("user_id, week_start, mood, blockers, status")
       .in("user_id", memberIds)
       .gte("week_start", fourWeeksAgo),
     supabaseAdmin.from("goals").select("owner_id, status, progress").in("owner_id", memberIds),
+    // Gap 4: opt-out set
+    supabaseAdmin
+      .from("engagement_notification_preferences")
+      .select("user_id")
+      .eq("show_on_leaderboard", false)
+      .in("user_id", memberIds),
+    // Gap 4: reward ledger totals
+    supabaseAdmin
+      .from("reward_ledger")
+      .select("user_id, amount")
+      .in("user_id", memberIds),
+    // Gap 4: latest review cycle
+    supabaseAdmin
+      .from("review_cycles")
+      .select("id")
+      .order("start_date", { ascending: false })
+      .limit(1),
   ]);
+
+  // Fetch performance reviews for the latest cycle (if one exists)
+  const latestCycleId = (latestCycleRows ?? [])[0]?.id ?? null;
+  const { data: reviewRows } = latestCycleId
+    ? await supabaseAdmin
+        .from("performance_reviews")
+        .select("reviewee_id, overall_rating")
+        .eq("cycle_id", latestCycleId)
+        .not("overall_rating", "is", null)
+        .in("reviewee_id", memberIds)
+    : { data: [] };
 
   const checkins = (rawCheckins ?? []) as Checkin[];
   const goals = (rawGoals ?? []) as Goal[];
@@ -106,6 +142,78 @@ export default async function LeadershipDashboard() {
     : 0;
 
   const flightRisks = members.filter((m) => isFlightRisk(checkins, m.id));
+
+  // ── Gap 4: Top Performers ─────────────────────────────────────────────────
+  const membersMap = new Map(members.map((m) => [m.id, m]));
+  const optedOutSet = new Set((optedOutRows ?? []).map((r) => r.user_id));
+
+  // 1. Reward points — sum positive amounts per user
+  const rewardTotals = new Map<string, number>();
+  for (const row of rewardRows ?? []) {
+    if (row.amount > 0) {
+      rewardTotals.set(row.user_id, (rewardTotals.get(row.user_id) ?? 0) + row.amount);
+    }
+  }
+  const topRewardPoints: TopPerformerEntry[] = [...rewardTotals.entries()]
+    .filter(([id]) => !optedOutSet.has(id) && membersMap.has(id))
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10)
+    .map(([id, total]) => ({
+      id,
+      name: membersMap.get(id)!.name,
+      department: membersMap.get(id)!.department,
+      score: total,
+      scoreLabel: `${total.toLocaleString()} pts`,
+    }));
+
+  // 2. Goal completion rate — completed/total per owner, min 3 goals
+  const goalsByOwner = new Map<string, { completed: number; total: number }>();
+  for (const g of goals) {
+    if (!g.owner_id) continue;
+    const entry = goalsByOwner.get(g.owner_id) ?? { completed: 0, total: 0 };
+    entry.total += 1;
+    if (g.status === "completed") entry.completed += 1;
+    goalsByOwner.set(g.owner_id, entry);
+  }
+  const topGoalCompletion: TopPerformerEntry[] = [...goalsByOwner.entries()]
+    .filter(([id, v]) => v.total >= 3 && !optedOutSet.has(id) && membersMap.has(id))
+    .map(([id, v]) => ({
+      id,
+      rate: v.completed / v.total,
+      name: membersMap.get(id)!.name,
+      department: membersMap.get(id)!.department,
+    }))
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 10)
+    .map(({ id, rate, name, department }) => ({
+      id,
+      name,
+      department,
+      score: rate,
+      scoreLabel: `${Math.round(rate * 100)}%`,
+    }));
+
+  // 3. Review ratings — avg overall_rating per reviewee in latest cycle
+  const reviewRatingsByUser = new Map<string, { total: number; count: number }>();
+  for (const r of reviewRows ?? []) {
+    if (r.overall_rating === null) continue;
+    const entry = reviewRatingsByUser.get(r.reviewee_id) ?? { total: 0, count: 0 };
+    entry.total += r.overall_rating;
+    entry.count += 1;
+    reviewRatingsByUser.set(r.reviewee_id, entry);
+  }
+  const topReviewRatings: TopPerformerEntry[] = [...reviewRatingsByUser.entries()]
+    .filter(([id]) => !optedOutSet.has(id) && membersMap.has(id))
+    .map(([id, v]) => ({ id, avg: v.total / v.count }))
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, 10)
+    .map(({ id, avg }) => ({
+      id,
+      name: membersMap.get(id)!.name,
+      department: membersMap.get(id)!.department,
+      score: avg,
+      scoreLabel: `${avg.toFixed(1)} / 5`,
+    }));
 
   const deptMap: Record<string, { total: number; submitted: number; avgMood: number[]; atRisk: number }> = {};
   if (isHr) {
@@ -232,6 +340,13 @@ export default async function LeadershipDashboard() {
           </div>
         </SectionCard>
       )}
+
+      {/* Top Performers */}
+      <TopPerformersSection
+        rewardPoints={topRewardPoints}
+        goalCompletion={topGoalCompletion}
+        reviewRatings={topReviewRatings}
+      />
     </div>
   );
 }

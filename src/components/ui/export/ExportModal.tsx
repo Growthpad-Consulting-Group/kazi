@@ -171,7 +171,7 @@ export default function ExportModal({ isOpen, onClose, users, mode, type = "reco
         body: JSON.stringify({ data: exportData, headers, format: emailAttachmentFormat, recipients: emailRecipients, subject: emailSubject.trim() || defaultSubject, message: emailMessage.trim() || "Please find your requested data export attached.", filename: defaultFilename, user: session?.user }),
       });
       const result = await response.json();
-      if (response.ok) { toast.success(`Export email sent to ${emailRecipients.length} recipient${emailRecipients.length > 1 ? "s" : ""}!`); onClose(); }
+      if (response.ok) { toast.success("Export email sent to your email!"); onClose(); }
       else throw new Error(result.error || "Failed to send email");
     } catch (error: any) {
       toast.error(`Failed to send email: ${error.message}`);
