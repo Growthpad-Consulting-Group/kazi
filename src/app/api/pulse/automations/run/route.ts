@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { notifyMilestone, notifyCampaignLive } from "@/lib/notifications";
 import { awardPoints } from "@/lib/award-points";
+import { postSlackMessage } from "@/lib/slack";
 
 export async function POST(req: Request): Promise<Response> {
   // Auth: Bearer CRON_SECRET
@@ -23,6 +24,8 @@ export async function POST(req: Request): Promise<Response> {
   for (const rule of rules ?? []) {
     // ── Milestone anniversary → send notification ─────────────────────────
     if (rule.trigger_type === "milestone_anniversary" && rule.action_type === "send_notification") {
+      const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+
       const { data: milestones } = await supabaseAdmin
         .from("milestones")
         .select("user_id, years_count")
@@ -31,6 +34,39 @@ export async function POST(req: Request): Promise<Response> {
 
       for (const milestone of milestones ?? []) {
         await notifyMilestone(milestone.user_id, "work_anniversary", milestone.years_count ?? undefined);
+
+        // Slack Block Kit notification (non-blocking)
+        try {
+          const { data: userRow } = await supabaseAdmin
+            .from("users")
+            .select("name")
+            .eq("id", milestone.user_id)
+            .maybeSingle();
+          const name = (userRow as unknown as { name: string } | null)?.name ?? "A team member";
+          const years = milestone.years_count ?? null;
+          const milestoneLabel = `work anniversary${years ? ` — ${years} year${years === 1 ? "" : "s"}` : ""}`;
+
+          await postSlackMessage(
+            `🎉 ${name} is celebrating their ${milestoneLabel} today!`,
+            [
+              {
+                type: "header",
+                text: { type: "plain_text", text: "🎉 Milestone Celebration" },
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: `*${name}* is celebrating their *${milestoneLabel}* today!` },
+              },
+              {
+                type: "context",
+                elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse|View in Kazi>` }],
+              },
+            ]
+          );
+        } catch (slackErr) {
+          console.error("Slack notification failed (non-blocking)", slackErr);
+        }
+
         processed++;
       }
 
@@ -43,6 +79,37 @@ export async function POST(req: Request): Promise<Response> {
 
       for (const milestone of svcMilestones ?? []) {
         await notifyMilestone(milestone.user_id, "service_achievement", milestone.years_count ?? undefined);
+
+        // Slack Block Kit notification (non-blocking)
+        try {
+          const { data: userRow } = await supabaseAdmin
+            .from("users")
+            .select("name")
+            .eq("id", milestone.user_id)
+            .maybeSingle();
+          const name = (userRow as unknown as { name: string } | null)?.name ?? "A team member";
+
+          await postSlackMessage(
+            `🎉 ${name} is celebrating a service achievement today!`,
+            [
+              {
+                type: "header",
+                text: { type: "plain_text", text: "🎉 Milestone Celebration" },
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: `*${name}* is celebrating a *service achievement* today!` },
+              },
+              {
+                type: "context",
+                elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse|View in Kazi>` }],
+              },
+            ]
+          );
+        } catch (slackErr) {
+          console.error("Slack notification failed (non-blocking)", slackErr);
+        }
+
         processed++;
       }
     }

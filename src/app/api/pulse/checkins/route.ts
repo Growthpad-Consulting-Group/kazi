@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateUserCheckins } from "@/lib/cache/invalidate";
 import { awardPoints } from "@/lib/award-points";
+import { postSlackMessage } from "@/lib/slack";
 import type { CheckinStatus } from "@/types/database";
 
 export async function POST(req: Request) {
@@ -53,6 +54,43 @@ export async function POST(req: Request) {
         createdBy: null,
       });
     } catch { /* non-blocking */ }
+
+    // Slack Block Kit notification (non-blocking)
+    try {
+      const { data: userRow } = await supabaseAdmin
+        .from("users")
+        .select("name")
+        .eq("id", userId)
+        .maybeSingle();
+      const employeeName = (userRow as unknown as { name: string } | null)?.name ?? "An employee";
+      const weekLabel = new Date(weekStart).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+      const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+
+      await postSlackMessage(
+        `${employeeName} submitted their weekly check-in for the week of ${weekLabel}`,
+        [
+          {
+            type: "header",
+            text: { type: "plain_text", text: "✅ Weekly Check-in Submitted" },
+          },
+          {
+            type: "section",
+            text: { type: "mrkdwn", text: `*${employeeName}* submitted their weekly check-in for the week of ${weekLabel}.` },
+          },
+          {
+            type: "context",
+            elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse/checkins|View in Kazi>` }],
+          },
+        ]
+      );
+    } catch (slackErr) {
+      console.error("Slack notification failed (non-blocking)", slackErr);
+    }
   }
   return NextResponse.json({ ok: true });
 }

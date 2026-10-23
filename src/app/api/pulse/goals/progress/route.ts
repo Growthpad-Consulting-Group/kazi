@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOwnerGoals } from "@/lib/cache/invalidate";
+import { postSlackMessage } from "@/lib/slack";
 import type { GoalStatus } from "@/types/database";
 
 export async function PATCH(req: Request) {
@@ -20,12 +21,13 @@ export async function PATCH(req: Request) {
   // can be dropped afterwards.
   const { data: existing } = await supabaseAdmin
     .from("goals")
-    .select("owner_id, parent_id")
+    .select("owner_id, parent_id, title")
     .eq("id", id)
     .maybeSingle();
-  const before = existing as unknown as { owner_id: string | null; parent_id: string | null } | null;
+  const before = existing as unknown as { owner_id: string | null; parent_id: string | null; title: string } | null;
   const ownerId = before?.owner_id ?? "";
   const parentId = before?.parent_id ?? null;
+  const goalTitle = before?.title ?? "a goal";
 
   const { error } = await supabaseAdmin.from("goals").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -52,5 +54,39 @@ export async function PATCH(req: Request) {
       (parent as unknown as { owner_id: string | null } | null)?.owner_id ?? ""
     );
   }
+
+  // Slack Block Kit notification when a goal is completed (non-blocking)
+  if (status === "completed" && ownerId) {
+    try {
+      const { data: userRow } = await supabaseAdmin
+        .from("users")
+        .select("name")
+        .eq("id", ownerId)
+        .maybeSingle();
+      const ownerName = (userRow as unknown as { name: string } | null)?.name ?? "Someone";
+      const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+
+      await postSlackMessage(
+        `🎯 ${ownerName} just completed their goal: ${goalTitle}`,
+        [
+          {
+            type: "header",
+            text: { type: "plain_text", text: "🎯 Goal Completed" },
+          },
+          {
+            type: "section",
+            text: { type: "mrkdwn", text: `*${ownerName}* just completed their goal: *${goalTitle}*` },
+          },
+          {
+            type: "context",
+            elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse/goals|View in Kazi>` }],
+          },
+        ]
+      );
+    } catch (slackErr) {
+      console.error("Slack notification failed (non-blocking)", slackErr);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
