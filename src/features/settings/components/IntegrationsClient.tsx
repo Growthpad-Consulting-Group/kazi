@@ -18,10 +18,16 @@ interface SlackStatus {
   channelName: string | null;
 }
 
+interface GoogleCalendarStatus {
+  connected: boolean;
+  calendarId: string | null;
+}
+
 interface Props {
   asana: AsanaConnection;
   googleWorkspaceConnected: boolean;
   slackStatus: SlackStatus;
+  googleCalendarStatus: GoogleCalendarStatus;
 }
 
 function IntegrationCard({
@@ -90,7 +96,7 @@ function IntegrationCard({
   );
 }
 
-export default function IntegrationsClient({ asana, googleWorkspaceConnected, slackStatus }: Props) {
+export default function IntegrationsClient({ asana, googleWorkspaceConnected, slackStatus, googleCalendarStatus }: Props) {
   const [asanaConnected, setAsanaConnected] = useState(asana.connected);
 
   // Slack state
@@ -100,6 +106,9 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
   const [slackWebhookInput, setSlackWebhookInput] = useState("");
   const [slackChannelInput, setSlackChannelInput] = useState("");
   const [slackPending, startSlackTransition] = useTransition();
+
+  // Google Calendar state
+  const [googleCalendar, setGoogleCalendar] = useState(googleCalendarStatus);
 
   // Handle OAuth return — read param directly from window.location (avoids Suspense requirement)
   useEffect(() => {
@@ -114,6 +123,19 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
     if (asanaParam) {
       const url = new URL(window.location.href);
       url.searchParams.delete("asana");
+      window.history.replaceState(null, "", url.toString());
+    }
+
+    const gcalParam = params.get("google_calendar");
+    if (gcalParam === "connected") {
+      setGoogleCalendar((prev) => ({ ...prev, connected: true }));
+      toast.success("Google Calendar connected successfully");
+    } else if (gcalParam === "error") {
+      toast.error("Google Calendar connection failed. Check that OAuth credentials are configured.");
+    }
+    if (gcalParam) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google_calendar");
       window.history.replaceState(null, "", url.toString());
     }
   }, []);
@@ -131,6 +153,20 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
     }
     setAsanaConnected(false);
     toast.success("Asana disconnected");
+  }
+
+  function connectGoogleCalendar() {
+    window.location.href = "/api/integrations/google-calendar/connect";
+  }
+
+  async function disconnectGoogleCalendar() {
+    const res = await fetch("/api/integrations/google-calendar/disconnect", { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json() as { error?: string };
+      throw new Error(body.error ?? "Could not disconnect");
+    }
+    setGoogleCalendar({ connected: false, calendarId: null });
+    toast.success("Google Calendar disconnected");
   }
 
   function openSlackModal() {
@@ -236,6 +272,24 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
       </SettingsSection>
 
       <SettingsSection
+        title="Productivity"
+        description="Connect calendar and productivity tools"
+        icon="solar:calendar-broken"
+      >
+        <div className="space-y-3">
+          <IntegrationCard
+            icon="logos:google-calendar"
+            name="Google Calendar"
+            description="Sync 1-on-1 meetings to your Google Calendar. Events are created automatically when meetings are scheduled."
+            status={googleCalendar.connected ? "connected" : "disconnected"}
+            meta={googleCalendar.connected && googleCalendar.calendarId ? `Calendar: ${googleCalendar.calendarId}` : undefined}
+            onConnect={connectGoogleCalendar}
+            onDisconnect={disconnectGoogleCalendar}
+          />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
         title="Coming soon"
         description="More integrations are on the roadmap"
         icon="solar:hourglass-broken"
@@ -243,7 +297,6 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
       >
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            { icon: "logos:google-calendar", name: "Google Calendar", desc: "Sync 1-on-1 meetings to calendar" },
             { icon: "arcticons:bamboohr", name: "BambooHR", desc: "Sync employee data and org structure" },
             { icon: "thesvg-color:workday", name: "Workday", desc: "Bi-directional HR data integration" },
           ].map((item) => (

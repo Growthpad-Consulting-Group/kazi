@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
+import { createCalendarEvent } from "@/lib/google-calendar";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -44,6 +45,46 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const insertedId = (data as unknown as { id: string }).id;
+
   await invalidateOneOnOneParticipants({ managerId, reportId });
-  return NextResponse.json({ id: (data as unknown as { id: string }).id, carried: carried.length });
+
+  // Create Google Calendar event if scheduledAt is provided (non-blocking)
+  if (scheduledAt) {
+    try {
+      const { data: users } = await supabaseAdmin
+        .from("users")
+        .select("id, name, email")
+        .in("id", [managerId, reportId]);
+
+      type UserRow = { id: string; name: string; email: string };
+      const userList = (users ?? []) as UserRow[];
+      const managerUser = userList.find((u) => u.id === managerId);
+      const reportUser = userList.find((u) => u.id === reportId);
+      const managerName = managerUser?.name ?? "Manager";
+      const reportName = reportUser?.name ?? "Report";
+      const attendeeEmails = userList.map((u) => u.email).filter(Boolean);
+
+      const endAt = new Date(new Date(scheduledAt).getTime() + 60 * 60 * 1000).toISOString();
+
+      const calResult = await createCalendarEvent(managerId, {
+        title: `1-on-1: ${managerName} & ${reportName}`,
+        description: "Scheduled via Kazi",
+        startAt: scheduledAt,
+        endAt,
+        attendeeEmails,
+      });
+
+      if (calResult?.eventId) {
+        await supabaseAdmin
+          .from("one_on_ones")
+          .update({ google_event_id: calResult.eventId })
+          .eq("id", insertedId);
+      }
+    } catch (calErr) {
+      console.error("Calendar event creation failed (non-blocking)", calErr);
+    }
+  }
+
+  return NextResponse.json({ id: insertedId, carried: carried.length });
 }

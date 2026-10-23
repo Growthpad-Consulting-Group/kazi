@@ -251,15 +251,17 @@ export interface Database {
           notes: string | null;
           action_items: { text: string; done: boolean; carried_from?: string }[];
           ai_talking_points: string | null;
+          google_event_id: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["one_on_ones"]["Row"], "id" | "created_at" | "updated_at" | "scheduled_at" | "agenda" | "notes" | "action_items" | "ai_talking_points"> & {
+        Insert: Omit<Database["public"]["Tables"]["one_on_ones"]["Row"], "id" | "created_at" | "updated_at" | "scheduled_at" | "agenda" | "notes" | "action_items" | "ai_talking_points" | "google_event_id"> & {
           scheduled_at?: string | null;
           agenda?: string | null;
           notes?: string | null;
           action_items?: { text: string; done: boolean; carried_from?: string }[];
           ai_talking_points?: string | null;
+          google_event_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["one_on_ones"]["Row"]>;
         Relationships: [];
@@ -596,6 +598,34 @@ export interface Database {
         Update: Partial<{ webhook_url: string; channel_name: string }>;
         Relationships: [];
       };
+      // ── Google Calendar integration ───────────────────────────
+      google_calendar_connections: {
+        Row: {
+          id: string;
+          user_id: string;
+          access_token_ciphertext: string;
+          refresh_token_ciphertext: string;
+          token_expiry: string | null;
+          calendar_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          access_token_ciphertext: string;
+          refresh_token_ciphertext: string;
+          token_expiry?: string | null;
+          calendar_id?: string;
+        };
+        Update: Partial<{
+          access_token_ciphertext: string;
+          refresh_token_ciphertext: string;
+          token_expiry: string | null;
+          calendar_id: string;
+          updated_at: string;
+        }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -662,3 +692,6 @@ export type EngagementNotificationPreferences = Database["public"]["Tables"]["en
 
 // FEAT-001: Slack
 export type SlackConnection = Database["public"]["Tables"]["slack_connections"]["Row"];
+
+// Google Calendar integration
+export type GoogleCalendarConnection = Database["public"]["Tables"]["google_calendar_connections"]["Row"];

@@ -28,6 +28,13 @@ export default async function IntegrationsPage() {
     .limit(1)
     .maybeSingle() as { data: { channel_name: string } | null };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: gcalRow } = await (supabaseAdmin as any)
+    .from("google_calendar_connections")
+    .select("calendar_id, created_at")
+    .eq("user_id", session.user.id)
+    .maybeSingle() as { data: { calendar_id: string; created_at: string } | null };
+
   const googleConnected = Boolean(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_KEY
   );
@@ -51,6 +58,10 @@ export default async function IntegrationsPage() {
         slackStatus={{
           connected: Boolean(slackRow),
           channelName: slackRow?.channel_name ?? null,
+        }}
+        googleCalendarStatus={{
+          connected: Boolean(gcalRow),
+          calendarId: gcalRow?.calendar_id ?? null,
         }}
       />
       {isAdmin && aiSettings && <AISettingsClient initial={aiSettings} />}
