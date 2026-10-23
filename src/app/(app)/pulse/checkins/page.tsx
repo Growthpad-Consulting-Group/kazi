@@ -13,12 +13,12 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; user?: string; report?: string }>;
+  searchParams: Promise<{ tab?: string; user?: string; report?: string; view?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const isManager = session ? can(session.user.role, "manage_checkins") : false;
 
-  const { tab, user, report } = await searchParams;
+  const { tab, user, report, view } = await searchParams;
   // Managers default to the team view; employees default to their own check-in
   const activeTab = tab ?? (user ? "checkins" : isManager ? "team" : "checkins");
 
@@ -36,7 +36,7 @@ export default async function Page({
       </Suspense>
 
       {activeTab === "goals"       && (user ? <StaffGoalsPage userId={user} /> : <GoalsPage />)}
-      {activeTab === "one-on-ones" && <OneOnOnesPage reportId={report} />}
+      {activeTab === "one-on-ones" && <OneOnOnesPage reportId={report} view={view === "upcoming" ? "upcoming" : undefined} />}
       {activeTab === "team"        && <CheckinsPage userId={user} teamOnly />}
       {(activeTab === "checkins" || !["goals", "one-on-ones", "team"].includes(activeTab)) && (
         <CheckinsPage userId={user} />

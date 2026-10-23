@@ -35,12 +35,25 @@ interface Props {
   candidates: CandidateWithJob[];
   unscreenedIds: string[];
   bulkScreenButton?: React.ReactNode;
+  initialStage?: string;
+  initialAttention?: string;
+  initialRole?: string;
 }
 
-export default function CandidatesClientView({ candidates, unscreenedIds, bulkScreenButton }: Props) {
+function dashboardFilters(stage?: string, attention?: string, role?: string): ActiveFilter[] {
+  const filters: ActiveFilter[] = [];
+  const activeStages = ["applied", "screened", "interview", "offer"];
+  const stages = stage === "active" ? activeStages : STAGE_FILTER_OPTIONS.some((option) => option.value === stage) ? [stage!] : [];
+  if (stages.length) filters.push({ category: "stage", values: stages, label: `Stage: is ${stage === "active" ? "Active pipeline" : stages[0]}`, operator: "is" });
+  if (["needs_screening", "stalled"].includes(attention ?? "")) filters.push({ category: "attention", values: [attention!], label: `Attention: is ${attention!.replaceAll("_", " ")}`, operator: "is" });
+  if (role) filters.push({ category: "role", values: [role], label: `Role: is ${role}`, operator: "is" });
+  return filters;
+}
+
+export default function CandidatesClientView({ candidates, unscreenedIds, bulkScreenButton, initialStage, initialAttention, initialRole }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<ActiveFilter[]>([]);
+  const [filters, setFilters] = useState<ActiveFilter[]>(() => dashboardFilters(initialStage, initialAttention, initialRole));
   const [referenceTime] = useState(() => Date.now());
 
   const categoryOptions = useMemo<Record<string, FilterOption[]>>(() => {

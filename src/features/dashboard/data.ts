@@ -127,7 +127,9 @@ export async function getDashboardData(
     : "personal";
 
   const cacheUserSuffix = ctx ? `${view}_${ctx.userId}` : "org_anon";
-  const key = cacheKey("dashboard", "v4", rangeKey(range), cacheUserSuffix);
+  // Bump when the dashboard payload shape or navigation targets change so
+  // persisted dashboard entries cannot retain stale destinations.
+  const key = cacheKey("dashboard", "v5", rangeKey(range), cacheUserSuffix);
 
   return cached("dashboard", key, "dynamic", async () => {
     if (view === "personal" && ctx) {
@@ -562,10 +564,10 @@ async function buildOrgOrTeamData(
       interviewQueue,
       upcomingOneOnOnes,
       actionItems: [
-        { label: "Awaiting AI screen", count: pendingScreen, href: "/hire/candidates", tone: "amber" },
+        { label: "Awaiting AI screen", count: pendingScreen, href: "/hire/candidates?attention=needs_screening", tone: "amber" },
         { label: "Interview scorecards due", count: interviewQueue.length, href: "/hire/candidates?stage=interview", tone: "blue" },
         { label: "New hires to add to staff", count: hiresAwaitingStaffRecord, href: "/hire/candidates?stage=hired", tone: "amber" },
-        { label: "Stalled candidates", count: stalledCandidates, href: "/hire/candidates", tone: "red" },
+        { label: "Stalled candidates", count: stalledCandidates, href: "/hire/candidates?attention=stalled", tone: "red" },
       ].filter((item) => item.count > 0) as DashboardData["operations"]["actionItems"],
       health: { averageDaysToHire, stalledCandidates, offerPending: stageCounts.get("offer") ?? 0, offerAccepted: hired, offerDeclined: stageCounts.get("rejected") ?? 0 },
       pulse: { pendingCheckins: Math.max(employeeCount - submittedCheckins, 0), lowMood: checkins.filter((checkin) => (checkin.mood ?? 5) <= 2).length, blockers: checkins.filter((checkin) => !!checkin.blockers?.trim()).length, atRiskGoals: goalsRes.data?.length ?? 0 },

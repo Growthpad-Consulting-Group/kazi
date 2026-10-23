@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ report?: string }> }) {
-  const { report } = await searchParams;
-  redirect(`/pulse/checkins?tab=one-on-ones${report ? `&report=${encodeURIComponent(report)}` : ""}`);
+export default async function Page({ searchParams }: { searchParams: Promise<{ report?: string; view?: string }> }) {
+  const { report, view } = await searchParams;
+  const params = new URLSearchParams({ tab: "one-on-ones" });
+  if (report) params.set("report", report);
+  if (view === "upcoming") params.set("view", "upcoming");
+  redirect(`/pulse/checkins?${params.toString()}`);
 }

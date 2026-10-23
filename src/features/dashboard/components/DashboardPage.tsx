@@ -201,7 +201,7 @@ export default async function DashboardPage({
         icon: "solar:chat-round-dots-broken",
         accent: "text-violet-500",
         accentBg: "bg-violet-500/10",
-        href: "/pulse/one-on-ones",
+        href: "/pulse/one-on-ones?view=upcoming",
       },
     ];
 
@@ -262,11 +262,11 @@ export default async function DashboardPage({
                   <p className="text-[11px] text-[var(--text-lo)]">Your next scheduled meetings</p>
                 </div>
               </div>
-              <Link href="/pulse/one-on-ones" className="text-xs text-brand-500 hover:underline">View all</Link>
+              <Link href="/pulse/one-on-ones?view=upcoming" className="text-xs text-brand-500 hover:underline">View all</Link>
             </div>
             <div className="space-y-2">
               {p.upcomingOneOnOnes.length ? p.upcomingOneOnOnes.map((m) => (
-                <Link key={m.id} href="/pulse/one-on-ones" className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
+                <Link key={m.id} href={`/pulse/one-on-ones/${m.id}`} className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[10px] font-bold text-violet-500">
                     {m.with.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </div>
@@ -287,9 +287,9 @@ export default async function DashboardPage({
 
   // ── Org / Team view ───────────────────────────────────────────────────────
   const kpis: StatDef[] = [
-    { label: "Open Roles",        value: stats.openJobs,        icon: "solar:case-broken",                    accent: "text-brand-500",  accentBg: "bg-brand-500/10",     href: "/hire/jobs" },
-    { label: "Active Pipeline",   value: stats.activePipeline,  icon: "solar:users-group-two-rounded-broken",  accent: "text-blue-500",   accentBg: "bg-blue-500/10",      href: "/hire/candidates" },
-    { label: "Awaiting Screen",   value: stats.pendingScreen,   icon: "solar:cpu-bolt-broken",                accent: stats.pendingScreen > 0 ? "text-amber-500" : "text-[var(--text-lo)]", accentBg: stats.pendingScreen > 0 ? "bg-amber-500/10" : "bg-[var(--surface-2)]", href: "/hire/candidates", note: stats.pendingScreen > 0 ? "AI screening needed" : undefined },
+    { label: "Open Roles",        value: stats.openJobs,        icon: "solar:case-broken",                    accent: "text-brand-500",  accentBg: "bg-brand-500/10",     href: "/hire/jobs?status=open" },
+    { label: "Active Pipeline",   value: stats.activePipeline,  icon: "solar:users-group-two-rounded-broken",  accent: "text-blue-500",   accentBg: "bg-blue-500/10",      href: "/hire/candidates?stage=active" },
+    { label: "Awaiting Screen",   value: stats.pendingScreen,   icon: "solar:cpu-bolt-broken",                accent: stats.pendingScreen > 0 ? "text-amber-500" : "text-[var(--text-lo)]", accentBg: stats.pendingScreen > 0 ? "bg-amber-500/10" : "bg-[var(--surface-2)]", href: "/hire/candidates?attention=needs_screening", note: stats.pendingScreen > 0 ? "AI screening needed" : undefined },
     { label: "Employees",         value: stats.activeEmployees, icon: "solar:people-nearby-broken",           accent: "text-green-500",  accentBg: "bg-green-500/10",     href: "/staff" },
     { label: "Hired",             value: stats.hired,           icon: "solar:check-circle-broken",            accent: "text-violet-500", accentBg: "bg-violet-500/10",    href: "/hire/candidates?stage=hired" },
   ];
@@ -356,11 +356,11 @@ export default async function DashboardPage({
                 <p className="text-[11px] text-[var(--text-lo)]">Next scheduled meetings</p>
               </div>
             </div>
-            <Link href="/pulse/one-on-ones" className="text-xs text-brand-500 hover:underline">View all</Link>
+              <Link href="/pulse/one-on-ones?view=upcoming" className="text-xs text-brand-500 hover:underline">View all</Link>
           </div>
           <div className="space-y-2">
             {operations.upcomingOneOnOnes.length ? operations.upcomingOneOnOnes.map((m) => (
-              <Link key={m.id} href="/pulse/one-on-ones" className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
+              <Link key={m.id} href={`/pulse/one-on-ones/${m.id}`} className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[10px] font-bold text-violet-500">
                   {m.report.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>

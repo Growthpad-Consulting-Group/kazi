@@ -3,7 +3,17 @@ import CandidatesClientView from "./CandidatesClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { BulkScreenButton } from "./BulkScreenButton";
 
-export default async function CandidatesPage({ jobId }: { jobId?: string }) {
+export default async function CandidatesPage({
+  jobId,
+  initialStage,
+  initialAttention,
+  initialRole,
+}: {
+  jobId?: string;
+  initialStage?: string;
+  initialAttention?: string;
+  initialRole?: string;
+}) {
   const candidates = await getCandidates(jobId);
   const unscreened = candidates.filter((c) => c.ai_score === null && (c.cv_text || c.cv_parsed));
 
@@ -18,6 +28,9 @@ export default async function CandidatesPage({ jobId }: { jobId?: string }) {
         candidates={candidates as unknown as CandidateWithJob[]}
         unscreenedIds={unscreened.map((c) => c.id)}
         bulkScreenButton={unscreened.length > 0 ? <BulkScreenButton candidateIds={unscreened.map((c) => c.id)} /> : undefined}
+        initialStage={initialStage}
+        initialAttention={initialAttention}
+        initialRole={initialRole}
       />
     </>
   );

@@ -51,12 +51,15 @@ function jobAvailability(job: Job, now: Date, nextWeek: Date) {
 interface Props {
   jobs: Job[];
   departments: string[];
+  initialStatus?: string;
 }
 
-export default function JobsClientView({ jobs, departments }: Props) {
+export default function JobsClientView({ jobs, departments, initialStatus }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<ActiveFilter[]>([]);
+  const [filters, setFilters] = useState<ActiveFilter[]>(() => STATUS_OPTIONS.some((option) => option.value === initialStatus)
+    ? [{ category: "status", values: [initialStatus!], label: `Status: is ${initialStatus}`, operator: "is" }]
+    : []);
 
   const deptOptions: FilterOption[] = departments.map((d) => ({
     id: d,

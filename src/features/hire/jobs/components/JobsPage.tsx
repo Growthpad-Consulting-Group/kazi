@@ -3,7 +3,7 @@ import { getDepartments } from "@/features/departments/actions";
 import JobsClientView from "./JobsClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 
-export default async function JobsPage() {
+export default async function JobsPage({ initialStatus }: { initialStatus?: string }) {
   const jobs = await getJobs();
   const listed = await getDepartments().catch(() => [] as string[]);
   const departments = Array.from(
@@ -18,7 +18,7 @@ export default async function JobsPage() {
         icon="solar:case-minimalistic-broken"
         actions={[{ label: "New Job", icon: "solar:add-circle-broken", href: "/hire/jobs/new", variant: "primary" }]}
       />
-      <JobsClientView jobs={jobs} departments={departments} />
+      <JobsClientView jobs={jobs} departments={departments} initialStatus={initialStatus} />
     </>
   );
 }
