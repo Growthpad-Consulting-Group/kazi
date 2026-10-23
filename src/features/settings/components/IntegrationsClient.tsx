@@ -21,6 +21,7 @@ interface SlackStatus {
 interface GoogleCalendarStatus {
   connected: boolean;
   calendarId: string | null;
+  calendarName: string | null;
 }
 
 interface Props {
@@ -68,7 +69,11 @@ function IntegrationCard({
           )}
         </div>
         <p className="mt-1 text-xs text-[var(--text-lo)]">{description}</p>
-        {meta && <p className="mt-1 text-xs text-[var(--text-lo)]">{meta}</p>}
+        {meta && (
+          <p className="mt-1.5 text-xs font-semibold text-[var(--text-hi)]">
+            {meta}
+          </p>
+        )}
       </div>
       <div className="shrink-0">
         {status === "connected" && onDisconnect && (
@@ -165,7 +170,7 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
       const body = await res.json() as { error?: string };
       throw new Error(body.error ?? "Could not disconnect");
     }
-    setGoogleCalendar({ connected: false, calendarId: null });
+    setGoogleCalendar({ connected: false, calendarId: null, calendarName: null });
     toast.success("Google Calendar disconnected");
   }
 
@@ -282,7 +287,7 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
             name="Google Calendar"
             description="Sync 1-on-1 meetings to your Google Calendar. Events are created automatically when meetings are scheduled."
             status={googleCalendar.connected ? "connected" : "disconnected"}
-            meta={googleCalendar.connected && googleCalendar.calendarId ? `Calendar: ${googleCalendar.calendarId}` : undefined}
+            meta={googleCalendar.connected ? `Calendar: ${googleCalendar.calendarName ?? googleCalendar.calendarId ?? "primary"}` : undefined}
             onConnect={connectGoogleCalendar}
             onDisconnect={disconnectGoogleCalendar}
           />

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
+import StatCard from "@/components/ui/StatCard";
 import type { CheckinWithUser } from "../actions";
 
 interface Props {
@@ -113,10 +114,10 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
 
       {/* Metrics */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Submitted" value={thisWeek.length} tone="blue" />
-        <Metric label="To review" value={awaitingReview} tone={awaitingReview ? "amber" : "green"} />
-        <Metric label="Low mood" value={lowMood} tone={lowMood ? "red" : "green"} />
-        <Metric label="Repeat blockers" value={repeatedBlockers} tone={repeatedBlockers ? "orange" : "green"} />
+        <StatCard title="Submitted" value={thisWeek.length} icon="solar:clipboard-check-broken" color="blue" variant="inline" compact />
+        <StatCard title="To review" value={awaitingReview} icon="solar:eye-broken" color={awaitingReview ? "amber" : "green"} variant="inline" compact />
+        <StatCard title="Low mood" value={lowMood} icon="solar:heart-pulse-broken" color={lowMood ? "red" : "green"} variant="inline" compact />
+        <StatCard title="Repeat blockers" value={repeatedBlockers} icon="solar:danger-triangle-broken" color={repeatedBlockers ? "orange" : "green"} variant="inline" compact />
       </div>
 
       {/* AI summary */}
@@ -259,32 +260,6 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
         </p>
       )}
     </section>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "blue" | "amber" | "red" | "orange" | "green";
-}) {
-  const tones = {
-    blue: "bg-blue-500/10 text-blue-600",
-    amber: "bg-amber-500/10 text-amber-600",
-    red: "bg-red-500/10 text-red-500",
-    orange: "bg-brand-500/10 text-brand-500",
-    green: "bg-emerald-500/10 text-emerald-600",
-  };
-  return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-      <p className={`inline-flex rounded-md px-1.5 py-0.5 font-mono text-lg font-bold ${tones[tone]}`}>
-        {value}
-      </p>
-      <p className="mt-2 text-xs font-medium text-[var(--text-lo)]">{label}</p>
-    </div>
   );
 }
 

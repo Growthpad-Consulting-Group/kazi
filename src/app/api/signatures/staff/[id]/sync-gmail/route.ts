@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { pushSignatureToGmail } from "@/features/signatures/lib/gmailSync";
+import { appendCampaignBanner } from "@/features/signatures/lib/campaignRenderer";
 
 type RouteContext = { params: Promise<{ id: string }> };
 type Result = { data?: unknown; error: { message: string } | null };
@@ -27,7 +28,8 @@ export async function POST(_request: Request, { params }: RouteContext) {
   if (templateError || !templateData) return NextResponse.json({ error: templateError?.message ?? "Template not found." }, { status: 404 });
   try {
     const profile = profileData as Record<string, unknown>;
-    await pushSignatureToGmail(String(profile.email), render(String((templateData as { html: string }).html), profile));
+    const signature = await appendCampaignBanner(render(String((templateData as { html: string }).html), profile), String(profile.email), String(profile.id), typeof profile.department === "string" ? profile.department : null, true);
+    await pushSignatureToGmail(String(profile.email), signature);
     const { error } = await database.from("signature_assignments").update({ gmail_sync_status: "synced", gmail_sync_error: null, last_gmail_synced_at: new Date().toISOString() }).eq("staff_profile_id", id);
     if (error) throw new Error(error.message);
     return NextResponse.json({ ok: true });

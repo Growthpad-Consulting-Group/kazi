@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 export type StatCardColor = "orange" | "slate" | "violet" | "amber" | "green" | "blue" | "red";
-export type StatCardVariant = "gradient" | "flat";
+export type StatCardVariant = "gradient" | "flat" | "inline";
 
 const styles: Record<StatCardColor, { gradient: string; shadow: string; flat: string }> = {
   orange: { gradient: "from-brand-500 to-orange-400", shadow: "shadow-brand-500/25", flat: "text-brand-500 bg-brand-500/10" },
@@ -34,7 +34,20 @@ export default function StatCard({ title, value, icon, color = "orange", variant
   const palette = styles[color];
   const className = `group relative block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left shadow-xl shadow-slate-200/40 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:shadow-black/20 ${compact ? "p-3" : "p-4"}`;
 
-  const content = variant === "gradient" ? (
+  const content = variant === "inline" ? (
+    <div className="relative flex min-w-0 items-center gap-2.5">
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${palette.flat}`}>
+        <Icon icon={icon} className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <div className="flex items-baseline gap-1.5">
+          <p className={`font-bold leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}>{value}</p>
+          <p className="truncate text-xs font-semibold text-[var(--text-hi)]">{title}</p>
+        </div>
+        {subtitle && <p className="mt-1 truncate text-[10px] text-[var(--text-lo)]">{subtitle}</p>}
+      </div>
+    </div>
+  ) : variant === "gradient" ? (
     <>
       <div className={`pointer-events-none absolute -right-10 -top-10 rounded-full bg-gradient-to-br ${palette.gradient} opacity-10 transition-transform duration-500 group-hover:scale-125 ${compact ? "h-20 w-20" : "h-28 w-28"}`} />
       <div className="relative flex items-center gap-3">

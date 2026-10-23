@@ -6,7 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 type RouteContext = { params: Promise<{ id: string }> };
 type Result = { data?: unknown; error: { message: string } | null };
-type Database = { from: (table: string) => { select: (fields: string) => { eq: (column: string, value: string) => { maybeSingle: () => PromiseLike<Result> } }; insert: (values: Record<string, unknown>) => PromiseLike<Result>; update: (values: Record<string, unknown>) => { eq: (column: string, value: string) => PromiseLike<Result> } } };
+type Database = { from: (table: string) => { select: (fields: string) => { eq: (column: string, value: string) => ({ maybeSingle: () => PromiseLike<Result> } & PromiseLike<Result>) }; insert: (values: Record<string, unknown>) => PromiseLike<Result>; update: (values: Record<string, unknown>) => { eq: (column: string, value: string) => PromiseLike<Result> }; delete: () => { eq: (column: string, value: string) => PromiseLike<Result> } } };
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
@@ -37,5 +37,24 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
   const { error } = await database.from("signature_templates").update(values).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(_request: Request, { params }: RouteContext) {
+  const session = await getServerSession(authOptions);
+  if (!session || !can(session.user.role, "manage_signatures")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { id } = await params;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Invalid template." }, { status: 400 });
+  const database = supabaseAdmin as unknown as Database;
+  const { data: template, error: templateError } = await database.from("signature_templates").select("id, is_default").eq("id", id).maybeSingle();
+  if (templateError) return NextResponse.json({ error: templateError.message }, { status: 500 });
+  if (!template) return NextResponse.json({ error: "Template not found." }, { status: 404 });
+  if ((template as { is_default?: boolean }).is_default) return NextResponse.json({ error: "Choose another default template before deleting this one." }, { status: 409 });
+  const { data: assignments, error: assignmentError } = await database.from("signature_assignments").select("id").eq("template_id", id);
+  if (assignmentError) return NextResponse.json({ error: assignmentError.message }, { status: 500 });
+  const assignedCount = Array.isArray(assignments) ? assignments.length : 0;
+  if (assignedCount) return NextResponse.json({ error: "Reassign " + assignedCount + " staff profile" + (assignedCount === 1 ? "" : "s") + " before deleting this template." }, { status: 409 });
+  const { error: deleteError } = await database.from("signature_templates").delete().eq("id", id);
+  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

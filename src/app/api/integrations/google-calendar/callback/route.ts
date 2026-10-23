@@ -63,6 +63,13 @@ export async function GET(request: Request) {
     const userInfo = await userInfoRes.json().catch(() => null) as { email?: string } | null;
     console.log("Google Calendar OAuth completed for", userInfo?.email ?? "unknown");
 
+    // Fetch the primary calendar display name
+    const calendarRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const calendarData = await calendarRes.json().catch(() => null) as { summary?: string } | null;
+    const calendarName = calendarData?.summary ?? null;
+
     const tokenExpiry = new Date(Date.now() + (tokenData.expires_in ?? 3600) * 1000).toISOString();
 
     const { error } = await supabaseAdmin
@@ -74,7 +81,9 @@ export async function GET(request: Request) {
           refresh_token_ciphertext: encryptGoogleToken(tokenData.refresh_token),
           token_expiry: tokenExpiry,
           calendar_id: "primary",
-        },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...(calendarName !== null ? { calendar_name: calendarName } : {}),
+        } as any,
         { onConflict: "user_id" }
       );
 

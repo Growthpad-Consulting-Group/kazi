@@ -1,6 +1,6 @@
 /**
  * Builds a tracked-click URL for a signature template — clicking it hits
- * /api/templates/[id]/click, which logs the click (template, staff, label) then redirects to
+ * /api/signatures/templates/[id]/click, which logs the click (template, staff, label) then redirects to
  * `destination`. `{{id}}` resolves per-recipient at send time via renderSignatureHtml (see
  * mergeTags.ts) — same mechanism campaign banners already use for their own click tracking.
  */
@@ -18,7 +18,7 @@ export const PRODUCTION_APP_URL = "https://kazi.growthpad.africa";
 export function buildTrackedLinkHref(templateId: string, destination: string, label: string): string {
   const base = PRODUCTION_APP_URL;
   const params = `to=${encodeURIComponent(destination)}&staff={{id}}${label.trim() ? `&label=${encodeURIComponent(label.trim())}` : ""}`;
-  return `${base}/api/templates/${templateId}/click?${params}`;
+  return `${base}/api/signatures/templates/${templateId}/click?${params}`;
 }
 
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
