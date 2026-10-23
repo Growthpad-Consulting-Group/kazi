@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import type { UserRole } from "@/types/database";
 
-const ROLES: { value: UserRole; label: string; description: string }[] = [
+export const SYSTEM_ACCESS_ROLES: { value: UserRole; label: string; description: string }[] = [
   { value: "admin",          label: "Admin",          description: "Full access to everything" },
   { value: "hr",             label: "HR",             description: "Staff, hiring & settings" },
   { value: "manager",        label: "Manager",        description: "Team oversight & check-ins" },
@@ -37,7 +37,7 @@ export function RoleSelector({ userId, currentRole, isSelf }: Props) {
   const [error, setError] = useState("");
   const [, startTransition] = useTransition();
 
-  const current = ROLES.find((r) => r.value === role)!;
+  const current = SYSTEM_ACCESS_ROLES.find((r) => r.value === role)!;
 
   async function select(next: UserRole) {
     if (next === role) { setOpen(false); return; }
@@ -86,7 +86,7 @@ export function RoleSelector({ userId, currentRole, isSelf }: Props) {
             <p className="border-b border-[var(--border)] px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-lo)]">
               System access level
             </p>
-            {ROLES.map((r) => (
+            {SYSTEM_ACCESS_ROLES.map((r) => (
               <button
                 key={r.value}
                 type="button"

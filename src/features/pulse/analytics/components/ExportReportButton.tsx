@@ -1,121 +1,64 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Icon } from "@iconify/react";
+import toast from "react-hot-toast";
+import ExportModal from "@/components/ui/export/ExportModal";
 
-function download(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+type CultureReport = {
+  campaigns?: { name: string; status: string; starts_at: string | null; ends_at: string | null }[];
+  recognition_summary?: { total_last_30d: number; top_values: { value: string; count: number }[]; top_givers: { name: string; count: number }[] };
+  voice_out_themes?: Record<string, unknown>[];
+  survey_participation?: { title: string; status: string; response_count: number }[];
+  engagement_trend?: { week: string; recognition_count: number }[];
+};
+
+type ExportRow = { section: string; label: string; value: string | number; detail?: string };
+
+function toExportRows(report: CultureReport): ExportRow[] {
+  const rows: ExportRow[] = [{ section: "Recognition summary", label: "Recognitions sent", value: report.recognition_summary?.total_last_30d ?? 0, detail: "Last 30 days" }];
+  for (const value of report.recognition_summary?.top_values ?? []) rows.push({ section: "Recognition values", label: value.value, value: value.count, detail: "Recognitions" });
+  for (const giver of report.recognition_summary?.top_givers ?? []) rows.push({ section: "Top givers", label: giver.name, value: giver.count, detail: "Recognitions sent" });
+  for (const campaign of report.campaigns ?? []) rows.push({ section: "Campaigns", label: campaign.name, value: campaign.status, detail: [campaign.starts_at, campaign.ends_at].filter(Boolean).join(" – ") || undefined });
+  for (const survey of report.survey_participation ?? []) rows.push({ section: "Survey participation", label: survey.title, value: survey.response_count, detail: survey.status });
+  for (const trend of report.engagement_trend ?? []) rows.push({ section: "Recognition trend", label: trend.week, value: trend.recognition_count, detail: "Recognitions" });
+  for (const theme of report.voice_out_themes ?? []) {
+    const { topic, ...statuses } = theme as { topic?: string; [key: string]: unknown };
+    rows.push({ section: "Voice Out themes", label: topic ?? "Untitled theme", value: Object.values(statuses).reduce<number>((total, count) => total + (typeof count === "number" ? count : 0), 0), detail: Object.entries(statuses).map(([status, count]) => `${status}: ${count}`).join(", ") });
+  }
+  return rows;
 }
 
 export default function ExportReportButton() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [rows, setRows] = useState<ExportRow[]>([]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
-  async function handleExport(format: "json" | "csv") {
+  async function openExportModal() {
     setLoading(true);
-    setError(null);
-    setOpen(false);
     try {
-      const res = await fetch(`/api/pulse/reports/culture-export?format=${format}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? `Error ${res.status}`);
+      const response = await fetch("/api/pulse/reports/culture-export");
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "Could not prepare the report");
       }
-      const date = new Date().toISOString().slice(0, 10);
-      if (format === "json") {
-        const data = await res.json();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        download(blob, `culture-report-${date}.json`);
-      } else {
-        const text = await res.text();
-        const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
-        download(blob, `culture-report-${date}.csv`);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Export failed");
+      setRows(toExportRows((await response.json()) as CultureReport));
+      setOpen(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not prepare the report");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex flex-col items-end gap-1" ref={containerRef}>
-      <div className="relative inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-visible">
-        {/* Primary button */}
-        <button
-          onClick={() => handleExport("json")}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-60 rounded-l-xl"
-        >
-          <Icon
-            icon={loading ? "solar:refresh-broken" : "solar:export-broken"}
-            className={`h-4 w-4 text-brand-500 ${loading ? "animate-spin" : ""}`}
-          />
-          {loading ? "Exporting…" : "Export report"}
-        </button>
+    <>
+      <button type="button" onClick={openExportModal} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60">
+        <Icon icon={loading ? "solar:refresh-broken" : "solar:export-broken"} className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        {loading ? "Preparing…" : "Export report"}
+      </button>
 
-        {/* Divider */}
-        <span className="w-px self-stretch bg-[var(--border)]" aria-hidden="true" />
-
-        {/* Caret toggle */}
-        <button
-          onClick={() => setOpen((v) => !v)}
-          disabled={loading}
-          aria-label="More export options"
-          aria-expanded={open}
-          className="inline-flex items-center px-2.5 py-2 text-sm font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-60 rounded-r-xl"
-        >
-          <Icon
-            icon="solar:alt-arrow-down-broken"
-            className={`h-3.5 w-3.5 text-[var(--text-lo)] transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        {/* Dropdown */}
-        {open && (
-          <div className="absolute right-0 top-full z-10 mt-1.5 w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20 overflow-hidden">
-            <button
-              onClick={() => handleExport("json")}
-              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]"
-            >
-              <Icon icon="solar:file-text-broken" className="h-4 w-4 text-brand-500 shrink-0" />
-              Download JSON
-            </button>
-            <button
-              onClick={() => handleExport("csv")}
-              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]"
-            >
-              <Icon icon="solar:file-linear-broken" className="h-4 w-4 text-brand-500 shrink-0" />
-              Download CSV
-            </button>
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <p className="text-xs text-red-500">{error}</p>
-      )}
-    </div>
+      <ExportModal isOpen={open} onClose={() => setOpen(false)} users={rows} mode="light" type="recognition_analytics" title="Recognition analytics report" />
+    </>
   );
 }

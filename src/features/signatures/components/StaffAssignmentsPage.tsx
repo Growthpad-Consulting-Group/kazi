@@ -8,7 +8,7 @@ import { can } from "@/lib/rbac";
 type QueryResult = { data: unknown; error: { message: string } | null };
 type Database = { from: (table: string) => { select: (columns: string) => PromiseLike<QueryResult> } };
 
-export default async function StaffAssignmentsPage() {
+export default async function StaffAssignmentsPage({ initialDelivery }: { initialDelivery?: string }) {
   const session = await getServerSession(authOptions);
   if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures");
   const database = supabaseAdmin as unknown as Database;
@@ -18,5 +18,5 @@ export default async function StaffAssignmentsPage() {
     database.from("signature_assignments").select("staff_profile_id, template_id, deploy_status, gmail_sync_status, last_gmail_synced_at"),
   ]);
   for (const result of [staff, templates, assignments]) if (result.error) throw new Error(result.error.message);
-  return <StaffAssignmentsClient staff={(staff.data ?? []) as never[]} templates={(templates.data ?? []) as never[]} assignments={(assignments.data ?? []) as never[]} />;
+  return <StaffAssignmentsClient staff={(staff.data ?? []) as never[]} templates={(templates.data ?? []) as never[]} assignments={(assignments.data ?? []) as never[]} initialDelivery={initialDelivery} />;
 }

@@ -7,6 +7,8 @@ import { compressImageFile } from "@/lib/compressImageFile";
 
 interface Props {
   value: string;
+  /** A read-only image used when the staff profile inherits its photo from another Kazi module. */
+  previewUrl?: string;
   name: string;
   /** POST endpoint that accepts multipart/form-data with a "file" field and returns { url: string } */
   uploadEndpoint: string;
@@ -20,7 +22,7 @@ const sizes = {
   lg: { wrap: "h-20 w-20", text: "text-lg", icon: "h-4 w-4" },
 };
 
-export default function AvatarUpload({ value, name, uploadEndpoint, onChange, size = "md" }: Props) {
+export default function AvatarUpload({ value, previewUrl, name, uploadEndpoint, onChange, size = "md" }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const dim = sizes[size];
@@ -56,8 +58,8 @@ export default function AvatarUpload({ value, name, uploadEndpoint, onChange, si
     <div className="flex items-center gap-4">
       {/* Avatar circle */}
       <div className={`relative shrink-0 ${dim.wrap} overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500/20 to-violet-500/10`}>
-        {value
-          ? <img src={value} alt={name} className="h-full w-full object-cover" />
+        {value || previewUrl
+          ? <img src={value || previewUrl} alt={name} className="h-full w-full object-cover" />
           : <span className={`flex h-full w-full items-center justify-center font-bold text-brand-500 ${dim.text}`}>{initials}</span>
         }
         {uploading && (

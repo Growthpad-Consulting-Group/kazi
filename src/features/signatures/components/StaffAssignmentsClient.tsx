@@ -28,21 +28,22 @@ function StatusPill({ status, tone = "slate" }: { status: string; tone?: "slate"
   return <span className={"rounded-full px-2 py-1 text-[10px] font-semibold capitalize " + classes}>{status.replaceAll("_", " ")}</span>;
 }
 
-export default function StaffAssignmentsClient({ staff, templates, assignments }: { staff: Staff[]; templates: Template[]; assignments: Assignment[] }) {
+export default function StaffAssignmentsClient({ staff, templates, assignments, initialDelivery }: { staff: Staff[]; templates: Template[]; assignments: Assignment[]; initialDelivery?: string }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Staff | null>(null);
   const [templateId, setTemplateId] = useState("");
   const [saving, setSaving] = useState(false);
   const [syncingStaffId, setSyncingStaffId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<ActiveFilter[]>([]);
+  const [filters, setFilters] = useState<ActiveFilter[]>(() => initialDelivery ? [{ category: "delivery", values: [initialDelivery], label: `Gmail delivery: is ${initialDelivery.replaceAll("_", " ")}`, operator: "is" }] : []);
   const assignmentByStaff = useMemo(() => new Map(assignments.map((item) => [item.staff_profile_id, item])), [assignments]);
   const templateById = useMemo(() => new Map(templates.map((item) => [item.id, item])), [templates]);
   const rows: Row[] = useMemo(() => staff.map((person) => {
     const assignment = assignmentByStaff.get(person.id);
     const template = assignment ? templateById.get(assignment.template_id) : null;
     const isSynced = assignment?.gmail_sync_status === "synced";
-    const deliveryStatus = !template ? "unassigned" : isSynced ? "synced" : assignment?.gmail_sync_status === "failed" ? "failed" : "ready to sync";
+    const hasError = assignment?.gmail_sync_status === "failed" || assignment?.gmail_sync_status === "error" || assignment?.deploy_status === "failed" || assignment?.deploy_status === "error";
+    const deliveryStatus = !template ? "unassigned" : isSynced ? "synced" : hasError ? "failed" : "ready to sync";
     return { ...person, templateName: template?.name ?? "Unassigned", deliveryStatus, canSync: Boolean(template), isSynced };
   }), [assignmentByStaff, staff, templateById]);
   const departmentOptions: FilterOption[] = Array.from(new Set(staff.map((person) => person.department).filter(Boolean) as string[])).sort().map((value) => ({ id: value, label: value, category: "department", value }));

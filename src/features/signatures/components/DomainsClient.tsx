@@ -65,7 +65,7 @@ export default function DomainsClient({ domains }: { domains: Domain[] }) {
         {domains.map((domain) => {
           const ready = domain.spf_verified && domain.dkim_verified;
           return (
-            <article key={domain.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+            <article key={domain.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-[var(--text-hi)]">{domain.name}</p>
