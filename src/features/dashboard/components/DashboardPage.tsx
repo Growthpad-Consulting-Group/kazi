@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import { StatusPill } from "@/components/ui/StatusPill";
 import DashboardCharts from "./DashboardCharts";
 import DashboardHeader from "./DashboardHeader";
 import { resolveRange } from "./DashboardRange";
@@ -93,17 +92,6 @@ function PipelineFunnel({ stages }: { stages: { stage: string; count: number }[]
   );
 }
 
-const QUICK_ACTIONS = [
-  { label: "Post Job",      href: "/hire/jobs/new",       icon: "solar:add-circle-broken",              color: "#f05d23", bg: "bg-[#f05d23]/10" },
-  { label: "Pipeline",      href: "/hire/pipeline",       icon: "solar:graph-broken",                   color: "#a78bfa", bg: "bg-violet-500/10" },
-  { label: "Candidates",    href: "/hire/candidates",     icon: "solar:users-group-two-rounded-broken",  color: "#60a5fa", bg: "bg-blue-500/10" },
-  { label: "All Jobs",      href: "/hire/jobs",           icon: "solar:case-broken",                    color: "#4ade80", bg: "bg-green-500/10" },
-  { label: "Team",          href: "/staff",              icon: "solar:people-nearby-broken",           color: "#fbbf24", bg: "bg-amber-500/10" },
-  { label: "Reviews",       href: "/pulse/reviews",       icon: "solar:star-circle-broken",             color: "#f472b6", bg: "bg-pink-500/10" },
-  { label: "Check-ins",     href: "/pulse/checkins",      icon: "solar:clipboard-check-broken",         color: "#67e8f9", bg: "bg-cyan-500/10" },
-  { label: "Analytics",     href: "/pulse/analytics",     icon: "solar:chart-square-broken",            color: "#5eead4", bg: "bg-teal-500/10" },
-];
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage({
@@ -115,7 +103,7 @@ export default async function DashboardPage({
   const range = resolveRange(params);
 
   const session = await getServerSession(authOptions);
-  const { stats, pipeline, recent, trend, rolePipeline, stageAging, teamPulseTrend, operations: dashboardOperations } = await getDashboardData(range);
+  const { stats, pipeline, trend, rolePipeline, stageAging, teamPulseTrend, operations: dashboardOperations } = await getDashboardData(range);
   const operations = dashboardOperations ?? {
     interviewQueue: [],
     upcomingOneOnOnes: [],
@@ -173,19 +161,7 @@ export default async function DashboardPage({
               {session?.user.role?.replace("_", " ")} · {session?.user.department ?? "Growthpad"}
             </p>
 
-            {/* Inline hero stats */}
-            <div className="mt-5 flex flex-wrap gap-3">
-              {[
-                { label: "Open Jobs",   value: stats.openJobs,        color: "#f05d23" },
-                { label: "In Pipeline", value: stats.activePipeline,  color: "#60a5fa" },
-                { label: "Employees",   value: stats.activeEmployees, color: "#4ade80" },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 backdrop-blur-sm">
-                  <span className="font-mono text-xl font-bold" style={{ color: s.color }}>{s.value}</span>
-                  <span className="text-xs text-white/50">{s.label}</span>
-                </div>
-              ))}
-            </div>
+
           </div>
 
           <div className="text-right">
@@ -409,32 +385,64 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        {/* Quick actions */}
+        {/* Top roles by volume */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
-          <div className="mb-4 flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15">
-              <Icon icon="solar:widget-broken" className="h-3.5 w-3.5 text-violet-500" />
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/15">
+                <Icon icon="solar:case-broken" className="h-3.5 w-3.5 text-amber-500" />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">Top roles</h2>
+                <p className="text-[11px] text-[var(--text-lo)]">Most active by applicant volume</p>
+              </div>
             </div>
-            <h2 className="text-md font-semibold text-[var(--text-hi)]">Quick Actions</h2>
+            <Link href="/hire/jobs" className="flex items-center gap-1 text-xs text-brand-500 hover:underline">
+              All jobs <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {QUICK_ACTIONS.map((a) => (
-              <Link
-                key={a.href}
-                href={a.href}
-                className="group flex flex-col items-center gap-2 rounded-xl p-3 text-center transition-all hover:bg-[var(--surface-2)] active:scale-95"
-              >
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${a.bg} transition-transform duration-200 group-hover:scale-110`}
-                >
-                  <Icon icon={a.icon} className="h-5 w-5" style={{ color: a.color }} />
-                </div>
-                <span className="text-xs font-medium leading-tight text-[var(--text-lo)] group-hover:text-[var(--text-hi)]">
-                  {a.label}
-                </span>
-              </Link>
-            ))}
-          </div>
+          {rolePipeline.length ? (
+            <div className="space-y-3">
+              {rolePipeline.slice(0, 6).map((r) => {
+                const total = r.applied + r.screened + r.interview + r.offer || 1;
+                const stages = [
+                  { key: "applied",   val: r.applied,   color: "#94a3b8" },
+                  { key: "screened",  val: r.screened,  color: "#60a5fa" },
+                  { key: "interview", val: r.interview, color: "#a78bfa" },
+                  { key: "offer",     val: r.offer,     color: "#fbbf24" },
+                ];
+                return (
+                  <div key={r.role}>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-medium text-[var(--text-hi)]">{r.role}</span>
+                      <span className="shrink-0 font-mono text-xs text-[var(--text-lo)]">{r.applied}</span>
+                    </div>
+                    <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                      {stages.map((s) => s.val > 0 && (
+                        <div
+                          key={s.key}
+                          className="h-full"
+                          style={{ width: `${(s.val / total) * 100}%`, backgroundColor: s.color }}
+                          title={`${s.key}: ${s.val}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Legend */}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
+                {[{ label: "Applied", color: "#94a3b8" }, { label: "Screened", color: "#60a5fa" }, { label: "Interview", color: "#a78bfa" }, { label: "Offer", color: "#fbbf24" }].map((l) => (
+                  <div key={l.label} className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: l.color }} />
+                    <span className="text-[10px] text-[var(--text-lo)]">{l.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No active roles.</p>
+          )}
         </div>
       </div>
 
@@ -457,62 +465,7 @@ export default async function DashboardPage({
         </section>
       </div>
 
-      {/* ── Recent candidates ── */}
-      {recent.length > 0 && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 overflow-hidden transition-shadow duration-200">
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-500/15">
-                <Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-blue-500" />
-              </div>
-              <h2 className="text-md font-semibold text-[var(--text-hi)]">Recent Candidates</h2>
-            </div>
-            <Link href="/hire/candidates" className="flex items-center gap-1 text-xs text-brand-500 hover:underline">
-              View all <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
-            </Link>
-          </div>
 
-          <div className="divide-y divide-[var(--border)]">
-            {recent.map((c) => (
-              <Link
-                key={c.id}
-                href={`/hire/candidates/${c.id}`}
-                className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[var(--surface-2)]"
-              >
-                {/* Avatar initials */}
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500/20 to-violet-500/20 text-xs font-bold text-[var(--text-hi)]">
-                  {c.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="text-md font-semibold text-[var(--text-hi)] truncate">{c.full_name}</p>
-                  <p className="text-xs text-[var(--text-lo)] truncate">{c.jobs?.title ?? "—"}</p>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-3">
-                  {c.ai_score !== null && (
-                    <div className="flex items-center gap-1">
-                      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-[var(--surface-2)]">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${c.ai_score}%`,
-                            backgroundColor: c.ai_score >= 75 ? "#4ade80" : c.ai_score >= 50 ? "#fbbf24" : "#f87171",
-                          }}
-                        />
-                      </div>
-                      <span className={`font-mono text-xs font-bold tabular-nums ${c.ai_score >= 75 ? "text-green-500" : c.ai_score >= 50 ? "text-amber-500" : "text-red-400"}`}>
-                        {c.ai_score}
-                      </span>
-                    </div>
-                  )}
-                  <StatusPill value={c.stage} context="stage" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
     </div>
   );
