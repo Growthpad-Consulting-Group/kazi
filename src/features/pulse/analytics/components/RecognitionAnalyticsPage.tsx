@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { RecognitionAnalyticsFilters } from "./RecognitionAnalyticsFilters";
 import RecognitionAnalyticsSection from "./RecognitionAnalyticsSection";
+import ExportReportButton from "./ExportReportButton";
 
 interface Props {
   searchParams: Record<string, string | string[] | undefined>;
@@ -68,6 +69,7 @@ export default async function RecognitionAnalyticsPage({ searchParams }: Props) 
         title="Recognition Analytics"
         description="Insights into recognition activity, trends and value usage"
         icon="solar:heart-broken"
+        trailing={<ExportReportButton />}
       />
 
       <Suspense>

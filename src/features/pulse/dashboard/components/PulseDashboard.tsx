@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MilestonesWidget from "./MilestonesWidget";
+import CultureHealthWidget from "./CultureHealthWidget";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -151,8 +152,7 @@ export default async function PulseDashboard() {
 
         {isManager && team && <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5" /></span><h2 className="text-sm font-semibold text-[var(--text-hi)]">Team radar</h2></div><p className="mt-2 text-xs text-[var(--text-lo)]">A quiet read on this week&apos;s check-ins and support needs.</p></div><Link href="/pulse/checkins" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">Review check-ins <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" /></Link></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><MiniMetric label="Submitted" value={`${team.submitted}/${team.total}`} tone="orange" /><MiniMetric label="Awaiting" value={team.total - team.submitted} tone="amber" /><MiniMetric label="Average mood" value={team.avgMood === null ? "—" : `${MOODS[Math.max(0, Math.min(4, Math.round(team.avgMood) - 1))]} ${team.avgMood}`} tone="blue" /><MiniMetric label="Blockers" value={team.blockers} tone={team.blockers ? "red" : "green"} /></div></section>}
         {isManager && <MilestonesWidget />}
-
-        {isManager && <MilestonesWidget />}
+        {isManager && <CultureHealthWidget />}
 
         <div className="grid gap-5 lg:grid-cols-2">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6"><SectionTitle icon="solar:star-fall-broken" title="Recent recognition" href="/pulse/feedback" action="Give feedback" />{feedback.length ? <div className="space-y-3">{feedback.map((item) => <div key={item.id} className="flex gap-3 rounded-xl bg-[var(--surface-2)] p-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-sm">{item.emoji ?? "✨"}</span><div className="min-w-0"><p className="text-xs font-semibold text-[var(--text-hi)]">{senderName.get(item.from_user_id) ?? "A teammate"}</p><p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-lo)]">{item.message}</p></div></div>)}</div> : <EmptyState icon="solar:star-fall-broken" text="Recognition from teammates will appear here." href="/pulse/feedback" action="Send feedback" />}</section>
