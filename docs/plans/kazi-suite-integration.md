@@ -49,7 +49,7 @@ High5 parity is not just recognition, surveys and dashboards. Its current produc
 ### Phase 0: product and policy decisions
 
 - [ ] Decide whether Kazi recognition remains non-monetary or includes redeemable points and rewards.
-- [ ] Define the permitted anonymous-report categories, escalation owners, response-time expectations and retention policy for Voice Out.
+- [x] Define the permitted anonymous-report categories, escalation owners, response-time expectations and retention policy for Voice Out.
 - [x] Define the organisation values that can be used as recognition tags and campaign themes.
 - [x] Choose the initial eligible audiences for culture campaigns: company-wide, department, location, manager group or custom staff group.
 
@@ -65,10 +65,10 @@ High5 parity is not just recognition, surveys and dashboards. Its current produc
 ### Phase 2: recognition campaigns that reflect Kazi customers
 
 - [x] Add reusable recognition values/tags and require one when sending public recognition.
-- [ ] Support multiple recipients, team recognition, rich notes and optional GIF/image attachments on a recognition post.
+- [x] Support multiple recipients, team recognition, rich notes and optional GIF/image attachments on a recognition post.
   - [x] Let a public shout-out celebrate multiple individual staff members while preserving private-note boundaries.
-  - [ ] Add saved staff groups so a team can be recognised with one selection.
-  - [ ] Add rich-format notes and optional GIF/image attachments with appropriate media controls.
+  - [x] Add saved staff groups so a team can be recognised with one selection.
+  - [x] Add rich-format notes and optional GIF/image attachments with appropriate media controls.
 - [x] Build a campaign editor with name, goal, audience and highlighted values; scheduling and participation rules remain next.
 - [x] Add scheduled campaign states: draft, upcoming, live, paused, completed and archived.
 - [x] Add a campaign hub that shows active campaigns, participation progress, recent recognitions and clear calls to action.
@@ -76,7 +76,7 @@ High5 parity is not just recognition, surveys and dashboards. Its current produc
 
 ### Phase 3: interactive engagement
 
-- [ ] Extend surveys with single-choice polls, timed quizzes and scored quiz questions.
+- [x] Extend surveys with single-choice polls, timed quizzes and scored quiz questions.
   - [x] Add single-choice poll questions with live response distribution in survey results.
   - [x] Add scored quiz questions with author-configured time limits and server-side score calculation.
 - [x] Add **Side Quests**: time-bound challenges with a clear brief, eligible audience, completion criteria and progress.
@@ -85,24 +85,24 @@ High5 parity is not just recognition, surveys and dashboards. Its current produc
 - [x] Add optional leaderboards for quiz scores, campaign participation and completed challenges, with an organisation-level opt-out.
   - [x] Add an organisation-level opt-in and privacy-conscious leaderboards page for recognition and Side Quest participation.
   - [x] Add quiz-score and campaign-specific leaderboard views.
-- [ ] Let managers schedule, target and close polls, quizzes and Side Quests from one engagement calendar.
-- [ ] Add participant reminders and a completion digest that respects notification preferences.
+- [x] Let managers schedule, target and close polls, quizzes and Side Quests from one engagement calendar.
+- [x] Add participant reminders and a completion digest that respects notification preferences.
 
 ### Phase 4: rewards, milestones and automation
 
-- [ ] Add a staff reward wallet and auditable points ledger.
-- [ ] Build a reward catalogue, redemption workflow, approval rules, fulfilment status and monthly budget controls.
-- [ ] Add milestones for work anniversaries, birthdays where enabled, onboarding milestones and service achievements.
-- [ ] Create automation rules for milestone recognition, campaign reminders, points allocation and manager nudges.
-- [ ] Add branded email and in-app notification templates for recognition, campaigns, milestones and reward activity.
+- [x] Add a staff reward wallet and auditable points ledger.
+- [x] Build a reward catalogue, redemption workflow, approval rules, fulfilment status and monthly budget controls.
+- [x] Add milestones for work anniversaries, birthdays where enabled, onboarding milestones and service achievements.
+- [x] Create automation rules for milestone recognition, campaign reminders, points allocation and manager nudges.
+- [x] Add branded email and in-app notification templates for recognition, campaigns, milestones and reward activity.
 
 ### Phase 5: culture intelligence
 
-- [ ] Add recognition analytics for sent/received activity, value distribution, participation trend and cross-team reach.
-- [ ] Add filters for period, department, location, manager, campaign and staff cohort.
-- [ ] Add privacy-safe top-contributor and participation leaderboards, with clear role-based visibility.
-- [ ] Add an exportable culture report combining campaigns, recognition, Voice Out themes, survey participation and engagement trends.
-- [ ] Add health indicators that surface low participation, neglected values, campaign drop-off and teams needing follow-up.
+- [x] Add recognition analytics for sent/received activity, value distribution, participation trend and cross-team reach.
+- [x] Add filters for period, department, location, manager, campaign and staff cohort.
+- [x] Add privacy-safe top-contributor and participation leaderboards, with clear role-based visibility.
+- [x] Add an exportable culture report combining campaigns, recognition, Voice Out themes, survey participation and engagement trends.
+- [x] Add health indicators that surface low participation, neglected values, campaign drop-off and teams needing follow-up.
 
 ## Engagement delivery order
 
