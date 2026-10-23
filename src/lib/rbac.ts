@@ -74,6 +74,8 @@ const PERMISSION_MAP: Record<Permission, readonly UserRole[]> = {
   manage_voice_out:   ["admin", "hr"],
   manage_recognition_campaigns: ["admin", "hr"],
   manage_side_quests:     ["admin", "hr", "manager"],
+  manage_rewards:         ["admin", "hr"],
+  manage_automations:     ["admin", "hr"],
   manage_reviews:     ["admin", "hr"],
   manage_one_on_ones: ["admin", "hr", "manager"],
   manage_pips:        ["admin", "hr", "manager"],
@@ -102,10 +104,6 @@ const PERMISSION_MAP: Record<Permission, readonly UserRole[]> = {
   search_people:      ["admin", "hr", "manager"],
   search_hiring:      ["admin", "hr", "hiring_manager", "interviewer"],
   search_signatures:  ["admin", "hr"],
-
-  // Rewards & automations
-  manage_rewards:      ["admin", "hr"],
-  manage_automations:  ["admin", "hr"],
 };
 
 /**

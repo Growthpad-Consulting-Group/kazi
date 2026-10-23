@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MilestonesWidget from "./MilestonesWidget";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -6,7 +7,6 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
-import MilestonesWidget from "@/features/pulse/dashboard/components/MilestonesWidget";
 
 type GoalSummary = { id: string; title: string; status: string; progress: number; due_date: string | null };
 type CheckinSummary = { status: "draft" | "submitted" | "reviewed"; mood: number | null; blockers: string | null };
@@ -150,6 +150,7 @@ export default async function PulseDashboard() {
         </div>
 
         {isManager && team && <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5" /></span><h2 className="text-sm font-semibold text-[var(--text-hi)]">Team radar</h2></div><p className="mt-2 text-xs text-[var(--text-lo)]">A quiet read on this week&apos;s check-ins and support needs.</p></div><Link href="/pulse/checkins" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">Review check-ins <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" /></Link></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><MiniMetric label="Submitted" value={`${team.submitted}/${team.total}`} tone="orange" /><MiniMetric label="Awaiting" value={team.total - team.submitted} tone="amber" /><MiniMetric label="Average mood" value={team.avgMood === null ? "—" : `${MOODS[Math.max(0, Math.min(4, Math.round(team.avgMood) - 1))]} ${team.avgMood}`} tone="blue" /><MiniMetric label="Blockers" value={team.blockers} tone={team.blockers ? "red" : "green"} /></div></section>}
+        {isManager && <MilestonesWidget />}
 
         {isManager && <MilestonesWidget />}
 
