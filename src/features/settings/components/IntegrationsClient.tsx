@@ -289,28 +289,6 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
         </div>
       </SettingsSection>
 
-      <SettingsSection
-        title="Coming soon"
-        description="More integrations are on the roadmap"
-        icon="solar:hourglass-broken"
-        iconBg="bg-slate-500/10 text-slate-500"
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            { icon: "arcticons:bamboohr", name: "BambooHR", desc: "Sync employee data and org structure" },
-            { icon: "thesvg-color:workday", name: "Workday", desc: "Bi-directional HR data integration" },
-          ].map((item) => (
-            <div key={item.name} className="flex items-start gap-3 rounded-xl border border-dashed border-[var(--border)] p-3 opacity-60">
-              <Icon icon={item.icon} className="mt-0.5 h-4 w-4 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-[var(--text-hi)]">{item.name}</p>
-                <p className="text-xs text-[var(--text-lo)]">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </SettingsSection>
-
       {/* ── Slack connect modal ──────────────────────────────────────────────── */}
       <SimpleModal
         open={showSlackModal}

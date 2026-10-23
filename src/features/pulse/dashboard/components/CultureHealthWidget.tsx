@@ -106,7 +106,7 @@ export default async function CultureHealthWidget() {
       ? "All live campaigns have recent recognition"
       : `${dropOffCampaigns.length} campaign${dropOffCampaigns.length === 1 ? "" : "s"} with no activity: ${dropOffCampaigns.slice(0, 2).map((c) => c.name).join(", ")}`,
     status: dropOffStatus,
-    icon: "solar:megaphone-broken",
+    icon: "solar:flag-broken",
   };
 
   // ── 5. Teams needing follow-up ───────────────────────────────────────────────

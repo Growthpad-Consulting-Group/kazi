@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import CheckinsPage from "@/features/pulse/checkins/components/CheckinsPage";
 import GoalsPage from "@/features/pulse/goals/components/GoalsPage";
+import StaffGoalsPage from "@/features/pulse/goals/components/StaffGoalsPage";
 import OneOnOnesPage from "@/features/pulse/one-on-ones/components/OneOnOnesPage";
 import TabBar from "@/components/ui/TabBar";
 
@@ -19,7 +20,7 @@ export default async function Page({
 
   const { tab, user, report } = await searchParams;
   // Managers default to the team view; employees default to their own check-in
-  const activeTab = tab ?? (isManager ? "team" : "checkins");
+  const activeTab = tab ?? (user ? "checkins" : isManager ? "team" : "checkins");
 
   const TABS = [
     ...(isManager ? [{ id: "team", label: "Team", icon: "solar:users-group-two-rounded-broken" }] : []),
@@ -34,7 +35,7 @@ export default async function Page({
         <TabBar tabs={TABS} />
       </Suspense>
 
-      {activeTab === "goals"       && <GoalsPage />}
+      {activeTab === "goals"       && (user ? <StaffGoalsPage userId={user} /> : <GoalsPage />)}
       {activeTab === "one-on-ones" && <OneOnOnesPage reportId={report} />}
       {activeTab === "team"        && <CheckinsPage userId={user} teamOnly />}
       {(activeTab === "checkins" || !["goals", "one-on-ones", "team"].includes(activeTab)) && (
