@@ -1,0 +1,38 @@
+{
+  "task_id": "task-four-features",
+  "task_description": "Implement four features in the Kazi app: (1) Slack incoming webhook integration, (2) Reward points awarding mechanism, (3) Birthday DOB + service achievement milestones, (4) Walk of Fame page.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null,
+  "convergence_verification": {
+    "iteration": 1,
+    "build": "PASS",
+    "lint_new_feat_errors": 0,
+    "lint_preexisting_errors": "react-hooks/set-state-in-effect in shared contexts (NotificationsContext, ThemeContext, useSidebar, IntegrationsClient Asana block) — all pre-existing, none in FEAT files",
+    "seam_checks": {
+      "FEAT-001_slack_lib": "src/lib/slack.ts exists",
+      "FEAT-001_db_type": "SlackConnection type in src/types/database.ts",
+      "FEAT-001_api_routes": "connect/disconnect/status routes all exist",
+      "FEAT-001_integrations_client": "IntegrationsClient.tsx has slackStatus prop and Slack card",
+      "FEAT-001_integrations_page": "settings/integrations/page.tsx passes slackStatus",
+      "FEAT-002_award_points_lib": "src/lib/award-points.ts exists and exports awardPoints",
+      "FEAT-002_automations_run": "automations/run/route.ts imports and calls awardPoints",
+      "FEAT-002_feedback_route": "feedback/route.ts imports and calls awardPoints (+5 public)",
+      "FEAT-002_checkins_route": "checkins/route.ts imports and calls awardPoints (+2 submitted)",
+      "FEAT-002_sidequests_route": "side-quests/[id]/progress/route.ts imports and calls awardPoints (+10)",
+      "FEAT-002_grant_route": "rewards/grant/route.ts exists",
+      "FEAT-002_grant_modal": "GrantPointsModal.tsx exists and rendered in EmployeeProfilePage",
+      "FEAT-003_migration": "20261023000018_users_dob.sql exists",
+      "FEAT-003_db_type": "date_of_birth in users Row/Insert in database.ts",
+      "FEAT-003_edit_modal": "EditStaffModal has date_of_birth field",
+      "FEAT-003_staff_api": "PATCH /api/staff/[id] handles date_of_birth",
+      "FEAT-003_profile_page": "EmployeeProfilePage shows Date of birth",
+      "FEAT-004_walk_of_fame_data": "src/features/pulse/walk-of-fame/data.ts exists",
+      "FEAT-004_walk_of_fame_page": "WalkOfFamePage.tsx exists",
+      "FEAT-004_app_route": "app/(app)/pulse/walk-of-fame/page.tsx exists",
+      "FEAT-004_nav": "Walk of Fame in nav.ts under Kazi Pulse group"
+    },
+    "eslint_config_fix": "Added .history/** to globalIgnores in eslint.config.mjs to exclude VS Code backup files from lint",
+    "timestamp": "2025-07-16"
+  }
+}
