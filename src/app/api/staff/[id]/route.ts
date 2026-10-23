@@ -47,6 +47,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
   }
   if (body.start_date !== undefined) { const v = str(body.start_date); if (v !== undefined) patch.start_date = v; }
+  if (body.date_of_birth !== undefined) { const v = str(body.date_of_birth); if (v !== undefined) patch.date_of_birth = v; }
   if (body.avatar_url !== undefined) { const v = str(body.avatar_url); if (v !== undefined) patch.avatar_url = v; }
 
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: "No fields to update." }, { status: 400 });

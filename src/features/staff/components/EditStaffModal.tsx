@@ -14,6 +14,7 @@ interface StaffFields {
   location: string | null;
   manager_id: string | null;
   start_date: string | null;
+  date_of_birth: string | null;
   avatar_url: string | null;
 }
 
@@ -104,6 +105,11 @@ export default function EditStaffModal({ userId, initial, managers, departments 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Start date</span>
             <input type="date" value={fields.start_date ?? ""} onChange={(e) => set("start_date", e.target.value || null)} className={inputCls} />
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Date of birth</span>
+            <input type="date" value={fields.date_of_birth ?? ""} onChange={(e) => set("date_of_birth", e.target.value || null)} className={inputCls} />
           </label>
 
           <label className="block">

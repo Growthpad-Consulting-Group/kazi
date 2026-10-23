@@ -34,10 +34,11 @@ export interface Database {
           job_title: string | null;
           location: string | null;
           start_date: string | null;
+          date_of_birth: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at" | "updated_at" | "department" | "avatar_url" | "is_active" | "manager_id" | "job_title" | "location" | "start_date"> & {
+        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at" | "updated_at" | "department" | "avatar_url" | "is_active" | "manager_id" | "job_title" | "location" | "start_date" | "date_of_birth"> & {
           department?: string | null;
           avatar_url?: string | null;
           is_active?: boolean;
@@ -45,6 +46,7 @@ export interface Database {
           job_title?: string | null;
           location?: string | null;
           start_date?: string | null;
+          date_of_birth?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["users"]["Insert"]>;
         Relationships: [];

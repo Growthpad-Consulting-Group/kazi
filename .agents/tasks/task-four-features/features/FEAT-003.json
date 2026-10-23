@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Birthday DOB + service achievement milestones. The milestones table already supports birthday and service_achievement types (DB enum in migration 20261023000014). The users table has no date_of_birth column. The generate cron route handles work_anniversary and onboarding_complete but not birthday or service_achievement. The EditStaffModal and staff PATCH API also need to pass through date_of_birth. The automation runner already handles work_anniversary milestones; service_achievement should be handled the same way (FEAT-002 already adds the award_points branch — this FEAT adds the send_notification branch for service_achievement).",
+  "status": "completed",
+  "steps": [
+    "1. Create DB migration supabase/migrations/20261023000018_users_dob.sql: ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth date; — nullable, no default. No RLS change needed (users table already has service_role full access). No index needed (only scanned in cron).",
+    "2. Update src/types/database.ts: in Database.public.Tables.users.Row add date_of_birth: string | null; in Insert add date_of_birth?: string | null; in Update it inherits from Insert via Partial. Update the User export type alias (it is derived from Row so it auto-updates).",
+    "3. Update src/features/staff/components/EditStaffModal.tsx: (a) Add date_of_birth: string | null to StaffFields interface. (b) Initialize in useState from initial prop. (c) Add a Date of birth input (type='date') in the form, below Start date, following the same label+input pattern. (d) Pass date_of_birth in the PATCH body.",
+    "4. Update src/features/staff/components/EmployeeProfilePage.tsx: (a) Add date_of_birth to the users SELECT query. (b) Include date_of_birth in the User type cast and in the initial prop passed to EditStaffModal. (c) Add 'Date of birth' to the Employment ProfileRow list (show 'Not set' if null, formatted as 'DD Mon YYYY' using relativeDate helper).",
+    "5. Update src/app/api/staff/[id]/route.ts PATCH handler: add date_of_birth handling alongside start_date — validate it is a valid date string (YYYY-MM-DD) or null, add to patch object.",
+    "6. Update src/app/api/pulse/milestones/generate/route.ts: add two new generation blocks after the existing two: (a) Birthday block: query SELECT id, date_of_birth FROM users WHERE is_active = true AND date_of_birth IS NOT NULL. For each user compute their birthday in the current year (same month/day, current year). Check if it falls in today..today+6 window. Upsert milestone { user_id, type: 'birthday', milestone_date: birthdayThisYearStr } with onConflict 'user_id,type,milestone_date' ignoreDuplicates. (b) Service achievement block: query SELECT id, start_date FROM users WHERE is_active = true AND start_date IS NOT NULL (can reuse the activeUsers query already fetched). For each user compute years of service for this year. If years is in [1, 3, 5, 10] and the anniversary date falls in today..today+6, upsert milestone { user_id, type: 'service_achievement', milestone_date: anniversaryStr, years_count: years } with onConflict ignoreDuplicates.",
+    "7. Update src/app/api/pulse/automations/run/route.ts: add handling for service_achievement milestones with send_notification action. Inside the existing milestone_anniversary + send_notification block, also query milestones WHERE type = 'service_achievement' AND milestone_date = todayStr and call notifyMilestone(milestone.user_id, 'service_achievement', milestone.years_count ?? undefined). This is additive to the existing work_anniversary query."
+  ],
+  "acceptance_criteria": [
+    "supabase/migrations/20261023000018_users_dob.sql exists with ALTER TABLE ADD COLUMN date_of_birth date",
+    "User type in src/types/database.ts includes date_of_birth: string | null",
+    "EditStaffModal has a date_of_birth date input field",
+    "PATCH /api/staff/[id] accepts and saves date_of_birth",
+    "milestones/generate route creates birthday milestones for users with DOB in next 7 days",
+    "milestones/generate route creates service_achievement milestones for 1/3/5/10-year anniversaries in next 7 days",
+    "automations runner sends notifications for service_achievement milestones",
+    "npm run build exits 0"
+  ],
+  "verification": [
+    "npm run build — must exit 0",
+    "npm run lint — no new errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

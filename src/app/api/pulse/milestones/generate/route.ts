@@ -80,5 +80,45 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
+  // ── 3. Birthdays in the next 7 days ───────────────────────────────────────
+  const { data: dobUsers } = await supabaseAdmin
+    .from("users")
+    .select("id, date_of_birth")
+    .eq("is_active", true)
+    .not("date_of_birth", "is", null);
+
+  for (const user of dobUsers ?? []) {
+    if (!user.date_of_birth) continue;
+    const [, dobMonth, dobDay] = user.date_of_birth.split("-").map(Number);
+    const birthdayThisYear = new Date(currentYear, dobMonth - 1, dobDay);
+    const birthdayStr = birthdayThisYear.toISOString().slice(0, 10);
+    if (birthdayThisYear >= today && birthdayThisYear <= windowEnd) {
+      const { error } = await supabaseAdmin.from("milestones").upsert(
+        { user_id: user.id, type: "birthday", milestone_date: birthdayStr },
+        { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true }
+      );
+      if (!error) created++;
+    }
+  }
+
+  // ── 4. Service achievements (1, 3, 5, 10 years) ───────────────────────────
+  const SERVICE_MILESTONES = [1, 3, 5, 10];
+  for (const user of activeUsers ?? []) {
+    if (!user.start_date) continue;
+    const [startYear, startMonth, startDay] = user.start_date.split("-").map(Number);
+    for (const years of SERVICE_MILESTONES) {
+      if (currentYear - startYear !== years) continue;
+      const achievementDate = new Date(currentYear, startMonth - 1, startDay);
+      const achievementStr = achievementDate.toISOString().slice(0, 10);
+      if (achievementDate >= today && achievementDate <= windowEnd) {
+        const { error } = await supabaseAdmin.from("milestones").upsert(
+          { user_id: user.id, type: "service_achievement", milestone_date: achievementStr, years_count: years },
+          { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true }
+        );
+        if (!error) created++;
+      }
+    }
+  }
+
   return NextResponse.json({ ok: true, created });
 }

@@ -33,6 +33,18 @@ export async function POST(req: Request): Promise<Response> {
         await notifyMilestone(milestone.user_id, "work_anniversary", milestone.years_count ?? undefined);
         processed++;
       }
+
+      // service achievements
+      const { data: svcMilestones } = await supabaseAdmin
+        .from("milestones")
+        .select("user_id, years_count")
+        .eq("milestone_date", todayStr)
+        .eq("type", "service_achievement");
+
+      for (const milestone of svcMilestones ?? []) {
+        await notifyMilestone(milestone.user_id, "service_achievement", milestone.years_count ?? undefined);
+        processed++;
+      }
     }
 
     // ── Milestone anniversary / service achievement → award points ────────
