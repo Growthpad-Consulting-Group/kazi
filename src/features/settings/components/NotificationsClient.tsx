@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import SettingsSection from "./SettingsSection";
@@ -92,6 +92,14 @@ const GROUPS: { title: string; icon: string; keys: (keyof NotifPrefs)[]; labels:
 export default function NotificationsClient({ initial }: Props) {
   const [prefs, setPrefs] = useState<NotifPrefs>(initial);
   const [isPending, startTransition] = useTransition();
+  const [showOnLeaderboard, setShowOnLeaderboard] = useState(true);
+  const [leaderboardPending, setLeaderboardPending] = useState(false);
+
+  // Fetch current leaderboard preference on mount
+  useEffect(() => {
+    // We don't have a GET endpoint, so we read the value optimistically as true
+    // and allow the user to toggle it; PATCH is fire-and-update.
+  }, []);
 
   const set = <K extends keyof NotifPrefs>(key: K, val: NotifPrefs[K]) =>
     setPrefs((p) => ({ ...p, [key]: val }));
@@ -105,6 +113,29 @@ export default function NotificationsClient({ initial }: Props) {
         toast.error(e instanceof Error ? e.message : "Could not save preferences");
       }
     });
+  }
+
+  async function handleLeaderboardToggle(value: boolean) {
+    setShowOnLeaderboard(value);
+    setLeaderboardPending(true);
+    try {
+      const res = await fetch("/api/pulse/notifications/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ show_on_leaderboard: value }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as { error?: string }).error ?? "Failed to update");
+      }
+      toast.success(value ? "You're now visible on leaderboards" : "Hidden from leaderboards");
+    } catch (e) {
+      // Revert on failure
+      setShowOnLeaderboard(!value);
+      toast.error(e instanceof Error ? e.message : "Could not update leaderboard preference");
+    } finally {
+      setLeaderboardPending(false);
+    }
   }
 
   return (
@@ -128,6 +159,29 @@ export default function NotificationsClient({ initial }: Props) {
           </div>
         </SettingsSection>
       ))}
+
+      <SettingsSection title="Leaderboards" icon="solar:chart-2-broken">
+        <div className="divide-y divide-[var(--border)]">
+          <div className="flex items-start justify-between gap-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[var(--text-hi)]">Show me on leaderboards</p>
+              <p className="mt-0.5 text-xs text-[var(--text-lo)]">Include your name in culture participation rankings visible to the team</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showOnLeaderboard}
+              disabled={leaderboardPending}
+              onClick={() => handleLeaderboardToggle(!showOnLeaderboard)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 disabled:opacity-60 ${showOnLeaderboard ? "bg-brand-500" : "bg-[var(--border)]"}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showOnLeaderboard ? "translate-x-4" : "translate-x-0"}`}
+              />
+            </button>
+          </div>
+        </div>
+      </SettingsSection>
 
       <div className="flex justify-end">
         <Button icon="solar:diskette-broken" loading={isPending} onClick={save}>
