@@ -39,7 +39,7 @@ function statusMeta(status?: string) {
   return { label: "Ready when you are", description: "A short update helps your manager support you well.", icon: "solar:pen-new-square-broken", className: "bg-brand-500/10 text-brand-500" };
 }
 
-export default async function CheckinsPage({ userId: overrideUserId }: { userId?: string }) {
+export default async function CheckinsPage({ userId: overrideUserId, teamOnly }: { userId?: string; teamOnly?: boolean }) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
@@ -55,9 +55,21 @@ export default async function CheckinsPage({ userId: overrideUserId }: { userId?
   const viewedUserId = canViewProfile ? profile.id : userId;
   const weekStart = getCurrentWeekStart();
   const [myCheckins, teamCheckins] = await Promise.all([
-    getMyCheckins(viewedUserId),
+    teamOnly ? Promise.resolve([]) : getMyCheckins(viewedUserId),
     isManager && !canViewProfile ? getTeamCheckins(userId) : Promise.resolve([]),
   ]);
+
+  // Team-only view: skip the personal form and go straight to the team overview
+  if (teamOnly && isManager) {
+    return (
+      <>
+        <SetPageHeader title="Team check-ins" description={`Week of ${weekRangeLabel(weekStart)}`} icon="solar:users-group-two-rounded-broken" />
+        <div className="mx-auto max-w-7xl">
+          <TeamCheckins checkins={teamCheckins} weekStart={weekStart} />
+        </div>
+      </>
+    );
+  }
   const thisWeek = myCheckins.find((checkin) => checkin.week_start === weekStart) ?? null;
   const status = statusMeta(thisWeek?.status);
   const weekRange = weekRangeLabel(weekStart);

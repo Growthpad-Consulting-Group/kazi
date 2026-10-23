@@ -19,16 +19,18 @@ export async function getTeamCheckins(managerId: string): Promise<CheckinWithUse
   const { data: reports } = await supabaseAdmin
     .from("users")
     .select("id")
-    .eq("manager_id", managerId);
+    .eq("manager_id", managerId)
+    .eq("is_active", true);
   const ids = (reports ?? []).map((r) => r.id as string);
   if (!ids.length) return [];
 
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("checkins")
-    .select("*, users(name, department, job_title)")
+    .select("*, users!checkins_user_id_fkey(name, department, job_title)")
     .in("user_id", ids)
     .order("week_start", { ascending: false })
-    .limit(50);
+    .limit(100);
+  if (error) console.error("[getTeamCheckins] error:", error.message);
   return (data ?? []) as unknown as CheckinWithUser[];
 }
 

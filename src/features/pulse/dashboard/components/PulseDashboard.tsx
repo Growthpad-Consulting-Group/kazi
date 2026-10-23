@@ -113,16 +113,26 @@ export default async function PulseDashboard() {
               <h1 className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-hi)] sm:text-2xl">Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"}, {firstName}.</h1>
               <p className="mt-1 text-sm text-[var(--text-lo)]">Keep priorities, conversations, and progress in one calm weekly rhythm.</p>
             </div>
-            <Link href={checkinHref} className="group flex min-w-64 items-center gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-3.5 transition-colors hover:bg-brand-500/10">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/25"><Icon icon={checkinStatus.icon} className="h-5 w-5" /></span>
-              <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-lo)]">This week&apos;s check-in</span><span className="mt-0.5 block text-sm font-semibold text-[var(--text-hi)]">{checkin ? checkinStatus.label : isManager ? "Submit your update" : "Share your weekly update"}</span></span>
+            <Link href={isManager ? "/pulse/checkins" : checkinHref} className="group flex min-w-64 items-center gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-3.5 transition-colors hover:bg-brand-500/10">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/25"><Icon icon={isManager ? "solar:users-group-two-rounded-broken" : checkinStatus.icon} className="h-5 w-5" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-medium text-[var(--text-lo)]">{isManager ? "Team check-ins" : "This week's check-in"}</span>
+                <span className="mt-0.5 block text-sm font-semibold text-[var(--text-hi)]">
+                  {isManager
+                    ? (team ? `${team.submitted}/${team.total} submitted this week` : "View your team's updates")
+                    : (checkin ? checkinStatus.label : "Share your weekly update")}
+                </span>
+              </span>
               <Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-brand-500 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
         </section>
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard title="Check-in" value={checkin ? checkinStatus.label : "Due"} icon="solar:clipboard-check-broken" color={checkin ? (checkin.status === "reviewed" ? "green" : "blue") : "orange"} compact subtitle={checkin?.mood ? `${MOODS[checkin.mood - 1]} Mood recorded` : "Week of progress"} href={checkinHref} />
+          {isManager && team
+            ? <StatCard title="Team check-ins" value={`${team.submitted}/${team.total}`} icon="solar:users-group-two-rounded-broken" color={team.submitted === team.total ? "green" : "orange"} compact subtitle={team.submitted === team.total ? "All submitted" : `${team.total - team.submitted} pending`} href="/pulse/checkins" />
+            : <StatCard title="Check-in" value={checkin ? checkinStatus.label : "Due"} icon="solar:clipboard-check-broken" color={checkin ? (checkin.status === "reviewed" ? "green" : "blue") : "orange"} compact subtitle={checkin?.mood ? `${MOODS[checkin.mood - 1]} Mood recorded` : "Week of progress"} href={checkinHref} />
+          }
           <StatCard title="Active goals" value={openGoals.length} icon="solar:target-broken" color="blue" compact subtitle={atRiskGoals.length ? `${atRiskGoals.length} needs attention` : "On your radar"} href="/pulse/goals" />
           <StatCard title="1-on-1 actions" value={oneOnOnes.reduce((sum, meeting) => sum + meeting.action_items.filter((item) => !item.done).length, 0)} icon="solar:chat-round-dots-broken" color="amber" compact subtitle={upcomingOneOnOne?.scheduled_at ? "A conversation ahead" : "Nothing scheduled"} href="/pulse/one-on-ones" />
           <StatCard title="Recognition" value={feedback.length} icon="solar:star-fall-broken" color="green" compact subtitle={feedback.length ? "Recent kudos" : "Share appreciation"} href="/pulse/feedback" />
