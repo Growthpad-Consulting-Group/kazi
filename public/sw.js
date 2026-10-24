@@ -1,6 +1,6 @@
 // Kazi is data-heavy and authenticated, so we only cache install assets. All
 // application routes and APIs remain network-only to avoid stale private data.
-const CACHE_NAME = "kazi-install-v1";
+const CACHE_NAME = "kazi-install-v2";
 const INSTALL_ASSETS = [
   "/manifest.webmanifest",
   "/favicon.ico",
