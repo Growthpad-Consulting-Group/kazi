@@ -4,7 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { awardPoints } from "@/lib/award-points";
 
-export async function POST(_req: Request, context: RouteContext<"/api/pulse/side-quests/[id]/progress">) {
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function POST(_req: Request, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await context.params;

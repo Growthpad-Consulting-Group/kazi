@@ -8,9 +8,17 @@ on:
 jobs:
   run-worker:
     runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
+      - name: Verify worker credentials
+        if: env.CRON_SECRET == ''
+        run: |
+          echo "::notice::Skipping worker trigger because CRON_SECRET is not configured in GitHub Actions."
       - name: Trigger screening worker
+        if: env.CRON_SECRET != ''
         run: |
           curl -sf -X GET \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/api/hire/candidates/screen-worker"
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/hire/candidates/screen-worker"
