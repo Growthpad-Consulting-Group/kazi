@@ -5,7 +5,7 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 import { createCalendarEvent } from "@/lib/google-calendar";
-import { postSlackMessage } from "@/lib/slack";
+import { notifyOneOnOneScheduled } from "@/lib/slack";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -87,49 +87,10 @@ export async function POST(req: Request) {
     }
   }
 
-  // Post Slack Block Kit notification if scheduledAt is provided (non-blocking)
+  // Direct-message both participants if scheduledAt is provided (non-blocking)
   if (scheduledAt) {
     try {
-      // We may have already fetched users inside the Calendar block above;
-      // fetch again here to keep this block self-contained and independent.
-      const { data: slackUsers } = await supabaseAdmin
-        .from("users")
-        .select("id, name")
-        .in("id", [managerId, reportId]);
-
-      type SlackUserRow = { id: string; name: string };
-      const slackUserList = (slackUsers ?? []) as SlackUserRow[];
-      const managerName = slackUserList.find((u) => u.id === managerId)?.name ?? "Manager";
-      const reportName = slackUserList.find((u) => u.id === reportId)?.name ?? "Report";
-      const formattedDate = new Date(scheduledAt).toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "UTC",
-      });
-      const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
-
-      await postSlackMessage(
-        `@${managerName} has a 1-on-1 with @${reportName} scheduled for ${formattedDate}`,
-        [
-          {
-            type: "header",
-            text: { type: "plain_text", text: "📅 1-on-1 Scheduled" },
-          },
-          {
-            type: "context",
-            elements: [
-              {
-                type: "mrkdwn",
-                text: `@${managerName} has a 1-on-1 with @${reportName} scheduled for ${formattedDate}. <${appUrl}/pulse/one-on-ones|View 1-on-1s>`,
-              },
-            ],
-          },
-        ]
-      );
+      await notifyOneOnOneScheduled(managerId, reportId, scheduledAt);
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);
     }

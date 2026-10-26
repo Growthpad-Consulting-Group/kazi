@@ -9,12 +9,13 @@ import { DatePicker } from "@/components/ui/DatePicker";
 interface Props {
   managerId: string;
   reports: { id: string; name: string; job_title: string | null }[];
+  defaultReportId?: string;
 }
 
-export function NewOneOnOneButton({ managerId, reports, size = "md" }: Props & { size?: "sm" | "md" }) {
+export function NewOneOnOneButton({ managerId, reports, defaultReportId, size = "md" }: Props & { size?: "sm" | "md" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [reportId, setReportId] = useState(reports[0]?.id ?? "");
+  const [reportId, setReportId] = useState(defaultReportId ?? reports[0]?.id ?? "");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [saving, setSaving] = useState(false);
@@ -34,7 +35,7 @@ export function NewOneOnOneButton({ managerId, reports, size = "md" }: Props & {
 
   return (
     <>
-      <Button size={size} icon="solar:calendar-add-broken" className="rounded-lg" onClick={() => setOpen(true)}>Schedule 1-on-1</Button>
+      <Button size={size} icon="solar:calendar-add-broken" className="rounded-lg" onClick={() => { setReportId(defaultReportId ?? reports[0]?.id ?? ""); setOpen(true); }}>Schedule 1-on-1</Button>
 
       <SimpleModal open={open} onClose={() => setOpen(false)} title="Schedule 1-on-1" icon="solar:calendar-add-broken" maxWidth="max-w-sm">
           <div className="space-y-4">
