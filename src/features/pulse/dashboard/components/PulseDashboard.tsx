@@ -68,7 +68,8 @@ export default async function PulseDashboard() {
   const reports = (reportsResult.data ?? []) as PersonSummary[];
   const openGoals = goals.filter((goal) => !["completed", "cancelled"].includes(goal.status));
   const atRiskGoals = openGoals.filter((goal) => goal.status === "at_risk");
-  const upcomingOneOnOne = oneOnOnes.find((meeting) => meeting.scheduled_at && new Date(meeting.scheduled_at) >= now) ?? oneOnOnes[0];
+  const upcomingOneOnOnes = oneOnOnes.filter((meeting) => meeting.scheduled_at && new Date(meeting.scheduled_at) >= now);
+  const upcomingOneOnOne = upcomingOneOnOnes[0] ?? oneOnOnes[0];
 
   const senders = feedback.length
     ? await supabaseAdmin.from("users").select("id, name").in("id", feedback.map((item) => item.from_user_id))
@@ -134,7 +135,7 @@ export default async function PulseDashboard() {
             : <StatCard title="Check-in" value={checkin ? checkinStatus.label : "Due"} icon="solar:clipboard-check-broken" color={checkin ? (checkin.status === "reviewed" ? "green" : "blue") : "orange"} compact subtitle={checkin?.mood ? `${MOODS[checkin.mood - 1]} Mood recorded` : "Week of progress"} href={checkinHref} />
           }
           <StatCard title="Active goals" value={openGoals.length} icon="solar:target-broken" color="blue" compact subtitle={atRiskGoals.length ? `${atRiskGoals.length} needs attention` : "On your radar"} href="/pulse/goals" />
-          <StatCard title="1-on-1 actions" value={oneOnOnes.reduce((sum, meeting) => sum + meeting.action_items.filter((item) => !item.done).length, 0)} icon="solar:chat-round-dots-broken" color="amber" compact subtitle={upcomingOneOnOne?.scheduled_at ? "A conversation ahead" : "Nothing scheduled"} href="/pulse/one-on-ones" />
+          <StatCard title="Upcoming 1-on-1s" value={upcomingOneOnOnes.length} icon="solar:chat-round-dots-broken" color="amber" compact subtitle={upcomingOneOnOne?.scheduled_at && upcomingOneOnOnes.length ? `Next ${new Date(upcomingOneOnOne.scheduled_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}` : "Nothing scheduled"} href="/pulse/one-on-ones" />
           <StatCard title="Recognition" value={feedback.length} icon="solar:star-fall-broken" color="green" compact subtitle={feedback.length ? "Recent kudos" : "Share appreciation"} href="/pulse/feedback" />
         </section>
 

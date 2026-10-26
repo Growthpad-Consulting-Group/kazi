@@ -40,6 +40,34 @@ export async function notifyRecognitionReceived(
     .insert({ user_id: userId, message: `${fromName} recognised you: "${preview}"`, link: "/pulse/feedback" });
 }
 
+export async function notifyOneOnOneScheduled(
+  managerId: string,
+  reportId: string,
+  scheduledAt: string,
+): Promise<void> {
+  const { data } = await supabaseAdmin
+    .from("users")
+    .select("id, name")
+    .in("id", [managerId, reportId]);
+  const people = (data ?? []) as { id: string; name: string }[];
+  const manager = people.find((u) => u.id === managerId);
+  const report = people.find((u) => u.id === reportId);
+  if (!manager || !report) return;
+
+  const when = new Date(scheduledAt).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+  await supabaseAdmin.from("notifications").insert([
+    { user_id: managerId, message: `1-on-1 with ${report.name} scheduled for ${when}`, link: "/pulse/one-on-ones" },
+    { user_id: reportId, message: `1-on-1 with ${manager.name} scheduled for ${when}`, link: "/pulse/one-on-ones" },
+  ]);
+}
+
 export async function notifyMilestone(
   userId: string,
   type: string,

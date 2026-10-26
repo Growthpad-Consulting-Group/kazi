@@ -29,7 +29,7 @@ export async function sendSlackDirectMessage(email: string, text: string, blocks
   }
 }
 
-export async function notifyOneOnOneScheduled(managerId: string, reportId: string, scheduledAt: string): Promise<void> {
+export async function sendOneOnOneSlackDMs(managerId: string, reportId: string, scheduledAt: string): Promise<void> {
   const { data } = await supabaseAdmin
     .from("users")
     .select("id, name, email")

@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
-import { notifyOneOnOneScheduled } from "@/lib/slack";
+import { sendOneOnOneSlackDMs } from "@/lib/slack";
+import { notifyOneOnOneScheduled } from "@/lib/notifications";
 
 type UserRow = { id: string; name: string; email: string };
 
@@ -101,10 +102,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Direct-message both participants when the time changes (non-blocking)
   if (scheduledAt !== undefined && scheduledAt && participants?.manager_id) {
     try {
-      await notifyOneOnOneScheduled(participants.manager_id, participants.report_id ?? "", scheduledAt);
+      await sendOneOnOneSlackDMs(participants.manager_id, participants.report_id ?? "", scheduledAt);
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);
     }
+    await notifyOneOnOneScheduled(participants.manager_id, participants.report_id ?? "", scheduledAt);
   }
 
   return NextResponse.json({ ok: true });

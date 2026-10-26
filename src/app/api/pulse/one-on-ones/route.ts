@@ -5,7 +5,8 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 import { createCalendarEvent } from "@/lib/google-calendar";
-import { notifyOneOnOneScheduled } from "@/lib/slack";
+import { sendOneOnOneSlackDMs } from "@/lib/slack";
+import { notifyOneOnOneScheduled } from "@/lib/notifications";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -90,10 +91,11 @@ export async function POST(req: Request) {
   // Direct-message both participants if scheduledAt is provided (non-blocking)
   if (scheduledAt) {
     try {
-      await notifyOneOnOneScheduled(managerId, reportId, scheduledAt);
+      await sendOneOnOneSlackDMs(managerId, reportId, scheduledAt);
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);
     }
+    await notifyOneOnOneScheduled(managerId, reportId, scheduledAt);
   }
 
   return NextResponse.json({ id: insertedId, carried: carried.length });
