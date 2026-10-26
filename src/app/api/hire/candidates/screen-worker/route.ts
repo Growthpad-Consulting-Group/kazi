@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { redis, SCREENING_QUEUE, SCREENING_PROCESSING } from "@/lib/redis";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import type { CandidateStage } from "@/types/database";
 
 // Called by Vercel Cron (vercel.json) or an external scheduler.
 // Processes up to BATCH_SIZE candidates per invocation.
@@ -12,6 +13,8 @@ const BATCH_SIZE = 5;
 
 type CandidateWithJob = {
   id: string;
+  ai_score: number | null;
+  stage: CandidateStage;
   cv_text: string | null;
   cv_parsed: unknown;
   jobs: {
@@ -24,22 +27,24 @@ type CandidateWithJob = {
 async function screenOne(candidateId: string): Promise<void> {
   const { data, error } = await supabaseAdmin
     .from("candidates")
-    .select("id, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)")
+    .select("id, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)")
     .eq("id", candidateId)
     .single();
 
   if (error || !data) return;
   const candidate = data as unknown as CandidateWithJob;
   const job = candidate.jobs;
-  if (!job) return;
+  if (!job || candidate.ai_score !== null) return;
 
   const cvData = candidate.cv_parsed
     ? JSON.stringify(candidate.cv_parsed)
     : (candidate.cv_text?.slice(0, 6000) ?? "");
   if (!cvData) return;
 
-  const rubricText = job.scoring_rubric.length
-    ? job.scoring_rubric.map((r) => `- ${r.criterion} (${r.weight}%): ${r.description}`).join("\n")
+  const rubric = job.scoring_rubric ?? [];
+  const requirements = job.requirements ?? { must_haves: [], nice_to_haves: [] };
+  const rubricText = rubric.length
+    ? rubric.map((r) => `- ${r.criterion} (${r.weight}%): ${r.description}`).join("\n")
     : "General fit for the role";
 
   const prompt = `You are a fair, unbiased recruitment assistant screening a candidate for a role. Anonymised CV data (no name, photo, age, gender or personal identifiers).
@@ -47,7 +52,7 @@ async function screenOne(candidateId: string): Promise<void> {
 Role: ${job.title}
 
 Must-haves:
-${job.requirements.must_haves.map((r) => `- ${r}`).join("\n") || "None specified"}
+${requirements.must_haves.map((r) => `- ${r}`).join("\n") || "None specified"}
 
 Scoring rubric:
 ${rubricText}
@@ -70,7 +75,7 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
   try {
     result = JSON.parse(raw);
   } catch {
-    return;
+    throw new Error("AI returned invalid screening JSON");
   }
 
   await Promise.all([
@@ -78,7 +83,9 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
       ai_score: result.score,
       ai_justification: result.justification,
       shortlisted: result.shortlisted,
-      stage: "screened",
+      // Automation only advances a fresh application. It never rewinds a
+      // stage that a recruiter has already moved forward.
+      stage: candidate.stage === "applied" ? "screened" : candidate.stage,
     }).eq("id", candidateId),
 
     supabaseAdmin.from("ai_logs").insert({
@@ -103,14 +110,32 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const queuedIds: string[] = [];
+  for (let i = 0; i < BATCH_SIZE; i++) {
+    const id = await redis.lpop<string>(SCREENING_QUEUE);
+    if (!id) break;
+    queuedIds.push(id);
+  }
+
+  // The worker also catches legacy and imported applications, so the feature
+  // does not rely on an HR user remembering to press a "screen" button.
+  if (queuedIds.length < BATCH_SIZE) {
+    const { data: backlog } = await supabaseAdmin
+      .from("candidates")
+      .select("id")
+      .is("ai_score", null)
+      .or("cv_text.not.is.null,cv_parsed.not.is.null")
+      .limit(BATCH_SIZE - queuedIds.length);
+    for (const candidate of backlog ?? []) {
+      if (!queuedIds.includes(candidate.id)) queuedIds.push(candidate.id);
+    }
+  }
+
   const processed: string[] = [];
   const failed: string[] = [];
 
-  for (let i = 0; i < BATCH_SIZE; i++) {
-    // LPOP + track in processing set for visibility
-    const id = await redis.lpop<string>(SCREENING_QUEUE);
-    if (!id) break;
-
+  for (const id of queuedIds) {
+    // Track in-progress candidates for operational visibility.
     await redis.sadd(SCREENING_PROCESSING, id);
     try {
       await screenOne(id);

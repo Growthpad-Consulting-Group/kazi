@@ -29,6 +29,7 @@
     "@lexical/list": "^0.52.0",
     "@lexical/react": "^0.52.0",
     "@lexical/rich-text": "^0.52.0",
+    "@napi-rs/canvas": "^1.0.13",
     "@supabase/supabase-js": "^2.118.0",
     "@tiptap/extension-bubble-menu": "^3.32.0",
     "@tiptap/extension-color": "^3.32.0",
@@ -56,6 +57,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
     "lexical": "^0.52.0",
+    "mammoth": "^1.13.0",
     "next": "16.4.2",
     "next-auth": "^4.24.15",
     "react": "19.3.0",
@@ -68,6 +70,8 @@
     "recharts": "^3.10.1",
     "resend": "^6.34.1",
     "sanitize-html": "^2.18.1",
+    "tesseract.js": "^7.0.0",
+    "unpdf": "^1.9.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

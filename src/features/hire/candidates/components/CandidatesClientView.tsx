@@ -9,7 +9,6 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 import type { CandidateWithJob } from "../actions";
 import CandidateStageSelect from "./CandidateStageSelect";
-import { ScreenButton } from "./ScreenButton";
 
 const STAGE_FILTER_OPTIONS: FilterOption[] = [
   { id: "applied", label: "Applied", category: "stage", value: "applied" },
@@ -34,7 +33,6 @@ const FILTER_CATEGORIES: FilterCategoryDef[] = [
 interface Props {
   candidates: CandidateWithJob[];
   unscreenedIds: string[];
-  bulkScreenButton?: React.ReactNode;
   initialStage?: string;
   initialAttention?: string;
   initialRole?: string;
@@ -50,7 +48,7 @@ function dashboardFilters(stage?: string, attention?: string, role?: string): Ac
   return filters;
 }
 
-export default function CandidatesClientView({ candidates, unscreenedIds, bulkScreenButton, initialStage, initialAttention, initialRole }: Props) {
+export default function CandidatesClientView({ candidates, unscreenedIds, initialStage, initialAttention, initialRole }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>(() => dashboardFilters(initialStage, initialAttention, initialRole));
@@ -66,7 +64,7 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
       location: unique(candidates.map((candidate) => candidate.location)).map((value) => ({ id: value, label: value, category: "location", value })),
       score: [{ id: "high", label: "High (75+)", category: "score", value: "high" }, { id: "review", label: "Review (50–74)", category: "score", value: "review" }, { id: "low", label: "Low (<50)", category: "score", value: "low" }, { id: "pending", label: "Not screened", category: "score", value: "pending" }],
       cv: [{ id: "available", label: "CV available", category: "cv", value: "available" }, { id: "missing", label: "CV missing", category: "cv", value: "missing" }],
-      attention: [{ id: "needs_screening", label: "Needs screening", category: "attention", value: "needs_screening" }, { id: "stalled", label: "Stalled 14+ days", category: "attention", value: "stalled" }],
+      attention: [{ id: "needs_screening", label: "Awaiting AI review", category: "attention", value: "needs_screening" }, { id: "stalled", label: "Stalled 14+ days", category: "attention", value: "stalled" }],
     };
   }, [candidates]);
 
@@ -118,7 +116,7 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
     const stalled = candidates.filter((candidate) => !["hired", "rejected"].includes(candidate.stage) && referenceTime - new Date(candidate.applied_at).getTime() > 14 * 24 * 60 * 60 * 1000).length;
     return [
       { label: "All candidates", value: candidates.length, icon: "solar:users-group-two-rounded-broken", color: "blue", filter: [] as ActiveFilter[] },
-      { label: "Needs screening", value: unscreenedIds.length, icon: "solar:cpu-bolt-broken", color: "amber", filter: [{ category: "attention", values: ["needs_screening"], label: "Attention: is Needs screening", operator: "is" as const }] },
+      { label: "Awaiting AI", value: unscreenedIds.length, icon: "solar:cpu-bolt-broken", color: "amber", filter: [{ category: "attention", values: ["needs_screening"], label: "Attention: is Awaiting AI review", operator: "is" as const }] },
       { label: "Interviews", value: candidates.filter((candidate) => candidate.stage === "interview").length, icon: "solar:calendar-broken", color: "blue", filter: [{ category: "stage", values: ["interview"], label: "Stage: is Interview", operator: "is" as const }] },
       { label: "Stalled", value: stalled, icon: "solar:alarm-broken", color: "red", filter: [{ category: "attention", values: ["stalled"], label: "Attention: is Stalled 14+ days", operator: "is" as const }] },
     ] as { label: string; value: number; icon: string; color: StatCardColor; filter: ActiveFilter[] }[];
@@ -178,19 +176,19 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
         ),
     },
     {
-      header: "Triage",
+      header: "AI status",
       accessor: "ai_score",
       render: (row) => row.ai_score === null
-        ? <ScreenButton candidateId={row.id} hasCV={!!(row.cv_text || row.cv_parsed)} compact />
-        : <span className="text-xs text-[var(--text-lo)]">Screened</span>,
+        ? <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${row.cv_text || row.cv_parsed ? "text-amber-600" : "text-[var(--text-lo)]"}`}><Icon icon={row.cv_text || row.cv_parsed ? "solar:clock-circle-broken" : "solar:file-remove-broken"} className="h-3.5 w-3.5" />{row.cv_text || row.cv_parsed ? "Queued for AI" : "CV needed"}</span>
+        : <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />Screened</span>,
     },
     {
       header: "Shortlisted",
       accessor: "shortlisted",
       render: (row) =>
         row.shortlisted ? (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-500">
-            <Icon icon="solar:check-circle-bold" className="h-3.5 w-3.5" /> Yes
+          <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600">
+            Shortlisted
           </span>
         ) : (
           <span className="text-xs text-[var(--text-lo)] opacity-40">—</span>
@@ -240,7 +238,6 @@ export default function CandidatesClientView({ candidates, unscreenedIds, bulkSc
           searchPlaceholder="Search candidates by name, email or role…"
         />
       }
-      rightContent={bulkScreenButton}
       onRefresh={() => { setSearch(""); setFilters([]); }}
       />
     </div>

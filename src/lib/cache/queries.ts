@@ -116,6 +116,8 @@ export async function getCachedCandidates(
     let query = supabaseAdmin
       .from("candidates")
       .select("*, jobs(title, department)")
+      // Highest AI fit first; candidates awaiting analysis remain after scored candidates.
+      .order("ai_score", { ascending: false, nullsFirst: false })
       .order("applied_at", { ascending: false });
     if (jobId) query = query.eq("job_id", jobId);
     if (activeOnly) query = query.in("stage", ["applied", "screened", "interview", "offer", "hired"]);

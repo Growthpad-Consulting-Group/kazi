@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { notifyRoles, RECRUITER_ROLES } from "@/lib/notifications";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import { createCandidateUploadToken } from "@/lib/candidate-upload-token";
 
 // Public endpoint — no auth. Called by the public /apply/[jobId] page.
 export async function POST(req: Request) {
@@ -73,5 +74,9 @@ export async function POST(req: Request) {
   // The pipeline and hiring dashboard counts now include this applicant.
   await invalidateTables("candidates");
 
-  return NextResponse.json({ candidateId: candidate.id });
+  return NextResponse.json({
+    candidateId: candidate.id,
+    // The form can upload a CV without exposing a broadly writable public route.
+    uploadToken: createCandidateUploadToken(candidate.id, job_id),
+  });
 }

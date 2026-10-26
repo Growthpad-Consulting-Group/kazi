@@ -52,48 +52,6 @@ function KpiCard({ stat }: { stat: StatDef }) {
   );
 }
 
-const STAGE_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  applied:   { color: "#94a3b8", bg: "bg-slate-400",   label: "Applied" },
-  screened:  { color: "#60a5fa", bg: "bg-blue-400",    label: "Screened" },
-  interview: { color: "#a78bfa", bg: "bg-violet-400",  label: "Interview" },
-  offer:     { color: "#fbbf24", bg: "bg-amber-400",   label: "Offer" },
-  hired:     { color: "#4ade80", bg: "bg-green-400",   label: "Hired" },
-  rejected:  { color: "#f87171", bg: "bg-red-400",     label: "Rejected" },
-};
-
-function PipelineFunnel({ stages }: { stages: { stage: string; count: number }[] }) {
-  const active = stages.filter((s) => s.stage !== "rejected");
-  const total = active.reduce((s, r) => s + r.count, 0) || 1;
-
-  return (
-    <div className="space-y-2">
-      {active.map(({ stage, count }) => {
-        const cfg = STAGE_CONFIG[stage] ?? { color: "#94a3b8", bg: "bg-slate-400", label: stage };
-        const pct = Math.round((count / total) * 100);
-        return (
-          <Link
-            key={stage}
-            href={`/hire/candidates?stage=${stage}`}
-            className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--surface-2)]"
-          >
-            <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${cfg.bg} shadow-sm`}
-              style={{ boxShadow: `0 0 6px ${cfg.color}60` }} />
-            <span className="w-20 shrink-0 text-xs text-[var(--text-hi)]">{cfg.label}</span>
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pct}%`, backgroundColor: cfg.color }}
-              />
-            </div>
-            <span className="w-8 shrink-0 text-right font-mono text-xs font-bold text-[var(--text-hi)]">{count}</span>
-            <span className="w-8 shrink-0 text-right font-mono text-[10px] text-[var(--text-lo)]">{pct}%</span>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage({
@@ -299,7 +257,7 @@ export default async function DashboardPage({
 
       <DashboardHeader
         range={range}
-        description={`${stats.openJobs} open role${stats.openJobs !== 1 ? "s" : ""} · ${stats.activePipeline} in pipeline · ${stats.hired} hired`}
+        description="Hiring and people overview"
       />
 
       {heroBanner}
@@ -334,9 +292,9 @@ export default async function DashboardPage({
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-cyan-500/15"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-cyan-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Team pulse</h2><p className="text-[11px] text-[var(--text-lo)]">This week&apos;s check-ins and goals</p></div></div>
-          <div className="grid grid-cols-2 gap-2">
-            {[{ label: "Check-ins due", value: operations.pulse.pendingCheckins, href: "/pulse/checkins" }, { label: "Low mood", value: operations.pulse.lowMood, href: "/pulse/checkins" }, { label: "Blockers", value: operations.pulse.blockers, href: "/pulse/checkins" }, { label: "Goals at risk", value: operations.pulse.atRiskGoals, href: "/pulse/goals" }].map((item) => <Link key={item.label} href={item.href} className="rounded-xl bg-[var(--surface-2)] p-3 transition-colors hover:bg-cyan-500/10"><p className="font-mono text-xl font-bold text-[var(--text-hi)]">{item.value}</p><p className="mt-1 text-[11px] text-[var(--text-lo)]">{item.label}</p></Link>)}
+          <div className="mb-4 flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-cyan-500/15"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-cyan-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Check-in status</h2><p className="text-[11px] text-[var(--text-lo)]">This week&apos;s check-ins and goals</p></div></div>
+          <div className="grid grid-cols-3 gap-2">
+            {[{ label: "Check-ins due", value: operations.pulse.pendingCheckins, href: "/pulse/checkins" }, { label: "Low mood", value: operations.pulse.lowMood, href: "/pulse/checkins" }, { label: "Blockers", value: operations.pulse.blockers, href: "/pulse/checkins" }].map((item) => <Link key={item.label} href={item.href} className="rounded-xl bg-[var(--surface-2)] p-3 transition-colors hover:bg-cyan-500/10"><p className="font-mono text-xl font-bold text-[var(--text-hi)]">{item.value}</p><p className="mt-1 text-[11px] text-[var(--text-lo)]">{item.label}</p></Link>)}
           </div>
         </section>
       </div>
@@ -449,96 +407,6 @@ export default async function DashboardPage({
           </div>
         </section>
 
-      </div>
-
-      {/* ── Middle row: Pipeline + Quick actions ── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-        {/* Pipeline funnel */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15">
-                <Icon icon="solar:graph-broken" className="h-3.5 w-3.5 text-brand-500" />
-              </div>
-              <h2 className="text-md font-semibold text-[var(--text-hi)]">Hiring Pipeline</h2>
-            </div>
-            <Link href="/hire/pipeline" className="flex items-center gap-1 text-xs text-brand-500 hover:underline">
-              View <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <PipelineFunnel stages={pipeline} />
-          <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-3">
-            <span className="text-xs text-[var(--text-lo)]">Total active</span>
-            <span className="font-mono text-sm font-bold text-[var(--text-hi)]">
-              {pipeline.filter(s => s.stage !== "rejected").reduce((a, b) => a + b.count, 0)}
-            </span>
-          </div>
-        </div>
-
-        {/* Top roles by volume */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 transition-shadow duration-200">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/15">
-                <Icon icon="solar:case-broken" className="h-3.5 w-3.5 text-amber-500" />
-              </div>
-              <div>
-                <h2 className="text-md font-semibold text-[var(--text-hi)]">Top roles</h2>
-                <p className="text-[11px] text-[var(--text-lo)]">Most active by applicant volume</p>
-              </div>
-            </div>
-            <Link href="/hire/jobs" className="flex items-center gap-1 text-xs text-brand-500 hover:underline">
-              All jobs <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          {rolePipeline.length ? (
-            <div className="space-y-3">
-              {rolePipeline.slice(0, 6).map((r) => {
-                const total = r.applied + r.screened + r.interview + r.offer || 1;
-                const stages = [
-                  { key: "applied",   val: r.applied,   color: "#94a3b8" },
-                  { key: "screened",  val: r.screened,  color: "#60a5fa" },
-                  { key: "interview", val: r.interview, color: "#a78bfa" },
-                  { key: "offer",     val: r.offer,     color: "#fbbf24" },
-                ];
-                return (
-                  <Link
-                    key={r.role}
-                    href={`/hire/candidates?role=${encodeURIComponent(r.role)}`}
-                    className="group -mx-2 block rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"
-                  >
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <span className="truncate text-xs font-medium text-[var(--text-hi)] group-hover:text-brand-500 transition-colors">{r.role}</span>
-                      <span className="shrink-0 font-mono text-xs text-[var(--text-lo)]">{r.applied}</span>
-                    </div>
-                    <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
-                      {stages.map((s) => s.val > 0 && (
-                        <div
-                          key={s.key}
-                          className="h-full"
-                          style={{ width: `${(s.val / total) * 100}%`, backgroundColor: s.color }}
-                          title={`${s.key}: ${s.val}`}
-                        />
-                      ))}
-                    </div>
-                  </Link>
-                );
-              })}
-              {/* Legend */}
-              <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
-                {[{ label: "Applied", color: "#94a3b8" }, { label: "Screened", color: "#60a5fa" }, { label: "Interview", color: "#a78bfa" }, { label: "Offer", color: "#fbbf24" }].map((l) => (
-                  <div key={l.label} className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: l.color }} />
-                    <span className="text-[10px] text-[var(--text-lo)]">{l.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No active roles.</p>
-          )}
-        </div>
       </div>
 
       {/* ── Charts row ── */}
