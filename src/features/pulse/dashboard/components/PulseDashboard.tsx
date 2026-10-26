@@ -8,6 +8,7 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
+import { DailyLogReminder } from "@/features/pulse/daily-log/components/DailyLogReminder";
 
 type GoalSummary = { id: string; title: string; status: string; progress: number; due_date: string | null };
 type CheckinSummary = { status: "draft" | "submitted" | "reviewed"; mood: number | null; blockers: string | null };
@@ -139,6 +140,7 @@ export default async function PulseDashboard() {
           <StatCard title="Recognition" value={feedback.length} icon="solar:star-fall-broken" color="green" compact subtitle={feedback.length ? "Recent kudos" : "Share appreciation"} href="/pulse/feedback" />
         </section>
 
+        <DailyLogReminder />
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.85fr)]">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle icon="solar:target-broken" title="Focus and goals" href="/pulse/goals" action="View all" />

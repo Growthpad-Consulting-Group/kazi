@@ -106,7 +106,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);
     }
-    await notifyOneOnOneScheduled(participants.manager_id, participants.report_id ?? "", scheduledAt);
+    await notifyOneOnOneScheduled(id, participants.manager_id, participants.report_id ?? "", scheduledAt);
   }
 
   return NextResponse.json({ ok: true });

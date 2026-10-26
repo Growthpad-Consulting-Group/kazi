@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase";
+import { invalidateUserNotifications } from "@/lib/cache/invalidate";
 import type { UserRole } from "@/types/database";
 
 /**
@@ -41,6 +42,7 @@ export async function notifyRecognitionReceived(
 }
 
 export async function notifyOneOnOneScheduled(
+  meetingId: string,
   managerId: string,
   reportId: string,
   scheduledAt: string,
@@ -62,10 +64,12 @@ export async function notifyOneOnOneScheduled(
     minute: "2-digit",
     timeZone: "UTC",
   });
+  const link = `/pulse/one-on-ones/${meetingId}`;
   await supabaseAdmin.from("notifications").insert([
-    { user_id: managerId, message: `1-on-1 with ${report.name} scheduled for ${when}`, link: "/pulse/one-on-ones" },
-    { user_id: reportId, message: `1-on-1 with ${manager.name} scheduled for ${when}`, link: "/pulse/one-on-ones" },
+    { user_id: managerId, message: `1-on-1 with ${report.name} scheduled for ${when}`, link },
+    { user_id: reportId, message: `1-on-1 with ${manager.name} scheduled for ${when}`, link },
   ]);
+  await Promise.all([invalidateUserNotifications(managerId), invalidateUserNotifications(reportId)]);
 }
 
 export async function notifyMilestone(

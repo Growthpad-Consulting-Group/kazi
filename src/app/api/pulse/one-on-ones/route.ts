@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);
     }
-    await notifyOneOnOneScheduled(managerId, reportId, scheduledAt);
+    await notifyOneOnOneScheduled(insertedId, managerId, reportId, scheduledAt);
   }
 
   return NextResponse.json({ id: insertedId, carried: carried.length });

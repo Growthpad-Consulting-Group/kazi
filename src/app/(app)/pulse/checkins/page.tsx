@@ -7,6 +7,7 @@ import GoalsPage from "@/features/pulse/goals/components/GoalsPage";
 import StaffGoalsPage from "@/features/pulse/goals/components/StaffGoalsPage";
 import OneOnOnesPage from "@/features/pulse/one-on-ones/components/OneOnOnesPage";
 import TabBar from "@/components/ui/TabBar";
+import { DailyLogPage } from "@/features/pulse/daily-log/components/DailyLogPage";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function Page({
   const TABS = [
     ...(isManager ? [{ id: "team", label: "Team", icon: "solar:users-group-two-rounded-broken" }] : []),
     { id: "checkins",    label: isManager ? "My check-in" : "Check-ins",  icon: "solar:checklist-minimalistic-broken" },
+    { id: "daily",       label: "Daily log",  icon: "solar:notebook-broken" },
     { id: "goals",       label: "Goals",      icon: "solar:target-broken" },
     { id: "one-on-ones", label: "1-on-1s",    icon: "solar:chat-round-dots-broken" },
   ];
@@ -38,7 +40,8 @@ export default async function Page({
       {activeTab === "goals"       && (user ? <StaffGoalsPage userId={user} /> : <GoalsPage />)}
       {activeTab === "one-on-ones" && <OneOnOnesPage reportId={report} view={view === "upcoming" ? "upcoming" : undefined} />}
       {activeTab === "team"        && <CheckinsPage userId={user} teamOnly />}
-      {(activeTab === "checkins" || !["goals", "one-on-ones", "team"].includes(activeTab)) && (
+      {activeTab === "daily"       && <DailyLogPage showTeam={isManager} />}
+      {(activeTab === "checkins" || !["goals", "one-on-ones", "team", "daily"].includes(activeTab)) && (
         <CheckinsPage userId={user} />
       )}
     </div>

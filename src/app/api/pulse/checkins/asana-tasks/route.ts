@@ -9,8 +9,12 @@ type AsanaTask = { gid: string; name: string; completed_at: string; permalink_ur
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  const weekStart = new URL(request.url).searchParams.get("weekStart");
-  if (!weekStart || !/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return NextResponse.json({ error: "A valid weekStart is required." }, { status: 400 });
+  const params = new URL(request.url).searchParams;
+  const weekStart = params.get("weekStart");
+  const day = params.get("date");
+  const rangeStart = weekStart ?? day;
+  if (!rangeStart || !/^\d{4}-\d{2}-\d{2}$/.test(rangeStart)) return NextResponse.json({ error: "A valid weekStart or date is required." }, { status: 400 });
+  const rangeDays = weekStart ? 7 : 1;
 
   const { data: connection } = await supabaseAdmin.from("asana_connections").select("*").eq("user_id", session.user.id).maybeSingle();
   if (!connection) return NextResponse.json({ connected: false });
@@ -30,8 +34,8 @@ export async function GET(request: Request) {
       }).eq("id", connection.id);
     }
 
-    const start = new Date(`${weekStart}T00:00:00.000Z`);
-    const end = new Date(start); end.setUTCDate(end.getUTCDate() + 7);
+    const start = new Date(`${rangeStart}T00:00:00.000Z`);
+    const end = new Date(start); end.setUTCDate(end.getUTCDate() + rangeDays);
     const query = new URLSearchParams({
       "assignee.any": "me",
       completed: "true",
