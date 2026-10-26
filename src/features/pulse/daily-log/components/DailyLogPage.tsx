@@ -5,13 +5,14 @@ import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
-import { DAILY_LOG_CATEGORIES, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
+import SetPageHeader from "@/components/ui/SetPageHeader";
+import { DAILY_LOG_CATEGORIES, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
-type Row = { task: string; minutes: string; category: DailyLogCategory };
+type Row = { task: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
 type TeamMember = { userId: string; name: string; jobTitle: string | null; entries: DailyLogEntry[]; totalMinutes: number; updatedAt: string | null };
 type AsanaTask = { id: string; name: string; project: string | null };
 
-const emptyRow = (): Row => ({ task: "", minutes: "", category: "Projects" });
+const emptyRow = (): Row => ({ task: "", showRange: false, startTime: "", endTime: "", minutes: "", category: "Projects" });
 
 function todayLocal() {
   const now = new Date();
@@ -22,6 +23,18 @@ function formatMinutes(total: number) {
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
   return hours && minutes ? `${hours}h ${minutes}m` : hours ? `${hours}h` : `${minutes}m`;
+}
+
+function rowMinutes(row: Pick<Row, "showRange" | "startTime" | "endTime" | "minutes">): number | null {
+  if (row.showRange && row.startTime && row.endTime) {
+    const diff = clockToMinutes(row.endTime) - clockToMinutes(row.startTime);
+    return diff > 0 ? diff : null;
+  }
+  return parseDurationMinutes(row.minutes);
+}
+
+function dateHeading(date: string) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
@@ -42,7 +55,16 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
         if (cancelled) return;
         if (json.error) throw new Error(json.error);
         const loaded = json.entries ?? [];
-        setRows(loaded.length ? loaded.map((entry) => ({ task: entry.task, minutes: formatMinutes(entry.minutes), category: entry.category })) : [emptyRow()]);
+        setRows(loaded.length
+          ? loaded.map((entry) => ({
+              task: entry.task,
+              showRange: !!(entry.startTime && entry.endTime),
+              startTime: entry.startTime ?? "",
+              endTime: entry.endTime ?? "",
+              minutes: formatMinutes(entry.minutes),
+              category: entry.category,
+            }))
+          : [emptyRow()]);
         setSavedAt(json.updatedAt ?? null);
       })
       .catch((err: Error) => !cancelled && toast.error(err.message))
@@ -59,7 +81,7 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
     return () => { cancelled = true; };
   }, [date, showTeam]);
 
-  const totalMinutes = rows.reduce((sum, row) => sum + (parseDurationMinutes(row.minutes) ?? 0), 0);
+  const totalMinutes = rows.reduce((sum, row) => sum + (rowMinutes(row) ?? 0), 0);
 
   const updateRow = (index: number, patch: Partial<Row>) => {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -81,26 +103,33 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
   const addSelectedFromAsana = () => {
     const picked = asana.tasks.filter((task) => asana.selected.includes(task.id));
     setRows((prev) => {
-      const base = prev.length === 1 && !prev[0].task && !prev[0].minutes ? [] : prev;
-      return [...base, ...picked.map((task) => ({ task: task.project ? `${task.project}: ${task.name}` : task.name, minutes: "", category: "Projects" as DailyLogCategory }))];
+      const base = prev.length === 1 && !prev[0].task && !prev[0].minutes && !prev[0].startTime ? [] : prev;
+      return [...base, ...picked.map((task) => ({ ...emptyRow(), task: task.project ? `${task.project}: ${task.name}` : task.name }))];
     });
     setAsana((prev) => ({ ...prev, open: false }));
   };
 
   const save = async () => {
-    const filled = rows.filter((row) => row.task.trim() || row.minutes.trim());
+    const filled = rows.filter((row) => row.task.trim() || row.minutes.trim() || row.startTime || row.endTime);
     if (!filled.length) {
       toast.error("Add at least one task");
       return;
     }
     const entries: DailyLogEntry[] = [];
     for (const row of filled) {
-      const minutes = parseDurationMinutes(row.minutes);
+      const minutes = rowMinutes(row);
       if (minutes === null) {
-        toast.error(`Check the time for "${row.task || "a task"}". Try 45m, 1h, or 1h 30m.`);
+        toast.error(`Check the time for "${row.task || "a task"}". Use a duration like 45m or 1h 30m, or a range where the end is after the start.`);
         return;
       }
-      entries.push({ task: row.task.trim(), minutes, category: row.category });
+      const hasRange = row.showRange && row.startTime && row.endTime;
+      entries.push({
+        task: row.task.trim(),
+        minutes,
+        category: row.category,
+        startTime: hasRange ? row.startTime : null,
+        endTime: hasRange ? row.endTime : null,
+      });
     }
 
     setSaving(true);
@@ -121,17 +150,24 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
     }
   };
 
-  const inputClass = "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
+  const inputClass = "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60";
+  const timeClass = "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text-hi)] outline-none focus:border-brand-500";
 
   return (
     <div className="space-y-6">
+      <SetPageHeader
+        title="Daily log"
+        description={`${dateHeading(date)} · what you worked on and how long it took`}
+        icon="solar:notebook-broken"
+      />
+
       <section className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10"><Icon icon="solar:notebook-broken" className="h-3.5 w-3.5 text-brand-500" /></span>
             <div>
-              <h2 className="text-base font-semibold text-[var(--text-hi)]">Daily activity log</h2>
-              <p className="text-[11px] text-[var(--text-lo)]">What you worked on today and roughly how long it took.</p>
+              <h2 className="text-base font-semibold text-[var(--text-hi)]">Activity</h2>
+              <p className="text-[11px] text-[var(--text-lo)]">Add each task with how long it took.</p>
             </div>
           </div>
           <div className="w-48">
@@ -144,20 +180,42 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
         ) : (
           <div className="space-y-3">
             {rows.map((row, index) => (
-              <div key={index} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px_140px_auto]">
-                <input value={row.task} onChange={(e) => updateRow(index, { task: e.target.value })} placeholder="What did you work on?" maxLength={200} className={inputClass} />
-                <input value={row.minutes} onChange={(e) => updateRow(index, { minutes: e.target.value })} placeholder="e.g. 1h 30m" className={inputClass} />
-                <select value={row.category} onChange={(e) => updateRow(index, { category: e.target.value as DailyLogCategory })} className={inputClass}>
-                  {DAILY_LOG_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setRows((prev) => (prev.length === 1 ? [emptyRow()] : prev.filter((_, i) => i !== index)))}
-                  className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-xl text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-red-500"
-                  aria-label="Remove task"
-                >
-                  <Icon icon="solar:trash-bin-minimalistic-broken" className="h-4 w-4" />
-                </button>
+              <div key={index} className="space-y-2">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_130px_auto]">
+                  <input value={row.task} onChange={(e) => updateRow(index, { task: e.target.value })} placeholder="What did you work on?" maxLength={200} className={inputClass} />
+                  <input
+                    value={row.showRange && row.startTime && row.endTime ? formatMinutes(rowMinutes(row) ?? 0) : row.minutes}
+                    disabled={row.showRange && !!row.startTime && !!row.endTime}
+                    onChange={(e) => updateRow(index, { minutes: e.target.value })}
+                    placeholder="Duration, e.g. 1h 30m"
+                    aria-label="Duration"
+                    className={inputClass}
+                  />
+                  <select value={row.category} onChange={(e) => updateRow(index, { category: e.target.value as DailyLogCategory })} className={inputClass}>
+                    {DAILY_LOG_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setRows((prev) => (prev.length === 1 ? [emptyRow()] : prev.filter((_, i) => i !== index)))}
+                    className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-xl text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-red-500"
+                    aria-label="Remove task"
+                  >
+                    <Icon icon="solar:trash-bin-minimalistic-broken" className="h-4 w-4" />
+                  </button>
+                </div>
+                {row.showRange ? (
+                  <div className="flex flex-wrap items-center gap-2 pl-1 text-xs text-[var(--text-lo)]">
+                    <span>From</span>
+                    <input type="time" aria-label="Start time" value={row.startTime} onChange={(e) => updateRow(index, { startTime: e.target.value })} className={timeClass} />
+                    <span>to</span>
+                    <input type="time" aria-label="End time" value={row.endTime} onChange={(e) => updateRow(index, { endTime: e.target.value })} className={timeClass} />
+                    <button type="button" onClick={() => updateRow(index, { showRange: false, startTime: "", endTime: "" })} className="ml-1 hover:text-red-500">Remove time range</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => updateRow(index, { showRange: true })} className="pl-1 text-xs font-medium text-[var(--text-lo)] hover:text-brand-500">
+                    + Set a time range
+                  </button>
+                )}
               </div>
             ))}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
@@ -244,7 +302,7 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
                           <span className="min-w-0 truncate text-[var(--text-hi)]">{entry.task}</span>
                           <span className="flex shrink-0 items-center gap-2 text-[var(--text-lo)]">
                             <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5">{entry.category}</span>
-                            <span className="font-mono">{formatMinutes(entry.minutes)}</span>
+                            <span className="font-mono">{entry.startTime && entry.endTime ? `${entry.startTime}–${entry.endTime} · ` : ""}{formatMinutes(entry.minutes)}</span>
                           </span>
                         </li>
                       ))}

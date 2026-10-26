@@ -1,7 +1,14 @@
 export const DAILY_LOG_CATEGORIES = ["Meetings", "Hiring", "Reporting", "Projects", "Admin", "Other"] as const;
 export type DailyLogCategory = (typeof DAILY_LOG_CATEGORIES)[number];
 
-export type DailyLogEntry = { task: string; minutes: number; category: DailyLogCategory };
+export type DailyLogEntry = { task: string; minutes: number; category: DailyLogCategory; startTime?: string | null; endTime?: string | null };
+
+const CLOCK_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export function clockToMinutes(value: string): number {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
 
 const MAX_ENTRIES = 30;
 const MAX_TASK_LENGTH = 200;
@@ -14,12 +21,23 @@ export function validateDailyLogEntries(input: unknown): { ok: true; entries: Da
   const entries: DailyLogEntry[] = [];
   for (const raw of input as Record<string, unknown>[]) {
     const task = typeof raw?.task === "string" ? raw.task.trim() : "";
-    const minutes = Number(raw?.minutes);
     const category = raw?.category as DailyLogCategory;
+    const startTime = typeof raw?.startTime === "string" && raw.startTime ? raw.startTime : null;
+    const endTime = typeof raw?.endTime === "string" && raw.endTime ? raw.endTime : null;
     if (!task || task.length > MAX_TASK_LENGTH) return { ok: false, error: `Each task needs a description up to ${MAX_TASK_LENGTH} characters` };
-    if (!Number.isInteger(minutes) || minutes <= 0) return { ok: false, error: "Minutes must be a whole number above zero" };
     if (!DAILY_LOG_CATEGORIES.includes(category)) return { ok: false, error: "Choose a valid category for each task" };
-    entries.push({ task, minutes, category });
+
+    let minutes = Number(raw?.minutes);
+    if (startTime || endTime) {
+      if (!startTime || !endTime || !CLOCK_PATTERN.test(startTime) || !CLOCK_PATTERN.test(endTime)) {
+        return { ok: false, error: "Start and end times must both be set as HH:MM" };
+      }
+      minutes = clockToMinutes(endTime) - clockToMinutes(startTime);
+      if (minutes <= 0) return { ok: false, error: `"${task}" must end after it starts` };
+    }
+    if (!Number.isInteger(minutes) || minutes <= 0) return { ok: false, error: "Minutes must be a whole number above zero" };
+
+    entries.push({ task, minutes, category, startTime, endTime });
   }
 
   const total = entries.reduce((sum, entry) => sum + entry.minutes, 0);
