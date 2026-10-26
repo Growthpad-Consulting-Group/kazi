@@ -45,22 +45,24 @@ export function ApplyPage({ job, company = "Growthpad Consulting Group" }: Props
     setErrorMsg("");
 
     try {
-      const applyResponse = await fetch("/api/hire/candidates/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_id: job.id, ...form }),
-      });
-      const application = await applyResponse.json();
-      if (!applyResponse.ok) throw new Error(application.error);
-
-      if (cvFile && application.candidateId) {
+      if (cvFile) {
+        // The CV is read before the application is saved, so an unreadable file never leaves a half-finished application.
         const payload = new FormData();
+        for (const [key, value] of Object.entries(form)) payload.append(key, typeof value === "boolean" ? String(value) : value);
+        payload.append("job_id", job.id);
+        payload.append("consented", String(form.consented));
         payload.append("cv", cvFile);
-        payload.append("candidateId", application.candidateId);
-        payload.append("jobId", job.id);
-        payload.append("uploadToken", application.uploadToken);
-        const uploadResponse = await fetch("/api/hire/candidates/upload-cv", { method: "POST", body: payload });
-        if (!uploadResponse.ok) throw new Error("Your application was received, but we could not upload your CV. Please contact us to add it.");
+        const response = await fetch("/api/hire/candidates/apply-with-cv", { method: "POST", body: payload });
+        const application = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(application.error ?? "We could not submit your application. Please try again.");
+      } else {
+        const response = await fetch("/api/hire/candidates/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: job.id, ...form }),
+        });
+        const application = await response.json();
+        if (!response.ok) throw new Error(application.error);
       }
 
       setStep("done");
