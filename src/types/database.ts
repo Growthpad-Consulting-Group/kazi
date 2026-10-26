@@ -308,8 +308,8 @@ export interface Database {
         Relationships: [];
       };
       side_quests: {
-        Row: { id: string; title: string; brief: string; completion_criteria: string; audience_type: "company" | "department" | "location" | "manager_group" | "staff"; audience_filters: string[]; starts_at: string | null; ends_at: string | null; status: "draft" | "upcoming" | "live" | "closed" | "archived"; created_by: string; created_at: string; updated_at: string };
-        Insert: Omit<Database["public"]["Tables"]["side_quests"]["Row"], "id" | "created_at" | "updated_at" | "audience_filters" | "starts_at" | "ends_at" | "status"> & { audience_filters?: string[]; starts_at?: string | null; ends_at?: string | null; status?: "draft" | "upcoming" | "live" | "closed" | "archived" };
+        Row: { id: string; title: string; brief: string; completion_criteria: string; audience_type: "company" | "department" | "location" | "manager_group" | "staff"; audience_filters: string[]; starts_at: string | null; ends_at: string | null; status: "draft" | "upcoming" | "live" | "closed" | "archived"; created_by: string; created_at: string; updated_at: string; points: number };
+        Insert: Omit<Database["public"]["Tables"]["side_quests"]["Row"], "id" | "created_at" | "updated_at" | "audience_filters" | "starts_at" | "ends_at" | "status" | "points"> & { audience_filters?: string[]; starts_at?: string | null; ends_at?: string | null; status?: "draft" | "upcoming" | "live" | "closed" | "archived"; points?: number };
         Update: Partial<Database["public"]["Tables"]["side_quests"]["Insert"]>;
         Relationships: [];
       };

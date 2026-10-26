@@ -7,7 +7,7 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NewCampaignButton } from "@/features/pulse/campaigns/components/NewCampaignButton";
-import { NewSideQuestButton } from "@/features/pulse/side-quests/components/NewSideQuestButton";
+import { NewSideQuestButton } from "@/features/pulse/side-quests/components/SideQuestFormModal";
 import { NewSurveyButton } from "@/features/pulse/surveys/components/NewSurveyButton";
 import { ArchiveItemButton } from "./ArchiveItemButton";
 
