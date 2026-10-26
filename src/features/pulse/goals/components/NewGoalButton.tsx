@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import type { GoalLevel } from "@/types/database";
@@ -106,7 +107,7 @@ export function NewGoalButton({ userId, size = "md" }: { userId: string; size?: 
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Due date <span className="font-normal text-[var(--text-lo)]">Optional</span></label>
-            <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60" />
+            <DatePicker value={dueDate} onChange={setDueDate} className="w-full" />
           </div>
 
           {error && <p className="text-xs font-medium text-red-500">{error}</p>}

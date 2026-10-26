@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
@@ -97,7 +98,7 @@ export function GoalActions({ goal }: { goal: Goal }) {
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Due date <span className="font-normal text-[var(--text-lo)]">Optional</span></label>
-              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputClass} />
+              <DatePicker value={dueDate} onChange={setDueDate} className="w-full" />
             </div>
           </div>
         </div>

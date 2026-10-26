@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { useRouter } from "next/navigation";
 import type { Pip } from "@/types/database";
 
@@ -145,8 +146,7 @@ export function PipDetail({ pip, isManager, employeeName }: Props) {
               onKeyDown={(e) => e.key === "Enter" && addAction()}
               placeholder="Add action step…"
               className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
-            <input type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
+            <DatePicker value={newDue} onChange={setNewDue} className="w-full" />
             <button type="button" onClick={addAction}
               className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors">
               Add
