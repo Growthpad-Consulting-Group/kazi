@@ -4,10 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import DateRangePicker, { computePresetRange, type DateRangeValue } from "@/components/ui/DateRangePicker";
 import { Avatar } from "@/components/ui/Avatar";
+import StatCard from "@/components/ui/StatCard";
 import { DAILY_LOG_CATEGORIES, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type TeamEntry = DailyLogEntry & { date: string };
+type TeamDay = { date: string; mood: number | null; blockers: string | null; wins: string | null };
 type TeamMember = {
+  days: TeamDay[];
   userId: string;
   name: string;
   jobTitle: string | null;
@@ -35,12 +38,12 @@ function formatDay(date: string) {
 }
 
 const CATEGORY_COLORS: Record<DailyLogCategory, string> = {
-  Meetings: "bg-violet-500",
-  Hiring: "bg-brand-500",
-  Reporting: "bg-sky-500",
-  Projects: "bg-emerald-500",
-  Admin: "bg-slate-400",
-  Other: "bg-amber-500",
+  Projects: "bg-stone-700 dark:bg-stone-300",
+  Meetings: "bg-brand-500/45",
+  Hiring: "bg-rose-400",
+  Reporting: "bg-slate-400",
+  Admin: "bg-stone-300",
+  Other: "bg-zinc-300",
 };
 
 export function TeamActivity() {
@@ -102,10 +105,10 @@ export function TeamActivity() {
             <DateRangePicker value={range} onChange={setRange} allowedRanges={RANGE_OPTIONS} maxDate={null} fullWidth />
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <Metric label="Team members" value={summary.members} icon="solar:users-group-two-rounded-broken" />
-          <Metric label="Logged anything" value={summary.withLogs} icon="solar:check-circle-broken" />
-          <Metric label="Total time" value={formatMinutes(summary.minutes)} icon="solar:stopwatch-broken" />
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard title="Team members" value={summary.members} icon="solar:users-group-two-rounded-broken" color="slate" variant="inline" compact />
+          <StatCard title="Logged anything" value={summary.withLogs} icon="solar:check-circle-broken" color="green" variant="inline" compact />
+          <StatCard title="Total time" value={formatMinutes(summary.minutes)} icon="solar:stopwatch-broken" color="orange" variant="inline" compact />
         </div>
       </div>
 
@@ -171,9 +174,16 @@ export function TeamActivity() {
 
                 {isOpen && (
                   <div className="mt-4 space-y-4 border-t border-[var(--border)] pt-4">
-                    {groupByDate(member.entries).map(([date, dayEntries]) => (
+                    {groupByDate(member.entries, member.days).map(([date, dayEntries]) => (
                       <div key={date}>
                         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">{formatDay(date)} · {formatMinutes(dayEntries.reduce((sum, entry) => sum + entry.minutes, 0))}</p>
+                        {(() => { const day = member.days.find((d) => d.date === date); return day && (day.mood || day.blockers || day.wins) ? (
+                          <div className="mb-2 space-y-1 rounded-lg bg-brand-500/5 px-3 py-2 text-xs text-[var(--text-hi)]">
+                            {day.mood ? <p>Mood {moodEmoji(day.mood)}</p> : null}
+                            {day.blockers ? <p><span className="font-semibold">Blockers:</span> {day.blockers}</p> : null}
+                            {day.wins ? <p><span className="font-semibold">Wins:</span> {day.wins}</p> : null}
+                          </div>
+                        ) : null; })()}
                         <ul className="space-y-1.5">
                           {dayEntries.map((entry, index) => (
                             <li key={index} className="flex flex-col gap-1 rounded-lg bg-[var(--surface-2)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -199,18 +209,14 @@ export function TeamActivity() {
   );
 }
 
-function groupByDate(entries: TeamEntry[]) {
+function groupByDate(entries: TeamEntry[], days: TeamDay[]) {
   const groups = new Map<string, TeamEntry[]>();
+  for (const day of days) if (day.blockers || day.mood || day.wins) groups.set(day.date, groups.get(day.date) ?? []);
   for (const entry of entries) groups.set(entry.date, [...(groups.get(entry.date) ?? []), entry]);
   return [...groups.entries()].sort(([a], [b]) => b.localeCompare(a));
 }
 
-function Metric({ label, value, icon }: { label: string; value: string | number; icon: string }) {
-  return (
-    <div className="rounded-xl bg-[var(--surface-2)] px-3 py-2.5">
-      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--surface)] text-[var(--text-lo)]"><Icon icon={icon} className="h-3.5 w-3.5" /></span>
-      <p className="mt-2 font-mono text-base font-bold text-[var(--text-hi)]">{value}</p>
-      <p className="mt-0.5 text-[10px] font-medium text-[var(--text-lo)]">{label}</p>
-    </div>
-  );
+function moodEmoji(mood: number | null | undefined) {
+  return ["", "😔", "😕", "😐", "🙂", "😄"][mood ?? 0] ?? "";
 }
+

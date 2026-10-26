@@ -66,6 +66,22 @@ export function parseDurationMinutes(input: string): number | null {
   return Number.isInteger(plain) && plain > 0 ? plain : null;
 }
 
+export const DAILY_LOG_MOOD_COUNT = 5;
+const MAX_BLOCKERS_LENGTH = 1000;
+
+export function validateDailyLogMood(input: unknown): { ok: true; mood: number | null } | { ok: false; error: string } {
+  if (input === null || input === undefined || input === "") return { ok: true, mood: null };
+  const mood = Number(input);
+  if (!Number.isInteger(mood) || mood < 1 || mood > DAILY_LOG_MOOD_COUNT) return { ok: false, error: "Choose a mood from 1 to 5" };
+  return { ok: true, mood };
+}
+
+export function cleanText(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const text = input.trim().slice(0, MAX_BLOCKERS_LENGTH);
+  return text || null;
+}
+
 export function isValidLogDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime());
 }

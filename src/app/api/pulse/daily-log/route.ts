@@ -3,9 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import { isValidLogDate, validateDailyLogEntries, type DailyLogEntry } from "@/features/pulse/daily-log/constants";
+import { cleanText, isValidLogDate, validateDailyLogEntries, validateDailyLogMood, type DailyLogEntry } from "@/features/pulse/daily-log/constants";
 
-type LogRow = { user_id: string; log_date: string; entries: DailyLogEntry[]; updated_at: string };
+type LogRow = { user_id: string; log_date: string; entries: DailyLogEntry[]; updated_at: string; mood: number | null; blockers: string | null; wins: string | null };
 type TeamLogRow = LogRow;
 
 const MAX_RANGE_DAYS = 93;
@@ -25,12 +25,12 @@ export async function GET(req: Request) {
     if (!isValidLogDate(date)) return NextResponse.json({ error: "A valid date is required" }, { status: 400 });
     const { data } = await supabaseAdmin
       .from("daily_activity_logs")
-      .select("entries, updated_at")
+      .select("entries, updated_at, mood, blockers, wins")
       .eq("user_id", session.user.id)
       .eq("log_date", date)
       .maybeSingle();
-    const row = data as unknown as { entries: DailyLogEntry[]; updated_at: string } | null;
-    return NextResponse.json({ entries: row?.entries ?? [], updatedAt: row?.updated_at ?? null });
+    const row = data as unknown as { entries: DailyLogEntry[]; updated_at: string; mood: number | null; blockers: string | null; wins: string | null } | null;
+    return NextResponse.json({ entries: row?.entries ?? [], updatedAt: row?.updated_at ?? null, mood: row?.mood ?? null, blockers: row?.blockers ?? null, wins: row?.wins ?? null });
   }
 
   if (!can(session.user.role, "manage_checkins")) {
@@ -65,7 +65,7 @@ export async function GET(req: Request) {
 
   const { data: logs } = await supabaseAdmin
     .from("daily_activity_logs")
-    .select("user_id, log_date, entries, updated_at")
+    .select("user_id, log_date, entries, updated_at, mood, blockers, wins")
     .gte("log_date", from)
     .lte("log_date", to)
     .in("user_id", memberIds);
@@ -86,6 +86,7 @@ export async function GET(req: Request) {
         name: member.name,
         jobTitle: member.job_title,
         avatarUrl: member.avatar_url ?? signaturePhotoByUser.get(member.id) ?? null,
+        days: memberLogs.map((log) => ({ date: log.log_date, mood: log.mood ?? null, blockers: log.blockers ?? null, wins: log.wins ?? null })),
         daysLogged: memberLogs.filter((log) => log.entries.length > 0).length,
         totalMinutes: entries.reduce((sum, entry) => sum + entry.minutes, 0),
         byCategory,
@@ -103,16 +104,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Managers, HR and admins review logs and don't submit their own." }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => null) as { date?: unknown; entries?: unknown } | null;
+  const body = await req.json().catch(() => null) as { date?: unknown; entries?: unknown; mood?: unknown; blockers?: unknown; wins?: unknown } | null;
   if (!isValidLogDate(body?.date)) return NextResponse.json({ error: "A valid date is required" }, { status: 400 });
 
   const validated = validateDailyLogEntries(body?.entries);
   if (!validated.ok) return NextResponse.json({ error: validated.error }, { status: 400 });
+  const mood = validateDailyLogMood(body?.mood);
+  if (!mood.ok) return NextResponse.json({ error: mood.error }, { status: 400 });
 
   const { error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .from("daily_activity_logs")
     .upsert(
-      { user_id: session.user.id, log_date: body.date, entries: validated.entries },
+      { user_id: session.user.id, log_date: body.date, entries: validated.entries, mood: mood.mood, blockers: cleanText(body.blockers), wins: cleanText(body.wins) },
       { onConflict: "user_id,log_date" }
     );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

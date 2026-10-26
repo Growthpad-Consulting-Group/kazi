@@ -8,10 +8,12 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
 import { TeamActivity } from "./TeamActivity";
-import { DAILY_LOG_CATEGORIES, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
+import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type Row = { task: string; client: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
 type AsanaTask = { id: string; name: string; project: string | null };
+
+const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
 const emptyRow = (): Row => ({ task: "", client: "", showRange: false, startTime: "", endTime: "", minutes: "", category: "Projects" });
 
@@ -44,6 +46,9 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [mood, setMood] = useState<number | null>(null);
+  const [blockers, setBlockers] = useState("");
+  const [wins, setWins] = useState("");
   const [clients, setClients] = useState<string[]>([]);
   const [asana, setAsana] = useState<{ open: boolean; loading: boolean; connected: boolean; tasks: AsanaTask[]; selected: string[] }>({ open: false, loading: false, connected: false, tasks: [], selected: [] });
 
@@ -59,7 +64,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     setLoading(true);
     fetch(`/api/pulse/daily-log?date=${date}`)
       .then((res) => res.json())
-      .then((json: { entries?: DailyLogEntry[]; updatedAt?: string | null; error?: string }) => {
+      .then((json: { entries?: DailyLogEntry[]; updatedAt?: string | null; mood?: number | null; blockers?: string | null; wins?: string | null; error?: string }) => {
         if (cancelled) return;
         if (json.error) throw new Error(json.error);
         const loaded = json.entries ?? [];
@@ -75,6 +80,9 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
             }))
           : [emptyRow()]);
         setSavedAt(json.updatedAt ?? null);
+        setMood(json.mood ?? null);
+        setBlockers(json.blockers ?? "");
+        setWins(json.wins ?? "");
       })
       .catch((err: Error) => !cancelled && toast.error(err.message))
       .finally(() => !cancelled && setLoading(false));
@@ -139,7 +147,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
       const res = await fetch("/api/pulse/daily-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, entries }),
+        body: JSON.stringify({ date, entries, mood, blockers: blockers.trim() || null, wins: wins.trim() || null }),
       });
       const json = await res.json().catch(() => null) as { error?: string } | null;
       if (!res.ok) throw new Error(json?.error ?? "Could not save your log");
@@ -269,6 +277,37 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
             )}
           </div>
         )}
+
+        <div className="grid gap-4 border-t border-[var(--border)] pt-4 sm:grid-cols-3">
+          <div>
+            <p className="mb-2 text-xs font-semibold text-[var(--text-hi)]">How did today feel?</p>
+            <div className="flex gap-1.5">
+              {MOODS.slice(0, DAILY_LOG_MOOD_COUNT).map((emoji, index) => {
+                const value = index + 1;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setMood(mood === value ? null : value)}
+                    aria-label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}`}
+                    aria-pressed={mood === value}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-colors ${mood === value ? "bg-brand-500/15 ring-2 ring-brand-500/40" : "bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">Blockers <span className="font-normal text-[var(--text-lo)]">Optional</span></label>
+            <textarea rows={2} value={blockers} onChange={(e) => setBlockers(e.target.value)} placeholder="Anything slowing you down?" maxLength={1000} className={`${inputClass} resize-y`} />
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">Wins and learnings <span className="font-normal text-[var(--text-lo)]">Optional</span></label>
+            <textarea rows={2} value={wins} onChange={(e) => setWins(e.target.value)} placeholder="What went well, or what did you learn?" maxLength={1000} className={`${inputClass} resize-y`} />
+          </div>
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
           <p className="text-[11px] text-[var(--text-lo)]">{savedAt ? `Last saved ${new Date(savedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : "Not logged yet for this day"}</p>
