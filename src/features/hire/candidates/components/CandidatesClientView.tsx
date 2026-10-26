@@ -4,7 +4,10 @@ import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { GenericTable, type BulkAction, type Column, type RowAction } from "@/components/ui/GenericTable";
+import toast from "react-hot-toast";
 import { BulkEmailModal } from "./BulkEmailModal";
+import { BulkInterviewModal } from "./BulkInterviewModal";
+import { type InterviewerOption } from "./InterviewerPicker";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
 import { StatusPill } from "@/components/ui/StatusPill";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
@@ -37,6 +40,8 @@ interface Props {
   initialStage?: string;
   initialAttention?: string;
   initialRole?: string;
+  interviewers: InterviewerOption[];
+  currentUserId: string;
 }
 
 function dashboardFilters(stage?: string, attention?: string, role?: string): ActiveFilter[] {
@@ -49,12 +54,13 @@ function dashboardFilters(stage?: string, attention?: string, role?: string): Ac
   return filters;
 }
 
-export default function CandidatesClientView({ candidates, unscreenedIds, initialStage, initialAttention, initialRole }: Props) {
+export default function CandidatesClientView({ candidates, unscreenedIds, initialStage, initialAttention, initialRole, interviewers, currentUserId }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>(() => dashboardFilters(initialStage, initialAttention, initialRole));
   const [referenceTime] = useState(() => Date.now());
   const [bulkEmailRecipients, setBulkEmailRecipients] = useState<{ id: string; full_name: string }[] | null>(null);
+  const [bulkInterviewRecipients, setBulkInterviewRecipients] = useState<{ id: string; full_name: string }[] | null>(null);
 
   const categoryOptions = useMemo<Record<string, FilterOption[]>>(() => {
     const unique = (values: (string | null | undefined)[]) => [...new Set(values.filter((value): value is string => !!value))].sort();
@@ -223,6 +229,21 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
       label: "Send email",
       onClick: (rows) => setBulkEmailRecipients(rows.map((row) => ({ id: row.id, full_name: row.full_name }))),
     },
+    {
+      icon: "solar:calendar-add-broken",
+      label: "Schedule interviews",
+      onClick: (rows) => {
+        const eligible = rows.filter((row) => row.stage === "interview");
+        if (!eligible.length) {
+          toast.error("Select candidates in the Interview stage to schedule interviews");
+          return;
+        }
+        if (eligible.length < rows.length) {
+          toast(`${rows.length - eligible.length} candidate${rows.length - eligible.length === 1 ? " is" : "s are"} not in the Interview stage and will be skipped`);
+        }
+        setBulkInterviewRecipients(eligible.map((row) => ({ id: row.id, full_name: row.full_name })));
+      },
+    },
   ];
 
   return (
@@ -232,6 +253,9 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
       </div>
       {bulkEmailRecipients && (
         <BulkEmailModal recipients={bulkEmailRecipients} open onClose={() => setBulkEmailRecipients(null)} />
+      )}
+      {bulkInterviewRecipients && (
+        <BulkInterviewModal recipients={bulkInterviewRecipients} interviewers={interviewers} currentUserId={currentUserId} onClose={() => setBulkInterviewRecipients(null)} />
       )}
       <GenericTable
       data={filtered}
