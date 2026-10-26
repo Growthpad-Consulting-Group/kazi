@@ -14,8 +14,11 @@ export async function POST(req: Request) {
 
   const { user_id, concern, expected_outcomes, support_provided, check_in_frequency, start_date, review_date } = await req.json();
 
-  if (!user_id || !concern || !expected_outcomes || !start_date) {
+  if (!user_id || !concern?.trim() || !expected_outcomes?.trim() || !start_date) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+  if (review_date && review_date < start_date) {
+    return NextResponse.json({ error: "The review date must be on or after the start date." }, { status: 400 });
   }
 
   const { data, error } = await supabaseAdmin.from("pips").insert({

@@ -7,6 +7,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { ReviewForm } from "./ReviewForm";
+import { CycleStageButton, ReviewPlan, type PlanPerson, type PlanRow } from "./CycleControls";
+import { can } from "@/lib/rbac";
 import type { ReviewCycleRow, PerformanceReview, ReviewStatus, ReviewType } from "@/types/database";
 
 type UserRow = { id: string; name: string; job_title: string | null };
@@ -50,6 +52,31 @@ export default async function ReviewCyclePage({ cycleId }: { cycleId: string }) 
     : { data: [] };
   const users: Record<string, UserRow> = Object.fromEntries(((usersData ?? []) as unknown as UserRow[]).map((user) => [user.id, user]));
   const status = STATUS[cycle.status];
+  const canManage = can(session.user.role, "manage_reviews");
+  const { data: peopleData } = await supabaseAdmin.from("users").select("id, name, job_title, manager_id").eq("is_active", true).order("name");
+  const people: PlanPerson[] = ((peopleData ?? []) as unknown as { id: string; name: string; job_title: string | null; manager_id: string | null }[]).map((user) => ({
+    id: user.id,
+    name: user.name,
+    jobTitle: user.job_title,
+    managerId: user.manager_id,
+  }));
+  const nameById = new Map(people.map((person) => [person.id, person.name]));
+  const nameOf = (id: string) => nameById.get(id) ?? "Former staff";
+  const planRows: PlanRow[] = people
+    .filter((person) => reviews.some((review) => review.reviewee_id === person.id))
+    .map((person) => {
+      const mine = reviews.filter((review) => review.reviewee_id === person.id);
+      const self = mine.find((review) => review.review_type === "self");
+      const manager = mine.find((review) => review.review_type === "manager");
+      return {
+        reviewee: person,
+        self: self ? { submitted: Boolean(self.submitted_at) } : null,
+        manager: manager ? { submitted: Boolean(manager.submitted_at), name: nameOf(manager.reviewer_id) } : null,
+        peers: mine
+          .filter((review) => review.review_type === "peer")
+          .map((review) => ({ reviewId: review.id, reviewerId: review.reviewer_id, name: nameOf(review.reviewer_id), submitted: Boolean(review.submitted_at) })),
+      };
+    });
   const typeCounts = (Object.keys(REVIEW_TYPE_LABEL) as ReviewType[]).map((type) => ({ type, count: reviews.filter((review) => review.review_type === type).length }));
 
   return (
@@ -70,7 +97,7 @@ export default async function ReviewCyclePage({ cycleId }: { cycleId: string }) 
                 <p className="mt-1 text-sm text-[var(--text-lo)]"><span className="capitalize">{cycle.cycle}</span> cycle · {date(cycle.start_date)} – {date(cycle.end_date)}</p>
               </div>
             </div>
-            <Link href="/pulse/reviews" className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]"><Icon icon="solar:alt-arrow-left-broken" className="h-4 w-4" />All cycles</Link>
+            <div className="flex flex-wrap items-center gap-2">{canManage && <CycleStageButton cycleId={cycle.id} status={cycle.status} />}<Link href="/pulse/reviews" className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]"><Icon icon="solar:alt-arrow-left-broken" className="h-4 w-4" />All cycles</Link></div>
           </div>
         </section>
 
@@ -79,6 +106,16 @@ export default async function ReviewCyclePage({ cycleId }: { cycleId: string }) 
           <StatCard title="Awaiting you" value={myReviews.length} icon="solar:pen-new-square-broken" color={myReviews.length ? "amber" : "green"} compact subtitle={myReviews.length ? "Ready for your input" : "You are caught up"} />
           <StatCard title="Submitted" value={submitted.length} icon="solar:check-circle-broken" color="green" compact subtitle={`${completion}% complete`} />
           <StatCard title="Cycle closes" value={date(cycle.end_date, { month: "short", day: "numeric" })} icon="solar:calendar-mark-broken" color="orange" compact subtitle={date(cycle.end_date, { year: "numeric" })} />
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+          <div className="border-b border-[var(--border)] px-5 py-4">
+            <h2 className="text-sm font-semibold text-[var(--text-hi)]">Review plan</h2>
+            <p className="mt-1 text-xs text-[var(--text-lo)]">Who is reviewing whom. Managers can add peers for their direct reports.</p>
+          </div>
+          <div className="px-5">
+            <ReviewPlan cycleId={cycle.id} rows={planRows} people={people} canAssignAll={canManage} currentUserId={session.user.id} />
+          </div>
         </section>
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">

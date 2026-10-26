@@ -8,6 +8,7 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import RedeemButton from "./RedeemButton";
 import RedemptionActions from "./RedemptionActions";
+import { AdminRewardTools } from "./AdminRewardTools";
 import type { RewardCatalogue, RewardRedemption, RedemptionStatus } from "@/types/database";
 
 type RedemptionWithItem = RewardRedemption & { catalogue_name: string };
@@ -27,7 +28,7 @@ export default async function RewardsPage() {
   const userId = session.user.id;
   const canManage = can(session.user.role, "manage_rewards");
 
-  const [walletResult, catalogueResult, redemptionsResult, pendingResult] = await Promise.all([
+  const [walletResult, catalogueResult, redemptionsResult, pendingResult, allCatalogueResult, staffResult] = await Promise.all([
     supabaseAdmin.from("reward_wallets").select("balance").eq("user_id", userId).maybeSingle(),
     supabaseAdmin.from("reward_catalogue").select("*").eq("is_active", true).order("points_cost", { ascending: true }),
     supabaseAdmin
@@ -43,7 +44,15 @@ export default async function RewardsPage() {
           .eq("status", "pending")
           .order("created_at", { ascending: true })
       : Promise.resolve({ data: [] }),
+    canManage
+      ? supabaseAdmin.from("reward_catalogue").select("*").order("points_cost", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    canManage
+      ? supabaseAdmin.from("users").select("id, name").eq("is_active", true).order("name")
+      : Promise.resolve({ data: [] }),
   ]);
+  const allCatalogue = ((allCatalogueResult.data ?? []) as RewardCatalogue[]);
+  const staffOptions = ((staffResult.data ?? []) as { id: string; name: string }[]);
 
   const balance = walletResult.data?.balance ?? 0;
   const catalogue = (catalogueResult.data ?? []) as RewardCatalogue[];
@@ -81,6 +90,7 @@ export default async function RewardsPage() {
       <SetPageHeader
         title="Rewards"
         description="Redeem your points for great perks"
+        trailing={canManage ? <AdminRewardTools catalogue={allCatalogue} staff={staffOptions} /> : undefined}
         icon="solar:gift-broken"
       />
 

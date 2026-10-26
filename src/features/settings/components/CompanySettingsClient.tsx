@@ -168,7 +168,7 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
             <div key={label} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
               <Icon icon={icon} className="h-4 w-4 text-[var(--text-lo)]" />
               <p className="mt-2 text-2xl font-bold text-[var(--text-hi)]">{value.toLocaleString()}</p>
-              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-lo)]">{label}</p>
+              <p className="mt-0.5 text-sm font-semibold capitalize text-[var(--text-lo)]">{label}</p>
             </div>
           ))}
         </div>

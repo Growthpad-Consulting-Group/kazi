@@ -18,9 +18,10 @@ interface Props {
   values: { id: string; name: string; color: string }[];
   campaigns: { id: string; name: string }[];
   groups?: { id: string; name: string; member_ids: string[] }[];
+  onSent?: () => void;
 }
 
-export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups = [] }: Props) {
+export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups = [], onSent }: Props) {
   const router = useRouter();
   const [recipientIds, setRecipientIds] = useState<string[]>(users[0] ? [users[0].id] : []);
   const [recipientMode, setRecipientMode] = useState<"individual" | "group">("individual");
@@ -59,13 +60,13 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
     if (!giphyQuery.trim()) return;
     setGiphyLoading(true);
     try {
-      const res = await fetch(
-        `https://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&q=${encodeURIComponent(giphyQuery.trim())}&limit=8&rating=g`
-      );
-      const data = await res.json() as { data?: GiphyGif[] };
+      const res = await fetch(`/api/pulse/giphy/search?q=${encodeURIComponent(giphyQuery.trim())}`);
+      const data = await res.json() as { data?: GiphyGif[]; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "GIF search failed.");
       setGiphyResults(data.data ?? []);
-    } catch {
-      // silently ignore Giphy errors
+    } catch (reason) {
+      setGiphyResults([]);
+      setError(reason instanceof Error ? reason.message : "GIF search failed.");
     } finally {
       setGiphyLoading(false);
     }
@@ -93,6 +94,7 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
       if (!response.ok) throw new Error(data?.error ?? "Could not send feedback.");
       setSent(true); setMessage(""); setMediaUrl(""); setGiphyResults([]); setGiphyQuery("");
       router.refresh();
+      onSent?.();
       window.setTimeout(() => setSent(false), 3000);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not send feedback.");
@@ -102,7 +104,7 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+    <div className="space-y-4">
       <div className="flex items-start gap-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
           <Icon icon="solar:heart-broken" className="h-4 w-4" />
@@ -395,6 +397,6 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
           {saving ? "Sending" : visibility === "public" ? "Share shout-out" : "Send privately"}
         </Button>
       </div>
-    </section>
+    </div>
   );
 }

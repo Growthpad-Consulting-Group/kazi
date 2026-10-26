@@ -71,7 +71,7 @@ export function navigationForRole(role: UserRole | undefined): NavGroup[] {
     .map((group) => {
       if (group.category === "Home") return { ...group, items: group.items.filter((item) => item.href !== "/staff" || isManager) };
       if (group.category === "Kazi Hire") return { ...group, items: isRecruiter ? group.items : [] };
-      if (group.category === "Kazi Pulse") return { ...group, items: group.items.filter((item) => item.href !== "/pulse/analytics" || isManager) };
+      if (group.category === "Kazi Pulse") return { ...group, items: group.items.filter((item) => (item.href !== "/pulse/analytics" && item.href !== "/pulse/engagement-calendar") || isManager) };
       if (group.category === "Kazi Signatures") return { ...group, items: isSignatureManager ? group.items : group.items.filter((item) => item.href === "/signatures") };
       if (group.category === "System") return group;
       return group;

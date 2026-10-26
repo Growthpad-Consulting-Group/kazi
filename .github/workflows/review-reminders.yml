@@ -1,0 +1,24 @@
+name: Review Reminders
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Verify credentials
+        if: env.CRON_SECRET == ''
+        run: |
+          echo "::error::CRON_SECRET is not configured in GitHub Actions."
+          exit 1
+      - name: Send outstanding review reminders
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/pulse/reviews/reminders"

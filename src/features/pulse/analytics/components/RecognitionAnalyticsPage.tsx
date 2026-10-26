@@ -6,19 +6,13 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { RecognitionAnalyticsFilters } from "./RecognitionAnalyticsFilters";
+import { AnalyticsPeriodPicker } from "./AnalyticsPeriodPicker";
+import { resolveRange } from "@/features/dashboard/components/DashboardRange";
 import RecognitionAnalyticsSection from "./RecognitionAnalyticsSection";
 import ExportReportButton from "./ExportReportButton";
 
 interface Props {
   searchParams: Record<string, string | string[] | undefined>;
-}
-
-function computeSince(range: string): Date | undefined {
-  if (range === "all") return undefined;
-  const days = range === "90d" ? 90 : 30;
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d;
 }
 
 function getString(
@@ -34,11 +28,14 @@ export default async function RecognitionAnalyticsPage({ searchParams }: Props) 
   if (!session) return null;
   if (!can(session.user.role, "view_analytics")) redirect("/pulse");
 
-  const range = getString(searchParams.range, "30d") ?? "30d";
+  const period = resolveRange({
+    from: getString(searchParams.from),
+    to: getString(searchParams.to),
+    preset: getString(searchParams.preset, "Last 30 Days"),
+  });
   const departmentFilter = getString(searchParams.dept);
   const campaignId = getString(searchParams.campaign);
 
-  const since = computeSince(range);
 
   // Fetch filter options server-side for the filters component
   const [{ data: deptRows }, { data: campaignRows }] = await Promise.all([
@@ -69,18 +66,25 @@ export default async function RecognitionAnalyticsPage({ searchParams }: Props) 
         title="Recognition Analytics"
         description="Insights into recognition activity, trends and value usage"
         icon="solar:heart-broken"
-        trailing={<ExportReportButton />}
+        trailing={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Suspense>
+              <AnalyticsPeriodPicker range={period} />
+            </Suspense>
+            <Suspense>
+              <RecognitionAnalyticsFilters
+                departments={departments}
+                campaigns={campaigns}
+              />
+            </Suspense>
+            <ExportReportButton />
+          </div>
+        }
       />
 
-      <Suspense>
-        <RecognitionAnalyticsFilters
-          departments={departments}
-          campaigns={campaigns}
-        />
-      </Suspense>
-
       <RecognitionAnalyticsSection
-        since={since}
+        since={period.startDate}
+        until={period.endDate}
         departmentFilter={departmentFilter}
         campaignId={campaignId}
       />

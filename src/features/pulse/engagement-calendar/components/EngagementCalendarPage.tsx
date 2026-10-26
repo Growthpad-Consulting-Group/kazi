@@ -1,4 +1,5 @@
 import { Icon } from "@iconify/react";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { can } from "@/lib/rbac";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { supabaseAdmin } from "@/lib/supabase";
-import { NewCampaignButton } from "@/features/pulse/campaigns/components/NewCampaignButton";
+import { NewCampaignButton } from "@/features/pulse/campaigns/components/CampaignFormModal";
 import { NewSideQuestButton } from "@/features/pulse/side-quests/components/SideQuestFormModal";
 import { NewSurveyButton } from "@/features/pulse/surveys/components/NewSurveyButton";
 import { ArchiveItemButton } from "./ArchiveItemButton";
@@ -24,6 +25,7 @@ function isPastDue(item: Item): boolean {
 
 export default async function EngagementCalendarPage() {
   const session = await getServerSession(authOptions);
+  if (!session || !can(session.user.role, "view_people")) redirect("/pulse");
 
   const [
     { data: campaigns },
@@ -78,7 +80,7 @@ export default async function EngagementCalendarPage() {
         {/* Create action buttons */}
         {hasCreatePermission && (
           <div className="flex flex-wrap gap-2">
-            {canManageCampaigns && <NewCampaignButton values={values ?? []} />}
+            {canManageCampaigns && <NewCampaignButton values={values ?? []} options={audienceOptions} />}
             {canManageQuests && <NewSideQuestButton options={audienceOptions} />}
             {canManageSurveys && session?.user?.id && <NewSurveyButton userId={session.user.id} size="sm" />}
           </div>

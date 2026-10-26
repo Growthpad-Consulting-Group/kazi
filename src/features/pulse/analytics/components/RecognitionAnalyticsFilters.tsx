@@ -33,27 +33,11 @@ export function RecognitionAnalyticsFilters({
     [router, pathname, searchParams],
   );
 
-  const range = searchParams.get("range") ?? "30d";
   const dept = searchParams.get("dept") ?? "";
   const campaign = searchParams.get("campaign") ?? "";
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-        <Icon icon="solar:calendar-broken" className="h-4 w-4 shrink-0 text-brand-500" />
-        <label className="text-xs font-semibold text-[var(--text-lo)]">Period</label>
-        <select
-          value={range}
-          onChange={(e) => update("range", e.target.value)}
-          className={selectCls}
-          aria-label="Date range"
-        >
-          <option value="30d">Last 30 days</option>
-          <option value="90d">Last 90 days</option>
-          <option value="all">All time</option>
-        </select>
-      </div>
-
       {departments.length > 0 && (
         <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
           <Icon icon="solar:buildings-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />

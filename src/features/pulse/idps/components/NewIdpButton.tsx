@@ -4,13 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
-import { DatePicker } from "@/components/ui/DatePicker";
+import DateRangePicker from "@/components/ui/DateRangePicker";
+
+const toDateValue = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 
 export function NewIdpButton({ userId, isManager, size = "md" }: { userId: string; isManager: boolean; size?: "sm" | "md" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [goals, setGoals] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -23,7 +26,7 @@ export function NewIdpButton({ userId, isManager, size = "md" }: { userId: strin
       const res = await fetch("/api/pulse/idps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, manager_id: isManager ? userId : null, title, goals, due_date: dueDate || null }),
+        body: JSON.stringify({ user_id: userId, manager_id: isManager ? userId : null, title, goals, start_date: startDate || null, due_date: dueDate || null }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
       const json = await res.json();
@@ -55,7 +58,16 @@ export function NewIdpButton({ userId, isManager, size = "md" }: { userId: strin
 
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Target date</label>
-              <DatePicker value={dueDate} onChange={setDueDate} placeholder="Choose target date" />
+              <DateRangePicker
+                value={{ startDate: startDate ? new Date(`${startDate}T12:00:00`) : null, endDate: dueDate ? new Date(`${dueDate}T12:00:00`) : null }}
+                onChange={(range) => {
+                  setStartDate(range.startDate ? toDateValue(range.startDate) : "");
+                  setDueDate(range.endDate ? toDateValue(range.endDate) : "");
+                }}
+                allowedRanges={["Custom Range"]}
+                maxDate={null}
+                fullWidth
+              />
             </div>
 
             {error && <p className="text-xs text-red-500">{error}</p>}

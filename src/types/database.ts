@@ -467,11 +467,13 @@ export interface Database {
           goals: string | null;
           actions: { text: string; due_date: string | null; done: boolean }[];
           status: IdpStatus;
+          start_date: string | null;
           due_date: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["idps"]["Row"], "id" | "created_at" | "updated_at" | "manager_id" | "goals" | "actions" | "status" | "due_date"> & {
+        Insert: Omit<Database["public"]["Tables"]["idps"]["Row"], "id" | "created_at" | "updated_at" | "manager_id" | "goals" | "actions" | "status" | "start_date" | "due_date"> & {
+          start_date?: string | null;
           manager_id?: string | null;
           goals?: string | null;
           actions?: { text: string; due_date: string | null; done: boolean }[];
@@ -495,10 +497,14 @@ export interface Database {
           start_date: string;
           review_date: string | null;
           resolved_at: string | null;
+          outcome: "successful" | "unsuccessful" | null;
+          resolution_notes: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["pips"]["Row"], "id" | "created_at" | "updated_at" | "hr_id" | "support_provided" | "check_in_frequency" | "actions" | "review_date" | "resolved_at"> & {
+        Insert: Omit<Database["public"]["Tables"]["pips"]["Row"], "id" | "created_at" | "updated_at" | "hr_id" | "support_provided" | "check_in_frequency" | "actions" | "review_date" | "resolved_at" | "outcome" | "resolution_notes"> & {
+          outcome?: "successful" | "unsuccessful" | null;
+          resolution_notes?: string | null;
           hr_id?: string | null;
           support_provided?: string | null;
           check_in_frequency?: string | null;

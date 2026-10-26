@@ -12,13 +12,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!session) return null;
 
   const { id: userId, role } = session.user;
-  const isManager = can(role, "manage_pips");
 
   const { data } = await supabaseAdmin.from("pips").select("*").eq("id", id).single();
   if (!data) notFound();
 
   const pip = data as unknown as Pip;
-  if (pip.user_id !== userId && pip.manager_id !== userId) notFound();
+  const isEditor = pip.manager_id === userId || pip.hr_id === userId || can(role, "manage_pips");
+  if (pip.user_id !== userId && !isEditor) notFound();
 
   const { data: employee } = await supabaseAdmin
     .from("users")
@@ -28,7 +28,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   return (
     <div className="p-8">
-      <PipDetail pip={pip} isManager={isManager} employeeName={employee?.name ?? "Employee"} />
+      <PipDetail pip={pip} employeeName={employee?.name ?? "Employee"} canEdit={isEditor} isEmployee={pip.user_id === userId} />
     </div>
   );
 }

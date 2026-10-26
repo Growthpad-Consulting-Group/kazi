@@ -6,6 +6,7 @@ import { RecognitionTrendChart } from "./RecognitionTrendChart";
 
 interface Props {
   since?: Date;
+  until?: Date;
   departmentFilter?: string;
   campaignId?: string;
 }
@@ -33,11 +34,13 @@ function getWeekBuckets(count: number): { start: Date; end: Date; label: string 
 
 export default async function RecognitionAnalyticsSection({
   since,
+  until,
   departmentFilter,
   campaignId,
 }: Props) {
   // Build base feedback query conditions
   const sinceIso = since?.toISOString();
+  const untilIso = until?.toISOString();
 
   // ── 1. Top givers ─────────────────────────────────────────────────────────
   let giversQuery = supabaseAdmin
@@ -46,6 +49,8 @@ export default async function RecognitionAnalyticsSection({
     .eq("visibility", "public");
 
   if (sinceIso) giversQuery = giversQuery.gte("created_at", sinceIso);
+
+  if (untilIso) giversQuery = giversQuery.lte("created_at", untilIso);
   if (campaignId) giversQuery = giversQuery.eq("campaign_id", campaignId);
 
   const { data: rawGivers } = await giversQuery;
@@ -81,6 +86,8 @@ export default async function RecognitionAnalyticsSection({
     .eq("visibility", "public");
 
   if (sinceIso) feedbackIdQuery = feedbackIdQuery.gte("created_at", sinceIso);
+
+  if (untilIso) feedbackIdQuery = feedbackIdQuery.lte("created_at", untilIso);
   if (campaignId) feedbackIdQuery = feedbackIdQuery.eq("campaign_id", campaignId);
 
   const { data: feedbackIds } = await feedbackIdQuery;
@@ -143,6 +150,8 @@ export default async function RecognitionAnalyticsSection({
     .not("value_id", "is", null);
 
   if (sinceIso) valueQuery = valueQuery.gte("created_at", sinceIso);
+
+  if (untilIso) valueQuery = valueQuery.lte("created_at", untilIso);
   if (campaignId) valueQuery = valueQuery.eq("campaign_id", campaignId);
 
   const { data: valueRows } = await valueQuery;

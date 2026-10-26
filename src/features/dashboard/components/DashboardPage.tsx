@@ -30,7 +30,7 @@ function KpiCard({ stat }: { stat: StatDef }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-lo)]">
+          <p className="text-sm font-semibold capitalize text-[var(--text-lo)]">
             {stat.label}
           </p>
           <p className={`mt-2 font-mono text-3xl font-bold leading-none ${stat.accent}`}>
