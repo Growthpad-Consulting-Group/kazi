@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
 
 function validDate(value: unknown): value is string { return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value); }
 
@@ -16,6 +17,7 @@ export async function POST(req: Request) {
   const { data, error } = await db.from("hall_of_fame_cycles").insert({ month: `${body.month.slice(0, 7)}-01`, opens_at: body.opensAt ?? null, closes_at: body.closesAt ?? null, status: "open", created_by: session.user.id }).select("id").single();
   if (error?.code === "23505") return NextResponse.json({ error: "A Hall of Fame cycle already exists for this month." }, { status: 409 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await broadcastHallOfFameChange(data.id).catch(() => {});
   return NextResponse.json(data);
 }
 
@@ -28,5 +30,6 @@ export async function PATCH(req: Request) {
   const db = supabaseAdmin as any;
   const { error } = await db.from("hall_of_fame_cycles").update({ status: body.status }).eq("id", body.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await broadcastHallOfFameChange(body.id).catch(() => {});
   return NextResponse.json({ ok: true });
 }
