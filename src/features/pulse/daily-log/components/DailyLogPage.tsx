@@ -6,13 +6,14 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import { ClientSelect } from "./ClientSelect";
+import { TeamActivity } from "./TeamActivity";
 import { DAILY_LOG_CATEGORIES, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
-type Row = { task: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
-type TeamMember = { userId: string; name: string; jobTitle: string | null; entries: DailyLogEntry[]; totalMinutes: number; updatedAt: string | null };
+type Row = { task: string; client: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
 type AsanaTask = { id: string; name: string; project: string | null };
 
-const emptyRow = (): Row => ({ task: "", showRange: false, startTime: "", endTime: "", minutes: "", category: "Projects" });
+const emptyRow = (): Row => ({ task: "", client: "", showRange: false, startTime: "", endTime: "", minutes: "", category: "Projects" });
 
 function todayLocal() {
   const now = new Date();
@@ -37,14 +38,21 @@ function dateHeading(date: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
-export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
+export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const [date, setDate] = useState(todayLocal);
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [clients, setClients] = useState<string[]>([]);
   const [asana, setAsana] = useState<{ open: boolean; loading: boolean; connected: boolean; tasks: AsanaTask[]; selected: string[] }>({ open: false, loading: false, connected: false, tasks: [], selected: [] });
+
+  useEffect(() => {
+    fetch("/api/pulse/daily-log/clients")
+      .then((res) => res.json())
+      .then((json: { clients?: string[] }) => setClients(json.clients ?? []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +66,7 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
         setRows(loaded.length
           ? loaded.map((entry) => ({
               task: entry.task,
+              client: entry.client ?? "",
               showRange: !!(entry.startTime && entry.endTime),
               startTime: entry.startTime ?? "",
               endTime: entry.endTime ?? "",
@@ -70,16 +79,8 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
       .catch((err: Error) => !cancelled && toast.error(err.message))
       .finally(() => !cancelled && setLoading(false));
 
-    if (showTeam) {
-      fetch(`/api/pulse/daily-log?date=${date}&scope=team`)
-        .then((res) => res.json())
-        .then((json: { team?: TeamMember[]; error?: string }) => {
-          if (!cancelled && json.team) setTeam(json.team);
-        })
-        .catch(() => !cancelled && setTeam([]));
-    }
     return () => { cancelled = true; };
-  }, [date, showTeam]);
+  }, [date, isReviewer]);
 
   const totalMinutes = rows.reduce((sum, row) => sum + (rowMinutes(row) ?? 0), 0);
 
@@ -125,6 +126,7 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
       const hasRange = row.showRange && row.startTime && row.endTime;
       entries.push({
         task: row.task.trim(),
+        client: row.client.trim() || null,
         minutes,
         category: row.category,
         startTime: hasRange ? row.startTime : null,
@@ -157,11 +159,12 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
     <div className="space-y-6">
       <SetPageHeader
         title="Daily log"
-        description={`${dateHeading(date)} · what you worked on and how long it took`}
+        description={isReviewer ? "Review what your team worked on" : `${dateHeading(date)} · what you worked on and how long it took`}
         icon="solar:notebook-broken"
       />
 
-      <section className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+      {!isReviewer && (
+      <section className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10"><Icon icon="solar:notebook-broken" className="h-3.5 w-3.5 text-brand-500" /></span>
@@ -181,8 +184,9 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
           <div className="space-y-3">
             {rows.map((row, index) => (
               <div key={index} className="space-y-2">
-                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_130px_auto]">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_170px_150px_130px_auto]">
                   <input value={row.task} onChange={(e) => updateRow(index, { task: e.target.value })} placeholder="What did you work on?" maxLength={200} className={inputClass} />
+                  <div className="min-w-0"><ClientSelect value={row.client} onChange={(client) => updateRow(index, { client })} clients={clients} onClientCreated={(name) => setClients((prev) => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b))))} /></div>
                   <input
                     value={row.showRange && row.startTime && row.endTime ? formatMinutes(rowMinutes(row) ?? 0) : row.minutes}
                     disabled={row.showRange && !!row.startTime && !!row.endTime}
@@ -271,49 +275,10 @@ export function DailyLogPage({ showTeam }: { showTeam: boolean }) {
           <Button icon="solar:diskette-broken" loading={saving} onClick={save}>Save log</Button>
         </div>
       </section>
-
-      {showTeam && (
-        <section className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-          <div>
-            <h2 className="text-base font-semibold text-[var(--text-hi)]">Team activity</h2>
-            <p className="text-[11px] text-[var(--text-lo)]">How each person spent their time on this day.</p>
-          </div>
-          {team.length === 0 ? (
-            <p className="text-sm text-[var(--text-lo)]">No team members to show.</p>
-          ) : (
-            <div className="max-h-[75vh] space-y-3 overflow-y-auto pr-1">
-              {team.map((member) => (
-                <div key={member.userId} className="rounded-xl bg-[var(--surface-2)] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--text-hi)]">{member.name}</p>
-                      <p className="text-[11px] text-[var(--text-lo)]">{member.jobTitle ?? "Team member"}</p>
-                    </div>
-                    {member.entries.length ? (
-                      <span className="font-mono text-xs font-semibold text-brand-500">{formatMinutes(member.totalMinutes)} logged</span>
-                    ) : (
-                      <span className="text-xs text-amber-600">Not logged</span>
-                    )}
-                  </div>
-                  {member.entries.length > 0 && (
-                    <ul className="mt-3 space-y-1.5">
-                      {member.entries.map((entry, index) => (
-                        <li key={index} className="flex items-center justify-between gap-3 text-xs">
-                          <span className="min-w-0 truncate text-[var(--text-hi)]">{entry.task}</span>
-                          <span className="flex shrink-0 items-center gap-2 text-[var(--text-lo)]">
-                            <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5">{entry.category}</span>
-                            <span className="font-mono">{entry.startTime && entry.endTime ? `${entry.startTime}–${entry.endTime} · ` : ""}{formatMinutes(entry.minutes)}</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
       )}
+
+      {isReviewer && <TeamActivity />}
     </div>
   );
 }
+

@@ -111,7 +111,7 @@ export default async function PulseDashboard() {
           <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl" />
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-500">Your performance workspace</p>
+              <p className="text-sm font-semibold capitalize text-brand-500">Your performance workspace</p>
               <h1 className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-hi)] sm:text-2xl">Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"}, {firstName}.</h1>
               <p className="mt-1 text-sm text-[var(--text-lo)]">Keep priorities, conversations, and progress in one calm weekly rhythm.</p>
             </div>
@@ -140,7 +140,7 @@ export default async function PulseDashboard() {
           <StatCard title="Recognition" value={feedback.length} icon="solar:star-fall-broken" color="green" compact subtitle={feedback.length ? "Recent kudos" : "Share appreciation"} href="/pulse/feedback" />
         </section>
 
-        <DailyLogReminder />
+        {!can(session.user.role, "manage_checkins") && <DailyLogReminder />}
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.85fr)]">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle icon="solar:target-broken" title="Focus and goals" href="/pulse/goals" action="View all" />

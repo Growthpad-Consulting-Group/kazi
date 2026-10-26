@@ -1,7 +1,7 @@
 export const DAILY_LOG_CATEGORIES = ["Meetings", "Hiring", "Reporting", "Projects", "Admin", "Other"] as const;
 export type DailyLogCategory = (typeof DAILY_LOG_CATEGORIES)[number];
 
-export type DailyLogEntry = { task: string; minutes: number; category: DailyLogCategory; startTime?: string | null; endTime?: string | null };
+export type DailyLogEntry = { task: string; client?: string | null; minutes: number; category: DailyLogCategory; startTime?: string | null; endTime?: string | null };
 
 const CLOCK_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -37,7 +37,8 @@ export function validateDailyLogEntries(input: unknown): { ok: true; entries: Da
     }
     if (!Number.isInteger(minutes) || minutes <= 0) return { ok: false, error: "Minutes must be a whole number above zero" };
 
-    entries.push({ task, minutes, category, startTime, endTime });
+    const client = typeof raw?.client === "string" && raw.client.trim() ? raw.client.trim().slice(0, 100) : null;
+    entries.push({ task, client, minutes, category, startTime, endTime });
   }
 
   const total = entries.reduce((sum, entry) => sum + entry.minutes, 0);

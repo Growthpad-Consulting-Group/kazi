@@ -20,13 +20,12 @@ export default async function Page({
   const isManager = session ? can(session.user.role, "manage_checkins") : false;
 
   const { tab, user, report, view } = await searchParams;
-  // Managers default to the team view; employees default to their own check-in
-  const activeTab = tab ?? (user ? "checkins" : isManager ? "team" : "checkins");
+  const activeTab = tab ?? (user ? "checkins" : "daily");
 
   const TABS = [
-    ...(isManager ? [{ id: "team", label: "Team", icon: "solar:users-group-two-rounded-broken" }] : []),
-    { id: "checkins",    label: isManager ? "My check-in" : "Check-ins",  icon: "solar:checklist-minimalistic-broken" },
     { id: "daily",       label: "Daily log",  icon: "solar:notebook-broken" },
+    ...(isManager ? [{ id: "team", label: "Team check-ins", icon: "solar:users-group-two-rounded-broken" }] : []),
+    ...(isManager ? [] : [{ id: "checkins", label: "Weekly check-in", icon: "solar:checklist-minimalistic-broken" }]),
     { id: "goals",       label: "Goals",      icon: "solar:target-broken" },
     { id: "one-on-ones", label: "1-on-1s",    icon: "solar:chat-round-dots-broken" },
   ];
@@ -40,7 +39,7 @@ export default async function Page({
       {activeTab === "goals"       && (user ? <StaffGoalsPage userId={user} /> : <GoalsPage />)}
       {activeTab === "one-on-ones" && <OneOnOnesPage reportId={report} view={view === "upcoming" ? "upcoming" : undefined} />}
       {activeTab === "team"        && <CheckinsPage userId={user} teamOnly />}
-      {activeTab === "daily"       && <DailyLogPage showTeam={isManager} />}
+      {activeTab === "daily"       && <DailyLogPage isReviewer={isManager} />}
       {(activeTab === "checkins" || !["goals", "one-on-ones", "team", "daily"].includes(activeTab)) && (
         <CheckinsPage userId={user} />
       )}

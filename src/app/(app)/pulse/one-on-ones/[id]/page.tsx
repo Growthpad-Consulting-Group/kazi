@@ -13,15 +13,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const { data } = await supabaseAdmin
     .from("one_on_ones")
-    .select("*, manager:manager_id(name), report:report_id(name, job_title)")
+    .select("*, manager:manager_id(name, avatar_url), report:report_id(name, job_title, avatar_url)")
     .eq("id", id)
     .single();
 
   if (!data) notFound();
 
   const oo = data as unknown as OneOnOne & {
-    manager: { name: string } | null;
-    report: { name: string; job_title: string | null } | null;
+    manager: { name: string; avatar_url: string | null } | null;
+    report: { name: string; job_title: string | null; avatar_url: string | null } | null;
   };
 
   // Only manager or report can view
@@ -29,11 +29,24 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const isReport = oo.report_id === session.user.id;
   if (!isManager && !isReport) notFound();
 
+  const participantIds = [oo.manager_id, oo.report_id].filter((value): value is string => Boolean(value));
+  const { data: signatureProfiles } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .from("signature_staff_profiles")
+    .select("user_id, photo_url")
+    .in("user_id", participantIds);
+  const signaturePhotoByUser = new Map(
+    ((signatureProfiles ?? []) as { user_id: string | null; photo_url: string | null }[])
+      .filter((profile) => profile.user_id && profile.photo_url)
+      .map((profile) => [profile.user_id!, profile.photo_url!])
+  );
+
   return (
     <OneOnOneDetail
       session={oo}
       managerName={oo.manager?.name ?? "Manager"}
       reportName={oo.report?.name ?? "Report"}
+      managerAvatar={oo.manager?.avatar_url ?? signaturePhotoByUser.get(oo.manager_id) ?? null}
+      reportAvatar={oo.report?.avatar_url ?? signaturePhotoByUser.get(oo.report_id) ?? null}
       isManager={isManager}
     />
   );

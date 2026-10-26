@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
@@ -14,6 +15,8 @@ interface Props {
   session: OneOnOne;
   managerName: string;
   reportName: string;
+  managerAvatar: string | null;
+  reportAvatar: string | null;
   isManager: boolean;
 }
 
@@ -23,7 +26,15 @@ function initials(name: string) {
   return name.split(" ").map((part) => part[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 }
 
-export function OneOnOneDetail({ session: session, managerName, reportName, isManager }: Props) {
+function ParticipantAvatar({ name, avatar, className }: { name: string; avatar: string | null; className: string }) {
+  return (
+    <span className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border-2 border-[var(--surface)] text-sm font-bold text-white ${className}`}>
+      {avatar ? <Image src={avatar} alt={name} fill sizes="48px" className="object-cover" /> : initials(name)}
+    </span>
+  );
+}
+
+export function OneOnOneDetail({ session: session, managerName, reportName, managerAvatar, reportAvatar, isManager }: Props) {
   const router = useRouter();
   const [agenda, setAgenda] = useState(session.agenda ?? "");
   const [notes, setNotes] = useState(session.notes ?? "");
@@ -105,8 +116,8 @@ export function OneOnOneDetail({ session: session, managerName, reportName, isMa
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex -space-x-2.5">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-[var(--surface)] bg-slate-700 text-sm font-bold text-white">{initials(managerName)}</span>
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-[var(--surface)] bg-gradient-to-br from-brand-500 to-orange-400 text-sm font-bold text-white">{initials(reportName)}</span>
+              <ParticipantAvatar name={managerName} avatar={managerAvatar} className="bg-slate-700" />
+              <ParticipantAvatar name={reportName} avatar={reportAvatar} className="bg-gradient-to-br from-brand-500 to-orange-400" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold capitalize text-brand-500">1-on-1 workspace</p>

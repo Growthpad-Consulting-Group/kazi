@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import type { Goal, GoalStatus } from "@/types/database";
+import { GoalActions } from "./GoalActions";
 
 interface Props { goals: Goal[]; childMap: Record<string, Goal[]>; canEdit: boolean; depth?: number; }
 
@@ -73,6 +74,7 @@ function GoalCard({ goal, linkedGoals, childMap, canEdit, depth }: {
                 <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                 {meta.label}
               </span>
+              {canEdit && <GoalActions goal={goal} />}
             </div>
 
             {goal.description && (
