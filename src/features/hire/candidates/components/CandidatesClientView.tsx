@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
+import { GenericTable, type BulkAction, type Column, type RowAction } from "@/components/ui/GenericTable";
+import { BulkEmailModal } from "./BulkEmailModal";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
 import { StatusPill } from "@/components/ui/StatusPill";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
@@ -53,6 +54,7 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>(() => dashboardFilters(initialStage, initialAttention, initialRole));
   const [referenceTime] = useState(() => Date.now());
+  const [bulkEmailRecipients, setBulkEmailRecipients] = useState<{ id: string; full_name: string }[] | null>(null);
 
   const categoryOptions = useMemo<Record<string, FilterOption[]>>(() => {
     const unique = (values: (string | null | undefined)[]) => [...new Set(values.filter((value): value is string => !!value))].sort();
@@ -215,15 +217,27 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
     },
   ];
 
+  const bulkActions: BulkAction<CandidateWithJob>[] = [
+    {
+      icon: "solar:letter-broken",
+      label: "Send email",
+      onClick: (rows) => setBulkEmailRecipients(rows.map((row) => ({ id: row.id, full_name: row.full_name }))),
+    },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map((stat) => <StatCard key={stat.label} title={stat.label} value={stat.value} icon={stat.icon} color={stat.color} compact onClick={() => setFilters(stat.filter)} />)}
       </div>
+      {bulkEmailRecipients && (
+        <BulkEmailModal recipients={bulkEmailRecipients} open onClose={() => setBulkEmailRecipients(null)} />
+      )}
       <GenericTable
       data={filtered}
       columns={columns}
       actions={actions}
+      bulkActions={bulkActions}
       onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
       emptyMessage="No candidates match your filters."
       emptyIcon="solar:users-group-two-rounded-broken"

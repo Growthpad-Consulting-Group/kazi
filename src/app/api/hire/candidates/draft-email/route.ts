@@ -5,12 +5,13 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 
-type EmailType = "acknowledgement" | "invite" | "rejection";
+type EmailType = "acknowledgement" | "invite" | "rejection" | "acceptance";
 
 const TEMPLATES: Record<EmailType, string> = {
   acknowledgement: "Thank the candidate for applying, confirm receipt, and let them know they'll hear back within 5–7 business days.",
   invite: "Invite the candidate for an interview. Be warm and professional. Ask them to confirm their availability by replying to this email.",
   rejection: "Decline the candidate respectfully. Thank them for their time and interest. Encourage them to apply to future roles. Do not reveal AI was used in screening decisions.",
+  acceptance: "Congratulate the candidate on being selected to move forward. Explain that the team will share next steps shortly and invite them to reply with any questions.",
 };
 
 export async function POST(req: Request) {
