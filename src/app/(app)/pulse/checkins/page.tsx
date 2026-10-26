@@ -24,7 +24,7 @@ export default async function Page({
 
   const TABS = [
     { id: "daily",       label: "Daily log",  icon: "solar:notebook-broken" },
-    ...(isManager ? [{ id: "team", label: "Team check-ins", icon: "solar:users-group-two-rounded-broken" }] : []),
+    ...(isManager ? [{ id: "team", label: "Weekly check-ins", icon: "solar:users-group-two-rounded-broken" }] : []),
     ...(isManager ? [] : [{ id: "checkins", label: "Weekly check-in", icon: "solar:checklist-minimalistic-broken" }]),
     { id: "goals",       label: "Goals",      icon: "solar:target-broken" },
     { id: "one-on-ones", label: "1-on-1s",    icon: "solar:chat-round-dots-broken" },

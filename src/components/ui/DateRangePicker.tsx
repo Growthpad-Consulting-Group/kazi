@@ -270,7 +270,7 @@ const DateRangePicker = function DateRangePicker(
               </div>
 
               {/* Calendar */}
-              <div className="overflow-auto px-2 pb-1" style={{ maxHeight: 500 }}>
+              <div className="kazi-calendar overflow-auto px-2 pb-1" style={{ maxHeight: 500 }}>
                 <DateRange
                   key={calendarRenderKey}
                   ranges={[{

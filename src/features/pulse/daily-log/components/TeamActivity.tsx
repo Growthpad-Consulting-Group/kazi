@@ -107,7 +107,7 @@ export function TeamActivity() {
         </div>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatCard title="Team members" value={summary.members} icon="solar:users-group-two-rounded-broken" color="slate" variant="inline" compact />
-          <StatCard title="Logged anything" value={summary.withLogs} icon="solar:check-circle-broken" color="green" variant="inline" compact />
+          <StatCard title={summary.withLogs === 1 ? "Member who logged" : "Members who logged"} value={summary.withLogs} icon="solar:check-circle-broken" color="green" variant="inline" compact />
           <StatCard title="Total time" value={formatMinutes(summary.minutes)} icon="solar:stopwatch-broken" color="orange" variant="inline" compact />
         </div>
       </div>

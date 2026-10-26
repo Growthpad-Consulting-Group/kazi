@@ -86,7 +86,7 @@ export function DatePicker({ value, onChange, placeholder = "Select date", minDa
 
       {open && typeof document !== "undefined" && createPortal(
         <div ref={popoverRef} style={style} role="dialog" aria-label="Choose date" className="max-h-[calc(100vh-24px)] overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl">
-          <Calendar
+          <div className="kazi-calendar"><Calendar
             date={selected ?? new Date()}
             onChange={(date) => {
               onChange(toValue(date));
@@ -97,7 +97,7 @@ export function DatePicker({ value, onChange, placeholder = "Select date", minDa
             maxDate={maxDate}
             color="#f05d23"
             className="w-full"
-          />
+          /></div>
         </div>,
         document.body,
       )}
