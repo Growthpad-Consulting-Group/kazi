@@ -155,7 +155,9 @@ export default function KaziHeader({
           <div className="hidden md:block">
             <HeaderThemeDropdown />
           </div>
-          <HeaderProfileDropdown />
+          <div className="ml-2">
+            <HeaderProfileDropdown />
+          </div>
         </div>
       </GlassPanel>
     </header>

@@ -7,7 +7,7 @@ import { createCandidateUploadToken } from "@/lib/candidate-upload-token";
 // Public endpoint — no auth. Called by the public /apply/[jobId] page.
 export async function POST(req: Request) {
   const body = await req.json();
-  const { job_id, full_name, email, phone, location, source, consented } = body;
+  const { job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, source, consented } = body;
 
   if (!job_id || !full_name || !email || !consented) {
     return NextResponse.json(
@@ -56,6 +56,9 @@ export async function POST(req: Request) {
       email: email.toLowerCase(),
       phone: phone || null,
       location: location || null,
+      linkedin_url: linkedin_url || null,
+      portfolio_url: portfolio_url || null,
+      cover_message: cover_message || null,
       source: source || "direct",
       consented_at: new Date().toISOString(),
       applied_at: new Date().toISOString(),

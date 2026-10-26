@@ -2,6 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
+import { notifyCareersSiteJobsChanged } from "@/lib/careers-site";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
@@ -10,6 +11,11 @@ import { canonicalDepartment } from "@/lib/departments";
 import { getCachedJob, getCachedJobs } from "@/lib/cache/queries";
 import type { Database } from "@/types/database";
 import type { JobFormData } from "./types";
+
+function jobSlug(title: string) {
+  const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
 
 function scheduledDate(value: string | null | undefined, label: string) {
   if (!value) return null;
@@ -51,6 +57,7 @@ export async function createJob(form: JobFormData) {
   const { data, error } = await supabaseAdmin
     .from("jobs")
     .insert({
+      slug: jobSlug(form.title),
       title: form.title,
       department,
       location: form.location || null,
@@ -69,6 +76,7 @@ export async function createJob(form: JobFormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/hire/jobs");
   await invalidateTables("jobs");
+  await notifyCareersSiteJobsChanged();
   return data;
 }
 
@@ -121,6 +129,7 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   revalidatePath("/hire/jobs");
   revalidatePath(`/hire/jobs/${id}`);
   await invalidateTables("jobs");
+  await notifyCareersSiteJobsChanged();
   return data;
 }
 
@@ -132,4 +141,5 @@ export async function deleteJob(id: string) {
   if (error) throw new Error(error.message);
   revalidatePath("/hire/jobs");
   await invalidateTables("jobs");
+  await notifyCareersSiteJobsChanged();
 }

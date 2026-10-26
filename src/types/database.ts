@@ -66,6 +66,7 @@ export interface Database {
       jobs: {
         Row: {
           id: string;
+          slug: string;
           title: string;
           department: string | null;
           location: string | null;
@@ -94,6 +95,9 @@ export interface Database {
           email: string;
           phone: string | null;
           location: string | null;
+          linkedin_url: string | null;
+          portfolio_url: string | null;
+          cover_message: string | null;
           cv_url: string | null;
           cv_text: string | null;
           cv_parsed: {
@@ -115,10 +119,13 @@ export interface Database {
         };
         Insert: Omit<
           Database["public"]["Tables"]["candidates"]["Row"],
-          "id" | "created_at" | "updated_at" | "phone" | "location" | "cv_url" | "cv_text" | "cv_parsed" | "assigned_to" | "source" | "ai_score" | "ai_justification" | "consented_at" | "hired_user_id" | "stage" | "shortlisted"
+          "id" | "created_at" | "updated_at" | "phone" | "location" | "linkedin_url" | "portfolio_url" | "cover_message" | "cv_url" | "cv_text" | "cv_parsed" | "assigned_to" | "source" | "ai_score" | "ai_justification" | "consented_at" | "hired_user_id" | "stage" | "shortlisted"
         > & {
           phone?: string | null;
           location?: string | null;
+          linkedin_url?: string | null;
+          portfolio_url?: string | null;
+          cover_message?: string | null;
           cv_url?: string | null;
           cv_text?: string | null;
           cv_parsed?: Database["public"]["Tables"]["candidates"]["Row"]["cv_parsed"];
