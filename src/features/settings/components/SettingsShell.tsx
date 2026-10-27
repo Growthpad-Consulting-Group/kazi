@@ -125,7 +125,7 @@ export default function SettingsShell({ children, allowedPaths }: { children: Re
         {/* ── Desktop sidebar ── */}
         <aside
           className={cn(
-            "sticky top-8 z-20 hidden h-fit max-h-[calc(100vh-200px)] shrink-0 overflow-y-auto overflow-x-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-xl shadow-slate-200/50 hover:shadow-2xl backdrop-blur-xl dark:shadow-black/20 transition-shadow duration-200 md:block",
+            "sticky top-8 z-20 hidden h-fit max-h-[calc(100vh-200px)] shrink-0 overflow-y-auto overflow-x-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-xl shadow-slate-200/50 hover:shadow-2xl backdrop-blur-xl dark:shadow-black/20 transition-all duration-300 ease-in-out md:block",
             collapsed ? "w-[72px] min-w-[72px] px-1.5 py-2" : "w-64"
           )}
         >

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Icon } from "@iconify/react";
+import StatCard from "@/components/ui/StatCard";
 import toast from "react-hot-toast";
 import { saveCompanySettings, type CompanySettings } from "../actions";
 import SettingsSection from "./SettingsSection";
@@ -159,18 +159,10 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
       {/* Org snapshot */}
       <SettingsSection title="Organisation snapshot" description="Current record counts across Kazi" icon="solar:chart-square-broken" iconBg="bg-emerald-500/10 text-emerald-600">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: "Staff", value: orgStats.staff, icon: "solar:users-group-rounded-broken" },
-            { label: "Departments", value: orgStats.departments, icon: "solar:buildings-broken" },
-            { label: "Open jobs", value: orgStats.jobs, icon: "solar:case-broken" },
-            { label: "Candidates", value: orgStats.candidates, icon: "solar:user-plus-rounded-broken" },
-          ].map(({ label, value, icon }) => (
-            <div key={label} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-              <Icon icon={icon} className="h-4 w-4 text-[var(--text-lo)]" />
-              <p className="mt-2 text-2xl font-bold text-[var(--text-hi)]">{value.toLocaleString()}</p>
-              <p className="mt-0.5 text-sm font-semibold capitalize text-[var(--text-lo)]">{label}</p>
-            </div>
-          ))}
+          <StatCard variant="flat" compact title="Staff" value={orgStats.staff} icon="solar:users-group-rounded-broken" color="orange" />
+          <StatCard variant="flat" compact title="Departments" value={orgStats.departments} icon="solar:buildings-broken" color="blue" />
+          <StatCard variant="flat" compact title="Open jobs" value={orgStats.jobs} icon="solar:case-broken" color="green" />
+          <StatCard variant="flat" compact title="Candidates" value={orgStats.candidates} icon="solar:user-plus-rounded-broken" color="amber" />
         </div>
       </SettingsSection>
 

@@ -411,7 +411,7 @@ export default async function DashboardPage({
 
       {/* ── Hiring health, offers and schedules ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+        <section className="flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:sort-horizontal-broken" className="h-3.5 w-3.5" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline</h2><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Where candidates are now, and how long they have been there</p></div></div></div>
           <PipelineOverview pipeline={pipeline} stages={stageAging} stalled={operations.health.stalledCandidates} averageDays={operations.health.averageDaysToHire} />
         </section>
