@@ -152,6 +152,7 @@ export default function AISettingsClient({ initial }: Props) {
       >
         <div className="space-y-2.5">
           {[
+            { icon: "solar:user-speak-broken", label: "CV screening", desc: "Scores anonymised CVs against the job's must-haves and rubric, and shortlists candidates scoring 65 or more. Runs automatically when a CV is received." },
             { icon: "solar:diploma-broken", label: "Review summaries", desc: "Summarises submitted peer reviews into a manager digest" },
             { icon: "solar:target-broken", label: "Goal suggestions", desc: "Suggests SMART goal language based on role and department" },
             { icon: "solar:calendar-mark-broken", label: "Check-in prompts", desc: "Generates personalised check-in questions each cycle" },

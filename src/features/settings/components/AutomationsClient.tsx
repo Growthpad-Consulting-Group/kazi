@@ -160,7 +160,7 @@ export default function AutomationsClient({ initial, runSummaries }: Props) {
         <StatCard title="Paused" value={rules.length - activeCount} icon="solar:pause-circle-broken" color="slate" variant="inline" compact />
         <StatCard title="Actions delivered" value={totalRuns} icon="solar:check-circle-broken" color="green" variant="inline" compact />
       </div>
-      <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+      <section className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
         <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-[var(--text-hi)]">Automation rules</p>
