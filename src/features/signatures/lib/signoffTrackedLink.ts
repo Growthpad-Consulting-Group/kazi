@@ -13,10 +13,12 @@
 // to be running right now". Exported so any other baked-in-at-save-time asset URL (self-hosted
 // icon images, etc.) uses the same one instead of reinventing this with process.env — see
 // blockSerializer.ts's SOCIAL_ICON/CONTACT_ICON, which used to get this wrong.
-export const PRODUCTION_APP_URL = "https://kazi.growthpad.africa";
+// Dedicated host for signature links and icons. It points at Kazi, so tracked clicks and
+// images come from a Growthpad domain that matches the one emails are sent from.
+export const SIGNATURE_LINK_BASE_URL = "https://links.growthpad.africa";
 
 export function buildTrackedLinkHref(templateId: string, destination: string, label: string): string {
-  const base = PRODUCTION_APP_URL;
+  const base = SIGNATURE_LINK_BASE_URL;
   const params = `to=${encodeURIComponent(destination)}&staff={{id}}${label.trim() ? `&label=${encodeURIComponent(label.trim())}` : ""}`;
   return `${base}/api/signatures/templates/${templateId}/click?${params}`;
 }

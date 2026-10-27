@@ -1,11 +1,11 @@
 import type { Block } from "./signoffBlocks";
 import { computeColumnWidths, imageBorderRadius } from "./signoffBlocks";
-import { buildTrackedLinkHref, normalizeUrl, PRODUCTION_APP_URL } from "./signoffTrackedLink";
+import { buildTrackedLinkHref, normalizeUrl, SIGNATURE_LINK_BASE_URL } from "./signoffTrackedLink";
 
-// PRODUCTION_APP_URL, not NEXT_PUBLIC_APP_URL — this gets baked into stored template html the
+// SIGNATURE_LINK_BASE_URL, not NEXT_PUBLIC_APP_URL — this gets baked into stored template html the
 // moment a social row is added, from whichever environment happened to be editing (see
 // trackedLink.ts's comment on the same gotcha for tracked links).
-const SOCIAL_ICON = (icon: string) => `${PRODUCTION_APP_URL}/assets/icons/social/${icon}.png`;
+const SOCIAL_ICON = (icon: string) => `${SIGNATURE_LINK_BASE_URL}/assets/icons/social/${icon}.png`;
 
 const ALIGN_TD = (align: "left" | "center" | "right") => (align === "left" ? "" : `text-align:${align};`);
 

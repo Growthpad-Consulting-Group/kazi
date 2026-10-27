@@ -32,7 +32,7 @@ import {
   wrapLegacyHtml,
 } from "@/features/signatures/lib/signoffBlocks";
 import { DEFAULT_CANVAS_WIDTH, serializeBlocks } from "@/features/signatures/lib/signoffBlockSerializer";
-import { PRODUCTION_APP_URL } from "@/features/signatures/lib/signoffTrackedLink";
+import { SIGNATURE_LINK_BASE_URL } from "@/features/signatures/lib/signoffTrackedLink";
 
 // dnd-kit droppable ids for each list's *container* (distinct from any block's own id) — needed
 // so an empty column, which otherwise has nothing to be "over", is still a valid drop target,
@@ -138,13 +138,13 @@ function createStaffCardBlock(): Block {
   };
 }
 
-// PRODUCTION_APP_URL, not NEXT_PUBLIC_APP_URL — this gets baked into the stored block's `src`
+// SIGNATURE_LINK_BASE_URL, not NEXT_PUBLIC_APP_URL — this gets baked into the stored block's `src`
 // the moment this preset is added, from whichever environment happened to be editing (local dev
 // bakes a dead localhost URL nobody but that machine can resolve). Same gotcha as
 // blockSerializer.ts's SOCIAL_ICON and trackedLink.ts's tracked-link URLs.
 // .png, not .svg — Gmail doesn't render SVG images in signatures at all (shows as a broken
 // image), the same reason the pre-existing social icons are PNG too.
-const CONTACT_ICON = (icon: string) => `${PRODUCTION_APP_URL}/assets/icons/contact/${icon}.png`;
+const CONTACT_ICON = (icon: string) => `${SIGNATURE_LINK_BASE_URL}/assets/icons/contact/${icon}.png`;
 
 /** `{{phone}}`/`{{mobile}}` wrapped in a `tel:` link — the merge tag appears twice (href and
  * label) so each staff member's own number ends up as both the link target and the visible text
