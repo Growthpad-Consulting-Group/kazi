@@ -31,3 +31,21 @@ export async function PATCH(req: Request, context: RouteContext): Promise<Respon
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(_req: Request, context: RouteContext): Promise<Response> {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!can(session.user.role, "manage_rewards")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { id } = await context.params;
+
+  const { count, error: countError } = await supabaseAdmin
+    .from("reward_redemptions")
+    .select("id", { count: "exact", head: true })
+    .eq("catalogue_item_id", id);
+  if (countError) return NextResponse.json({ error: countError.message }, { status: 500 });
+  if (count) return NextResponse.json({ error: "This reward has redemption history. Hide it instead so its records stay intact." }, { status: 409 });
+
+  const { error } = await supabaseAdmin.from("reward_catalogue").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}

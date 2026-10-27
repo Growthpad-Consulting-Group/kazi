@@ -21,6 +21,7 @@ type TeamMember = {
   avatarUrl: string | null;
   daysLogged: number;
   totalMinutes: number;
+  pointsEarned: number;
   comments: TeamComment[];
   byCategory: Record<string, number>;
   entries: TeamEntry[];
@@ -222,6 +223,9 @@ export function TeamActivity() {
                         <span className="shrink-0 rounded-lg bg-brand-500/10 px-2.5 py-1 font-mono text-xs font-semibold text-brand-500">{formatMinutes(member.totalMinutes)}</span>
                       ) : (
                         <span className="shrink-0 rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700">Nothing logged</span>
+                      )}
+                      {member.pointsEarned > 0 && (
+                        <span className="shrink-0 rounded-lg bg-amber-500/10 px-2.5 py-1 font-mono text-xs font-semibold text-amber-600">+{member.pointsEarned} pts</span>
                       )}
                     </div>
 

@@ -49,7 +49,7 @@ export async function awardDailyLogRewards(userId: string, date: string, entries
   let streak = 0;
   for (let offset = 0; qualifyingDays.has(shiftDate(date, -offset)); offset += 1) streak += 1;
   if (streak >= STREAK_STEP && streak % STREAK_STEP === 0) {
-    await runAutomationEvent({
+    const paid = await runAutomationEvent({
       trigger: "daily_log_streak",
       eventKey: `daily_log_streak:${date}`,
       recipientIds: [userId],
@@ -57,5 +57,13 @@ export async function awardDailyLogRewards(userId: string, date: string, entries
       pointReason: `Logged ${streak} days in a row`,
       referenceId: `daily_log_streak:${date}`,
     });
+    // Only tell them when the reward was actually given, so a retry never repeats the message.
+    if (paid > 0) {
+      await supabaseAdmin.from("notifications").insert({
+        user_id: userId,
+        message: `You've logged your day ${streak} days in a row. Well done.`,
+        link: "/pulse/checkins?tab=daily",
+      });
+    }
   }
 }

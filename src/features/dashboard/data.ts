@@ -48,6 +48,7 @@ export interface PersonalDashboardData {
   goals: { onTrack: number; atRisk: number; completed: number; notStarted: number; total: number };
   upcomingOneOnOnes: { id: string; scheduled_at: string; with: string; withAvatar: string | null }[];
   pendingCheckin: boolean;
+  points: number;
 }
 
 export interface DashboardData {
@@ -211,7 +212,14 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
   const pendingCheckin = !checkinRes.data ||
     (checkinRes.data.status !== "submitted" && checkinRes.data.status !== "reviewed");
 
+  const { data: walletRow } = await supabaseAdmin
+    .from("reward_wallets")
+    .select("balance")
+    .eq("user_id", ctx.userId)
+    .maybeSingle();
+
   const personal: PersonalDashboardData = {
+    points: (walletRow as { balance: number } | null)?.balance ?? 0,
     recognitionsGiven: givenRes.count ?? 0,
     recognitionsReceived: receivedRes.count ?? 0,
     goals: goalsBreakdown,

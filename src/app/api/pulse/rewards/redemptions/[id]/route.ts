@@ -24,6 +24,23 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid status." }, { status: 400 });
   }
 
+  // Nobody approves or fulfils their own redemption, and admins' redemptions go to HR.
+  const { data: redemption, error: lookupError } = await supabaseAdmin
+    .from("reward_redemptions")
+    .select("user_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 });
+  if (!redemption) return NextResponse.json({ error: "Redemption not found." }, { status: 404 });
+  const requesterId = (redemption as { user_id: string }).user_id;
+  if (requesterId === session.user.id) {
+    return NextResponse.json({ error: "You can't approve or fulfil your own redemption. Another admin or HR must handle it." }, { status: 403 });
+  }
+  const { data: requester } = await supabaseAdmin.from("users").select("role").eq("id", requesterId).maybeSingle();
+  if ((requester as { role: string } | null)?.role === "admin" && session.user.role !== "hr") {
+    return NextResponse.json({ error: "Admins' redemptions are approved by HR." }, { status: 403 });
+  }
+
   const { error } = await supabaseAdmin
     .from("reward_redemptions")
     .update({

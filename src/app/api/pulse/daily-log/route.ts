@@ -107,6 +107,19 @@ export async function GET(req: Request) {
     logsByUser.set(log.user_id, [...(logsByUser.get(log.user_id) ?? []), log]);
   }
 
+  // Points each person earned in this range, from the reward ledger.
+  const { data: ledgerRows } = await db
+    .from("reward_ledger")
+    .select("user_id, amount")
+    .in("user_id", memberIds)
+    .gt("amount", 0)
+    .gte("created_at", `${from}T00:00:00Z`)
+    .lt("created_at", `${to}T23:59:59Z`);
+  const pointsByUser = new Map<string, number>();
+  for (const row of (ledgerRows ?? []) as { user_id: string; amount: number }[]) {
+    pointsByUser.set(row.user_id, (pointsByUser.get(row.user_id) ?? 0) + row.amount);
+  }
+
   const { data: commentRows } = await db
     .from("daily_log_comments")
     .select("id, user_id, log_date, body, author_id, created_at")
@@ -150,6 +163,7 @@ export async function GET(req: Request) {
           acknowledged: Boolean(log.acknowledged_at),
         })),
         comments: (commentsByUser.get(member.id) ?? []),
+        pointsEarned: pointsByUser.get(member.id) ?? 0,
         daysLogged: memberLogs.filter((log) => log.entries.length > 0).length,
         totalMinutes: entries.reduce((sum, entry) => sum + entry.minutes, 0),
         byCategory,

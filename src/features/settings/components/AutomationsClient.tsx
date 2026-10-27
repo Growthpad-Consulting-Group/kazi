@@ -197,7 +197,7 @@ export default function AutomationsClient({ initial, runSummaries }: Props) {
               const summary = runSummaryByRule.get(rule.id);
               const pointsForRule = Number(rule.config?.points) || 50;
               return (
-              <li key={rule.id} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 transition-colors hover:bg-[var(--surface)]">
+              <li key={rule.id} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 transition-colors hover:bg-[var(--surface-2)]">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
                   <Icon icon={TRIGGER_ICON[rule.trigger_type]} className="h-[18px] w-[18px]" />
                 </span>

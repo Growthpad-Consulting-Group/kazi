@@ -18,6 +18,11 @@ export default function RedeemButton({ catalogueItemId, pointsCost, userBalance 
   const disabled = userBalance < pointsCost;
 
   async function handleRedeem() {
+    if (disabled) {
+      const short = pointsCost - userBalance;
+      toast.error(`You need ${short} more point${short === 1 ? "" : "s"} to redeem this.`);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/pulse/rewards/redeem", {
@@ -43,8 +48,8 @@ export default function RedeemButton({ catalogueItemId, pointsCost, userBalance 
     <Button
       size="sm"
       variant="primary"
-      disabled={disabled}
       loading={loading}
+      className={disabled ? "opacity-50" : undefined}
       onClick={handleRedeem}
     >
       Redeem

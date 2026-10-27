@@ -132,6 +132,14 @@ export default async function DashboardPage({
     const p = data.personal;
     const personalKpis: StatDef[] = [
       {
+        label: "My points",
+        value: p.points,
+        icon: "solar:cup-star-broken",
+        accent: "text-amber-500",
+        accentBg: "bg-amber-500/10",
+        href: "/pulse/rewards",
+      },
+      {
         label: "Recognitions given",
         value: p.recognitionsGiven,
         icon: "solar:star-broken",
