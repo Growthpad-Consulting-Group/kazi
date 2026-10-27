@@ -1,3 +1,4 @@
+import { syncSignaturePhoto } from "@/lib/signature-photo";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
     const url = await uploadToR2(path, Buffer.from(await file.arrayBuffer()), file.type);
     const { error } = await supabaseAdmin.from("users").update({ avatar_url: url }).eq("id", userId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await syncSignaturePhoto(userId, url);
     await invalidateTables("users");
     return NextResponse.json({ url });
   } catch (err) {

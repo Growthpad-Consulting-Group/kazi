@@ -41,7 +41,7 @@ export default function StatCard({ title, value, icon, color = "orange", variant
       </span>
       <div className="min-w-0">
         <div className="flex items-baseline gap-1.5">
-          <p className={`font-bold leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}>{value}</p>
+          <p className={`font-bold capitalize leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}>{value}</p>
           <p className="truncate text-xs font-semibold text-[var(--text-hi)]">{title}</p>
         </div>
         {subtitle && <p className="mt-1 truncate text-[10px] text-[var(--text-lo)]">{subtitle}</p>}

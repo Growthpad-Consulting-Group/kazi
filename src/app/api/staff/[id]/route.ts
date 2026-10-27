@@ -1,3 +1,4 @@
+import { syncSignaturePhoto } from "@/lib/signature-photo";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -55,6 +56,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await supabaseAdmin.from("users").update(patch as any).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (patch.avatar_url !== undefined) await syncSignaturePhoto(id, patch.avatar_url);
 
   await invalidateTables("users");
   return NextResponse.json({ ok: true });

@@ -118,19 +118,39 @@ export default async function EmployeeProfilePage({ id, tab }: { id: string; tab
     {activeTab === "pulse" && <Card><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-[var(--text-hi)]">Goals and recent pulse</h2><p className="mt-1 text-sm text-[var(--text-lo)]">Check-ins and commitments from Kazi Pulse.</p></div><Link href={`/pulse/checkins?user=${user.id}`} className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white">View check-ins</Link></div><div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr]"><div>{goals.length ? <div className="space-y-3">{goals.map((goal) => <div key={goal.id} className="rounded-xl bg-[var(--surface-2)] p-4"><div className="flex items-center justify-between gap-3"><p className="min-w-0 truncate text-sm font-semibold text-[var(--text-hi)]">{goal.title}</p><span className="font-mono text-xs font-bold text-brand-500">{goal.progress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--border)]"><div className="h-full rounded-full bg-gradient-to-r from-[#f05d23] to-orange-400" style={{ width: `${goal.progress}%` }} /></div></div>)}</div> : <Empty>No individual goals yet.</Empty>}</div><div className="rounded-xl border border-[var(--border)] p-4"><p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-lo)]">Latest check-in</p>{checkin ? <><p className="mt-3 text-lg font-semibold capitalize text-[var(--text-hi)]">{checkin.status}</p><p className="mt-1 text-sm text-[var(--text-lo)]">Week of {dateLabel(checkin.week_start)}</p>{checkin.mood ? <p className="mt-4 text-sm text-[var(--text-hi)]">Mood signal: {checkin.mood}/5</p> : null}</> : <p className="mt-3 text-sm text-[var(--text-lo)]">No check-in submitted yet.</p>}</div></div></Card>}
     {activeTab === "performance" && <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]"><Card><p className="text-xs font-semibold uppercase tracking-wide text-brand-500">Latest review</p><h2 className="mt-2 text-xl font-bold capitalize text-[var(--text-hi)]">{review ? review.review_type.replaceAll("_", " ") : "No review recorded"}</h2><p className="mt-2 text-sm text-[var(--text-lo)]">{review?.submitted_at ? `Submitted ${dateLabel(review.submitted_at.slice(0, 10))}` : "Start a cycle to capture feedback and outcomes."}</p>{review?.overall_rating ? <p className="mt-6 text-4xl font-bold text-[var(--text-hi)]">{review.overall_rating}<span className="text-lg text-[var(--text-lo)]">/5</span></p> : null}</Card><Card><div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold text-[var(--text-hi)]">Performance workspace</h2><p className="mt-1 text-sm text-[var(--text-lo)]">Reviews and goal signals are connected here.</p></div><Link href="/pulse/reviews" className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Reviews</Link></div><div className="mt-6 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[var(--surface-2)] p-4"><p className="text-xs text-[var(--text-lo)]">Active goals</p><p className="mt-2 text-lg font-bold text-[var(--text-hi)]">{goals.filter((goal) => goal.status !== "completed").length}</p></div><div className="rounded-xl bg-[var(--surface-2)] p-4"><p className="text-xs text-[var(--text-lo)]">Latest check-in</p><p className="mt-2 text-lg font-bold capitalize text-[var(--text-hi)]">{checkin?.status ?? "None"}</p></div></div></Card></div>}
     {activeTab === "development" && <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]"><Card><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-brand-500">Development plan</p><h2 className="mt-2 text-xl font-bold text-[var(--text-hi)]">{idp?.title ?? "No active development plan"}</h2><p className="mt-2 text-sm text-[var(--text-lo)]">{idp ? `Status: ${idp.status.replaceAll("_", " ")}${idp.due_date ? ` · Due ${dateLabel(idp.due_date)}` : ""}` : "Development plans make learning commitments visible and accountable."}</p></div><Link href="/pulse/reviews?tab=idps" className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Dev plans</Link></div></Card><Card><h2 className="font-semibold text-[var(--text-hi)]">Next conversation</h2><p className="mt-2 text-sm text-[var(--text-lo)]">Use the next 1-on-1 to agree on outcomes, support, and a practical next step.</p><Link href={`/pulse/one-on-ones?report=${user.id}`} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-500">Open 1-on-1s <Icon icon="solar:arrow-right-up-broken" className="h-4 w-4" /></Link></Card></div>}
-    {activeTab === "access" && showAccessTab && <div className="max-w-2xl space-y-5">
-      {isAdmin && <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:shield-user-broken" className="h-4 w-4" /></span><div className="min-w-0"><p className="text-xs font-semibold text-[var(--text-hi)]">System access</p><p className="truncate text-[11px] text-[var(--text-lo)]">Controls what this person can see and do in Kazi.</p></div></div><RoleSelector userId={user.id} currentRole={user.role as UserRole} isSelf={isSelf} /></div></div>}
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:key-broken" className="h-4 w-4" /></span>
-            <div className="min-w-0"><p className="text-xs font-semibold text-[var(--text-hi)]">Password</p><p className="text-[11px] text-[var(--text-lo)]">Give {user.name} a temporary password if they cannot sign in. They choose their own at their next sign-in.</p></div>
-          </div>
-          <ResetPasswordButton userId={user.id} userName={user.name} />
+    {activeTab === "access" && showAccessTab && <div className="space-y-5">
+      <section className="grid gap-3 sm:grid-cols-3"><StatCard title="System role" value={user.role.replaceAll("_", " ")} icon="solar:shield-user-broken" color="orange" variant="inline" compact subtitle="Baseline access" /><StatCard title="Extra grants" value={extraPermissions.length} icon="solar:key-minimalistic-square-broken" color={extraPermissions.length ? "blue" : "slate"} variant="inline" compact subtitle={extraPermissions.length ? "Additional permissions" : "No exceptions"} /><StatCard title="Account recovery" value="Ready" icon="solar:key-broken" color="green" variant="inline" compact subtitle="Password can be reset" /></section>
+      {isAdmin ? (
+        <>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <RoleSelector
+            userId={user.id}
+            currentRole={user.role as UserRole}
+            isSelf={isSelf}
+          />
+          <ExtraPermissionsControl userId={user.id} userName={user.name} granted={extraPermissions} />
         </div>
-      </section>
-      {isAdmin && <ExtraPermissionsControl userId={user.id} userName={user.name} granted={extraPermissions} />}
+        <Card><PasswordReset name={user.name} userId={user.id} /></Card>
+        </>
+      ) : (
+        <Card><PasswordReset name={user.name} userId={user.id} /></Card>
+      )}
     </div>}
     {activeTab === "signature" && <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]"><Card><p className="text-xs font-semibold uppercase tracking-wide text-brand-500">Kazi Signatures</p><h2 className="mt-2 text-xl font-bold text-[var(--text-hi)]">{signature ? "Signature identity is ready" : "No signature identity yet"}</h2><p className="mt-2 text-sm text-[var(--text-lo)]">{signature ? `${signature.email} · ${signature.status}` : "Create a signature profile to give this staff member a consistent managed signature."}</p>{signature && <Link href={`/signatures/staff/${signature.id}`} className="mt-5 inline-flex rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Open signature</Link>}</Card><Card><h2 className="font-semibold text-[var(--text-hi)]">Identity details</h2><dl className="mt-4 space-y-3 text-sm"><ProfileRow label="Role title" value={signature?.role_title ?? user.job_title ?? "Not set"} /><ProfileRow label="Work email" value={signature?.email ?? user.email} /><ProfileRow label="Photo" value={avatarUrl ? "Available" : "Not set"} /><ProfileRow label="Start date" value={dateLabel(user.start_date)} /></dl></Card></div>}
   </div>;
+}
+
+function PasswordReset({ name, userId }: { name: string; userId: string }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:key-broken" className="h-4 w-4" /></span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--text-hi)]">Password</p>
+          <p className="text-xs text-[var(--text-lo)]">Give {name} a temporary password if they cannot sign in. They choose their own at their next sign-in.</p>
+        </div>
+      </div>
+      <ResetPasswordButton userId={userId} userName={name} />
+    </div>
+  );
 }

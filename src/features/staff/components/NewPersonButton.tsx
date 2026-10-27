@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@iconify/react";
+import toast from "react-hot-toast";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
 import { useState } from "react";
@@ -28,6 +30,16 @@ export function NewPersonButton({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "employee", department: "", jobTitle: "", location: "", managerId: "", startDate: "" });
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const choosePhoto = (file: File | null) => {
+    setPhoto(file);
+    setPhotoPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  };
 
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -36,8 +48,16 @@ export function NewPersonButton({
     setError("");
     try {
       const response = await fetch("/api/staff", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      const data = await response.json().catch(() => null) as { error?: string } | null;
+      const data = await response.json().catch(() => null) as { error?: string; person?: { id: string } } | null;
       if (!response.ok) throw new Error(data?.error ?? "Could not add this person.");
+      // The photo can only be uploaded once the person has an id, so it goes up after they are created.
+      if (photo && data?.person?.id) {
+        const upload = new FormData();
+        upload.append("file", photo);
+        const uploaded = await fetch(`/api/users/avatar?userId=${data.person.id}`, { method: "POST", body: upload });
+        if (!uploaded.ok) toast.error("Added, but the photo did not upload. You can add it from their profile.");
+      }
+      choosePhoto(null);
       setOpen(false);
       setForm({ name: "", email: "", password: "", role: "employee", department: "", jobTitle: "", location: "", managerId: "", startDate: "" });
       router.refresh();
@@ -61,6 +81,14 @@ export function NewPersonButton({
           <Field label="Full name *"><input autoFocus value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="e.g. Amina Wanjiku" className={inputClass} /></Field>
           <Field label="Email address *"><input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="amina@company.com" className={inputClass} /></Field>
           <Field label="Temporary password *"><PasswordInput value={form.password} onChange={(event) => update("password", event.target.value)} placeholder="At least 8 characters" className={inputClass} /></Field>
+          <Field label="Profile photo">
+            <div className="flex items-center gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--surface-2)] text-[var(--text-lo)]">
+                {photoPreview ? <img src={photoPreview} alt="" className="h-full w-full object-cover" /> : <Icon icon="solar:user-broken" className="h-5 w-5" />}
+              </span>
+              <input type="file" accept="image/*" onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} className="min-w-0 flex-1 text-xs text-[var(--text-lo)] file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-brand-500" />
+            </div>
+          </Field>
           <Field label="Role"><select value={form.role} onChange={(event) => update("role", event.target.value)} className={inputClass}>{availableRoles.map((role) => <option key={role} value={role}>{role.replaceAll("_", " ")}</option>)}</select></Field>
           <Field label="Job title"><input value={form.jobTitle} onChange={(event) => update("jobTitle", event.target.value)} placeholder="e.g. Product Designer" className={inputClass} /></Field>
           <Field label="Department"><DepartmentSelect value={form.department} onChange={(value) => update("department", value)} departments={departments} placeholder="Select department" /></Field>

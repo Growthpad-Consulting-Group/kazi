@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
@@ -24,6 +25,16 @@ export function BookInterviewButton({
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [selected, setSelected] = useState<string[]>([currentUserId]);
   const [isPending, startTransition] = useTransition();
+  const [calendar, setCalendar] = useState<{ loading: boolean; connected: boolean | null; name: string | null }>({ loading: false, connected: null, name: null });
+
+  function openBooking() {
+    setCalendar({ loading: true, connected: null, name: null });
+    setOpen(true);
+    void fetch("/api/integrations/google-calendar/status")
+      .then((response) => response.json())
+      .then((data: { connected?: boolean; calendar_name?: string | null }) => setCalendar({ loading: false, connected: Boolean(data.connected), name: data.calendar_name ?? null }))
+      .catch(() => setCalendar({ loading: false, connected: false, name: null }));
+  }
 
   const toggle = (id: string) => {
     if (id === currentUserId) return;
@@ -61,7 +72,7 @@ export function BookInterviewButton({
 
   return (
     <>
-      <Button size="sm" icon="solar:calendar-add-broken" onClick={() => setOpen(true)}>
+      <Button size="sm" icon="solar:calendar-add-broken" onClick={openBooking}>
         Book interview
       </Button>
 
@@ -96,11 +107,9 @@ export function BookInterviewButton({
             </select>
           </label>
           <InterviewerPicker interviewers={interviewers} selected={selected} currentUserId={currentUserId} onToggle={toggle} />
-          <p className="text-xs text-[var(--text-lo)]">
-            The candidate and selected interviewers receive an invite through your connected Google Calendar.
-          </p>
+          {calendar.loading ? <div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5 text-xs text-[var(--text-lo)]"><Icon icon="solar:spinner-broken" className="h-4 w-4 animate-spin" />Checking Google Calendar…</div> : calendar.connected ? <div className="flex items-start gap-2 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-700 dark:text-emerald-400"><Icon icon="solar:calendar-check-broken" className="mt-0.5 h-4 w-4 shrink-0" /><p>The candidate and selected interviewers will receive an invite through {calendar.name ?? "your connected Google Calendar"}.</p></div> : calendar.connected === false ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-500/10 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300"><span className="flex min-w-0 items-start gap-2"><Icon icon="solar:calendar-remove-broken" className="mt-0.5 h-4 w-4 shrink-0" /><span>Connect Google Calendar before booking so Kazi can create the interview event and send invitations.</span></span><Button href="/api/integrations/google-calendar/connect" size="sm" variant="secondary">Connect calendar</Button></div> : null}
           <div className="flex justify-end">
-            <Button icon="solar:calendar-add-broken" loading={isPending} onClick={save}>
+            <Button icon="solar:calendar-add-broken" loading={isPending} disabled={calendar.loading || calendar.connected === false} onClick={save}>
               Book interview
             </Button>
           </div>
