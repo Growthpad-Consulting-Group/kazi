@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { publicJobUrl } from "@/lib/careers-url";
 import { useRouter } from "next/navigation";
 import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
@@ -175,10 +176,10 @@ export default function JobsClientView({ jobs, departments, initialStatus }: Pro
     },
     {
       icon: "solar:global-broken",
-      label: "Open application page",
+      label: "Open careers page",
       variant: "success",
       show: (row) => jobAvailability(row, new Date(), new Date()).live,
-      onClick: (row) => window.open(`/apply/${row.id}`, "_blank", "noopener,noreferrer"),
+      onClick: (row) => window.open(publicJobUrl(String(row.slug)), "_blank", "noopener,noreferrer"),
     },
   ];
 

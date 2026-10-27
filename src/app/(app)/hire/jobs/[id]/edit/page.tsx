@@ -1,4 +1,5 @@
 import { JobForm } from "@/features/hire/jobs/components/JobForm";
+import { publicJobUrl } from "@/lib/careers-url";
 import { getJob } from "@/features/hire/jobs/actions";
 import { getDepartments } from "@/features/departments/actions";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -22,7 +23,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
         icon="solar:case-minimalistic-broken"
         actions={[
           { label: "View Job", icon: "solar:eye-broken", href: `/hire/jobs/${job.id}` },
-          ...(isPubliclyLive ? [{ label: "Application page", icon: "solar:global-broken", href: `/apply/${job.id}`, variant: "primary" as const }] : []),
+          ...(isPubliclyLive ? [{ label: "Careers page", icon: "solar:global-broken", href: publicJobUrl(job.slug), variant: "primary" as const }] : []),
         ]}
       />
       <JobForm job={job} departments={departments} />
