@@ -1,5 +1,7 @@
 "use client";
 
+import { PasswordInput } from "@/components/ui/PasswordInput";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -58,7 +60,7 @@ export function NewPersonButton({
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field label="Full name *"><input autoFocus value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="e.g. Amina Wanjiku" className={inputClass} /></Field>
           <Field label="Email address *"><input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="amina@company.com" className={inputClass} /></Field>
-          <Field label="Temporary password *"><input type="password" value={form.password} onChange={(event) => update("password", event.target.value)} placeholder="At least 8 characters" className={inputClass} /></Field>
+          <Field label="Temporary password *"><PasswordInput value={form.password} onChange={(event) => update("password", event.target.value)} placeholder="At least 8 characters" className={inputClass} /></Field>
           <Field label="Role"><select value={form.role} onChange={(event) => update("role", event.target.value)} className={inputClass}>{availableRoles.map((role) => <option key={role} value={role}>{role.replaceAll("_", " ")}</option>)}</select></Field>
           <Field label="Job title"><input value={form.jobTitle} onChange={(event) => update("jobTitle", event.target.value)} placeholder="e.g. Product Designer" className={inputClass} /></Field>
           <Field label="Department"><DepartmentSelect value={form.department} onChange={(value) => update("department", value)} departments={departments} placeholder="Select department" /></Field>

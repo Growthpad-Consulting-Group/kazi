@@ -15,7 +15,7 @@ export async function proxy(request: NextRequest) {
   // Someone with a temporary password can only use their profile until they choose a new one.
   const { pathname } = request.nextUrl;
   if (token.id && (await mustChangePassword(token.id as string)) && !pathname.startsWith("/settings/profile")) {
-    return NextResponse.redirect(new URL("/settings/profile", request.url));
+    return NextResponse.redirect(new URL("/settings/profile?passwordRequired=1", request.url));
   }
 
   const allowedPaths = await getAllowedPaths(token.role as UserRole);

@@ -118,6 +118,20 @@ export function can(userRole: UserRole, permission: Permission | Permission[]): 
   return perms.some((p) => (PERMISSION_MAP[p] as readonly string[]).includes(userRole));
 }
 
+// ─── Individual permissions ───────────────────────────────────────────────────
+// Admins can grant these to one person on top of their role. Everything else stays role-based.
+export const GRANTABLE_PERMISSIONS = ["manage_side_quests", "manage_recognition_campaigns"] as const;
+export type GrantablePermission = (typeof GRANTABLE_PERMISSIONS)[number];
+
+/** Role permission, or a permission granted to this person. Use this where the person's extra grants matter. */
+export function userCan(
+  user: { role: UserRole; extraPermissions?: readonly string[] },
+  permission: Permission,
+): boolean {
+  if (can(user.role, permission)) return true;
+  return (user.extraPermissions ?? []).includes(permission);
+}
+
 // ─── Role sets (for layout guards) ───────────────────────────────────────────
 export const RECRUITMENT_ROLES: UserRole[] = ["admin", "hr", "hiring_manager", "interviewer"];
 export const HR_ROLES: UserRole[]          = ["admin", "hr"];

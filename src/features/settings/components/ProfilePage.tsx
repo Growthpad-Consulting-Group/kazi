@@ -4,7 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import { Suspense } from "react";
 import ProfileClient from "./ProfileClient";
+import { PasswordChangeNotice } from "./PasswordChangeNotice";
 import { mustChangePassword } from "@/lib/must-change-password";
 
 export default async function ProfilePage() {
@@ -24,6 +26,7 @@ export default async function ProfilePage() {
       .maybeSingle(),
   ]);
 
+  const passwordRequired = await mustChangePassword(session.user.id);
   const userData = user as UserRow;
   const sigData = sigResult.data as SigProfileRow;
   // Use signature staff photo as fallback when no Kazi avatar is set
@@ -32,7 +35,8 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-6">
       <SetPageHeader title="Profile" description="Your personal details and access" icon="solar:user-broken" />
-      {(await mustChangePassword(session.user.id)) && (
+      <Suspense fallback={null}><PasswordChangeNotice /></Suspense>
+      {passwordRequired && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600"><Icon icon="solar:key-broken" className="h-4 w-4" /></span>
           <div>
@@ -42,6 +46,7 @@ export default async function ProfilePage() {
         </div>
       )}
       <ProfileClient
+        passwordRequired={passwordRequired}
         initial={{
           name: session.user.name ?? "",
           email: session.user.email ?? "",

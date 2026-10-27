@@ -1,5 +1,7 @@
 "use client";
 
+import { PasswordInput } from "@/components/ui/PasswordInput";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -23,9 +25,11 @@ interface Props {
     location: string | null;
     avatar_url: string | null;
   };
+  /** True when the person must choose a new password before using the rest of Kazi. */
+  passwordRequired?: boolean;
 }
 
-export default function ProfileClient({ initial }: Props) {
+export default function ProfileClient({ initial, passwordRequired = false }: Props) {
   const router = useRouter();
   const { update: updateSession } = useSession();
 
@@ -68,6 +72,11 @@ export default function ProfileClient({ initial }: Props) {
         await changePassword({ current: currentPw, next: newPw });
         toast.success("Password changed");
         setCurrentPw(""); setNewPw(""); setConfirmPw("");
+        if (passwordRequired) {
+          // The temporary password is replaced, so take them into the app.
+          router.replace("/dashboard");
+          router.refresh();
+        }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not change password");
       }
@@ -142,15 +151,15 @@ export default function ProfileClient({ initial }: Props) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block sm:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Current password</span>
-            <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} autoComplete="current-password" className={inputCls} />
+            <PasswordInput value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} autoComplete="current-password" className={inputCls} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">New password</span>
-            <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" className={inputCls} />
+            <PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" className={inputCls} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Confirm new password</span>
-            <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" className={inputCls} />
+            <PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" className={inputCls} />
           </label>
         </div>
         {newPw && confirmPw && newPw !== confirmPw && (

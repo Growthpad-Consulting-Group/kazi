@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const AUDIENCES = ["company", "department", "location", "manager_group", "staff"] as const;
@@ -14,7 +14,7 @@ function cleanFilters(input: unknown, audience: string): { ok: true; filters: st
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_recognition_campaigns")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !userCan(session.user, "manage_recognition_campaigns")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json().catch(() => null) as { name?: string; goal?: string; audience_type?: string; starts_at?: string; ends_at?: string; value_ids?: string[]; audience_filters?: string[] } | null;
   if (!body?.name?.trim() || !body.audience_type || !AUDIENCES.includes(body.audience_type as typeof AUDIENCES[number])) return NextResponse.json({ error: "Name and audience are required." }, { status: 400 });
   const targets = cleanFilters(body.audience_filters, body.audience_type);

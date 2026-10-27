@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const audiences = new Set(["company", "department", "location", "manager_group", "staff"]);
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_side_quests")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !userCan(session.user, "manage_side_quests")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { title, brief, completion_criteria, audience_type, audience_filters, starts_at, ends_at, points } = await req.json();
   const questPoints = Number.isInteger(points) ? points : 10;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Database } from "@/types/database";
 
@@ -19,7 +19,7 @@ type Audience = typeof AUDIENCES[number];
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_recognition_campaigns")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !userCan(session.user, "manage_recognition_campaigns")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const body = await request.json().catch(() => null) as {
     status?: string; name?: string; goal?: string; audience_type?: string; starts_at?: string | null; ends_at?: string | null; value_ids?: string[]; audience_filters?: string[];

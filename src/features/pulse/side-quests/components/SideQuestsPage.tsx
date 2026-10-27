@@ -1,7 +1,7 @@
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -12,7 +12,7 @@ const audienceLabels: Record<string, string> = { company: "Company-wide", depart
 
 export default async function SideQuestsPage() {
   const session = await getServerSession(authOptions); if (!session) return null;
-  const canManage = can(session.user.role, "manage_side_quests");
+  const canManage = userCan(session.user, "manage_side_quests");
   const [{ data: quests }, { data: completions }, { data: staff }] = await Promise.all([supabaseAdmin.from("side_quests").select("*").order("created_at", { ascending: false }), supabaseAdmin.from("side_quest_completions").select("side_quest_id, user_id"), supabaseAdmin.from("users").select("id, name, role, department, location, manager_id").eq("is_active", true).order("name")]);
   const completionByQuest = new Map<string, Set<string>>(); for (const completion of completions ?? []) { const set = completionByQuest.get(completion.side_quest_id) ?? new Set<string>(); set.add(completion.user_id); completionByQuest.set(completion.side_quest_id, set); }
   const nameById = new Map((staff ?? []).map((user) => [user.id, user.name]));

@@ -12,6 +12,8 @@ declare module "next-auth" {
       department: string | null;
       /** Pages this role may open, from role_page_access. ["*"] for admin. */
       allowedPaths: string[];
+      /** Permissions an admin granted to this person on top of their role. */
+      extraPermissions: string[];
     };
   }
 }

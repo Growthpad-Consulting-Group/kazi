@@ -2,7 +2,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { EditCampaignButton, NewCampaignButton } from "./CampaignFormModal";
@@ -12,7 +12,7 @@ const audiences: Record<string, string> = { company: "Company-wide", department:
 type CampaignRecognition = { campaign_id: string; value_id: string | null; from_user_id: string; to_user_id: string; message: string; created_at: string; to: { name: string } | null };
 export default async function CampaignsPage() {
   const session = await getServerSession(authOptions); if (!session) return null;
-  const canManage = can(session.user.role, "manage_recognition_campaigns");
+  const canManage = userCan(session.user, "manage_recognition_campaigns");
   const [{ data: campaigns }, { data: values }, { data: recognitions }] = await Promise.all([supabaseAdmin.from("recognition_campaigns").select("*").order("created_at", { ascending: false }), supabaseAdmin.from("recognition_values").select("id, name").eq("is_active", true).order("name"), supabaseAdmin.from("feedback").select("campaign_id, value_id, from_user_id, to_user_id, message, created_at, to:to_user_id(name)").eq("visibility", "public").not("campaign_id", "is", null).order("created_at", { ascending: false })]);
   const campaignRecognitions = (recognitions ?? []) as unknown as CampaignRecognition[];
   const participation = new Map<string, { total: number; senders: Set<string>; recipients: Set<string>; values: Map<string, number> }>(); for (const recognition of campaignRecognitions) if (recognition.campaign_id) { const item = participation.get(recognition.campaign_id) ?? { total: 0, senders: new Set<string>(), recipients: new Set<string>(), values: new Map<string, number>() }; item.total += 1; item.senders.add(recognition.from_user_id); item.recipients.add(recognition.to_user_id); if (recognition.value_id) item.values.set(recognition.value_id, (item.values.get(recognition.value_id) ?? 0) + 1); participation.set(recognition.campaign_id, item); }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const audiences = new Set(["company", "department", "location", "manager_group", "staff"]);
@@ -10,7 +10,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, context: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_side_quests")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !userCan(session.user, "manage_side_quests")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await context.params;
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;
@@ -58,7 +58,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 
 export async function DELETE(_req: Request, context: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_side_quests")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session || !userCan(session.user, "manage_side_quests")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await context.params;
 
   const { data: awards } = await supabaseAdmin

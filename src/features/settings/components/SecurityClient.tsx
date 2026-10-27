@@ -1,5 +1,7 @@
 "use client";
 
+import { PasswordInput } from "@/components/ui/PasswordInput";
+
 import { useState, useTransition } from "react";
 import { signOut } from "next-auth/react";
 import toast from "react-hot-toast";
@@ -40,8 +42,7 @@ export default function SecurityClient() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Current password</span>
-            <input
-              type="password"
+            <PasswordInput
               value={current}
               onChange={(e) => setCurrent(e.target.value)}
               className={inputCls}
@@ -50,8 +51,7 @@ export default function SecurityClient() {
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">New password</span>
-            <input
-              type="password"
+            <PasswordInput
               value={next}
               onChange={(e) => setNext(e.target.value)}
               className={inputCls}
@@ -60,8 +60,7 @@ export default function SecurityClient() {
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Confirm new password</span>
-            <input
-              type="password"
+            <PasswordInput
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className={inputCls}

@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { isPathAllowed } from "@/lib/page-access";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { StaffGroupsClient } from "./StaffGroupsClient";
@@ -14,7 +14,7 @@ export default async function StaffGroupsPage() {
   if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/staff-groups")) {
     redirect("/settings/profile");
   }
-  const canEdit = can(session.user.role, "manage_recognition_campaigns");
+  const canEdit = userCan(session.user, "manage_recognition_campaigns");
 
   const [groupsResult, usersResult] = await Promise.all([
     supabaseAdmin.from("staff_groups").select("*").order("name"),

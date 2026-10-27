@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/rbac";
+import { can, userCan } from "@/lib/rbac";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -68,7 +68,7 @@ export async function DELETE(req: Request) {
   if (!group) return NextResponse.json({ error: "Group not found." }, { status: 404 });
 
   const isOwner = group.created_by === session.user.id;
-  const isHrAdmin = can(session.user.role, "manage_recognition_campaigns");
+  const isHrAdmin = userCan(session.user, "manage_recognition_campaigns");
 
   if (!isOwner && !isHrAdmin) {
     return NextResponse.json({ error: "You do not have permission to delete this group." }, { status: 403 });
@@ -98,7 +98,7 @@ export async function PUT(req: Request) {
   if (!group) return NextResponse.json({ error: "Group not found." }, { status: 404 });
 
   const isOwner = group.created_by === session.user.id;
-  const isHrAdmin = can(session.user.role, "manage_recognition_campaigns");
+  const isHrAdmin = userCan(session.user, "manage_recognition_campaigns");
   if (!isOwner && !isHrAdmin) {
     return NextResponse.json({ error: "You do not have permission to update this group." }, { status: 403 });
   }
