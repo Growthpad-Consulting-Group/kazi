@@ -59,8 +59,8 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
   const [myCheckins, teamCheckins, dailySummary, personalDailySummary] = await Promise.all([
     teamOnly ? Promise.resolve([]) : getMyCheckins(viewedUserId),
     isManager && !canViewProfile ? getTeamCheckins(userId, organisationWide) : Promise.resolve([]),
-    isManager && !canViewProfile ? getTeamDailyLogSummary(userId, weekStart, organisationWide) : Promise.resolve({ staffLogged: 0, daysLogged: 0, totalMinutes: 0 }),
-    teamOnly ? Promise.resolve({ daysLogged: 0, totalMinutes: 0, tasks: [] }) : getDailyWeekSummary(viewedUserId, weekStart),
+    isManager && !canViewProfile ? getTeamDailyLogSummary(userId, weekStart, organisationWide) : Promise.resolve({ staffLogged: 0, daysLogged: 0, totalMinutes: 0, byUser: {} }),
+    teamOnly ? Promise.resolve({ daysLogged: 0, totalMinutes: 0, tasks: [], days: [] }) : getDailyWeekSummary(viewedUserId, weekStart),
   ]);
 
   // Team-only view: skip the personal form and go straight to the team overview

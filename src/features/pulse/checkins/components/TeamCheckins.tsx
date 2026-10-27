@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
 import StatCard from "@/components/ui/StatCard";
-import type { CheckinWithUser } from "../actions";
+import { Accordion } from "@/components/ui/Accordion";
+import type { CheckinWithUser, DailyWeekSummary } from "../actions";
 
 interface Props {
   checkins: CheckinWithUser[];
   weekStart: string;
-  dailySummary?: { staffLogged: number; daysLogged: number; totalMinutes: number };
+  dailySummary?: { staffLogged: number; daysLogged: number; totalMinutes: number; byUser: Record<string, DailyWeekSummary> };
 }
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
@@ -128,7 +129,7 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
         <StatCard title="Repeat blockers" value={repeatedBlockers} icon="solar:danger-triangle-broken" color={repeatedBlockers ? "orange" : "green"} variant="inline" compact onClick={() => setFilter("attention")} />
       </div>
 
-      {dailySummary && dailySummary.daysLogged > 0 && <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.045] px-5 py-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:notebook-broken" className="h-4.5 w-4.5" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">Daily reporting this week</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">{dailySummary.staffLogged} staff logged work across {dailySummary.daysLogged} day{dailySummary.daysLogged === 1 ? "" : "s"}.</p></div></div><span className="rounded-xl bg-[var(--surface)] px-3 py-2 font-mono text-sm font-bold text-brand-500">{formatMinutes(dailySummary.totalMinutes)}</span></section>}
+      {dailySummary && dailySummary.daysLogged > 0 && <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.045] px-5 py-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:notebook-broken" className="h-4.5 w-4.5" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">Daily reporting this week</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">{dailySummary.staffLogged} staff logged work across {dailySummary.daysLogged} day{dailySummary.daysLogged === 1 ? "" : "s"}.</p></div></div><div className="flex items-center gap-2"><span className="rounded-xl bg-[var(--surface)] px-3 py-2 font-mono text-sm font-bold text-brand-500">{formatMinutes(dailySummary.totalMinutes)}</span><Button size="sm" variant="secondary" icon="solar:arrow-right-broken" onClick={() => router.push("/pulse/checkins?tab=daily")}>View activity</Button></div></section>}
 
       {aiSummary && (
         <section className="rounded-2xl border border-blue-500/15 bg-blue-500/5 p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
@@ -203,6 +204,7 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
                       <ReadSection label="Priorities" icon="solar:target-broken" value={checkin.priorities} />
                       <ReadSection label="Blockers" icon="solar:danger-triangle-broken" value={checkin.blockers} />
                     </div>
+                    {dailySummary?.byUser[checkin.user_id] && <DailyWorkBreakdown summary={dailySummary.byUser[checkin.user_id]} />}
 
                     {checkin.ai_summary && (
                       <div className="mt-3 rounded-xl border border-blue-500/15 bg-blue-500/5 p-3">
@@ -312,4 +314,8 @@ function ReadSection({ label, icon, value }: { label: string; icon: string; valu
       </p>
     </div>
   );
+}
+
+function DailyWorkBreakdown({ summary }: { summary: DailyWeekSummary }) {
+  return <section className="mt-3 rounded-xl border border-brand-500/15 bg-brand-500/[0.04] p-3"><div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-hi)]"><Icon icon="solar:notebook-broken" className="h-4 w-4 text-brand-500" />Daily activity evidence</span><span className="font-mono text-xs font-bold text-brand-500">{summary.daysLogged}/5 · {formatMinutes(summary.totalMinutes)}</span></div><div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">{summary.days.map((day, dayIndex) => <Accordion key={day.date} title={new Date(`${day.date}T12:00:00`).toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "short" })} subtitle={`${day.entries.length} logged task${day.entries.length === 1 ? "" : "s"}`} icon="solar:calendar-broken" badge={formatMinutes(day.entries.reduce((total, entry) => total + entry.minutes, 0))} defaultOpen={dayIndex === summary.days.length - 1}>{day.entries.map((entry, index) => <div key={`${entry.task}-${index}`} className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] py-2 last:border-0 text-xs"><span className="min-w-0 flex-1 text-[var(--text-hi)]">{entry.task}</span><span className="flex items-center gap-1.5 text-[var(--text-lo)]">{entry.client && <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">{entry.client}</span>}<span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">{entry.category}</span><span className="font-mono">{formatMinutes(entry.minutes)}</span></span></div>)}</Accordion>)}</div></section>;
 }
