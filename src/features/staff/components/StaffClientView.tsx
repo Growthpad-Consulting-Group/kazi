@@ -48,9 +48,10 @@ interface Props {
   locations: string[];
   currentUserId: string;
   canManageStaff: boolean;
+  canScheduleOneOnOnes: boolean;
 }
 
-export default function StaffClientView({ people, departments, locations, currentUserId, canManageStaff }: Props) {
+export default function StaffClientView({ people, departments, locations, currentUserId, canManageStaff, canScheduleOneOnOnes }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>([]);
@@ -245,6 +246,7 @@ export default function StaffClientView({ people, departments, locations, curren
       icon: "solar:chat-line-broken",
       label: "1-on-1s",
       variant: "success",
+      show: () => canScheduleOneOnOnes,
       onClick: (row) => router.push(`/pulse/one-on-ones?report=${row.id}`),
     },
     {
@@ -275,6 +277,8 @@ export default function StaffClientView({ people, departments, locations, curren
       data={filtered}
       columns={columns}
       actions={actions}
+      enableDateFilter={false}
+      storageKey="staff-table"
       bulkActions={bulkActions}
       emptyMessage="No staff match your filters."
       emptyIcon="solar:user-id-broken"

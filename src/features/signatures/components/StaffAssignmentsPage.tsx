@@ -15,7 +15,7 @@ export default async function StaffAssignmentsPage({ initialDelivery }: { initia
   const [staff, templates, assignments] = await Promise.all([
     database.from("signature_staff_profiles").select("id, email, full_name, role_title, department, photo_url, status"),
     database.from("signature_templates").select("id, name, is_default"),
-    database.from("signature_assignments").select("staff_profile_id, template_id, deploy_status, gmail_sync_status, last_gmail_synced_at"),
+    database.from("signature_assignments").select("staff_profile_id, template_id, deploy_status, gmail_sync_status, gmail_sync_attempts, last_gmail_synced_at"),
   ]);
   for (const result of [staff, templates, assignments]) if (result.error) throw new Error(result.error.message);
   return <StaffAssignmentsClient staff={(staff.data ?? []) as never[]} templates={(templates.data ?? []) as never[]} assignments={(assignments.data ?? []) as never[]} initialDelivery={initialDelivery} />;

@@ -4,9 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { canonicalDepartment } from "@/lib/departments";
+import { syncStaffSignature } from "@/features/signatures/lib/syncStaffSignature";
 
 type RouteContext = { params: Promise<{ id: string }> };
 type UpdateResult = { error: { message: string } | null };
+// Fields that appear in the email signature. Changing any of them re-sends the signature to Gmail.
+const SIGNATURE_FIELDS = ["full_name", "role_title", "department", "phone", "mobile", "photo_url"];
+
 type Database = { from: (table: string) => { update: (values: Record<string, unknown>) => { eq: (column: string, value: string) => PromiseLike<UpdateResult> } } };
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -33,5 +37,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const database = supabaseAdmin as unknown as Database;
   const { error } = await database.from("signature_staff_profiles").update(values).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+
+  const touchesSignature = Object.keys(values).some((field) => SIGNATURE_FIELDS.includes(field));
+  const gmail = touchesSignature ? await syncStaffSignature(id) : { status: "skipped" as const };
+  return NextResponse.json({ ok: true, gmail: gmail.status, gmailError: gmail.status === "error" ? gmail.message : undefined });
 }

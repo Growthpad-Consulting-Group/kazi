@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, ReactNode } from "react";
+import { useState, useMemo, useCallback, useEffect, ReactNode } from "react";
 import { Icon } from "@iconify/react";
 import { parseISO, isWithinInterval } from "date-fns";
 import { cn } from "@/shared/lib/cn";
@@ -13,6 +13,7 @@ import DateRangePicker, { type DateRangeValue } from "./DateRangePicker";
 import ExportModal from "./export/ExportModal";
 import TooltipIconButton from "./TooltipIconButton";
 import toast from "react-hot-toast";
+import ColumnVisibilityMenu from "./table/ColumnVisibilityMenu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,8 @@ export interface Column<T = Record<string, unknown>> {
   headerClassName?: string;
   width?: string;
   render?: (row: T, value: unknown) => ReactNode;
+  /** Always shown; left out of the Columns menu. */
+  locked?: boolean;
 }
 
 export type RowActionVariant = "default" | "info" | "warning" | "danger" | "success";
@@ -77,6 +80,10 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   enableRefresh?: boolean;
   onRefresh?: () => void;
   allowedDateRanges?: string[];
+  /** Remembers hidden columns in this browser under this key. */
+  storageKey?: string;
+  /** Shows the Columns menu for hiding columns. Defaults to on. */
+  enableColumnToggle?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -112,6 +119,8 @@ export function GenericTable<T extends Record<string, unknown>>({
   enableRefresh = true,
   onRefresh,
   allowedDateRanges,
+  storageKey,
+  enableColumnToggle = true,
 }: GenericTableProps<T>) {
   const tableMaxHeight = useMemo(() => {
     if (propTableMaxHeight) return propTableMaxHeight;
@@ -121,6 +130,59 @@ export function GenericTable<T extends Record<string, unknown>>({
 
   const derivedStickyHeader = stickyHeader ?? !!(tableMaxHeight);
   const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null, label: 'All Time' });
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+
+  // Read the saved choice after mount so server and client render the same markup.
+  useEffect(() => {
+    if (!storageKey) return;
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(`${storageKey}:hidden-columns`) ?? "[]") as string[];
+        setHiddenColumns(new Set(saved));
+      } catch {
+        setHiddenColumns(new Set());
+      }
+      try {
+        setColumnOrder(JSON.parse(localStorage.getItem(`${storageKey}:column-order`) ?? "[]") as string[]);
+      } catch {
+        setColumnOrder([]);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [storageKey]);
+
+  const toggleColumn = useCallback((id: string) => {
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      if (storageKey) {
+        try { localStorage.setItem(`${storageKey}:hidden-columns`, JSON.stringify([...next])); } catch { /* storage unavailable */ }
+      }
+      return next;
+    });
+  }, [storageKey]);
+
+  const reorderColumns = useCallback((ids: string[]) => {
+    setColumnOrder(ids);
+    if (storageKey) {
+      try { localStorage.setItem(`${storageKey}:column-order`, JSON.stringify(ids)); } catch { /* storage unavailable */ }
+    }
+  }, [storageKey]);
+
+  // Saved order first, then any columns the saved order doesn't mention, in their original order.
+  const orderedColumns = useMemo(() => {
+    const ids = columns.map((col) => String(col.accessor));
+    const known = columnOrder.filter((id) => ids.includes(id));
+    const full = [...known, ...ids.filter((id) => !known.includes(id))];
+    return full.map((id) => columns.find((col) => String(col.accessor) === id)!);
+  }, [columns, columnOrder]);
+
+  const visibleColumns = useMemo(
+    () => orderedColumns.filter((col) => col.locked || !hiddenColumns.has(String(col.accessor))),
+    [orderedColumns, hiddenColumns],
+  );
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportRows, setExportRows] = useState<T[] | null>(null);
   const [filterKey, setFilterKey] = useState(0);
@@ -321,6 +383,14 @@ export function GenericTable<T extends Record<string, unknown>>({
               {/* RIGHT: actions */}
               <div className="flex items-center gap-1 shrink-0">
                 {rightContent}
+                {enableColumnToggle && (
+                  <ColumnVisibilityMenu
+                    columns={orderedColumns}
+                    hidden={hiddenColumns}
+                    onToggle={toggleColumn}
+                    onReorder={reorderColumns}
+                  />
+                )}
                 {enableRefresh && (
                   <TooltipIconButton
                     icon="solar:refresh-broken"
@@ -419,14 +489,14 @@ export function GenericTable<T extends Record<string, unknown>>({
         >
           <colgroup>
             {canSelect && <col className="w-10" />}
-            {columns.map((col, i) => (
+            {visibleColumns.map((col, i) => (
               <col key={i} style={columnWidths[String(col.accessor)] ? { width: columnWidths[String(col.accessor)] } : undefined} />
             ))}
             {actions.length > 0 && <col />}
           </colgroup>
 
           <TableHeader
-            columns={columns as Column[]}
+            columns={visibleColumns as Column[]}
             table={{ paged: paginated, selected, sortKey, sortDir, toggleAll, allPageSel, somePageSel, toggleSort }}
             selectable={canSelect}
             hasActions={actions.length > 0}
@@ -440,7 +510,7 @@ export function GenericTable<T extends Record<string, unknown>>({
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className={cn("border-b border-slate-200/60 dark:border-slate-800/60", i % 2 !== 0 && "bg-[var(--surface-2)]/30")}>
                   {canSelect && <td className="px-3 py-3.5 border-r border-[var(--border)]"><Skeleton className="h-4 w-4" /></td>}
-                  {columns.map((col) => (
+                  {visibleColumns.map((col) => (
                     <td key={String(col.accessor)} className="px-4 py-3.5">
                       <Skeleton className="h-4 w-full max-w-[160px]" />
                     </td>
@@ -450,7 +520,7 @@ export function GenericTable<T extends Record<string, unknown>>({
               ))
             ) : paginated.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (canSelect ? 1 : 0) + (actions.length > 0 ? 1 : 0)}>
+                <td colSpan={visibleColumns.length + (canSelect ? 1 : 0) + (actions.length > 0 ? 1 : 0)}>
                   <EmptyState icon={emptyIcon} title={emptyMessage} className="py-12" />
                 </td>
               </tr>
@@ -462,7 +532,7 @@ export function GenericTable<T extends Record<string, unknown>>({
                     key={id}
                     row={row}
                     rowIndex={i}
-                    columns={columns}
+                    columns={visibleColumns}
                     selectable={canSelect}
                     selected={selected.has(id)}
                     onToggleSelect={() => toggleRow(id)}

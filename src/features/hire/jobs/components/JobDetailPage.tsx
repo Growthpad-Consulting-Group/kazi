@@ -1,3 +1,6 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { can } from "@/lib/rbac";
 import Link from "next/link";
 import { publicJobUrl } from "@/lib/careers-url";
 import { notFound } from "next/navigation";
@@ -53,6 +56,8 @@ function SectionHeader({
 }
 
 export default async function JobDetailPage({ id }: { id: string }) {
+  const session = await getServerSession(authOptions);
+  const canOpenDepartment = session ? can(session.user.role, "manage_departments") : false;
   const job = await getJob(id).catch(() => null);
   if (!job) notFound();
 
@@ -286,7 +291,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
         description={[job.department, job.location].filter(Boolean).join(" · ") || undefined}
         icon="solar:case-minimalistic-broken"
         actions={[
-          ...(departmentResult.data ? [{ label: "Department", icon: "solar:buildings-broken", href: `/departments/${departmentResult.data.id}`, variant: "secondary" as const }] : []),
+          ...(departmentResult.data && canOpenDepartment ? [{ label: "Department", icon: "solar:buildings-broken", href: `/departments/${departmentResult.data.id}`, variant: "secondary" as const }] : []),
           { label: "Careers page", icon: "solar:global-broken", href: publicJobUrl(job.slug), variant: "secondary" as const },
           { label: "Edit", icon: "solar:pen-broken", href: `/hire/jobs/${job.id}/edit` },
           {

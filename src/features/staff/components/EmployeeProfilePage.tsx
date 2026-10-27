@@ -4,10 +4,11 @@ import { Icon } from "@iconify/react";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { STAFF_ROLES } from "@/lib/rbac";
+import { STAFF_ROLES, can } from "@/lib/rbac";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { supabaseAdmin } from "@/lib/supabase";
+import { Button } from "@/components/ui/Button";
 import { RoleSelector } from "./RoleSelector";
 import EditStaffModal from "./EditStaffModal";
 import GrantPointsModal from "./GrantPointsModal";
@@ -46,6 +47,8 @@ export default async function EmployeeProfilePage({ id, tab }: { id: string; tab
   // Everyone else sees the overview of a colleague, and their own full profile.
   const seesAllTabs = (session ? STAFF_ROLES.includes(session.user.role) : false) || isSelf;
   const availableTabs = seesAllTabs ? tabs : tabs.filter((item) => item.id === "overview");
+  // The department workspace is limited to roles with manage_departments.
+  const canOpenDepartment = session ? can(session.user.role, "manage_departments") : false;
   const { data: userData, error } = await supabaseAdmin.from("users").select("id, name, email, role, department, job_title, location, manager_id, start_date, date_of_birth, avatar_url").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!userData) notFound();
@@ -90,12 +93,12 @@ export default async function EmployeeProfilePage({ id, tab }: { id: string; tab
   ];
 
   return <div className="mx-auto max-w-7xl space-y-5">
-    <SetPageHeader title={user.name} description={`${user.job_title ?? "Staff member"}${user.department ? ` · ${user.department}` : ""}`} icon="solar:user-id-broken" actions={[...(departmentResult.data ? [{ label: "Department", icon: "solar:buildings-broken", variant: "secondary" as const, href: `/departments/${(departmentResult.data as { id: string }).id}` }] : []), { label: "Back to staff", icon: "solar:arrow-left-broken", variant: "secondary", href: "/staff" }]} trailing={canManage ? <><EditStaffModal userId={user.id} initial={{ name: user.name, email: user.email, job_title: user.job_title, department: user.department, location: user.location, manager_id: user.manager_id, start_date: user.start_date, date_of_birth: user.date_of_birth, avatar_url: user.avatar_url, role: user.role as UserRole }} managers={managers} departments={departments} canManageSystemAccess={isAdmin} isSelf={isSelf} avatarFallbackUrl={signature?.photo_url} /><GrantPointsModal userId={user.id} userName={user.name} /></> : undefined} />
+    <SetPageHeader title={user.name} description={`${user.job_title ?? "Staff member"}${user.department ? ` · ${user.department}` : ""}`} icon="solar:user-id-broken" trailing={<>{departmentResult.data && canOpenDepartment && <Button href={`/departments/${(departmentResult.data as { id: string }).id}`} size="sm" variant="secondary" icon="solar:buildings-broken">Department</Button>}<Button href="/staff" size="sm" variant={canManage || (departmentResult.data && canOpenDepartment) ? "secondary" : "primary"} icon="solar:arrow-left-broken">Back to staff</Button>{canManage ? <><EditStaffModal userId={user.id} initial={{ name: user.name, email: user.email, job_title: user.job_title, department: user.department, location: user.location, manager_id: user.manager_id, start_date: user.start_date, date_of_birth: user.date_of_birth, avatar_url: user.avatar_url, role: user.role as UserRole }} managers={managers} departments={departments} canManageSystemAccess={isAdmin} isSelf={isSelf} avatarFallbackUrl={signature?.photo_url} /><GrantPointsModal userId={user.id} userName={user.name} /></> : null}</>} />
     <section className="relative overflow-hidden rounded-3xl border border-brand-500/20 bg-gradient-to-br from-[#2b1108] via-[#1d1411] to-[var(--surface)] p-6 shadow-xl shadow-brand-500/5 sm:p-7">
       <div className="pointer-events-none absolute -right-12 -top-14 h-48 w-48 rounded-full bg-brand-500/20 blur-3xl" />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4"><div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/10 text-lg font-bold text-orange-200">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}</div><div className="min-w-0"><p className="text-sm font-semibold capitalize text-orange-200/65">Staff profile</p><h1 className="mt-1 truncate text-2xl font-bold text-white">{user.name}</h1><p className="mt-1 truncate text-sm text-white/60">{user.email}</p></div></div>
-        <div className="flex flex-wrap gap-2"><Link href={`/pulse/checkins?user=${user.id}`} className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-[#2b1108]"><Icon icon="solar:clipboard-check-broken" className="h-4 w-4" />Check-ins</Link><Link href={`/pulse/one-on-ones?report=${user.id}`} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white"><Icon icon="solar:chat-round-dots-broken" className="h-4 w-4" />1-on-1s</Link></div>
+        <div className="flex flex-wrap gap-2">{seesAllTabs && (<><Link href={`/pulse/checkins?user=${user.id}`} className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-[#2b1108]"><Icon icon="solar:clipboard-check-broken" className="h-4 w-4" />Check-ins</Link><Link href={`/pulse/one-on-ones?report=${user.id}`} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white"><Icon icon="solar:chat-round-dots-broken" className="h-4 w-4" />1-on-1s</Link></>)}</div>
       </div>
     </section>
     <nav aria-label="Staff profile workspaces" className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-sm">{availableTabs.map((item) => <Link key={item.id} href={href(item.id)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-medium transition-colors ${activeTab === item.id ? "bg-brand-500 text-white shadow-sm" : "text-[var(--text-hi)] hover:bg-[var(--surface-2)]"}`}><Icon icon={item.icon} className="h-4 w-4" />{item.label}</Link>)}</nav>

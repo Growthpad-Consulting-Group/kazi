@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/shared/lib/cn";
 import { Icon } from "@iconify/react";
 
@@ -28,6 +29,7 @@ export function Button({
   onClick,
   type = "button",
   className,
+  href,
 }: {
   children?: React.ReactNode;
   variant?: ButtonVariant;
@@ -38,25 +40,29 @@ export function Button({
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
   className?: string;
+  /** Renders a link styled as a button instead of a button element. */
+  href?: string;
 }) {
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={cn(
-        "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
-        variantClasses[variant],
-        sizeClasses[size],
-        className
-      )}
-    >
+  const classes = cn(
+    "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
+    variantClasses[variant],
+    sizeClasses[size],
+    className
+  );
+  const content = (
+    <>
       {loading ? (
         <Icon icon="solar:spinner-broken" className="animate-spin w-4 h-4" />
       ) : icon ? (
         <Icon icon={icon} className="w-4 h-4 shrink-0" />
       ) : null}
       {children}
+    </>
+  );
+  if (href) return <Link href={href} className={classes}>{content}</Link>;
+  return (
+    <button type={type} onClick={onClick} disabled={disabled || loading} className={classes}>
+      {content}
     </button>
   );
 }

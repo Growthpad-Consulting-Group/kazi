@@ -54,6 +54,7 @@ export default async function StaffPage() {
         locations={locations}
         currentUserId={session?.user.id ?? ""}
         canManageStaff={session?.user.role === "admin" || session?.user.role === "hr"}
+        canScheduleOneOnOnes={session ? can(session.user.role, "manage_one_on_ones") : false}
       />
     </>
   );

@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { MAX_AUTOMATIC_SYNC_ATTEMPTS } from "@/features/signatures/lib/syncLimits";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
 import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
@@ -11,7 +12,7 @@ import { SimpleModal } from "@/components/ui/SimpleModal";
 
 type Staff = { id: string; email: string; full_name: string; role_title: string | null; department: string | null; photo_url: string | null; status: string };
 type Template = { id: string; name: string; is_default: boolean };
-type Assignment = { staff_profile_id: string; template_id: string; deploy_status: string; gmail_sync_status: string; last_gmail_synced_at: string | null };
+type Assignment = { staff_profile_id: string; template_id: string; deploy_status: string; gmail_sync_status: string; gmail_sync_attempts?: number | null; last_gmail_synced_at: string | null };
 type Row = Staff & { templateName: string; deliveryStatus: string; canSync: boolean; isSynced: boolean };
 const FILTER_CATEGORIES: FilterCategoryDef[] = [
   { id: "department", label: "Department", icon: "solar:buildings-broken" },
@@ -43,7 +44,9 @@ export default function StaffAssignmentsClient({ staff, templates, assignments, 
     const template = assignment ? templateById.get(assignment.template_id) : null;
     const isSynced = assignment?.gmail_sync_status === "synced";
     const hasError = assignment?.gmail_sync_status === "failed" || assignment?.gmail_sync_status === "error" || assignment?.deploy_status === "failed" || assignment?.deploy_status === "error";
-    const deliveryStatus = !template ? "unassigned" : isSynced ? "synced" : hasError ? "failed" : "ready to sync";
+    // Past the cap, automatic retries have stopped. Only a manual sync will try again.
+    const retriesStopped = hasError && (assignment?.gmail_sync_attempts ?? 0) >= MAX_AUTOMATIC_SYNC_ATTEMPTS;
+    const deliveryStatus = !template ? "unassigned" : isSynced ? "synced" : retriesStopped ? "needs attention" : hasError ? "failed" : "ready to sync";
     return { ...person, templateName: template?.name ?? "Unassigned", deliveryStatus, canSync: Boolean(template), isSynced };
   }), [assignmentByStaff, staff, templateById]);
   const departmentOptions: FilterOption[] = Array.from(new Set(staff.map((person) => person.department).filter(Boolean) as string[])).sort().map((value) => ({ id: value, label: value, category: "department", value }));
@@ -95,7 +98,7 @@ export default function StaffAssignmentsClient({ staff, templates, assignments, 
     { header: "Staff member", accessor: "full_name", sortable: true, render: (row) => <div className="flex items-center gap-3"><Avatar person={row} /><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--text-hi)]">{row.full_name}</p><p className="truncate text-xs text-[var(--text-lo)]">{row.role_title ?? row.email}</p></div></div> },
     { header: "Department", accessor: "department", sortable: true, render: (row) => <span className="text-sm text-[var(--text-lo)]">{row.department ?? "—"}</span> },
     { header: "Template", accessor: "templateName", sortable: true, render: (row) => row.templateName === "Unassigned" ? <span className="text-sm font-medium text-amber-600">Unassigned</span> : <span className="text-sm text-[var(--text-hi)]">{row.templateName}</span> },
-    { header: "Gmail delivery", accessor: "deliveryStatus", render: (row) => <StatusPill status={row.deliveryStatus} tone={row.isSynced ? "green" : row.deliveryStatus === "failed" ? "red" : row.canSync ? "amber" : "slate"} /> },
+    { header: "Gmail delivery", accessor: "deliveryStatus", render: (row) => <StatusPill status={row.deliveryStatus} tone={row.isSynced ? "green" : row.deliveryStatus === "failed" || row.deliveryStatus === "needs attention" ? "red" : row.canSync ? "amber" : "slate"} /> },
   ];
   const actions: RowAction<Row>[] = [
     { icon: "solar:user-id-broken", label: "Open profile", variant: "info", onClick: (row) => router.push("/signatures/staff/" + row.id) },

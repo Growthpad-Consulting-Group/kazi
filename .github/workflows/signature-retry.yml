@@ -1,0 +1,24 @@
+name: Signature Retry
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  retry-failed-syncs:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Verify worker credentials
+        if: env.CRON_SECRET == ''
+        run: |
+          echo "::notice::Skipping retry because CRON_SECRET is not configured in GitHub Actions."
+      - name: Retry failed signature syncs
+        if: env.CRON_SECRET != ''
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/signatures/retry-failed"

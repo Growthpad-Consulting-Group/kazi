@@ -8,8 +8,8 @@ import useSidebar from "@/shared/hooks/useSidebar";
 import { PageHeaderProvider } from "@/shared/contexts/PageHeaderContext";
 import { ThemeProvider } from "@/shared/contexts/ThemeContext";
 import { CommandPaletteProvider } from "@/shared/contexts/CommandPaletteContext";
-import { NotificationsProvider } from "@/shared/contexts/NotificationsContext";
 import CommandPalette from "./CommandPalette";
+import { NotificationsProvider } from "@/shared/contexts/NotificationsContext";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { isSidebarOpen, toggleSidebar } = useSidebar();

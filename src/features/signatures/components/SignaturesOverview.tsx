@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -6,6 +7,7 @@ import StatCard from "@/components/ui/StatCard";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { RoleTitleEditor } from "./RoleTitleEditor";
 
 type QueryResult = { data: unknown; count: number | null; error: { message: string } | null };
 type Database = { from: (table: string) => { select: (columns: string, options?: { count: "exact"; head?: boolean }) => PromiseLike<QueryResult> } };
@@ -35,7 +37,35 @@ export default async function SignaturesOverview() {
     const profile = ((profiles.data ?? []) as StaffProfile[]).find((row) => row.user_id === session?.user.id);
     const assignment = profile ? ((assignments.data ?? []) as SignatureAssignment[]).find((row) => row.staff_profile_id === profile.id) : null;
     const template = assignment ? ((templates.data ?? []) as SignatureTemplate[]).find((row) => row.id === assignment.template_id) : null;
-    return <div className="space-y-6"><SetPageHeader title="My email signature" description="Your managed Growthpad identity for email." icon="solar:signature-broken" />{profile ? <><section className="relative overflow-hidden rounded-3xl border border-brand-500/20 bg-gradient-to-br from-[#2b1108] via-[#1d1411] to-[var(--surface)] p-6 shadow-xl shadow-brand-500/5 sm:p-7"><div className="pointer-events-none absolute -right-12 -top-14 h-48 w-48 rounded-full bg-brand-500/20 blur-3xl" /><div className="relative flex items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-lg font-bold text-orange-200">{profile.full_name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-orange-200/65">Growthpad email identity</p><h1 className="mt-1 text-2xl font-bold text-white">{profile.full_name}</h1><p className="mt-1 text-sm text-white/60">{profile.role_title ?? profile.department ?? profile.email}</p></div></div></section><section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold text-[var(--text-hi)]">Assigned signature</h2><p className="mt-1 text-sm text-[var(--text-lo)]">{template ? template.name : "No template is assigned yet."}</p></div>{template && <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600">Managed by Kazi</span>}</div>{template ? <div className="mt-5 overflow-auto rounded-xl border border-[var(--border)] bg-white p-5 text-slate-900" dangerouslySetInnerHTML={{ __html: renderStaffSignature(template.html, profile) }} /> : <div className="mt-5 rounded-xl border border-dashed border-[var(--border)] px-5 py-10 text-center text-sm text-[var(--text-lo)]">Your manager has not assigned a signature template yet.</div>}</section></> : <section className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-center"><Icon icon="solar:signature-broken" className="mx-auto h-8 w-8 text-[var(--text-lo)]" /><h1 className="mt-3 font-semibold text-[var(--text-hi)]">Your signature is being prepared</h1><p className="mt-1 text-sm text-[var(--text-lo)]">Contact your manager if your Growthpad email should be managed in Kazi.</p></section>}</div>;
+    return <div className="space-y-6"><SetPageHeader title="My email signature" description="Your managed Growthpad identity for email." icon="solar:pen-new-square-broken" />{profile ? <><section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-gradient-to-r from-brand-500/10 via-brand-500/5 to-transparent px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:pen-new-square-broken" className="h-5 w-5" /></span>
+              <div>
+                <h2 className="font-semibold text-[var(--text-hi)]">Assigned signature</h2>
+                <p className="text-xs text-[var(--text-lo)]">{template ? template.name : "No template is assigned yet."}</p>
+              </div>
+            </div>
+            {template && <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300"><Icon icon="solar:shield-check-broken" className="h-3.5 w-3.5" />Managed by Kazi</span>}
+          </div>
+          <div className="space-y-5 p-5">
+            <div className="flex items-start gap-4">
+              {profile.photo_url ? <Image src={profile.photo_url} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-xl object-cover" /> : <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-sm font-bold text-brand-500">{profile.full_name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>}
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-[var(--text-hi)]">{profile.full_name}</p>
+                <RoleTitleEditor initial={profile.role_title} />
+              </div>
+            </div>
+            {template ? (
+              <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+                <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-xs font-medium text-[var(--text-lo)]"><Icon icon="solar:letter-broken" className="h-3.5 w-3.5" />Preview as it appears in email</div>
+                <div className="overflow-auto bg-white p-6 text-slate-900" dangerouslySetInnerHTML={{ __html: renderStaffSignature(template.html, profile) }} />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[var(--border)] px-5 py-10 text-center text-sm text-[var(--text-lo)]">Your manager has not assigned a signature template yet.</div>
+            )}
+          </div>
+        </section></> : <section className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-center"><Icon icon="solar:pen-new-square-broken" className="mx-auto h-8 w-8 text-[var(--text-lo)]" /><h1 className="mt-3 font-semibold text-[var(--text-hi)]">Your signature is being prepared</h1><p className="mt-1 text-sm text-[var(--text-lo)]">Contact your manager if your Growthpad email should be managed in Kazi.</p></section>}</div>;
   }
   const [staff, templates, domains, assignments] = await Promise.all([
     database.from("signature_staff_profiles").select("id", { count: "exact", head: true }),
