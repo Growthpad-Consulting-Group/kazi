@@ -25,7 +25,7 @@ export const sidebarNavGroups: NavGroup[] = [
     icon: "solar:pulse-broken",
     items: [
       { href: "/pulse",           icon: "solar:pulse-broken",           label: "Pulse" },
-      { href: "/pulse/checkins",  icon: "solar:checklist-broken",       label: "Engagement" },
+      { href: "/pulse/checkins",  icon: "solar:checklist-broken",       label: "Check-ins" },
       { href: "/pulse/feedback",  icon: "solar:star-broken",            label: "Feedback" },
       { href: "/pulse/campaigns", icon: "solar:flag-2-broken",          label: "Campaigns" },
       { href: "/pulse/side-quests", icon: "solar:cup-star-broken",      label: "Side Quests" },
