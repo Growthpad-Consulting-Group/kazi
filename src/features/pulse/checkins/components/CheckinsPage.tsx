@@ -6,7 +6,7 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
-import { getMyCheckins, getTeamCheckins, getTeamDailyLogSummary } from "../actions";
+import { getDailyWeekSummary, getMyCheckins, getTeamCheckins, getTeamDailyLogSummary } from "../actions";
 import { CheckinForm } from "./CheckinForm";
 import { TeamCheckins } from "./TeamCheckins";
 
@@ -56,10 +56,11 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
   const viewedUserId = canViewProfile ? profile.id : userId;
   const weekStart = getCurrentWeekStart();
   const organisationWide = session.user.role === "admin" || session.user.role === "hr";
-  const [myCheckins, teamCheckins, dailySummary] = await Promise.all([
+  const [myCheckins, teamCheckins, dailySummary, personalDailySummary] = await Promise.all([
     teamOnly ? Promise.resolve([]) : getMyCheckins(viewedUserId),
     isManager && !canViewProfile ? getTeamCheckins(userId, organisationWide) : Promise.resolve([]),
     isManager && !canViewProfile ? getTeamDailyLogSummary(userId, weekStart, organisationWide) : Promise.resolve({ staffLogged: 0, daysLogged: 0, totalMinutes: 0 }),
+    teamOnly ? Promise.resolve({ daysLogged: 0, totalMinutes: 0, tasks: [] }) : getDailyWeekSummary(viewedUserId, weekStart),
   ]);
 
   // Team-only view: skip the personal form and go straight to the team overview
@@ -93,7 +94,7 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-gradient-to-r from-brand-500/[0.06] to-transparent px-5 py-4 sm:px-6"><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Your update</h2><p className="mt-1 text-xs text-[var(--text-lo)]">A quick look back, then forward.</p></div><div className="flex items-center gap-2"><span className={`flex h-8 w-8 items-center justify-center rounded-xl ${status.className}`}><Icon icon={status.icon} className="h-4 w-4" /></span><span><span className="block text-xs font-semibold text-[var(--text-hi)]">{status.label}</span><span className="block text-[10px] text-[var(--text-lo)]">{status.description}</span></span></div></div>
-            <div className="p-5 sm:p-6"><CheckinForm userId={userId} weekStart={weekStart} existing={thisWeek} /></div>
+            <div className="p-5 sm:p-6"><CheckinForm userId={userId} weekStart={weekStart} existing={thisWeek} dailySummary={personalDailySummary} /></div>
           </section>
 
           <aside className="space-y-5">

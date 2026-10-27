@@ -6,12 +6,32 @@ import { invalidateUserCheckins } from "@/lib/cache/invalidate";
 import { getCachedMyCheckins } from "@/lib/cache/queries";
 import type { Checkin, CheckinStatus } from "@/types/database";
 
+export type DailyWeekSummary = { daysLogged: number; totalMinutes: number; tasks: string[] };
+
 export type CheckinWithUser = Checkin & {
   users: { name: string; department: string | null; job_title: string | null } | null;
 };
 
 export async function getMyCheckins(userId: string): Promise<Checkin[]> {
   return (await getCachedMyCheckins(userId)) as Checkin[];
+}
+
+export async function getDailyWeekSummary(userId: string, weekStart: string): Promise<DailyWeekSummary> {
+  const end = new Date(`${weekStart}T12:00:00`); end.setDate(end.getDate() + 4);
+  const weekEnd = end.toISOString().slice(0, 10);
+  const { data, error } = await supabaseAdmin
+    .from("daily_activity_logs")
+    .select("entries")
+    .eq("user_id", userId)
+    .gte("log_date", weekStart)
+    .lte("log_date", weekEnd);
+  if (error) console.error("[getDailyWeekSummary] error:", error.message);
+  const rows = (data ?? []) as unknown as { entries: { task?: string; minutes?: number }[] }[];
+  return {
+    daysLogged: rows.filter((row) => row.entries?.length).length,
+    totalMinutes: rows.reduce((total, row) => total + (row.entries ?? []).reduce((sum, entry) => sum + (Number(entry.minutes) || 0), 0), 0),
+    tasks: rows.flatMap((row) => row.entries ?? []).map((entry) => entry.task?.trim()).filter((task): task is string => Boolean(task)),
+  };
 }
 
 export async function getTeamCheckins(managerId: string, organisationWide = false): Promise<CheckinWithUser[]> {

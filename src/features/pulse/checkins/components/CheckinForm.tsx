@@ -7,8 +7,9 @@ import type { Checkin } from "@/types/database";
 import { Button } from "@/components/ui/Button";
 import { PlainTextEditor } from "@/components/ui/PlainTextEditor";
 import { AsanaTaskImport } from "./AsanaTaskImport";
+import type { DailyWeekSummary } from "../actions";
 
-interface Props { userId: string; weekStart: string; existing: Checkin | null; }
+interface Props { userId: string; weekStart: string; existing: Checkin | null; dailySummary?: DailyWeekSummary; }
 
 const MOODS = [
   { value: 1, emoji: "😔", label: "Struggling" },
@@ -18,7 +19,9 @@ const MOODS = [
   { value: 5, emoji: "😄", label: "Great" },
 ];
 
-export function CheckinForm({ userId, weekStart, existing }: Props) {
+function formatMinutes(total: number) { const hours = Math.floor(total / 60); const minutes = total % 60; return hours && minutes ? `${hours}h ${minutes}m` : hours ? `${hours}h` : `${minutes}m`; }
+
+export function CheckinForm({ userId, weekStart, existing, dailySummary }: Props) {
   const router = useRouter();
   const [wins, setWins] = useState(existing?.wins ?? "");
   const [priorities, setPriorities] = useState(existing?.priorities ?? "");
@@ -30,6 +33,13 @@ export function CheckinForm({ userId, weekStart, existing }: Props) {
   const [editingSubmitted, setEditingSubmitted] = useState(false);
   const isReviewed = existing?.status === "reviewed";
   const isSubmitted = existing?.status === "submitted";
+  const dailyTasks = [...new Set(dailySummary?.tasks ?? [])];
+
+  const addDailyTasksToWins = () => setWins((current) => {
+    const addition = dailyTasks.map((task) => `• ${task}`).join("\n");
+    if (!addition || current.includes(addition)) return current;
+    return current.trim() ? `${current.trim()}\n${addition}` : addition;
+  });
 
   async function save(submit: boolean) {
     setSaving(true); setError(""); setSavedAction(null);
@@ -44,11 +54,12 @@ export function CheckinForm({ userId, weekStart, existing }: Props) {
     } finally { setSaving(false); }
   }
 
-  if (isReviewed) return <ReadOnlyCheckin checkin={existing} reviewed />;
-  if (isSubmitted && !editingSubmitted) return <ReadOnlyCheckin checkin={existing} onEdit={() => setEditingSubmitted(true)} />;
+  if (isReviewed) return <ReadOnlyCheckin checkin={existing} reviewed dailySummary={dailySummary} />;
+  if (isSubmitted && !editingSubmitted) return <ReadOnlyCheckin checkin={existing} dailySummary={dailySummary} onEdit={() => setEditingSubmitted(true)} />;
 
   return (
     <form className="space-y-6" onSubmit={(event) => { event.preventDefault(); save(false); }}>
+      {dailySummary && dailySummary.daysLogged > 0 && <section className="rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:notebook-broken" className="h-4 w-4" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">Work logged this week</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">{dailySummary.daysLogged}/5 days · {formatMinutes(dailySummary.totalMinutes)} tracked. Use it to complete your reflection.</p></div></div>{dailyTasks.length > 0 && <Button size="sm" variant="secondary" icon="solar:import-broken" onClick={addDailyTasksToWins}>Add to wins</Button>}</div>{dailyTasks.length > 0 && <div className="mt-3 max-h-28 space-y-1 overflow-y-auto rounded-xl bg-[var(--surface)]/70 px-3 py-2"><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">Logged work</p>{dailyTasks.map((task) => <p key={task} className="truncate text-xs text-[var(--text-hi)]">{task}</p>)}</div>}</section>}
       <div className="space-y-4">
         <Field step="1" label="Wins and accomplishments" hint="What moved forward, shipped, or went well?" icon="solar:cup-star-broken" value={wins} onChange={setWins} accessory={<AsanaTaskImport weekStart={weekStart} onImport={(bullets) => setWins((current) => current ? `${current}\n${bullets}` : bullets)} />} />
         <Field step="2" label="Priorities for next week" hint="What are the few outcomes you want to focus on?" icon="solar:target-broken" value={priorities} onChange={setPriorities} />
@@ -69,11 +80,11 @@ function Field({ step, label, hint, icon, value, onChange, accessory, optional =
   return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div className="flex gap-2.5"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-xs font-bold text-brand-500">{step}</span><div><label className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-hi)]"><Icon icon={icon} className="h-3.5 w-3.5 text-brand-500" />{label}{optional && <span className="text-xs font-normal text-[var(--text-lo)]">Optional</span>}</label><p className="mt-0.5 text-xs text-[var(--text-lo)]">{hint}</p></div></div>{accessory}</div><PlainTextEditor value={value} onChange={onChange} ariaLabel={label} className="mt-3" /></div>;
 }
 
-function ReadOnlyCheckin({ checkin, reviewed = false, onEdit }: { checkin: Checkin; reviewed?: boolean; onEdit?: () => void }) {
+function ReadOnlyCheckin({ checkin, reviewed = false, onEdit, dailySummary }: { checkin: Checkin; reviewed?: boolean; onEdit?: () => void; dailySummary?: DailyWeekSummary }) {
   const mood = MOODS.find((item) => item.value === checkin.mood);
   const tone = reviewed ? "border-emerald-500/15 bg-emerald-500/5" : "border-blue-500/15 bg-blue-500/5";
   const iconTone = reviewed ? "bg-emerald-500/10 text-emerald-600" : "bg-blue-500/10 text-blue-600";
-  return <div className="space-y-4"><div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 ${tone}`}><div className="flex items-center gap-3"><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconTone}`}><Icon icon="solar:check-circle-broken" className="h-5 w-5" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">{reviewed ? "This check-in has been reviewed" : "This check-in has been submitted"}</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">{reviewed ? "Your update is now part of the conversation with your manager." : "Your manager can now review this update."}</p></div></div>{onEdit && <button type="button" onClick={onEdit} className="rounded-lg border border-blue-500/20 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-500/5">Edit &amp; resubmit</button>}</div><ReadField label="Wins and accomplishments" icon="solar:cup-star-broken" value={checkin.wins} /><ReadField label="Priorities for next week" icon="solar:target-broken" value={checkin.priorities} /><ReadField label="Blockers and support" icon="solar:danger-triangle-broken" value={checkin.blockers} /><div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"><span className="text-lg">{mood?.emoji ?? "—"}</span><span className="text-sm font-medium text-[var(--text-hi)]">{mood?.label ?? "Mood not recorded"}</span></div>{checkin.manager_comment && <div className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-4"><p className="text-xs font-semibold text-blue-600">Manager feedback</p><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">{checkin.manager_comment}</p></div>}</div>;
+  return <div className="space-y-4"><div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 ${tone}`}><div className="flex items-center gap-3"><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconTone}`}><Icon icon="solar:check-circle-broken" className="h-5 w-5" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">{reviewed ? "This check-in has been reviewed" : "This check-in has been submitted"}</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">{reviewed ? "Your update is now part of the conversation with your manager." : "Your manager can now review this update."}</p></div></div>{onEdit && <button type="button" onClick={onEdit} className="rounded-lg border border-blue-500/20 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-500/5">Edit &amp; resubmit</button>}</div>{dailySummary && dailySummary.daysLogged > 0 && <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-500/[0.05] px-3 py-2.5"><span className="inline-flex items-center gap-2 text-xs text-[var(--text-hi)]"><Icon icon="solar:notebook-broken" className="h-4 w-4 text-brand-500" />Daily work logged this week</span><span className="font-mono text-xs font-bold text-brand-500">{dailySummary.daysLogged}/5 · {formatMinutes(dailySummary.totalMinutes)}</span></div>}<ReadField label="Wins and accomplishments" icon="solar:cup-star-broken" value={checkin.wins} /><ReadField label="Priorities for next week" icon="solar:target-broken" value={checkin.priorities} /><ReadField label="Blockers and support" icon="solar:danger-triangle-broken" value={checkin.blockers} /><div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"><span className="text-lg">{mood?.emoji ?? "—"}</span><span className="text-sm font-medium text-[var(--text-hi)]">{mood?.label ?? "Mood not recorded"}</span></div>{checkin.manager_comment && <div className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-4"><p className="text-xs font-semibold text-blue-600">Manager feedback</p><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">{checkin.manager_comment}</p></div>}</div>;
 }
 
 function ReadField({ label, icon, value }: { label: string; icon: string; value?: string | null }) {
