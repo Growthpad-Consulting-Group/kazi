@@ -1,8 +1,9 @@
+import dynamic from "next/dynamic";
 import { Icon } from "@iconify/react";
 import { supabaseAdmin } from "@/lib/supabase";
 import StatCard from "@/components/ui/StatCard";
-import { SurveyDistributionChart } from "@/features/pulse/surveys/components/SurveyDistributionChart";
-import { RecognitionTrendChart } from "./RecognitionTrendChart";
+const RecognitionTrendChart = dynamic(() => import("./RecognitionTrendChart").then((m) => m.RecognitionTrendChart), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
+const SurveyDistributionChart = dynamic(() => import("@/features/pulse/surveys/components/SurveyDistributionChart").then((m) => m.SurveyDistributionChart), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
 
 interface Props {
   since?: Date;

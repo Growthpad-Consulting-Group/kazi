@@ -1,9 +1,10 @@
+import dynamic from "next/dynamic";
 import { Icon } from "@iconify/react";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
-import { ReportingCharts } from "./ReportingCharts";
 import type { CandidateStage } from "@/types/database";
+const ReportingCharts = dynamic(() => import("./ReportingCharts").then((m) => m.ReportingCharts), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
 
 const STAGE_ORDER: CandidateStage[] = ["applied", "screened", "interview", "offer", "hired", "rejected"];
 const ACTIVE_STAGES: CandidateStage[] = ["applied", "screened", "interview", "offer"];

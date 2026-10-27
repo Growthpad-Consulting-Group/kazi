@@ -3,7 +3,10 @@ import { Avatar } from "@/components/ui/Avatar";
 import { authOptions } from "@/lib/auth";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import DashboardCharts from "./DashboardCharts";
+import dynamic from "next/dynamic";
+
+// Recharts is heavy, so the charts load after the rest of the dashboard, with a placeholder of the same height.
+const DashboardCharts = dynamic(() => import("./DashboardCharts"), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
 import DashboardHeader from "./DashboardHeader";
 import { resolveRange } from "./DashboardRange";
 import { getDashboardData } from "../data";

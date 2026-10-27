@@ -1,5 +1,6 @@
+import dynamic from "next/dynamic";
 import type { Survey, SurveyResponse } from "@/types/database";
-import { SurveyDistributionChart } from "./SurveyDistributionChart";
+const SurveyDistributionChart = dynamic(() => import("./SurveyDistributionChart").then((m) => m.SurveyDistributionChart), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
 
 interface Props {
   survey: Survey;

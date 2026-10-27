@@ -163,6 +163,8 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
   const weekStartStr = weekStart.toISOString().slice(0, 10);
 
+  // Start the photo lookup now so it runs alongside the other queries, not after them.
+  const signaturePromise = signaturePhotos();
   const [givenRes, receivedRes, goalsRes, oneOnOnesRes, checkinRes, employeesRes] = await Promise.all([
     supabaseAdmin
       .from("feedback")
@@ -201,7 +203,7 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
     total: goals.length,
   };
 
-  const signature = await signaturePhotos();
+  const signature = await signaturePromise;
   const upcomingOneOnOnes = (oneOnOnesRes.data ?? []).map((m) => ({
     id: m.id,
     scheduled_at: m.scheduled_at!,
@@ -374,6 +376,8 @@ async function buildOrgOrTeamData(
     conversationsQ = conversationsQ.eq("manager_id", ctx.userId);
   }
 
+  // Start the photo lookup now so it runs alongside the other queries, not after them.
+  const signaturePromise = signaturePhotos();
   const [
     rangeCandidatesRes,
     currentJobsRes,
@@ -559,7 +563,7 @@ async function buildOrgOrTeamData(
     response_count: Array.isArray(s.survey_responses) ? s.survey_responses.length : 0,
   }));
 
-  const signature = await signaturePhotos();
+  const signature = await signaturePromise;
   const upcomingOneOnOnes = (conversationsRes.data ?? []).map((meeting) => ({
     id: meeting.id,
     scheduled_at: meeting.scheduled_at!,

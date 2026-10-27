@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -6,9 +7,9 @@ import { redirect } from "next/navigation";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
-import { PulseAnalyticsCharts } from "./PulseAnalyticsCharts";
 import TopPerformersSection from "./TopPerformersSection";
 import type { TopPerformerEntry } from "./TopPerformersSection";
+const PulseAnalyticsCharts = dynamic(() => import("./PulseAnalyticsCharts").then((m) => m.PulseAnalyticsCharts), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
 
 type TeamMember = { id: string; name: string; department: string | null; manager_id: string | null };
 type Checkin = { user_id: string; week_start: string; mood: number | null; blockers: string | null; status: string };

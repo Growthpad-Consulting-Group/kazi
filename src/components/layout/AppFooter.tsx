@@ -15,14 +15,14 @@ export default function AppFooter() {
             <span className="relative inline-block group">
               <span className="cursor-default">Nairobi</span>
               <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 scale-90 transition-all duration-300 ease-out group-hover:-top-7 group-hover:opacity-100 group-hover:scale-100">
-                <Image src="/assets/images/kenya.gif" alt="Kenya" width={20} height={20} className="w-5 h-5 rounded-sm shadow" unoptimized />
+                <Image src="/assets/images/kenya.gif" alt="Kenya" width={20} height={20} style={{ height: "auto" }} className="w-5 rounded-sm shadow" unoptimized />
               </span>
             </span>
             {" x "}
             <span className="relative inline-block group">
               <span className="cursor-default">Accra</span>
               <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 scale-90 transition-all duration-300 ease-out group-hover:-top-7 group-hover:opacity-100 group-hover:scale-100">
-                <Image src="/assets/images/ghana.gif" alt="Ghana" width={20} height={20} className="w-5 h-5 rounded-sm shadow" unoptimized />
+                <Image src="/assets/images/ghana.gif" alt="Ghana" width={20} height={20} style={{ height: "auto" }} className="w-5 rounded-sm shadow" unoptimized />
               </span>
             </span>
           </span>

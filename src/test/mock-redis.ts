@@ -53,6 +53,21 @@ function isExpired(entry: Entry | undefined): boolean {
 }
 
 export const mockRedis = {
+  /** Queues commands and runs them in order, like Upstash's pipeline. */
+  pipeline() {
+    const queued: Array<() => Promise<unknown>> = [];
+    const pipe = {
+      set: (key: string, value: unknown, opts?: { ex?: number }) => { queued.push(() => mockRedis.set(key, value, opts)); return pipe; },
+      sadd: (key: string, ...members: string[]) => { queued.push(() => mockRedis.sadd(key, ...members)); return pipe; },
+      expire: (key: string, seconds: number) => { queued.push(() => mockRedis.expire(key, seconds)); return pipe; },
+      async exec() {
+        const results: unknown[] = [];
+        for (const run of queued) results.push(await run());
+        return results;
+      },
+    };
+    return pipe;
+  },
   /** Live handle on the failure flag, shared across module instances. */
   redisState,
 

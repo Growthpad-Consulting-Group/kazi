@@ -63,18 +63,18 @@ export async function setCached<T>(
   if (!isCacheEnabledFor(group)) return false;
   if (value === undefined) return false;
   const ttl = getCacheTTL(strategy);
+  // One round trip for the value, its index entry and the index expiry. Each separate call costs a
+  // full network trip to the cache host, which is slow when the host is far from the server.
   try {
-    await redis.set(key, value, { ex: ttl });
+    const index = groupIndexKey(group);
+    const pipeline = redis.pipeline();
+    pipeline.set(key, value, { ex: ttl });
+    pipeline.sadd(index, key);
+    pipeline.expire(index, indexTTLFor(ttl));
+    await pipeline.exec();
   } catch (error) {
     recordError(group, error);
     return false;
-  }
-  try {
-    const index = groupIndexKey(group);
-    await redis.sadd(index, key);
-    await redis.expire(index, indexTTLFor(ttl));
-  } catch (error) {
-    recordError(group, error);
   }
   if (CACHE_VERBOSE) console.debug(`[cache] SET ${key} (ttl ${ttl}s)`);
   return true;

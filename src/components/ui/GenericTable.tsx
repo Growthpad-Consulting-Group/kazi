@@ -10,7 +10,10 @@ import TableHeader from "./table/TableHeader";
 import TableRow from "./table/TableRow";
 import TablePagination from "./table/TablePagination";
 import DateRangePicker, { type DateRangeValue } from "./DateRangePicker";
-import ExportModal from "./export/ExportModal";
+import dynamic from "next/dynamic";
+
+// Loaded only when someone opens an export, so every table page doesn't download the export UI.
+const ExportModal = dynamic(() => import("./export/ExportModal"), { ssr: false });
 import TooltipIconButton from "./TooltipIconButton";
 import toast from "react-hot-toast";
 import ColumnVisibilityMenu from "./table/ColumnVisibilityMenu";
@@ -566,14 +569,14 @@ export function GenericTable<T extends Record<string, unknown>>({
         />
       )}
 
-      <ExportModal
+      {showExportModal && <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         users={(exportRows ?? dateFiltered) as Record<string, unknown>[]}
         mode="light"
         type={title?.toLowerCase().replace(/\s+/g, "_") || "records"}
         title={title}
-      />
+      />}
     </div>
   );
 }
