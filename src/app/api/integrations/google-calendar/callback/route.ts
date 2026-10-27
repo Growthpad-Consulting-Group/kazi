@@ -81,8 +81,9 @@ export async function GET(request: Request) {
           refresh_token_ciphertext: encryptGoogleToken(tokenData.refresh_token),
           token_expiry: tokenExpiry,
           calendar_id: "primary",
+          // Show the connected Google account so people can tell which calendar this is.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ...(calendarName !== null ? { calendar_name: calendarName } : {}),
+          ...((userInfo?.email ?? calendarName) !== null ? { calendar_name: userInfo?.email ?? calendarName } : {}),
         } as any,
         { onConflict: "user_id" }
       );
