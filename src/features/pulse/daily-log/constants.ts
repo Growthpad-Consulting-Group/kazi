@@ -85,3 +85,14 @@ export function cleanText(input: unknown): string | null {
 export function isValidLogDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime());
 }
+
+export const DAILY_LOG_EDIT_WINDOW_DAYS = 7;
+
+/** A day can be logged or corrected for the last N days, plus tomorrow to allow for timezone differences. */
+export function isEditableLogDate(date: string, today = new Date()): boolean {
+  const day = new Date(`${date}T00:00:00Z`).getTime();
+  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const earliest = todayUtc - (DAILY_LOG_EDIT_WINDOW_DAYS + 1) * 86_400_000;
+  const latest = todayUtc + 86_400_000;
+  return day >= earliest && day <= latest;
+}

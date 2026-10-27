@@ -46,7 +46,7 @@ export interface PersonalDashboardData {
   recognitionsGiven: number;
   recognitionsReceived: number;
   goals: { onTrack: number; atRisk: number; completed: number; notStarted: number; total: number };
-  upcomingOneOnOnes: { id: string; scheduled_at: string; with: string }[];
+  upcomingOneOnOnes: { id: string; scheduled_at: string; with: string; withAvatar: string | null }[];
   pendingCheckin: boolean;
 }
 
@@ -62,7 +62,7 @@ export interface DashboardData {
   personal?: PersonalDashboardData;
   operations: {
     interviewQueue: RecentCandidate[];
-    upcomingOneOnOnes: { id: string; scheduled_at: string; manager: string; report: string }[];
+    upcomingOneOnOnes: { id: string; scheduled_at: string; manager: string; managerAvatar: string | null; report: string; reportAvatar: string | null }[];
     actionItems: { label: string; count: number; href: string; tone: "amber" | "red" | "blue" }[];
     health: { averageDaysToHire: number | null; stalledCandidates: number; offerPending: number; offerAccepted: number; offerDeclined: number };
     pulse: { pendingCheckins: number; lowMood: number; blockers: number; atRiskGoals: number };
@@ -112,6 +112,18 @@ const EMPTY_OPERATIONS: DashboardData["operations"] = {
 /**
  * Load everything the dashboard renders, cached for the given range and user context.
  */
+// Profile photo first, then the signature photo, like the rest of the app.
+function avatarFor(person: unknown, signature: Map<string, string>) {
+  const { id, avatar_url } = (person ?? {}) as { id?: string; avatar_url?: string | null };
+  return avatar_url ?? (id ? signature.get(id) ?? null : null);
+}
+
+async function signaturePhotos(): Promise<Map<string, string>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped signature table
+  const { data } = await (supabaseAdmin as any).from("signature_staff_profiles").select("user_id, photo_url").not("photo_url", "is", null);
+  return new Map(((data ?? []) as { user_id: string | null; photo_url: string | null }[]).filter((p) => p.user_id && p.photo_url).map((p) => [p.user_id as string, p.photo_url as string]));
+}
+
 export async function getDashboardData(
   range: DashboardRange,
   ctx?: DashboardContext
@@ -129,7 +141,7 @@ export async function getDashboardData(
   const cacheUserSuffix = ctx ? `${view}_${ctx.userId}` : "org_anon";
   // Bump when the dashboard payload shape or navigation targets change so
   // persisted dashboard entries cannot retain stale destinations.
-  const key = cacheKey("dashboard", "v5", rangeKey(range), cacheUserSuffix);
+  const key = cacheKey("dashboard", "v6", rangeKey(range), cacheUserSuffix);
 
   return cached("dashboard", key, "dynamic", async () => {
     if (view === "personal" && ctx) {
@@ -163,7 +175,7 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
       .eq("owner_id", ctx.userId),
     supabaseAdmin
       .from("one_on_ones")
-      .select("id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(name), report:users!one_on_ones_report_id_fkey(name)")
+      .select("id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(id, name, avatar_url), report:users!one_on_ones_report_id_fkey(id, name, avatar_url)")
       .eq("report_id", ctx.userId)
       .gte("scheduled_at", now.toISOString())
       .order("scheduled_at")
@@ -186,10 +198,12 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
     total: goals.length,
   };
 
+  const signature = await signaturePhotos();
   const upcomingOneOnOnes = (oneOnOnesRes.data ?? []).map((m) => ({
     id: m.id,
     scheduled_at: m.scheduled_at!,
     with: (m.manager as unknown as { name: string } | null)?.name ?? "Manager",
+    withAvatar: avatarFor(m.manager, signature),
   }));
 
   const pendingCheckin = !checkinRes.data ||
@@ -342,7 +356,7 @@ async function buildOrgOrTeamData(
   // Build 1-on-1 query
   let conversationsQ = supabaseAdmin
     .from("one_on_ones")
-    .select("id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(name), report:users!one_on_ones_report_id_fkey(name)")
+    .select("id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(id, name, avatar_url), report:users!one_on_ones_report_id_fkey(id, name, avatar_url)")
     .gte("scheduled_at", now.toISOString())
     .order("scheduled_at")
     .limit(5);
@@ -535,11 +549,14 @@ async function buildOrgOrTeamData(
     response_count: Array.isArray(s.survey_responses) ? s.survey_responses.length : 0,
   }));
 
+  const signature = await signaturePhotos();
   const upcomingOneOnOnes = (conversationsRes.data ?? []).map((meeting) => ({
     id: meeting.id,
     scheduled_at: meeting.scheduled_at!,
     manager: (meeting.manager as unknown as { name: string } | null)?.name ?? "Manager",
     report: (meeting.report as unknown as { name: string } | null)?.name ?? "Team member",
+    managerAvatar: avatarFor(meeting.manager, signature),
+    reportAvatar: avatarFor(meeting.report, signature),
   }));
 
   const employeeCount = employeesRes.count ?? 0;
@@ -565,7 +582,6 @@ async function buildOrgOrTeamData(
       upcomingOneOnOnes,
       actionItems: [
         { label: "Awaiting AI screen", count: pendingScreen, href: "/hire/candidates?attention=needs_screening", tone: "amber" },
-        { label: "Interview scorecards due", count: interviewQueue.length, href: "/hire/candidates?stage=interview", tone: "blue" },
         { label: "New hires to add to staff", count: hiresAwaitingStaffRecord, href: "/hire/candidates?stage=hired", tone: "amber" },
         { label: "Stalled candidates", count: stalledCandidates, href: "/hire/candidates?attention=stalled", tone: "red" },
       ].filter((item) => item.count > 0) as DashboardData["operations"]["actionItems"],

@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { Avatar } from "@/components/ui/Avatar";
 import { authOptions } from "@/lib/auth";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
@@ -6,7 +7,7 @@ import DashboardCharts from "./DashboardCharts";
 import DashboardHeader from "./DashboardHeader";
 import { resolveRange } from "./DashboardRange";
 import { getDashboardData } from "../data";
-import HiringHealthChart from "./HiringHealthChart";
+import PipelineOverview from "./PipelineOverview";
 import OfferTrackerChart from "./OfferTrackerChart";
 import GoalsWidget from "./GoalsWidget";
 
@@ -212,8 +213,8 @@ export default async function DashboardPage({
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15">
-                  <Icon icon="solar:chat-round-dots-broken" className="h-3.5 w-3.5 text-violet-500" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                  <Icon icon="solar:chat-round-dots-broken" className="h-3.5 w-3.5 text-brand-500" />
                 </div>
                 <div>
                   <h2 className="text-md font-semibold text-[var(--text-hi)]">Upcoming 1-on-1s</h2>
@@ -225,9 +226,7 @@ export default async function DashboardPage({
             <div className="space-y-2">
               {p.upcomingOneOnOnes.length ? p.upcomingOneOnOnes.map((m) => (
                 <Link key={m.id} href={`/pulse/one-on-ones/${m.id}`} className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[10px] font-bold text-violet-500">
-                    {m.with.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                  </div>
+                  <Avatar name={m.with} src={m.withAvatar} size="sm" shape="circle" />
                   <div className="min-w-0">
                     <p className="truncate text-xs font-semibold text-[var(--text-hi)]">with {m.with}</p>
                     <p className="text-[11px] text-[var(--text-lo)]">{new Date(m.scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
@@ -247,9 +246,8 @@ export default async function DashboardPage({
   const kpis: StatDef[] = [
     { label: "Open Roles",        value: stats.openJobs,        icon: "solar:case-broken",                    accent: "text-brand-500",  accentBg: "bg-brand-500/10",     href: "/hire/jobs?status=open" },
     { label: "Active Pipeline",   value: stats.activePipeline,  icon: "solar:users-group-two-rounded-broken",  accent: "text-blue-500",   accentBg: "bg-blue-500/10",      href: "/hire/candidates?stage=active" },
-    { label: "Awaiting Screen",   value: stats.pendingScreen,   icon: "solar:cpu-bolt-broken",                accent: stats.pendingScreen > 0 ? "text-amber-500" : "text-[var(--text-lo)]", accentBg: stats.pendingScreen > 0 ? "bg-amber-500/10" : "bg-[var(--surface-2)]", href: "/hire/candidates?attention=needs_screening", note: stats.pendingScreen > 0 ? "AI screening needed" : undefined },
     { label: "Employees",         value: stats.activeEmployees, icon: "solar:people-nearby-broken",           accent: "text-green-500",  accentBg: "bg-green-500/10",     href: "/staff" },
-    { label: "Hired",             value: stats.hired,           icon: "solar:check-circle-broken",            accent: "text-violet-500", accentBg: "bg-violet-500/10",    href: "/hire/candidates?stage=hired" },
+    { label: "Hired",             value: stats.hired,           icon: "solar:check-circle-broken",            accent: "text-emerald-500", accentBg: "bg-emerald-500/10",    href: "/hire/candidates?stage=hired" },
   ];
 
   return (
@@ -263,7 +261,7 @@ export default async function DashboardPage({
       {heroBanner}
 
       {/* ── KPI row ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((stat) => <KpiCard key={stat.label} stat={stat} />)}
       </div>
 
@@ -285,14 +283,14 @@ export default async function DashboardPage({
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5 text-violet-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Interview queue</h2><p className="text-[11px] text-[var(--text-lo)]">Scorecards still to complete</p></div></div><Link href="/hire/candidates?stage=interview" className="text-xs text-brand-500 hover:underline">View all</Link></div>
+          <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5 text-brand-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Interview queue</h2><p className="text-[11px] text-[var(--text-lo)]">Scorecards still to complete</p></div></div><Link href="/hire/candidates?stage=interview" className="text-xs text-brand-500 hover:underline">View all</Link></div>
           <div className="space-y-2">
             {operations.interviewQueue.length ? operations.interviewQueue.map((candidate) => <Link key={candidate.id} href={`/hire/candidates/${candidate.id}/interview`} className="flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"><div><p className="text-sm font-medium text-[var(--text-hi)]">{candidate.full_name}</p><p className="text-[11px] text-[var(--text-lo)]">{candidate.jobs?.title ?? "Role"}</p></div><Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)]" /></Link>) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No interviews waiting for a scorecard.</p>}
           </div>
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-cyan-500/15"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-cyan-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Check-in status</h2><p className="text-[11px] text-[var(--text-lo)]">This week&apos;s check-ins and goals</p></div></div>
+          <div className="mb-4 flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-brand-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Check-in status</h2><p className="text-[11px] text-[var(--text-lo)]">This week&apos;s check-ins and goals</p></div></div>
           <div className="grid grid-cols-3 gap-2">
             {[{ label: "Check-ins due", value: operations.pulse.pendingCheckins, href: "/pulse/checkins" }, { label: "Low mood", value: operations.pulse.lowMood, href: "/pulse/checkins" }, { label: "Blockers", value: operations.pulse.blockers, href: "/pulse/checkins" }].map((item) => <Link key={item.label} href={item.href} className="rounded-xl bg-[var(--surface-2)] p-3 transition-colors hover:bg-cyan-500/10"><p className="font-mono text-xl font-bold text-[var(--text-hi)]">{item.value}</p><p className="mt-1 text-[11px] text-[var(--text-lo)]">{item.label}</p></Link>)}
           </div>
@@ -306,8 +304,8 @@ export default async function DashboardPage({
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500/15">
-                <Icon icon="solar:chat-round-dots-broken" className="h-3.5 w-3.5 text-violet-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                <Icon icon="solar:chat-round-dots-broken" className="h-3.5 w-3.5 text-brand-500" />
               </div>
               <div>
                 <h2 className="text-md font-semibold text-[var(--text-hi)]">Upcoming 1-on-1s</h2>
@@ -319,9 +317,7 @@ export default async function DashboardPage({
           <div className="space-y-2">
             {operations.upcomingOneOnOnes.length ? operations.upcomingOneOnOnes.map((m) => (
               <Link key={m.id} href={`/pulse/one-on-ones/${m.id}`} className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[10px] font-bold text-violet-500">
-                  {m.report.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                </div>
+                <Avatar name={m.report} src={m.reportAvatar} size="sm" shape="circle" />
                 <div className="min-w-0">
                   <p className="truncate text-xs font-semibold text-[var(--text-hi)]">{m.report}</p>
                   <p className="text-[11px] text-[var(--text-lo)]">with {m.manager} · {new Date(m.scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
@@ -345,8 +341,8 @@ export default async function DashboardPage({
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/15">
-                <Icon icon="solar:confetti-minimalistic-broken" className="h-3.5 w-3.5 text-amber-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                <Icon icon="solar:confetti-minimalistic-broken" className="h-3.5 w-3.5 text-brand-500" />
               </div>
               <div>
                 <h2 className="text-md font-semibold text-[var(--text-hi)]">New hires</h2>
@@ -379,8 +375,8 @@ export default async function DashboardPage({
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-pink-500/15">
-                <Icon icon="solar:chart-2-broken" className="h-3.5 w-3.5 text-pink-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                <Icon icon="solar:chart-2-broken" className="h-3.5 w-3.5 text-brand-500" />
               </div>
               <div>
                 <h2 className="text-md font-semibold text-[var(--text-hi)]">Active surveys</h2>
@@ -410,20 +406,20 @@ export default async function DashboardPage({
       </div>
 
       {/* ── Charts row ── */}
-      <DashboardCharts trend={trend} pipeline={pipeline} rolePipeline={rolePipeline} teamPulseTrend={teamPulseTrend} />
+      <DashboardCharts trend={trend} rolePipeline={rolePipeline} teamPulseTrend={teamPulseTrend} />
 
       {/* ── Hiring health, offers and schedules ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <h2 className="text-md font-semibold text-[var(--text-hi)]">Hiring health</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Flow and bottlenecks across active roles</p>
-          <Link href="/hire/candidates" className="mt-4 block rounded-xl transition-colors hover:bg-[var(--surface-2)]"><HiringHealthChart stages={stageAging} stalled={operations.health.stalledCandidates} averageDays={operations.health.averageDaysToHire} /></Link>
+          <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:sort-horizontal-broken" className="h-3.5 w-3.5" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline</h2><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Where candidates are now, and how long they have been there</p></div></div></div>
+          <PipelineOverview pipeline={pipeline} stages={stageAging} stalled={operations.health.stalledCandidates} averageDays={operations.health.averageDaysToHire} />
         </section>
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline outcomes</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Pending offers and completed candidate outcomes</p>
+          <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:wallet-money-broken" className="h-3.5 w-3.5" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline outcomes</h2><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Pending offers and completed candidate outcomes</p></div></div></div>
           <div className="mt-4"><OfferTrackerChart pending={operations.health.offerPending} accepted={operations.health.offerAccepted} declined={operations.health.offerDeclined} /></div>
         </section>
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="flex items-center justify-between"><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Role schedule</h2><p className="mt-1 text-[11px] text-[var(--text-lo)]">Publishing and closing soon</p></div><Link href="/hire/jobs" className="text-xs text-brand-500 hover:underline">Jobs</Link></div>
+          <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Role schedule</h2><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Publishing and closing soon</p></div></div><Link href="/hire/jobs" className="text-xs text-brand-500 hover:underline">Jobs</Link></div>
           <div className="mt-3 space-y-2">{operations.scheduledJobs.length ? operations.scheduledJobs.map((job) => { const date = job.kind === "publishes" ? job.published_at : job.closes_at; return <Link key={`${job.id}-${job.kind}`} href={`/hire/jobs/${job.id}`} className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-[var(--surface-2)]"><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--text-hi)]">{job.title}</p><p className="text-[11px] text-[var(--text-lo)]">{job.kind === "publishes" ? "Publishes" : "Closes"} {date ? new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : ""}</p></div><Icon icon="solar:calendar-mark-broken" className="h-4 w-4 shrink-0 text-brand-500" /></Link>; }) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No scheduled role changes.</p>}</div>
         </section>
       </div>

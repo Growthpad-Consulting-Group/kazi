@@ -9,7 +9,7 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
 import { TeamActivity } from "./TeamActivity";
 import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
-import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
+import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, isEditableLogDate, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type Row = { task: string; client: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
 type AsanaTask = { id: string; name: string; project: string | null };
@@ -51,6 +51,8 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const [blockers, setBlockers] = useState("");
   const [wins, setWins] = useState("");
   const [editing, setEditing] = useState(false);
+  const [edited, setEdited] = useState(false);
+  const locked = !isEditableLogDate(date);
   const [savedEntries, setSavedEntries] = useState<DailyLogEntry[]>([]);
   const [history, setHistory] = useState<{ date: string; entries: DailyLogEntry[]; mood: number | null }[]>([]);
   const [clients, setClients] = useState<string[]>([]);
@@ -68,7 +70,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     setLoading(true);
     fetch(`/api/pulse/daily-log?date=${date}`)
       .then((res) => res.json())
-      .then((json: { entries?: DailyLogEntry[]; updatedAt?: string | null; mood?: number | null; blockers?: string | null; wins?: string | null; error?: string }) => {
+      .then((json: { entries?: DailyLogEntry[]; updatedAt?: string | null; edited?: boolean; mood?: number | null; blockers?: string | null; wins?: string | null; error?: string }) => {
         if (cancelled) return;
         if (json.error) throw new Error(json.error);
         const loaded = json.entries ?? [];
@@ -85,6 +87,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
           : [emptyRow()]);
         setSavedAt(json.updatedAt ?? null);
         setSavedEntries(loaded);
+        setEdited(json.edited ?? false);
         setEditing(false);
         setMood(json.mood ?? null);
         setBlockers(json.blockers ?? "");
@@ -214,9 +217,10 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
             blockers={blockers.trim() || null}
             wins={wins.trim() || null}
             updatedAt={savedAt}
+            edited={edited}
+            canEdit={!locked}
             onEdit={() => setEditing(true)}
           />
-          <DailyLogHistory logs={history} selected={date} onSelect={setDate} />
         </div>
       ) : (!isReviewer && (
       <section className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200 sm:p-6">
@@ -358,10 +362,12 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
           <p className="text-[11px] text-[var(--text-lo)]">{savedAt ? `Last saved ${new Date(savedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : "Not logged yet for this day"}</p>
-          <Button icon="solar:diskette-broken" loading={saving} onClick={save}>Save log</Button>
+          <Button icon="solar:diskette-broken" loading={saving} disabled={locked} onClick={save}>Save log</Button>
         </div>
       </section>
       ))}
+
+      {!isReviewer && <DailyLogHistory logs={history} selected={date} onSelect={setDate} />}
 
       {isReviewer && <TeamActivity />}
     </div>

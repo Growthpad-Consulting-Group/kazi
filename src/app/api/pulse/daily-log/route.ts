@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import { cleanText, isValidLogDate, validateDailyLogEntries, validateDailyLogMood, type DailyLogEntry } from "@/features/pulse/daily-log/constants";
+import { cleanText, isEditableLogDate, isValidLogDate, validateDailyLogEntries, validateDailyLogMood, type DailyLogEntry } from "@/features/pulse/daily-log/constants";
 
 type LogRow = { user_id: string; log_date: string; entries: DailyLogEntry[]; updated_at: string; mood: number | null; blockers: string | null; wins: string | null };
 type TeamLogRow = LogRow;
@@ -48,12 +48,19 @@ export async function GET(req: Request) {
     if (!isValidLogDate(date)) return NextResponse.json({ error: "A valid date is required" }, { status: 400 });
     const { data } = await supabaseAdmin
       .from("daily_activity_logs")
-      .select("entries, updated_at, mood, blockers, wins")
+      .select("entries, created_at, updated_at, mood, blockers, wins")
       .eq("user_id", session.user.id)
       .eq("log_date", date)
       .maybeSingle();
-    const row = data as unknown as { entries: DailyLogEntry[]; updated_at: string; mood: number | null; blockers: string | null; wins: string | null } | null;
-    return NextResponse.json({ entries: row?.entries ?? [], updatedAt: row?.updated_at ?? null, mood: row?.mood ?? null, blockers: row?.blockers ?? null, wins: row?.wins ?? null });
+    const row = data as unknown as { entries: DailyLogEntry[]; created_at: string; updated_at: string; mood: number | null; blockers: string | null; wins: string | null } | null;
+    return NextResponse.json({
+      entries: row?.entries ?? [],
+      updatedAt: row?.updated_at ?? null,
+      edited: row ? new Date(row.updated_at).getTime() - new Date(row.created_at).getTime() > 60_000 : false,
+      mood: row?.mood ?? null,
+      blockers: row?.blockers ?? null,
+      wins: row?.wins ?? null,
+    });
   }
 
   if (!can(session.user.role, "manage_checkins")) {
@@ -129,6 +136,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null) as { date?: unknown; entries?: unknown; mood?: unknown; blockers?: unknown; wins?: unknown } | null;
   if (!isValidLogDate(body?.date)) return NextResponse.json({ error: "A valid date is required" }, { status: 400 });
+  if (!isEditableLogDate(body.date)) return NextResponse.json({ error: "This day is locked. Logs can be added or corrected for the last 7 days." }, { status: 403 });
 
   const validated = validateDailyLogEntries(body?.entries);
   if (!validated.ok) return NextResponse.json({ error: validated.error }, { status: 400 });

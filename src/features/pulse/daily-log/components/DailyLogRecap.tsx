@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
+import StatCard from "@/components/ui/StatCard";
 import { DAILY_LOG_CATEGORIES, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 export const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
@@ -28,6 +29,8 @@ export function DailyLogRecap({
   blockers,
   wins,
   updatedAt,
+  edited,
+  canEdit,
   onEdit,
 }: {
   dateLabel: string;
@@ -36,6 +39,8 @@ export function DailyLogRecap({
   blockers: string | null;
   wins: string | null;
   updatedAt: string | null;
+  edited: boolean;
+  canEdit: boolean;
   onEdit: () => void;
 }) {
   const total = entries.reduce((sum, entry) => sum + entry.minutes, 0);
@@ -49,16 +54,21 @@ export function DailyLogRecap({
           <h2 className="mt-1 text-base font-semibold text-[var(--text-hi)]">{dateLabel}</h2>
           {updatedAt && (
             <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
-              Saved {new Date(updatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+              Saved {new Date(updatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}{edited ? " · edited after first save" : ""}
             </p>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="font-mono text-xl font-bold text-[var(--text-hi)]">{formatMinutes(total)}</p>
-            <p className="text-[11px] text-[var(--text-lo)]">{entries.length} task{entries.length === 1 ? "" : "s"}</p>
+          <div className="min-w-[10rem]">
+            <StatCard variant="inline" compact title="Logged" value={formatMinutes(total)} icon="solar:stopwatch-broken" color="orange" subtitle={`${entries.length} task${entries.length === 1 ? "" : "s"}`} />
           </div>
-          <Button size="sm" variant="secondary" icon="solar:pen-broken" onClick={onEdit}>Edit</Button>
+          {canEdit ? (
+            <Button size="sm" variant="secondary" icon="solar:pen-broken" onClick={onEdit}>Edit</Button>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-lo)]">
+              <Icon icon="solar:lock-keyhole-broken" className="h-3.5 w-3.5" /> Locked
+            </span>
+          )}
         </div>
       </div>
 
@@ -136,22 +146,25 @@ export function DailyLogHistory({
 }) {
   return (
     <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20 sm:p-6">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-lo)]">Last 7 days</p>
-      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+      <p className="text-sm font-semibold text-[var(--text-lo)]">Last 7 days</p>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
         {logs.map((log) => {
           const total = log.entries.reduce((sum, entry) => sum + entry.minutes, 0);
           const active = log.date === selected;
           return (
             <li key={log.date}>
-              <button
-                type="button"
-                onClick={() => onSelect(log.date)}
-                className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-brand-500/40 bg-brand-500/[0.06]" : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
-              >
-                <p className="text-[11px] font-semibold text-[var(--text-lo)]">{new Date(`${log.date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</p>
-                <p className="mt-1 font-mono text-sm font-bold text-[var(--text-hi)]">{total ? formatMinutes(total) : "—"}</p>
-                <p className="mt-1 text-[11px] text-[var(--text-lo)]">{log.mood ? MOODS[log.mood - 1] : log.entries.length ? "Logged" : "Not logged"}</p>
-              </button>
+              <div className={`rounded-2xl transition-shadow ${active ? "ring-2 ring-brand-500/50" : ""}`}>
+                <StatCard
+                  variant="inline"
+                  compact
+                  title={new Date(`${log.date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                  value={total ? formatMinutes(total) : "—"}
+                  subtitle={log.mood ? MOODS[log.mood - 1] : log.entries.length ? "Logged" : "Not logged"}
+                  icon="solar:calendar-broken"
+                  color="orange"
+                  onClick={() => onSelect(log.date)}
+                />
+              </div>
             </li>
           );
         })}

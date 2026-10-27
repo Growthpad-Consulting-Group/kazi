@@ -14,9 +14,9 @@ function initials(name: string) {
 }
 
 /** Shared staff avatar with a brand-consistent initials fallback. */
-export function Avatar({ name, src, size = "md", className = "" }: { name: string; src?: string | null; size?: AvatarSize; className?: string }) {
+export function Avatar({ name, src, size = "md", shape = "rounded", className = "" }: { name: string; src?: string | null; size?: AvatarSize; shape?: "rounded" | "circle"; className?: string }) {
   return (
-    <span className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-500/10 font-bold text-brand-500 ${sizeClasses[size]} ${className}`}>
+    <span className={`relative flex shrink-0 items-center justify-center overflow-hidden ${shape === "circle" ? "rounded-full" : "rounded-xl"} bg-brand-500/10 font-bold text-brand-500 ${sizeClasses[size]} ${className}`}>
       {src ? <Image src={src} alt={name} fill sizes={size === "sm" ? "32px" : size === "md" ? "40px" : size === "lg" ? "48px" : "96px"} className="object-cover" /> : initials(name)}
     </span>
   );

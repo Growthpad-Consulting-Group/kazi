@@ -115,7 +115,8 @@ export default async function PulseDashboard() {
               <h1 className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-hi)] sm:text-2xl">Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"}, {firstName}.</h1>
               <p className="mt-1 text-sm text-[var(--text-lo)]">Keep priorities, conversations, and progress in one calm weekly rhythm.</p>
             </div>
-            <Link href={isManager ? "/pulse/checkins" : checkinHref} className="group flex min-w-64 items-center gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-3.5 transition-colors hover:bg-brand-500/10">
+            {isManager ? (
+              <Link href={isManager ? "/pulse/checkins" : checkinHref} className="group flex min-w-64 items-center gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-3.5 transition-colors hover:bg-brand-500/10">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/25"><Icon icon={isManager ? "solar:users-group-two-rounded-broken" : checkinStatus.icon} className="h-5 w-5" /></span>
               <span className="min-w-0 flex-1">
                 <span className="block text-xs font-medium text-[var(--text-lo)]">{isManager ? "Team check-ins" : "This week's check-in"}</span>
@@ -127,6 +128,9 @@ export default async function PulseDashboard() {
               </span>
               <Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-brand-500 transition-transform group-hover:translate-x-0.5" />
             </Link>
+            ) : (
+              <DailyLogReminder />
+            )}
           </div>
         </section>
 
@@ -140,7 +144,18 @@ export default async function PulseDashboard() {
           <StatCard title="Recognition" value={feedback.length} icon="solar:star-fall-broken" color="green" compact subtitle={feedback.length ? "Recent kudos" : "Share appreciation"} href="/pulse/feedback" />
         </section>
 
-        {!can(session.user.role, "manage_checkins") && <DailyLogReminder />}
+        {!isManager && (
+          <Link href={checkinHref} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition-colors hover:bg-[var(--surface-2)]">
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon={checkinStatus.icon} className="h-4 w-4" /></span>
+              <span>
+                <span className="block text-sm font-semibold text-[var(--text-hi)]">This week&apos;s check-in</span>
+                <span className="block text-xs text-[var(--text-lo)]">{checkin ? checkinStatus.label : "Share your weekly update"}</span>
+              </span>
+            </span>
+            <Icon icon="solar:arrow-right-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
+          </Link>
+        )}
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.85fr)]">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle icon="solar:target-broken" title="Focus and goals" href="/pulse/goals" action="View all" />
