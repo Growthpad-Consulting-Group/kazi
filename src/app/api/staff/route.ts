@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- must_change_password is newer than the generated types */
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -48,10 +49,10 @@ export async function POST(request: Request) {
   if (existing) return NextResponse.json({ error: "A staff member with this email already exists." }, { status: 409 });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const { data, error } = await supabaseAdmin.from("users").insert({
+  const { data, error } = await (supabaseAdmin as any).from("users").insert({
     name,
     email,
-    password_hash: passwordHash,
+    password_hash: passwordHash, must_change_password: true,
     role,
     department,
     job_title: typeof body.jobTitle === "string" && body.jobTitle ? body.jobTitle.trim() : null,

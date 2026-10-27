@@ -6,7 +6,7 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
-import { getMyCheckins, getTeamCheckins } from "../actions";
+import { getMyCheckins, getTeamCheckins, getTeamDailyLogSummary } from "../actions";
 import { CheckinForm } from "./CheckinForm";
 import { TeamCheckins } from "./TeamCheckins";
 
@@ -55,9 +55,11 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
   const canViewProfile = !!profile && (isHr || profile.manager_id === userId);
   const viewedUserId = canViewProfile ? profile.id : userId;
   const weekStart = getCurrentWeekStart();
-  const [myCheckins, teamCheckins] = await Promise.all([
+  const organisationWide = session.user.role === "admin" || session.user.role === "hr";
+  const [myCheckins, teamCheckins, dailySummary] = await Promise.all([
     teamOnly ? Promise.resolve([]) : getMyCheckins(viewedUserId),
-    isManager && !canViewProfile ? getTeamCheckins(userId) : Promise.resolve([]),
+    isManager && !canViewProfile ? getTeamCheckins(userId, organisationWide) : Promise.resolve([]),
+    isManager && !canViewProfile ? getTeamDailyLogSummary(userId, weekStart, organisationWide) : Promise.resolve({ staffLogged: 0, daysLogged: 0, totalMinutes: 0 }),
   ]);
 
   // Team-only view: skip the personal form and go straight to the team overview
@@ -66,7 +68,7 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
       <>
         <SetPageHeader title="Team check-ins" description={`Week of ${weekRangeLabel(weekStart)}`} icon="solar:users-group-two-rounded-broken" actions={[{ label: "Pulse dashboard", icon: "solar:pulse-broken", variant: "secondary", href: "/pulse" }, { label: "Daily activity", icon: "solar:notebook-broken", variant: "secondary", href: "/pulse/checkins?tab=daily" }]} />
         <div className="mx-auto max-w-7xl">
-          <TeamCheckins checkins={teamCheckins} weekStart={weekStart} />
+          <TeamCheckins checkins={teamCheckins} weekStart={weekStart} dailySummary={dailySummary} />
         </div>
       </>
     );
@@ -100,7 +102,7 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
           </aside>
         </div>
 
-        {isManager && <TeamCheckins checkins={teamCheckins} weekStart={weekStart} />}
+        {isManager && <TeamCheckins checkins={teamCheckins} weekStart={weekStart} dailySummary={dailySummary} />}
       </div>
     </>
   );

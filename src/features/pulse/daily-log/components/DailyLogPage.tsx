@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
@@ -39,6 +40,16 @@ function rowMinutes(row: Pick<Row, "showRange" | "startTime" | "endTime" | "minu
 
 function dateHeading(date: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function weekDays(date: string) {
+  const selected = new Date(`${date}T12:00:00`);
+  const offset = (selected.getDay() + 6) % 7;
+  selected.setDate(selected.getDate() - offset);
+  return Array.from({ length: 5 }, (_, index) => {
+    const day = new Date(selected); day.setDate(selected.getDate() + index);
+    return { key: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`, label: day.toLocaleDateString("en-KE", { weekday: "short" }), number: day.getDate() };
+  });
 }
 
 export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
@@ -117,10 +128,12 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   useEffect(() => {
     if (isReviewer) return;
     let cancelled = false;
-    const from = new Date();
-    from.setDate(from.getDate() - 6);
+    const selected = new Date(`${date}T12:00:00`);
+    selected.setDate(selected.getDate() - ((selected.getDay() + 6) % 7));
+    const from = selected;
+    const to = new Date(selected); to.setDate(selected.getDate() + 4);
     const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    fetch(`/api/pulse/daily-log?scope=history&from=${key(from)}&to=${todayLocal()}`)
+    fetch(`/api/pulse/daily-log?scope=history&from=${key(from)}&to=${key(to)}`)
       .then((res) => res.json())
       .then((json: { logs?: { date: string; entries: DailyLogEntry[]; mood: number | null }[] }) => {
         if (!cancelled) setHistory(json.logs ?? []);
@@ -129,9 +142,13 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [isReviewer, savedAt]);
+  }, [date, isReviewer, savedAt]);
 
   const totalMinutes = rows.reduce((sum, row) => sum + (rowMinutes(row) ?? 0), 0);
+  const activeWeek = weekDays(date);
+  const weeklyLogs = history.filter((log) => activeWeek.some((day) => day.key === log.date));
+  const weeklyMinutes = weeklyLogs.reduce((sum, log) => sum + log.entries.reduce((entryTotal, entry) => entryTotal + entry.minutes, 0), 0);
+  const loggedDays = new Set(weeklyLogs.filter((log) => log.entries.length > 0).map((log) => log.date));
 
   const updateRow = (index: number, patch: Partial<Row>) => {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -217,6 +234,8 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
         }
         icon="solar:notebook-broken"
       />
+
+      {!isReviewer && <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:calendar-mark-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">This week&apos;s report</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Log work each day, then complete your reflection by Friday.</p></div></div><p className="mt-3 text-xs text-[var(--text-lo)]"><span className="font-semibold text-brand-500">{loggedDays.size}/5 days logged</span> · {formatMinutes(weeklyMinutes)} tracked this week</p></div><div className="flex flex-wrap items-center gap-3"><div className="flex items-center gap-1 rounded-xl bg-[var(--surface-2)] p-1">{activeWeek.map((day) => { const selected = day.key === date; const logged = loggedDays.has(day.key); const future = day.key > todayLocal(); return <button key={day.key} type="button" disabled={future} onClick={() => setDate(day.key)} className={`flex min-w-11 flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${selected ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}><span className="font-medium">{day.label}</span><span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">{logged ? <Icon icon="solar:check-circle-bold" className="h-3.5 w-3.5 text-emerald-500" /> : future ? "" : day.number}</span></button>; })}</div><Link href="/pulse/checkins?tab=checkins" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />Weekly reflection</Link></div></div></section>}
 
       {!isReviewer && savedAt && !editing && !loading ? (
         <div className="space-y-5">

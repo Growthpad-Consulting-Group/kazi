@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- must_change_password is newer than the generated types */
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -31,7 +32,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (existingUser) return NextResponse.json({ error: "A Kazi staff account already uses this email.", userId: existingUser.id }, { status: 409 });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const { data: user, error: userError } = await supabaseAdmin.from("users").insert({ name: candidateData.full_name, email: candidateData.email.toLowerCase(), password_hash: passwordHash, role: "employee", department: jobData?.department ?? null, job_title: jobData?.title ?? null, location: jobData?.location ?? candidateData.location ?? null, manager_id: managerId, start_date: startDate, is_active: true }).select("id, name").single();
+  const { data: user, error: userError } = await (supabaseAdmin as any).from("users").insert({ name: candidateData.full_name, email: candidateData.email.toLowerCase(), password_hash: passwordHash, must_change_password: true, role: "employee", department: jobData?.department ?? null, job_title: jobData?.title ?? null, location: jobData?.location ?? candidateData.location ?? null, manager_id: managerId, start_date: startDate, is_active: true }).select("id, name").single();
   if (userError) return NextResponse.json({ error: userError.message }, { status: 500 });
 
   const { error: candidateUpdateError } = await supabaseAdmin.from("candidates").update({ hired_user_id: user.id }).eq("id", id);

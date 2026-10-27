@@ -10,6 +10,7 @@ import type { CheckinWithUser } from "../actions";
 interface Props {
   checkins: CheckinWithUser[];
   weekStart: string;
+  dailySummary?: { staffLogged: number; daysLogged: number; totalMinutes: number };
 }
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
@@ -32,7 +33,9 @@ function hasBlockerAlert(checkins: CheckinWithUser[], userId: string, weekStart:
   );
 }
 
-export function TeamCheckins({ checkins, weekStart }: Props) {
+function formatMinutes(total: number) { const hours = Math.floor(total / 60); const minutes = total % 60; return hours && minutes ? `${hours}h ${minutes}m` : hours ? `${hours}h` : `${minutes}m`; }
+
+export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
   const router = useRouter();
 
   const thisWeek = checkins.filter((c) => c.week_start === weekStart);
@@ -124,6 +127,8 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
         <StatCard title="Low mood" value={lowMood} icon="solar:heart-pulse-broken" color={lowMood ? "red" : "green"} variant="inline" compact onClick={() => setFilter("attention")} />
         <StatCard title="Repeat blockers" value={repeatedBlockers} icon="solar:danger-triangle-broken" color={repeatedBlockers ? "orange" : "green"} variant="inline" compact onClick={() => setFilter("attention")} />
       </div>
+
+      {dailySummary && dailySummary.daysLogged > 0 && <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.045] px-5 py-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:notebook-broken" className="h-4.5 w-4.5" /></span><div><p className="text-sm font-semibold text-[var(--text-hi)]">Daily reporting this week</p><p className="mt-0.5 text-xs text-[var(--text-lo)]">{dailySummary.staffLogged} staff logged work across {dailySummary.daysLogged} day{dailySummary.daysLogged === 1 ? "" : "s"}.</p></div></div><span className="rounded-xl bg-[var(--surface)] px-3 py-2 font-mono text-sm font-bold text-brand-500">{formatMinutes(dailySummary.totalMinutes)}</span></section>}
 
       {aiSummary && (
         <section className="rounded-2xl border border-blue-500/15 bg-blue-500/5 p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20">

@@ -14,13 +14,9 @@ export async function getMyCheckins(userId: string): Promise<Checkin[]> {
   return (await getCachedMyCheckins(userId)) as Checkin[];
 }
 
-export async function getTeamCheckins(managerId: string): Promise<CheckinWithUser[]> {
-  // Get direct reports
-  const { data: reports } = await supabaseAdmin
-    .from("users")
-    .select("id")
-    .eq("manager_id", managerId)
-    .eq("is_active", true);
+export async function getTeamCheckins(managerId: string, organisationWide = false): Promise<CheckinWithUser[]> {
+  const reportQuery = supabaseAdmin.from("users").select("id").eq("is_active", true);
+  const { data: reports } = organisationWide ? await reportQuery : await reportQuery.eq("manager_id", managerId);
   const ids = (reports ?? []).map((r) => r.id as string);
   if (!ids.length) return [];
 
@@ -32,6 +28,28 @@ export async function getTeamCheckins(managerId: string): Promise<CheckinWithUse
     .limit(100);
   if (error) console.error("[getTeamCheckins] error:", error.message);
   return (data ?? []) as unknown as CheckinWithUser[];
+}
+
+export async function getTeamDailyLogSummary(managerId: string, weekStart: string, organisationWide = false) {
+  const reportQuery = supabaseAdmin.from("users").select("id").eq("is_active", true);
+  const { data: reports } = organisationWide ? await reportQuery : await reportQuery.eq("manager_id", managerId);
+  const ids = (reports ?? []).map((report) => report.id as string);
+  if (!ids.length) return { staffLogged: 0, daysLogged: 0, totalMinutes: 0 };
+  const end = new Date(`${weekStart}T12:00:00`); end.setDate(end.getDate() + 4);
+  const weekEnd = end.toISOString().slice(0, 10);
+  const { data, error } = await supabaseAdmin
+    .from("daily_activity_logs")
+    .select("user_id, entries")
+    .in("user_id", ids)
+    .gte("log_date", weekStart)
+    .lte("log_date", weekEnd);
+  if (error) console.error("[getTeamDailyLogSummary] error:", error.message);
+  const rows = (data ?? []) as unknown as { user_id: string; entries: { minutes?: number }[] }[];
+  return {
+    staffLogged: new Set(rows.filter((row) => row.entries?.length).map((row) => row.user_id)).size,
+    daysLogged: rows.filter((row) => row.entries?.length).length,
+    totalMinutes: rows.reduce((total, row) => total + (row.entries ?? []).reduce((sum, entry) => sum + (Number(entry.minutes) || 0), 0), 0),
+  };
 }
 
 export async function getCheckin(id: string): Promise<Checkin | null> {

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { isPathAllowed } from "@/lib/page-access";
 import { getAllowedPaths } from "@/lib/page-access-server";
+import { mustChangePassword } from "@/lib/must-change-password";
 import type { UserRole } from "@/types/database";
 
 // Optimistic check on the signed session token. Pages still verify the session
@@ -11,8 +12,14 @@ export async function proxy(request: NextRequest) {
   // Signed-out visitors are sent to /login by the protected layouts.
   if (!token?.role) return NextResponse.next();
 
+  // Someone with a temporary password can only use their profile until they choose a new one.
+  const { pathname } = request.nextUrl;
+  if (token.id && (await mustChangePassword(token.id as string)) && !pathname.startsWith("/settings/profile")) {
+    return NextResponse.redirect(new URL("/settings/profile", request.url));
+  }
+
   const allowedPaths = await getAllowedPaths(token.role as UserRole);
-  if (isPathAllowed(allowedPaths, request.nextUrl.pathname)) return NextResponse.next();
+  if (isPathAllowed(allowedPaths, pathname)) return NextResponse.next();
 
   return NextResponse.redirect(new URL("/pulse", request.url));
 }

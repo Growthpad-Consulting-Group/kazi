@@ -3,6 +3,7 @@
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
+import { clearMustChangePassword } from "@/lib/must-change-password";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
@@ -51,11 +52,13 @@ export async function changePassword(values: { current: string; next: string }) 
   if (!ok) throw new Error("Current password is incorrect");
 
   const hash = await bcrypt.hash(values.next, 10);
-  const { error } = await supabaseAdmin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- must_change_password is newer than the generated types
+  const { error } = await (supabaseAdmin as any)
     .from("users")
-    .update({ password_hash: hash })
+    .update({ password_hash: hash, must_change_password: false })
     .eq("id", session.user.id);
   if (error) throw new Error(error.message);
+  clearMustChangePassword(session.user.id);
 
   return { ok: true };
 }
