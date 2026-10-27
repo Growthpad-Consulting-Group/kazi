@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ApplicationError } from "@/lib/application-error";
 import { readCv, attachCv } from "@/lib/candidate-cv";
 import { assertCanApply, insertApplicant, deleteApplicant } from "@/lib/candidate-applications";
+import { sendApplicationConfirmation } from "@/lib/application-emails";
 
 export const runtime = "nodejs";
 
@@ -40,6 +41,7 @@ export async function POST(req: Request) {
 
     try {
       const stored = await attachCv(candidateId, jobId, readable);
+      await sendApplicationConfirmation({ email, fullName, jobTitle: job.title });
       return NextResponse.json({ candidateId, queuedForScreening: stored.queuedForScreening });
     } catch (error) {
       // Don't leave an applicant without a CV: remove the record so they can retry cleanly.

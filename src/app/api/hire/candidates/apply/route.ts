@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createCandidateUploadToken } from "@/lib/candidate-upload-token";
 import { ApplicationError } from "@/lib/application-error";
 import { assertCanApply, insertApplicant } from "@/lib/candidate-applications";
+import { sendApplicationConfirmation } from "@/lib/application-emails";
 
 // Public endpoint: creates the application without a CV. Prefer apply-with-cv, which reads the CV first.
 export async function POST(req: Request) {
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
       { job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, source },
       job,
     );
+    await sendApplicationConfirmation({ email, fullName: full_name, jobTitle: job.title });
     return NextResponse.json({
       candidateId,
       uploadToken: createCandidateUploadToken(candidateId, job_id),

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import toast from "react-hot-toast";
 import { updateCandidateStage } from "../actions";
+import { useStageEmailPrompt } from "./StageEmailPrompt";
 import { STAGE_LABELS, type CandidateStage } from "../types";
 
 const STAGES: CandidateStage[] = ["applied", "screened", "interview", "offer", "hired", "rejected"];
@@ -12,8 +13,11 @@ const STAGES: CandidateStage[] = ["applied", "screened", "interview", "offer", "
 export default function CandidateStageSelect({ candidateId, stage }: { candidateId: string; stage: CandidateStage }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { requestStageEmail, stageEmailDialog } = useStageEmailPrompt();
 
   return (
+    <>
+    {stageEmailDialog}
     <select
       aria-label="Move candidate stage"
       value={stage}
@@ -25,6 +29,7 @@ export default function CandidateStageSelect({ candidateId, stage }: { candidate
           try {
             await updateCandidateStage(candidateId, nextStage);
             toast.success(`Moved to ${STAGE_LABELS[nextStage]}`);
+            requestStageEmail(candidateId, nextStage);
             router.refresh();
           } catch (error) {
             toast.error(error instanceof Error ? error.message : "Could not update candidate stage");
@@ -35,5 +40,6 @@ export default function CandidateStageSelect({ candidateId, stage }: { candidate
     >
       {STAGES.map((value) => <option key={value} value={value}>{STAGE_LABELS[value]}</option>)}
     </select>
+    </>
   );
 }

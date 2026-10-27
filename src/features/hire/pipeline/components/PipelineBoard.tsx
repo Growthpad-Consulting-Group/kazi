@@ -15,6 +15,7 @@ import {
 import { PipelineColumn } from "./PipelineColumn";
 import { CandidateCard } from "./CandidateCard";
 import { updateCandidateStage } from "@/features/hire/candidates/actions";
+import { useStageEmailPrompt } from "@/features/hire/candidates/components/StageEmailPrompt";
 import type { CandidateWithJob } from "@/features/hire/candidates/actions";
 import type { CandidateStage } from "@/types/database";
 import { STAGE_LABELS } from "@/features/hire/candidates/types";
@@ -26,6 +27,7 @@ interface Props {
 
 export function PipelineBoard({ columns: initial, stages }: Props) {
   const router = useRouter();
+  const { requestStageEmail, stageEmailDialog } = useStageEmailPrompt();
   const [columns, setColumns] = useState(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -71,6 +73,7 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
     // Persist
     updateCandidateStage(candidateId, toStage).then(() => {
       toast.success(`Moved to ${STAGE_LABELS[toStage]}`);
+      requestStageEmail(candidateId, toStage);
       router.refresh();
     }).catch((error) => {
       setColumns(initial);
@@ -79,6 +82,8 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
   }
 
   return (
+    <>
+    {stageEmailDialog}
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 md:mx-0 md:px-0">
         {stages.map((stage) => (
@@ -94,5 +99,6 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
         {activeCandidate && <CandidateCard candidate={activeCandidate} isDragging />}
       </DragOverlay>
     </DndContext>
+    </>
   );
 }

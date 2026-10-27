@@ -147,18 +147,21 @@ export default function JobsClientView({ jobs, departments, initialStatus }: Pro
       render: (row) => <StatusPill context="stage" value={row.status} />,
     },
     {
-      header: "Created",
-      accessor: "created_at",
+      header: "Deadline",
+      accessor: "closes_at",
       sortable: true,
-      render: (row) => (
-        <span className="text-xs text-[var(--text-lo)]">
-          {new Date(row.created_at).toLocaleDateString("en-KE", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })}
-        </span>
-      ),
+      render: (row) =>
+        row.closes_at ? (
+          <span className="text-xs text-[var(--text-lo)]">
+            {new Date(row.closes_at).toLocaleDateString("en-KE", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+        ) : (
+          <span className="text-xs italic text-[var(--text-lo)]">Open-ended</span>
+        ),
     },
   ];
 
