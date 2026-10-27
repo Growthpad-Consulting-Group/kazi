@@ -1,10 +1,12 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { isPathAllowed } from "@/lib/page-access";
 import { can } from "@/lib/rbac";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import SettingsSection from "./SettingsSection";
+import { ViewOnlyNotice } from "./EditableArea";
 
 const EXPORTS = [
   {
@@ -29,20 +31,24 @@ const EXPORTS = [
 
 export default async function ExportsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_system")) redirect("/dashboard");
+  if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/exports")) redirect("/settings/profile");
+  const canEdit = can(session.user.role, "manage_system");
 
   return (
     <div className="space-y-6">
       <SetPageHeader title="Data Exports" description="Download records as CSV for offline reporting" icon="solar:download-minimalistic-broken" />
 
+      {!canEdit && <ViewOnlyNotice permissionLabel="system settings" />}
       <SettingsSection title="Exports" description="Generated on click, downloaded straight to your device" icon="solar:download-broken">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {EXPORTS.map(({ label, description, href, icon }) => (
             <a
               key={label}
-              href={href}
-              download
-              className="group flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:bg-brand-500/5"
+              href={canEdit ? href : undefined}
+              download={canEdit || undefined}
+              aria-disabled={!canEdit}
+              tabIndex={canEdit ? undefined : -1}
+              className={`group flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-sm transition-all duration-200 ${canEdit ? "hover:shadow-md hover:bg-brand-500/5" : "pointer-events-none opacity-50"}`}
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 transition-colors group-hover:bg-brand-500/15">
                 <Icon icon={icon} className="h-4.5 w-4.5 text-brand-500" />

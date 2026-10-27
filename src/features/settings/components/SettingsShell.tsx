@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { cn } from "@/shared/lib/cn";
+import { isPathAllowed } from "@/lib/page-access";
 
 export interface SettingsNavItem {
   id: string;
@@ -50,7 +51,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
 const isActive = (pathname: string, href: string) =>
   pathname === href || pathname.startsWith(`${href}/`);
 
-export default function SettingsShell({ children }: { children: React.ReactNode }) {
+export default function SettingsShell({ children, allowedPaths }: { children: React.ReactNode; allowedPaths: string[] }) {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -106,8 +107,12 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
       </div>
     ));
 
-  const allItems = SETTINGS_NAV.flatMap((g) => g.items);
+  const visibleNav = SETTINGS_NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => isPathAllowed(allowedPaths, item.href)),
+  })).filter((group) => group.items.length > 0);
 
+  const allItems = visibleNav.flatMap((g) => g.items);
 
   return (
     <div className="relative flex w-full flex-col self-start">

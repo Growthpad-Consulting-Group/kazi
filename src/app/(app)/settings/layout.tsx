@@ -8,5 +8,5 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   // All authenticated users may access their personal settings.
   // Org/data sections guard themselves individually.
   if (!session) redirect("/login");
-  return <SettingsShell>{children}</SettingsShell>;
+  return <SettingsShell allowedPaths={session.user.allowedPaths}>{children}</SettingsShell>;
 }

@@ -1,17 +1,20 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { isPathAllowed } from "@/lib/page-access";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { StaffGroupsClient } from "./StaffGroupsClient";
+import { EditableArea, ViewOnlyNotice } from "./EditableArea";
 import type { StaffGroup } from "@/types/database";
 
 export default async function StaffGroupsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_recognition_campaigns")) {
-    redirect("/dashboard");
+  if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/staff-groups")) {
+    redirect("/settings/profile");
   }
+  const canEdit = can(session.user.role, "manage_recognition_campaigns");
 
   const [groupsResult, usersResult] = await Promise.all([
     supabaseAdmin.from("staff_groups").select("*").order("name"),
@@ -28,7 +31,10 @@ export default async function StaffGroupsPage() {
         description="Reusable groups for targeting feedback and campaigns"
         icon="solar:users-group-rounded-broken"
       />
-      <StaffGroupsClient initial={groups} users={users} />
+      {!canEdit && <ViewOnlyNotice permissionLabel="campaign management" />}
+      <EditableArea canEdit={canEdit}>
+        <StaffGroupsClient initial={groups} users={users} />
+      </EditableArea>
     </div>
   );
 }

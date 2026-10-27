@@ -1,19 +1,22 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { isPathAllowed } from "@/lib/page-access";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import AutomationsClient from "./AutomationsClient";
+import { EditableArea, ViewOnlyNotice } from "./EditableArea";
 import type { AutomationRule } from "@/types/database";
 
 type RuleRunSummary = { ruleId: string; lastRunAt: string; runCount: number };
 
 export default async function AutomationsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_automations")) {
-    redirect("/settings");
+  if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/automations")) {
+    redirect("/settings/profile");
   }
+  const canEdit = can(session.user.role, "manage_automations");
 
   const [{ data }, { data: executions }] = await Promise.all([
     supabaseAdmin.from("automation_rules").select("*").order("created_at", { ascending: false }),
@@ -42,7 +45,10 @@ export default async function AutomationsPage() {
         description="Trigger notifications and rewards automatically"
         icon="solar:bolt-circle-broken"
       />
-      <AutomationsClient initial={rules} runSummaries={[...runMap.values()]} />
+      {!canEdit && <ViewOnlyNotice permissionLabel="automation management" />}
+      <EditableArea canEdit={canEdit}>
+        <AutomationsClient initial={rules} runSummaries={[...runMap.values()]} />
+      </EditableArea>
     </div>
   );
 }

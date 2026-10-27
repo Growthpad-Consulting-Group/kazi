@@ -1,5 +1,6 @@
 import { Icon } from "@iconify/react";
 import SettingsSection from "./SettingsSection";
+import PageAccessMatrix, { type PageGrant } from "./PageAccessMatrix";
 
 interface RoleRow {
   role: string;
@@ -98,9 +99,17 @@ const ROLES: RoleRow[] = [
   },
 ];
 
-export default function RolesClient() {
+export default function RolesClient({ grants }: { grants: PageGrant[] }) {
   return (
     <div className="space-y-5">
+      <SettingsSection
+        title="Page access"
+        description="Choose which pages each role can open. Admin always has access to every page."
+        icon="solar:shield-check-broken"
+      >
+        <PageAccessMatrix grants={grants} />
+      </SettingsSection>
+
       <SettingsSection
         title="Roles & Permissions"
         description="Read-only reference. Contact your administrator to change a user's role."

@@ -1,10 +1,12 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { isPathAllowed } from "@/lib/page-access";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import CompanySettingsClient from "./CompanySettingsClient";
+import { EditableArea, ViewOnlyNotice } from "./EditableArea";
 import type { CompanySettings } from "../actions";
 
 const DEFAULTS: CompanySettings = {
@@ -22,7 +24,8 @@ const DEFAULTS: CompanySettings = {
 export default async function OverviewPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (!can(session.user.role, "manage_system")) redirect("/settings/profile");
+  if (!isPathAllowed(session.user.allowedPaths, "/settings/overview")) redirect("/settings/profile");
+  const canEdit = can(session.user.role, "manage_system");
 
   const [
     companyResult,
@@ -53,15 +56,18 @@ export default async function OverviewPage() {
         description="Your organisation profile and platform settings"
         icon="solar:shop-2-broken"
       />
-      <CompanySettingsClient
-        initial={company}
-        orgStats={{
-          staff: staff ?? 0,
-          departments: departments ?? 0,
-          jobs: jobs ?? 0,
-          candidates: candidates ?? 0,
-        }}
-      />
+      {!canEdit && <ViewOnlyNotice permissionLabel="System settings" />}
+      <EditableArea canEdit={canEdit}>
+        <CompanySettingsClient
+          initial={company}
+          orgStats={{
+            staff: staff ?? 0,
+            departments: departments ?? 0,
+            jobs: jobs ?? 0,
+            candidates: candidates ?? 0,
+          }}
+        />
+      </EditableArea>
     </div>
   );
 }

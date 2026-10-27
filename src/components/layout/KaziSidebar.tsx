@@ -58,7 +58,7 @@ export default function KaziSidebar({
   const isMobile = windowWidth < 640;
   const isActive = (href: string) =>
     ["/dashboard", "/pulse", "/signatures"].includes(href) ? pathname === href : pathname.startsWith(href);
-  const navGroups = navigationForRole(session?.user?.role);
+  const navGroups = navigationForRole(session?.user?.allowedPaths ?? []);
 
   return (
     <div

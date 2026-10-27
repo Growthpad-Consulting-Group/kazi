@@ -1,5 +1,4 @@
-import type { UserRole } from "@/types/database";
-import { can } from "@/lib/rbac";
+import { isPathAllowed } from "@/lib/page-access";
 
 export type NavItem  = { href: string; icon: string; label: string };
 export type NavGroup = { category: string; icon: string; items: NavItem[] };
@@ -62,19 +61,8 @@ export const sidebarNavGroups: NavGroup[] = [
 
 /** Navigation is an affordance, not the access-control boundary. Protected
  * route layouts enforce the same rules for direct URLs. */
-export function navigationForRole(role: UserRole | undefined): NavGroup[] {
-  const isManager        = role ? can(role, "view_people") : false;
-  const isRecruiter      = role ? can(role, "view_hiring") : false;
-  const isSignatureManager = role ? can(role, "manage_signatures") : false;
-
+export function navigationForRole(allowedPaths: readonly string[]): NavGroup[] {
   return sidebarNavGroups
-    .map((group) => {
-      if (group.category === "Home") return { ...group, items: group.items.filter((item) => (item.href !== "/staff" && item.href !== "/dashboard") || isManager) };
-      if (group.category === "Kazi Hire") return { ...group, items: isRecruiter ? group.items : [] };
-      if (group.category === "Kazi Pulse") return { ...group, items: group.items.filter((item) => (item.href !== "/pulse/analytics" && item.href !== "/pulse/engagement-calendar") || isManager) };
-      if (group.category === "Kazi Signatures") return { ...group, items: isSignatureManager ? group.items : group.items.filter((item) => item.href === "/signatures") };
-      if (group.category === "System") return group;
-      return group;
-    })
+    .map((group) => ({ ...group, items: group.items.filter((item) => isPathAllowed(allowedPaths, item.href)) }))
     .filter((group) => group.items.length > 0);
 }

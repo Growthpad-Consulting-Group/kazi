@@ -33,7 +33,7 @@ export default function CommandPalette() {
   const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
-  const navGroups = navigationForRole(session?.user?.role);
+  const navGroups = navigationForRole(session?.user?.allowedPaths ?? []);
 
   useEffect(() => {
     if (!open) {

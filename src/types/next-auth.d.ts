@@ -10,6 +10,8 @@ declare module "next-auth" {
       image?: string | null;
       role: UserRole;
       department: string | null;
+      /** Pages this role may open, from role_page_access. ["*"] for admin. */
+      allowedPaths: string[];
     };
   }
 }
