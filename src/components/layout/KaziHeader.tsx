@@ -82,7 +82,7 @@ export default function KaziHeader({
                       disabled={action.disabled}
                       title={action.title}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        action.variant === "primary"
+                        action.variant === "primary" || (!pageHeader.content && pageHeader.actions?.length === 1)
                           ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
                           : mode === "dark"
                             ? "border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"

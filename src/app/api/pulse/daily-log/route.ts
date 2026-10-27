@@ -5,7 +5,9 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { cleanText, isEditableLogDate, isValidLogDate, validateDailyLogEntries, validateDailyLogMood, type DailyLogEntry } from "@/features/pulse/daily-log/constants";
 
-type LogRow = { user_id: string; log_date: string; entries: DailyLogEntry[]; updated_at: string; mood: number | null; blockers: string | null; wins: string | null };
+type LogRow = { user_id: string; log_date: string; entries: DailyLogEntry[]; updated_at: string; mood: number | null; blockers: string | null; wins: string | null; acknowledged_at: string | null };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- daily_log_comments and acknowledged_at are newer than the generated types
+const db = supabaseAdmin as any;
 type TeamLogRow = LogRow;
 
 const MAX_RANGE_DAYS = 93;
@@ -95,13 +97,35 @@ export async function GET(req: Request) {
 
   const { data: logs } = await supabaseAdmin
     .from("daily_activity_logs")
-    .select("user_id, log_date, entries, updated_at, mood, blockers, wins")
+    .select("user_id, log_date, entries, updated_at, mood, blockers, wins, acknowledged_at")
     .gte("log_date", from)
     .lte("log_date", to)
     .in("user_id", memberIds);
   const logsByUser = new Map<string, TeamLogRow[]>();
   for (const log of (logs ?? []) as unknown as TeamLogRow[]) {
     logsByUser.set(log.user_id, [...(logsByUser.get(log.user_id) ?? []), log]);
+  }
+
+  const { data: commentRows } = await db
+    .from("daily_log_comments")
+    .select("id, user_id, log_date, body, author_id, created_at")
+    .gte("log_date", from)
+    .lte("log_date", to)
+    .in("user_id", memberIds)
+    .order("created_at", { ascending: true });
+  const commentRowList = (commentRows ?? []) as { id: string; user_id: string; log_date: string; body: string; author_id: string | null; created_at: string }[];
+  const authorIds = [...new Set(commentRowList.map((row) => row.author_id).filter((value): value is string => Boolean(value)))];
+  const { data: authors } = authorIds.length ? await db.from("users").select("id, name").in("id", authorIds) : { data: [] };
+  const authorNames = new Map(((authors ?? []) as { id: string; name: string }[]).map((author) => [author.id, author.name]));
+  const commentsByUser = new Map<string, { id: string; date: string; body: string; authorName: string | null; createdAt: string }[]>();
+  for (const row of commentRowList) {
+    commentsByUser.set(row.user_id, [...(commentsByUser.get(row.user_id) ?? []), {
+      id: row.id,
+      date: row.log_date,
+      body: row.body,
+      authorName: row.author_id ? authorNames.get(row.author_id) ?? null : null,
+      createdAt: row.created_at,
+    }]);
   }
 
   return NextResponse.json({
@@ -116,7 +140,15 @@ export async function GET(req: Request) {
         name: member.name,
         jobTitle: member.job_title,
         avatarUrl: member.avatar_url ?? signaturePhotoByUser.get(member.id) ?? null,
-        days: memberLogs.map((log) => ({ date: log.log_date, mood: log.mood ?? null, blockers: log.blockers ?? null, wins: log.wins ?? null })),
+        days: memberLogs.map((log) => ({
+          date: log.log_date,
+          mood: log.mood ?? null,
+          blockers: log.blockers ?? null,
+          wins: log.wins ?? null,
+          hasEntries: log.entries.length > 0,
+          acknowledged: Boolean(log.acknowledged_at),
+        })),
+        comments: (commentsByUser.get(member.id) ?? []),
         daysLogged: memberLogs.filter((log) => log.entries.length > 0).length,
         totalMinutes: entries.reduce((sum, entry) => sum + entry.minutes, 0),
         byCategory,

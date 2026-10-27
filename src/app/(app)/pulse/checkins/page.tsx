@@ -20,7 +20,7 @@ export default async function Page({
   const isManager = session ? can(session.user.role, "manage_checkins") : false;
 
   const { tab, user, report, view } = await searchParams;
-  const activeTab = tab ?? (user ? "checkins" : "daily");
+  const activeTab = tab ?? (user ? "checkins" : isManager ? "team" : "daily");
 
   const TABS = [
     { id: "daily",       label: "Daily log",  icon: "solar:notebook-broken" },

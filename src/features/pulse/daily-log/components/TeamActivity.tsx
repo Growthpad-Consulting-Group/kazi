@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
+import { Accordion } from "@/components/ui/Accordion";
 import DateRangePicker, { computePresetRange, type DateRangeValue } from "@/components/ui/DateRangePicker";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import toast from "react-hot-toast";
 import StatCard from "@/components/ui/StatCard";
 import { DAILY_LOG_CATEGORIES, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type TeamEntry = DailyLogEntry & { date: string };
-type TeamDay = { date: string; mood: number | null; blockers: string | null; wins: string | null };
+type TeamDay = { date: string; mood: number | null; blockers: string | null; wins: string | null; hasEntries: boolean; acknowledged: boolean };
+type TeamComment = { id: string; date: string; body: string; authorName: string | null; createdAt: string };
 type TeamMember = {
   days: TeamDay[];
   userId: string;
@@ -17,6 +21,7 @@ type TeamMember = {
   avatarUrl: string | null;
   daysLogged: number;
   totalMinutes: number;
+  comments: TeamComment[];
   byCategory: Record<string, number>;
   entries: TeamEntry[];
 };
@@ -51,7 +56,9 @@ export function TeamActivity() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState<string[]>([]);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const todayIso = toDateString(new Date());
 
   const from = range.startDate ? toDateString(range.startDate) : null;
   const to = range.endDate ? toDateString(range.endDate) : null;
@@ -76,7 +83,45 @@ export function TeamActivity() {
       })
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [from, to]);
+  }, [from, to, reloadKey]);
+
+  const runAction = async (userId: string, action: "acknowledge" | "nudge" | "blocker", date: string) => {
+    try {
+      const res = await fetch("/api/pulse/daily-log/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, userId, date }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string; added?: boolean };
+      if (!res.ok) throw new Error(json.error ?? "Could not do that.");
+      if (action === "acknowledge") toast.success("Marked as read");
+      else if (action === "nudge") toast.success("Reminder sent");
+      else toast.success(json.added === false ? "Already in their next 1-on-1 agenda" : "Added to their next 1-on-1 agenda");
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not do that.");
+    }
+  };
+
+  const addNote = async (userId: string, date: string) => {
+    const key = `${userId}|${date}`;
+    const body = (drafts[key] ?? "").trim();
+    if (!body) return;
+    try {
+      const res = await fetch("/api/pulse/daily-log/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, date, body }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Could not save the note.");
+      setDrafts((prev) => ({ ...prev, [key]: "" }));
+      toast.success("Note saved");
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the note.");
+    }
+  };
 
   const sortedTeam = useMemo(
     () => [...team].sort((a, b) => Number(b.daysLogged > 0) - Number(a.daysLogged > 0) || b.totalMinutes - a.totalMinutes || a.name.localeCompare(b.name)),
@@ -88,7 +133,6 @@ export function TeamActivity() {
     minutes: team.reduce((sum, member) => sum + member.totalMinutes, 0),
   }), [team]);
 
-  const toggle = (userId: string) => setExpanded((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
 
   return (
     <section className="space-y-5">
@@ -124,7 +168,6 @@ export function TeamActivity() {
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {sortedTeam.map((member) => {
-            const isOpen = expanded.includes(member.userId);
             const total = member.totalMinutes || 1;
             const categories = DAILY_LOG_CATEGORIES.filter((category) => member.byCategory[category]);
             return (
@@ -160,23 +203,26 @@ export function TeamActivity() {
                           ))}
                         </div>
                         <p className="text-[11px] text-[var(--text-lo)]">Logged on {member.daysLogged} day{member.daysLogged === 1 ? "" : "s"}</p>
+                        {from && to && from <= todayIso && todayIso <= to && !member.days.some((d) => d.date === todayIso && d.hasEntries) && (
+                          <Button size="sm" variant="secondary" icon="solar:bell-ringing-broken" className="mt-2" onClick={() => runAction(member.userId, "nudge", todayIso)}>
+                            Nudge to log today
+                          </Button>
+                        )}
                       </div>
                     )}
 
-                    {member.entries.length > 0 && (
-                      <button type="button" onClick={() => toggle(member.userId)} className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:underline">
-                        <Icon icon={isOpen ? "solar:alt-arrow-up-broken" : "solar:alt-arrow-down-broken"} className="h-3.5 w-3.5" />
-                        {isOpen ? "Hide entries" : `Show ${member.entries.length} entr${member.entries.length === 1 ? "y" : "ies"}`}
-                      </button>
-                    )}
                   </div>
                 </div>
 
-                {isOpen && (
-                  <div className="mt-4 space-y-4 border-t border-[var(--border)] pt-4">
-                    {groupByDate(member.entries, member.days).map(([date, dayEntries]) => (
-                      <div key={date}>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">{formatDay(date)} · {formatMinutes(dayEntries.reduce((sum, entry) => sum + entry.minutes, 0))}</p>
+                {member.entries.length > 0 && (
+                  <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
+                    {groupByDate(member.entries, member.days).map(([date, dayEntries], dayIndex) => (
+                      <Accordion
+                        key={date}
+                        title={formatDay(date)}
+                        badge={formatMinutes(dayEntries.reduce((sum, entry) => sum + entry.minutes, 0))}
+                        defaultOpen={dayIndex === 0}
+                      >
                         {(() => { const day = member.days.find((d) => d.date === date); return day && (day.mood || day.blockers || day.wins) ? (
                           <div className="mb-2 space-y-1 rounded-lg bg-brand-500/5 px-3 py-2 text-xs text-[var(--text-hi)]">
                             {day.mood ? <p>Mood {moodEmoji(day.mood)}</p> : null}
@@ -196,7 +242,42 @@ export function TeamActivity() {
                             </li>
                           ))}
                         </ul>
-                      </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {member.days.find((d) => d.date === date)?.hasEntries && !member.days.find((d) => d.date === date)?.acknowledged && (
+                            <Button size="sm" variant="secondary" icon="solar:check-circle-broken" onClick={() => runAction(member.userId, "acknowledge", date)}>Mark as read</Button>
+                          )}
+                          {member.days.find((d) => d.date === date)?.blockers && (
+                            <Button size="sm" variant="secondary" icon="solar:calendar-add-broken" onClick={() => runAction(member.userId, "blocker", date)}>Add blocker to 1-on-1</Button>
+                          )}
+                        </div>
+                        <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">Notes for the employee</p>
+                          {member.comments.filter((c) => c.date === date).map((note) => (
+                            <div key={note.id} className="rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs">
+                              <p className="text-[var(--text-hi)]">{note.body}</p>
+                              <p className="mt-1 text-[10px] text-[var(--text-lo)]">{note.authorName ?? "Manager"} · {new Date(note.createdAt).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</p>
+                            </div>
+                          ))}
+                          <form
+                            className="flex items-start gap-2"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              void addNote(member.userId, date);
+                            }}
+                          >
+                            <textarea
+                              value={drafts[`${member.userId}|${date}`] ?? ""}
+                              onChange={(event) => setDrafts((prev) => ({ ...prev, [`${member.userId}|${date}`]: event.target.value }))}
+                              maxLength={1000}
+                              rows={2}
+                              placeholder="Leave a note for them"
+                              aria-label={`Note for ${member.name} on ${formatDay(date)}`}
+                              className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-brand-500/30"
+                            />
+                            <Button type="submit" size="sm">Send</Button>
+                          </form>
+                        </div>
+                      </Accordion>
                     ))}
                   </div>
                 )}

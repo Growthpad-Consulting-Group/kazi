@@ -55,6 +55,21 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const locked = !isEditableLogDate(date);
   const [savedEntries, setSavedEntries] = useState<DailyLogEntry[]>([]);
   const [history, setHistory] = useState<{ date: string; entries: DailyLogEntry[]; mood: number | null }[]>([]);
+  const [notes, setNotes] = useState<{ id: string; body: string; authorName: string | null; createdAt: string }[]>([]);
+
+  // Notes a manager left on the chosen day, shown read-only.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/pulse/daily-log/comments?date=${date}`)
+      .then((res) => res.json())
+      .then((json: { comments?: typeof notes }) => {
+        if (!cancelled) setNotes(json.comments ?? []);
+      })
+      .catch(() => !cancelled && setNotes([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [date]);
   const [clients, setClients] = useState<string[]>([]);
   const [asana, setAsana] = useState<{ open: boolean; loading: boolean; connected: boolean; tasks: AsanaTask[]; selected: string[] }>({ open: false, loading: false, connected: false, tasks: [], selected: [] });
 
@@ -221,6 +236,17 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
             canEdit={!locked}
             onEdit={() => setEditing(true)}
           />
+          {notes.length > 0 && (
+            <div className="space-y-2 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">Notes from your manager</p>
+              {notes.map((note) => (
+                <div key={note.id} className="text-xs">
+                  <p className="text-[var(--text-hi)]">{note.body}</p>
+                  <p className="mt-0.5 text-[10px] text-[var(--text-lo)]">{note.authorName ?? "Manager"} · {new Date(note.createdAt).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (!isReviewer && (
       <section className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200 sm:p-6">

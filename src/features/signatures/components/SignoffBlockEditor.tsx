@@ -115,6 +115,8 @@ const PALETTE: { type: Block["type"]; label: string; icon: string }[] = [
 // into side-by-side clickable pieces" use case this exists for), so the mini palette shown
 // inside a column omits it.
 const MINI_PALETTE = PALETTE.filter((p) => p.type !== "columns");
+const ESSENTIAL_PALETTE = PALETTE.filter((p) => ["text", "image", "button"].includes(p.type));
+const ADVANCED_PALETTE = PALETTE.filter((p) => !["text", "image", "button"].includes(p.type));
 
 /** A ready-made "photo + name/role side by side" layout — a `columns` block pre-filled with a
  * per-staff photo and a text block carrying the two merge tags, rather than a new block type.
@@ -518,6 +520,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paletteCollapsed, setPaletteCollapsed] = useState(true);
+  const [showAdvancedPalette, setShowAdvancedPalette] = useState(false);
   const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null);
   const [darkPickerOpenFor, setDarkPickerOpenFor] = useState<string | null>(null);
   // Label shown in the DragOverlay while dragging a *new* block in from the palette — sortable
@@ -795,10 +798,10 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
 
   return (
     <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-    <div className="signature-builder flex h-full min-h-0">
+    <div className="signature-builder flex h-full min-h-0 bg-[var(--surface)]">
       {/* Palette — collapsible so the canvas can go full-width while editing, not just viewing. */}
       {paletteCollapsed ? (
-        <div className="shrink-0 border-r border-[var(--border)]/45 bg-surface p-2">
+        <div className="shrink-0 border-r border-[var(--border)]/60 bg-[var(--surface)] p-2">
           <button
             onClick={() => setPaletteCollapsed(false)}
             title="Show block panel"
@@ -808,7 +811,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
           </button>
         </div>
       ) : (
-        <div className="w-56 shrink-0 overflow-y-auto border-r border-[var(--border)]/45 bg-surface p-4">
+        <div className="w-56 shrink-0 overflow-y-auto border-r border-[var(--border)]/60 bg-[var(--surface)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wide text-text-lo">Add block</p>
             <button
@@ -819,19 +822,20 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
               <Icon icon="solar:sidebar-minimalistic-broken" className="h-4 w-4" />
             </button>
           </div>
-          <p className="mb-2 text-xs text-text-lo">Click to add, or drag onto the canvas — even directly into a column.</p>
+          <p className="mb-3 text-xs leading-5 text-text-lo">Click to add, or drag directly onto the canvas—even into a column.</p>
           <div className="space-y-2">
-            {PALETTE.map((p) => (
+            {ESSENTIAL_PALETTE.map((p) => (
               <PaletteButton key={p.type} type={p.type} label={p.label} icon={p.icon} onClick={() => addBlock(p.type)} />
             ))}
           </div>
 
-          <p className="mb-2 mt-5 text-xs font-medium uppercase tracking-wide text-text-lo">Presets</p>
+          <p className="mb-2 mt-5 border-t border-[var(--border)]/60 pt-4 text-xs font-medium uppercase tracking-wide text-text-lo">Signature sections</p>
           <div className="space-y-2">
             {PRESETS.map((p) => (
               <PresetButton key={p.id} id={p.id} label={p.label} icon={p.icon} onClick={() => addPresetBlocks(p.build())} />
             ))}
           </div>
+          <div className="mt-5 border-t border-[var(--border)]/60 pt-4"><button type="button" onClick={() => setShowAdvancedPalette((value) => !value)} className="flex w-full items-center justify-between text-xs font-medium text-text-lo transition-colors hover:text-text-hi"><span>Advanced blocks</span><Icon icon={showAdvancedPalette ? "solar:alt-arrow-up-broken" : "solar:alt-arrow-down-broken"} className="h-3.5 w-3.5" /></button>{showAdvancedPalette && <div className="mt-3 space-y-2">{ADVANCED_PALETTE.map((p) => <PaletteButton key={p.type} type={p.type} label={p.label} icon={p.icon} onClick={() => addBlock(p.type)} />)}</div>}</div>
         </div>
       )}
 
@@ -841,16 +845,16 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
           capped to (blockSerializer.ts), not something the editing surface needs to enforce
           visually too. A dashed guide marks where the real signature width ends instead, so it's
           still visible without constraining the work area. */}
-      <div className="flex-1 overflow-y-auto bg-surface-2/40 p-7 sm:p-9">
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-2)]/65 p-5 sm:p-8">
         <div className="mx-auto mb-3 flex w-full items-center justify-between gap-3" style={{ maxWidth: previewMode === "mobile" ? 390 : Math.max(canvasWidth, paletteCollapsed ? 1400 : 900) }}>
-          <p className="text-xs font-medium text-text-lo">{previewMode === "mobile" ? "Mobile preview · columns stack" : "Desktop preview · email-safe canvas"}</p>
-          <div className="inline-flex rounded-lg bg-surface p-1 shadow-sm">
+          <div><p className="text-xs font-semibold text-text-hi">{previewMode === "mobile" ? "Mobile preview" : "Desktop preview"}</p><p className="mt-0.5 text-[10px] text-text-lo">{previewMode === "mobile" ? "Columns stack for small screens" : "Email-safe canvas"}</p></div>
+          <div className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-sm">
             <button type="button" onClick={() => setPreviewMode("desktop")} className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${previewMode === "desktop" ? "bg-brand-500/12 text-brand-600" : "text-text-lo hover:text-text-hi"}`}><Icon icon="solar:monitor-broken" className="h-3.5 w-3.5" />Desktop</button>
             <button type="button" onClick={() => setPreviewMode("mobile")} className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${previewMode === "mobile" ? "bg-brand-500/12 text-brand-600" : "text-text-lo hover:text-text-hi"}`}><Icon icon="solar:smartphone-broken" className="h-3.5 w-3.5" />Mobile</button>
           </div>
         </div>
         <div className="mx-auto w-full transition-[max-width] duration-200" style={{ maxWidth: previewMode === "mobile" ? 390 : Math.max(canvasWidth, paletteCollapsed ? 1400 : 900) }}>
-          <div className="relative rounded-2xl bg-surface p-6 shadow-[0_12px_35px_rgba(24,24,27,.05)]">
+          <div className="relative rounded-2xl border border-[var(--border)]/70 bg-[var(--surface)] p-6 shadow-xl shadow-slate-200/35 dark:shadow-black/20">
             {canvasWidth < 700 && (
               <div
                 className="pointer-events-none absolute inset-y-0 border-r border-dashed border-brand-500/40"
@@ -864,12 +868,22 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
       </div>
 
       {/* Settings */}
-      <div className="w-80 shrink-0 overflow-y-auto border-l border-[var(--border)]/45 bg-surface p-4">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-lo">Settings</p>
+      <div className="w-80 shrink-0 overflow-y-auto border-l border-[var(--border)]/60 bg-[var(--surface)] p-4">
+        <div className="mb-3 border-b border-[var(--border)]/60 pb-3"><p className="text-xs font-medium uppercase tracking-wide text-text-lo">{selected ? "Block settings" : "Template settings"}</p><p className="mt-1 text-xs text-text-lo">{selected ? `Editing ${selected.type === "html" ? "raw HTML" : selected.type} block` : "Select a block to change its content or appearance."}</p></div>
         {!selected ? (
           <div className="space-y-4">
-            <div className="rounded-xl bg-surface-2/60 p-3">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-lo">Template</p>
+            <div className="rounded-xl bg-brand-500/[0.06] p-3">
+              <p className="text-sm font-semibold text-text-hi">Build your signature</p>
+              <p className="mt-1 text-xs leading-5 text-text-lo">Start with a section below, then select anything on the canvas to make it your own.</p>
+              <div className="mt-3 grid gap-2">
+                <button type="button" onClick={() => addPresetBlocks([createStaffCardBlock()])} className="flex items-center gap-2 rounded-lg bg-surface px-2.5 py-2 text-left text-xs font-medium text-text-hi shadow-sm transition-colors hover:bg-brand-500/10 hover:text-brand-600"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600"><Icon icon="solar:user-id-broken" className="h-3.5 w-3.5" /></span>Staff identity</button>
+                <button type="button" onClick={() => addPresetBlocks(createContactDetailsBlocks())} className="flex items-center gap-2 rounded-lg bg-surface px-2.5 py-2 text-left text-xs font-medium text-text-hi shadow-sm transition-colors hover:bg-brand-500/10 hover:text-brand-600"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600"><Icon icon="solar:phone-broken" className="h-3.5 w-3.5" /></span>Contact details</button>
+                <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => addBlock("social")} className="flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-2 text-left text-xs font-medium text-text-hi shadow-sm transition-colors hover:bg-brand-500/10 hover:text-brand-600"><Icon icon="solar:share-broken" className="h-3.5 w-3.5 text-brand-600" />Social links</button><button type="button" onClick={() => addBlock("button")} className="flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-2 text-left text-xs font-medium text-text-hi shadow-sm transition-colors hover:bg-brand-500/10 hover:text-brand-600"><Icon icon="solar:cursor-broken" className="h-3.5 w-3.5 text-brand-600" />Call to action</button></div>
+              </div>
+            </div>
+            <details className="rounded-xl bg-surface-2/60 p-3">
+              <summary className="cursor-pointer text-xs font-medium text-text-hi">Signature dimensions</summary>
+              <div className="mt-3">
               <Field label="Content width (px)">
                 <input
                   type="number"
@@ -890,8 +904,8 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
                 The master width for this signature — every block is capped to fit inside it. 600px is the standard email-signature
                 width; most inboxes crop or scroll anything wider.
               </p>
-            </div>
-            <p className="text-sm text-text-lo">Select a block to edit its settings.</p>
+              </div>
+            </details>
           </div>
         ) : (
           <div className="space-y-3">

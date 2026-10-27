@@ -45,12 +45,19 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
     thisWeek.find((c) => c.ai_summary)?.ai_summary ?? null
   );
   const [summarising, setSummarising] = useState(false);
+  const [filter, setFilter] = useState<"all" | "review" | "attention" | "reviewed">("all");
 
   const awaitingReview = thisWeek.filter((c) => c.status !== "reviewed").length;
   const lowMood = thisWeek.filter((c) => hasMoodAlert(checkins, c.user_id, weekStart)).length;
   const repeatedBlockers = thisWeek.filter((c) =>
     hasBlockerAlert(checkins, c.user_id, weekStart)
   ).length;
+  const visibleCheckins = thisWeek.filter((checkin) => {
+    if (filter === "review") return checkin.status !== "reviewed";
+    if (filter === "attention") return hasMoodAlert(checkins, checkin.user_id, weekStart) || hasBlockerAlert(checkins, checkin.user_id, weekStart);
+    if (filter === "reviewed") return checkin.status === "reviewed";
+    return true;
+  });
 
   async function generateSummary() {
     setSummarising(true);
@@ -85,19 +92,17 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="space-y-5">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-              <Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+              <Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" />
             </span>
-            <h2 className="text-sm font-semibold text-[var(--text-hi)]">Team check-ins</h2>
+            <div><h2 className="font-semibold text-[var(--text-hi)]">Team review desk</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Review updates, acknowledge blockers, and keep the week moving.</p></div>
           </div>
-          <p className="mt-2 text-xs text-[var(--text-lo)]">
-            Direct-report updates — review them, acknowledge blockers, and keep the week moving.
-          </p>
         </div>
         {thisWeek.length > 0 && (
           <Button
@@ -111,18 +116,17 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
           </Button>
         )}
       </div>
+      </section>
 
-      {/* Metrics */}
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard title="Submitted" value={thisWeek.length} icon="solar:clipboard-check-broken" color="blue" variant="inline" compact />
-        <StatCard title="To review" value={awaitingReview} icon="solar:eye-broken" color={awaitingReview ? "amber" : "green"} variant="inline" compact />
-        <StatCard title="Low mood" value={lowMood} icon="solar:heart-pulse-broken" color={lowMood ? "red" : "green"} variant="inline" compact />
-        <StatCard title="Repeat blockers" value={repeatedBlockers} icon="solar:danger-triangle-broken" color={repeatedBlockers ? "orange" : "green"} variant="inline" compact />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard title="Submitted" value={thisWeek.length} icon="solar:clipboard-check-broken" color="blue" variant="inline" compact onClick={() => setFilter("all")} />
+        <StatCard title="To review" value={awaitingReview} icon="solar:eye-broken" color={awaitingReview ? "amber" : "green"} variant="inline" compact onClick={() => setFilter("review")} />
+        <StatCard title="Low mood" value={lowMood} icon="solar:heart-pulse-broken" color={lowMood ? "red" : "green"} variant="inline" compact onClick={() => setFilter("attention")} />
+        <StatCard title="Repeat blockers" value={repeatedBlockers} icon="solar:danger-triangle-broken" color={repeatedBlockers ? "orange" : "green"} variant="inline" compact onClick={() => setFilter("attention")} />
       </div>
 
-      {/* AI summary */}
       {aiSummary && (
-        <div className="mt-5 rounded-xl border border-blue-500/15 bg-blue-500/5 p-4">
+        <section className="rounded-2xl border border-blue-500/15 bg-blue-500/5 p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
           <div className="flex gap-2.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
               <Icon icon="solar:magic-stick-3-broken" className="h-4 w-4" />
@@ -134,19 +138,20 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
               </p>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Check-in list */}
+      <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+        <div className="flex flex-col gap-3 border-b border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold text-[var(--text-hi)]">Submitted updates</h2><p className="mt-1 text-sm text-[var(--text-lo)]">Open an update to review progress and leave a manager note.</p></div><div className="flex flex-wrap gap-1 rounded-xl bg-[var(--surface-2)] p-1">{([ ["all", "All"], ["review", "To review"], ["attention", "Needs support"], ["reviewed", "Reviewed"] ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${filter === value ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}>{label}</button>)}</div></div>
       {thisWeek.length ? (
-        <div className="mt-5 overflow-hidden rounded-xl border border-[var(--border)]">
-          {thisWeek.map((checkin, index) => {
+        <div className="divide-y divide-[var(--border)]">
+          {visibleCheckins.map((checkin) => {
             const isExpanded = expanded === checkin.id;
             const moodAlert = hasMoodAlert(checkins, checkin.user_id, weekStart);
             const blockerAlert = hasBlockerAlert(checkins, checkin.user_id, weekStart);
 
             return (
-              <div key={checkin.id} className={index ? "border-t border-[var(--border)]" : ""}>
+              <div key={checkin.id}>
                 {/* Row */}
                 <button
                   type="button"
@@ -245,7 +250,7 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
           })}
         </div>
       ) : (
-        <div className="mt-5 flex min-h-36 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 text-center">
+        <div className="m-5 flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 text-center">
           <Icon icon="solar:clipboard-check-broken" className="h-6 w-6 text-[var(--text-lo)]" />
           <p className="mt-2 text-sm font-medium text-[var(--text-hi)]">No direct-report updates yet</p>
           <p className="mt-1 text-xs text-[var(--text-lo)]">
@@ -253,13 +258,10 @@ export function TeamCheckins({ checkins, weekStart }: Props) {
           </p>
         </div>
       )}
-
-      {previous.length > 0 && (
-        <p className="mt-3 text-xs text-[var(--text-lo)]">
-          {previous.length} check-in{previous.length === 1 ? "" : "s"} from previous weeks in history.
-        </p>
-      )}
-    </section>
+      {thisWeek.length > 0 && visibleCheckins.length === 0 && <div className="m-5 rounded-xl border border-dashed border-[var(--border)] px-4 py-10 text-center"><Icon icon="solar:filter-broken" className="mx-auto h-5 w-5 text-[var(--text-lo)]" /><p className="mt-2 text-sm font-semibold text-[var(--text-hi)]">No updates in this view</p><button type="button" onClick={() => setFilter("all")} className="mt-2 text-xs font-semibold text-brand-500 hover:underline">Show all updates</button></div>}
+      </section>
+      {previous.length > 0 && <p className="px-1 text-xs text-[var(--text-lo)]">{previous.length} check-in{previous.length === 1 ? "" : "s"} from previous weeks are available in history.</p>}
+    </div>
   );
 }
 
