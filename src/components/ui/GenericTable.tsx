@@ -14,6 +14,7 @@ import ExportModal from "./export/ExportModal";
 import TooltipIconButton from "./TooltipIconButton";
 import toast from "react-hot-toast";
 import ColumnVisibilityMenu from "./table/ColumnVisibilityMenu";
+import { useIsViewOnly } from "@/lib/use-view-only";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,25 +97,25 @@ export function GenericTable<T extends Record<string, unknown>>({
   icon,
   emptyMessage = "No records found.",
   emptyIcon = "solar:inbox-broken",
-  actions = [],
-  bulkActions = [],
+  actions: actionsProp = [],
+  bulkActions: bulkActionsProp = [],
   onRowClick,
   pageSize: defaultPageSize = 25,
   rightContent,
   className,
   getRowId,
-  selectable = true,
+  selectable: selectableProp = true,
   showExport = true,
   onExport,
   searchable = false,
   searchPlaceholder = "Search…",
   stickyHeader,
   unifiedSearchFilter,
-  onAddNew,
+  onAddNew: onAddNewProp,
   addNewLabel = "Add New",
   fullPageHeight = true,
   tableMaxHeight: propTableMaxHeight,
-  onImport,
+  onImport: onImportProp,
   enableDateFilter = true,
   enableRefresh = true,
   onRefresh,
@@ -129,6 +130,13 @@ export function GenericTable<T extends Record<string, unknown>>({
   }, [propTableMaxHeight, fullPageHeight]);
 
   const derivedStickyHeader = stickyHeader ?? !!(tableMaxHeight);
+  // Read-only reviewers see the table without write actions.
+  const viewOnly = useIsViewOnly();
+  const actions = viewOnly ? [] : actionsProp;
+  const bulkActions = viewOnly ? [] : bulkActionsProp;
+  const selectable = viewOnly ? false : selectableProp;
+  const onAddNew = viewOnly ? undefined : onAddNewProp;
+  const onImport = viewOnly ? undefined : onImportProp;
   const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null, label: 'All Time' });
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [columnOrder, setColumnOrder] = useState<string[]>([]);

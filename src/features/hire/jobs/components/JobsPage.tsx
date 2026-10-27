@@ -19,7 +19,7 @@ export default async function JobsPage({ initialStatus }: { initialStatus?: stri
         icon="solar:case-minimalistic-broken"
         actions={[
           { label: "Careers page", icon: "solar:global-broken", href: careersPageUrl(), variant: "secondary" },
-          { label: "New Job", icon: "solar:add-circle-broken", href: "/hire/jobs/new", variant: "primary" },
+          { label: "New Job", icon: "solar:add-circle-broken", href: "/hire/jobs/new", variant: "primary", write: true },
         ]}
       />
       <JobsClientView jobs={jobs} departments={departments} initialStatus={initialStatus} />

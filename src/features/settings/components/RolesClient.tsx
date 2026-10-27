@@ -1,6 +1,7 @@
 import { Icon } from "@iconify/react";
 import SettingsSection from "./SettingsSection";
 import PageAccessMatrix, { type PageGrant } from "./PageAccessMatrix";
+import { EditableArea } from "./EditableArea";
 
 interface RoleRow {
   role: string;
@@ -99,7 +100,7 @@ const ROLES: RoleRow[] = [
   },
 ];
 
-export default function RolesClient({ grants }: { grants: PageGrant[] }) {
+export default function RolesClient({ grants, canEdit }: { grants: PageGrant[]; canEdit: boolean }) {
   return (
     <div className="space-y-5">
       <SettingsSection
@@ -107,7 +108,9 @@ export default function RolesClient({ grants }: { grants: PageGrant[] }) {
         description="Choose which pages each role can open. Admin always has access to every page."
         icon="solar:shield-check-broken"
       >
-        <PageAccessMatrix grants={grants} />
+        <EditableArea canEdit={canEdit}>
+          <PageAccessMatrix grants={grants} />
+        </EditableArea>
       </SettingsSection>
 
       <SettingsSection

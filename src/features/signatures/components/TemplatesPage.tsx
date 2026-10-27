@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, canView } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import TemplatesClient from "./TemplatesClient";
 
@@ -11,7 +11,7 @@ type Assignment = { template_id: string };
 
 export default async function TemplatesPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures");
+  if (!session || !canView(session.user, "manage_signatures")) redirect("/signatures");
   const database = supabaseAdmin as unknown as Database;
   const [templateResult, clickResult, assignmentResult] = await Promise.all([
     database.from("signature_templates").select("id, name, description, html, thumbnail_url, is_default, created_at, updated_at"),

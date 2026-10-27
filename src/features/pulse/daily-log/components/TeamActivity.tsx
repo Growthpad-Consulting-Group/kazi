@@ -27,6 +27,7 @@ type TeamMember = {
 };
 
 const RANGE_OPTIONS = ["This Week", "Last Week", "This Month", "Last Month", "Custom Range"];
+type ActivityFilter = "all" | "logged" | "missing" | "attention";
 
 function toDateString(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
@@ -58,6 +59,7 @@ export function TeamActivity() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<ActivityFilter>("all");
   const todayIso = toDateString(new Date());
 
   const from = range.startDate ? toDateString(range.startDate) : null;
@@ -123,14 +125,22 @@ export function TeamActivity() {
     }
   };
 
-  const sortedTeam = useMemo(
-    () => [...team].sort((a, b) => Number(b.daysLogged > 0) - Number(a.daysLogged > 0) || b.totalMinutes - a.totalMinutes || a.name.localeCompare(b.name)),
-    [team]
-  );
+  const needsSupport = (member: TeamMember) => member.days.some((day) => Boolean(day.blockers) || (day.mood ?? 5) <= 2);
+  const sortedTeam = useMemo(() => {
+    const matches = (member: TeamMember) => {
+      if (filter === "logged") return member.daysLogged > 0;
+      if (filter === "missing") return member.daysLogged === 0;
+      if (filter === "attention") return needsSupport(member);
+      return true;
+    };
+    return team
+      .filter(matches)
+      .sort((a, b) => Number(needsSupport(b)) - Number(needsSupport(a)) || Number(b.daysLogged > 0) - Number(a.daysLogged > 0) || b.totalMinutes - a.totalMinutes || a.name.localeCompare(b.name));
+  }, [filter, team]);
   const summary = useMemo(() => ({
     members: team.length,
     withLogs: team.filter((member) => member.daysLogged > 0).length,
-    minutes: team.reduce((sum, member) => sum + member.totalMinutes, 0),
+    needsSupport: team.filter(needsSupport).length,
   }), [team]);
 
 
@@ -141,18 +151,19 @@ export function TeamActivity() {
           <div className="flex min-w-0 items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-5 w-5" /></span>
             <div>
-              <h2 className="text-base font-semibold text-[var(--text-hi)]">Team activity</h2>
-              <p className="mt-0.5 text-xs text-[var(--text-lo)]">How each person spent their time across the selected range.</p>
+              <h2 className="text-base font-semibold text-[var(--text-hi)]">Daily reporting</h2>
+              <p className="mt-0.5 text-xs text-[var(--text-lo)]">See coverage first, then open the work and support context behind each update.</p>
             </div>
           </div>
           <div className="w-full sm:w-72">
             <DateRangePicker value={range} onChange={setRange} allowedRanges={RANGE_OPTIONS} maxDate={null} fullWidth />
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard title="Team members" value={summary.members} icon="solar:users-group-two-rounded-broken" color="slate" variant="inline" compact />
-          <StatCard title={summary.withLogs === 1 ? "Member who logged" : "Members who logged"} value={summary.withLogs} icon="solar:check-circle-broken" color="green" variant="inline" compact />
-          <StatCard title="Total time" value={formatMinutes(summary.minutes)} icon="solar:stopwatch-broken" color="orange" variant="inline" compact />
+        <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard title="Team members" value={summary.members} icon="solar:users-group-two-rounded-broken" color="slate" variant="inline" compact onClick={() => setFilter("all")} />
+          <StatCard title={summary.withLogs === 1 ? "Member logged" : "Members logged"} value={summary.withLogs} icon="solar:check-circle-broken" color="green" variant="inline" compact onClick={() => setFilter("logged")} />
+          <StatCard title="No activity" value={summary.members - summary.withLogs} icon="solar:clock-circle-broken" color="amber" variant="inline" compact onClick={() => setFilter("missing")} />
+          <StatCard title="Needs support" value={summary.needsSupport} icon="solar:heart-angle-broken" color="red" variant="inline" compact onClick={() => setFilter("attention")} />
         </div>
       </div>
 
@@ -166,12 +177,37 @@ export function TeamActivity() {
           <p className="mt-1 text-xs text-[var(--text-lo)]">Team activity appears here once people are assigned to you.</p>
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-3 shadow-xl shadow-slate-200/30 dark:shadow-black/10 sm:p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--text-hi)]">Team activity</h3>
+              <p className="mt-0.5 text-xs text-[var(--text-lo)]">Open a day to review work, acknowledge it, or leave a manager note.</p>
+            </div>
+            <div className="flex flex-wrap gap-1 rounded-xl bg-[var(--surface)] p-1">
+              {([
+                ["all", "All"],
+                ["logged", "Logged"],
+                ["missing", "No activity"],
+                ["attention", "Needs support"],
+              ] as const).map(([value, label]) => (
+                <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${filter === value ? "bg-brand-500 text-white shadow-sm" : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {sortedTeam.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-10 text-center">
+              <p className="text-sm font-semibold text-[var(--text-hi)]">No matching team activity</p>
+              <p className="mt-1 text-xs text-[var(--text-lo)]">Try another filter or reporting range.</p>
+            </div>
+          ) : <div className="grid gap-4 xl:grid-cols-2">
           {sortedTeam.map((member) => {
             const total = member.totalMinutes || 1;
             const categories = DAILY_LOG_CATEGORIES.filter((category) => member.byCategory[category]);
+            const attentionNeeded = needsSupport(member);
             return (
-              <article key={member.userId} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20">
+              <article key={member.userId} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl dark:shadow-black/20">
                 <div className="flex items-start gap-3">
                   <Avatar name={member.name} src={member.avatarUrl} size="md" className={member.daysLogged ? "" : "bg-[var(--surface-2)] text-[var(--text-lo)]"} />
                   <div className="min-w-0 flex-1">
@@ -180,7 +216,9 @@ export function TeamActivity() {
                         <p className="truncate text-sm font-semibold text-[var(--text-hi)]">{member.name}</p>
                         <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">{member.jobTitle ?? "Team member"}</p>
                       </div>
-                      {member.daysLogged ? (
+                      {attentionNeeded ? (
+                        <span className="shrink-0 rounded-lg bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400">Needs support</span>
+                      ) : member.daysLogged ? (
                         <span className="shrink-0 rounded-lg bg-brand-500/10 px-2.5 py-1 font-mono text-xs font-semibold text-brand-500">{formatMinutes(member.totalMinutes)}</span>
                       ) : (
                         <span className="shrink-0 rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700">Nothing logged</span>
@@ -216,12 +254,12 @@ export function TeamActivity() {
 
                 {member.entries.length > 0 && (
                   <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
-                    {groupByDate(member.entries, member.days).map(([date, dayEntries], dayIndex) => (
+                    {groupByDate(member.entries, member.days).map(([date, dayEntries]) => (
                       <Accordion
                         key={date}
                         title={formatDay(date)}
                         badge={formatMinutes(dayEntries.reduce((sum, entry) => sum + entry.minutes, 0))}
-                        defaultOpen={dayIndex === 0}
+                        defaultOpen={false}
                       >
                         {(() => { const day = member.days.find((d) => d.date === date); return day && (day.mood || day.blockers || day.wins) ? (
                           <div className="mb-2 space-y-1 rounded-lg bg-brand-500/5 px-3 py-2 text-xs text-[var(--text-hi)]">
@@ -251,7 +289,7 @@ export function TeamActivity() {
                           )}
                         </div>
                         <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">Notes for the employee</p>
+                          <p className="text-xs font-semibold capitalize text-[var(--text-lo)]">Notes for the employee</p>
                           {member.comments.filter((c) => c.date === date).map((note) => (
                             <div key={note.id} className="rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs">
                               <p className="text-[var(--text-hi)]">{note.body}</p>
@@ -284,6 +322,7 @@ export function TeamActivity() {
               </article>
             );
           })}
+          </div>}
         </div>
       )}
     </section>

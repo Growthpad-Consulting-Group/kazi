@@ -2,7 +2,7 @@
 // by page-access-server.ts. This file only holds the list of gated pages and the
 // matching rule, so navigation, the settings shell and the proxy all share one check.
 
-/** adminOnly pages are never granted to other roles; they are listed so the nav hides them too. */
+/** adminOnly pages are granted to admins and, read-only, to people with the view grant. */
 export type GatedPage = { path: string; label: string; section: string; adminOnly?: boolean };
 
 /** Pages whose access is granted per role. Paths not listed here are open to every signed-in user. */
@@ -43,7 +43,7 @@ export function isPathAllowed(allowedPaths: readonly string[], pathname: string)
     if (matchesPath(pathname, page.path) && (!gate || page.path.length > gate.path.length)) gate = page;
   }
   if (!gate) return true;
-  if (gate.adminOnly) return false;
+  // Admin-only pages are open only to admins ("*") or to someone with the read-only grant.
   return allowedPaths.includes(gate.path);
 }
 
@@ -53,6 +53,11 @@ export function isPathAllowed(allowedPaths: readonly string[], pathname: string)
  */
 export function withViewGrant(allowedPaths: string[], extraPermissions: readonly string[]): string[] {
   if (allowedPaths.includes("*") || !extraPermissions.includes("view_admin_screens")) return allowedPaths;
-  const viewable = GATED_PAGES.filter((page) => !page.adminOnly).map((page) => page.path);
+  const viewable = GATED_PAGES.map((page) => page.path);
   return [...new Set([...allowedPaths, ...viewable])];
+}
+
+/** True for an admin screen (a gated page, or the path under one). Employee pages are not admin screens. */
+export function isAdminScreenPath(pathname: string): boolean {
+  return GATED_PAGES.some((page) => pathname === page.path || pathname.startsWith(`${page.path}/`));
 }

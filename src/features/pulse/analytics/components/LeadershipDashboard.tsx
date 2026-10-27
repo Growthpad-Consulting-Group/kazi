@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/rbac";
+import { can, canView } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -34,7 +34,7 @@ function isFlightRisk(checkins: Checkin[], userId: string) {
 export default async function LeadershipDashboard() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
-  if (!can(session.user.role, "view_analytics")) redirect("/pulse");
+  if (!canView(session.user, "view_analytics")) redirect("/pulse");
 
   const isHr = can(session.user.role, "manage_surveys");
   const thisWeek = getWeekStart(0);

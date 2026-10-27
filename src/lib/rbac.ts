@@ -125,6 +125,16 @@ export const GRANTABLE_PERMISSIONS = ["manage_side_quests", "manage_recognition_
 export const VIEW_ADMIN_SCREENS = "view_admin_screens";
 export type GrantablePermission = (typeof GRANTABLE_PERMISSIONS)[number];
 
+/** True when someone has the read-only grant that opens admin screens. */
+export function hasViewGrant(user: { extraPermissions?: readonly string[] }): boolean {
+  return (user.extraPermissions ?? []).includes("view_admin_screens");
+}
+
+/** For screens someone can review without changing anything: their role, a grant, or the read-only grant. */
+export function canView(user: { role: UserRole; extraPermissions?: readonly string[] }, permission: Permission): boolean {
+  return userCan(user, permission) || hasViewGrant(user);
+}
+
 /** Role permission, or a permission granted to this person. Use this where the person's extra grants matter. */
 export function userCan(
   user: { role: UserRole; extraPermissions?: readonly string[] },

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, canView } from "@/lib/rbac";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -25,7 +25,7 @@ function isPastDue(item: Item): boolean {
 
 export default async function EngagementCalendarPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "view_people")) redirect("/pulse");
+  if (!session || !canView(session.user, "view_people")) redirect("/pulse");
 
   const [
     { data: campaigns },

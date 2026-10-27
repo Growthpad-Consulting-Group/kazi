@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, canView } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { RecognitionAnalyticsFilters } from "./RecognitionAnalyticsFilters";
@@ -26,7 +26,7 @@ function getString(
 export default async function RecognitionAnalyticsPage({ searchParams }: Props) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
-  if (!can(session.user.role, "view_analytics")) redirect("/pulse");
+  if (!canView(session.user, "view_analytics")) redirect("/pulse");
 
   const period = resolveRange({
     from: getString(searchParams.from),

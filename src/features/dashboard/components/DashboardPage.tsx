@@ -69,6 +69,7 @@ export default async function DashboardPage({
         userId: session.user.id,
         role: session.user.role,
         department: session.user.department ?? null,
+        viewAllScreens: session.user.extraPermissions?.includes("view_admin_screens") ?? false,
       }
     : undefined;
 

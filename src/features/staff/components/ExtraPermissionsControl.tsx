@@ -9,8 +9,8 @@ import { cn } from "@/shared/lib/cn";
 
 const ITEMS: Record<GrantablePermission, { label: string; help: string; icon: string }> = {
   view_admin_screens: {
-    label: "View admin screens (read-only)",
-    help: "Open Settings, Hiring and Signatures to review them. Nothing can be changed.",
+    label: "View all admin screens (read-only)",
+    help: "Open every admin screen, including Roles, to review it. Nothing can be changed.",
     icon: "solar:eye-broken",
   },
   manage_side_quests: {

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { can, canView } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import NewSignatureCampaignButton from "./NewSignatureCampaignButton";
 import CampaignActions from "./CampaignActions";
@@ -29,7 +29,7 @@ function campaignState(campaign: Campaign) {
 
 export default async function SignatureCampaignsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures");
+  if (!session || !canView(session.user, "manage_signatures")) redirect("/signatures");
   const db = supabaseAdmin as unknown as Database;
   const [campaignResult, statResult, domainResult, staffResult, groupResult, audienceResult] = await Promise.all([
     db.from("signature_campaigns").select("id, name, image_url, link_url, active, domain_id, starts_at, ends_at, variant_label, weight, created_at"),

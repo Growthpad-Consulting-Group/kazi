@@ -29,8 +29,9 @@ export default function DashboardHeader({ range, description }: Props) {
         title="Dashboard"
         description={description}
         icon="solar:widget-2-broken"
-        actions={[{ label: "Post Job", icon: "solar:add-circle-broken", href: "/hire/jobs/new", variant: "primary" }]}
+        actions={[{ label: "Post Job", icon: "solar:add-circle-broken", href: "/hire/jobs/new", variant: "primary", write: true }]}
         trailing={<DateRangePicker value={toPickerValue(range)} onChange={handleChange} />}
+        trailingIsFilter
       />
     </div>
   );

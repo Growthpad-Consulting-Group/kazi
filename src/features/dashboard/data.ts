@@ -77,6 +77,8 @@ export interface DashboardContext {
   userId: string;
   role: UserRole;
   department: string | null;
+  /** Read-only admin-screen grant: shows the company-wide dashboard, without any write controls. */
+  viewAllScreens?: boolean;
 }
 
 const STAGES = ["applied", "screened", "interview", "offer", "hired", "rejected"] as const;
@@ -132,7 +134,7 @@ export async function getDashboardData(
   const role = ctx?.role;
   const view: "org" | "team" | "personal" = !role
     ? "org"
-    : can(role, "manage_system")
+    : can(role, "manage_system") || ctx?.viewAllScreens
     ? "org"
     : can(role, "manage_one_on_ones")
     ? "team"

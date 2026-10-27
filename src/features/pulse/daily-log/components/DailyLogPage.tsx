@@ -226,10 +226,10 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   return (
     <div className="space-y-6">
       <SetPageHeader
-        title="Daily log"
+        title={isReviewer ? "Daily reporting" : "Daily log"}
         description={
           isReviewer
-            ? "Review what your team worked on"
+            ? "Daily reporting coverage, work evidence, and support signals across your team."
             : `${dateHeading(date)} · what you worked on and how long it took`
         }
         icon="solar:notebook-broken"
