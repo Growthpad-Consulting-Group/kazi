@@ -32,34 +32,8 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
   const canManage = can(session.user.role, "manage_rewards");
   const showingManage = canManage && tab === "manage";
 
-  // Admins see what the automations and manual grants have awarded over the last week.
-  const weekPoints = { total: 0, awards: 0, earners: [] as { name: string; points: number; avatarUrl: string | null }[] };
-  if (canManage) {
-    // eslint-disable-next-line react-hooks/purity -- server component; the window is fixed per request
-    const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reward_ledger is not in the generated types
-    const { data: ledger } = await (supabaseAdmin as any).from("reward_ledger").select("user_id, amount").gt("amount", 0).gte("created_at", since);
-    const rows = (ledger ?? []) as { user_id: string; amount: number }[];
-    const byUser = new Map<string, number>();
-    for (const row of rows) {
-      weekPoints.total += row.amount;
-      byUser.set(row.user_id, (byUser.get(row.user_id) ?? 0) + row.amount);
-    }
-    weekPoints.awards = rows.length;
-    const top = [...byUser.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-    if (top.length) {
-      const ids = top.map(([id]) => id);
-      const { data: people } = await supabaseAdmin.from("users").select("id, name, avatar_url").in("id", ids);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- signature_staff_profiles is not in the generated types
-      const { data: signatures } = await (supabaseAdmin as any).from("signature_staff_profiles").select("user_id, photo_url").in("user_id", ids);
-      const people_ = new Map(((people ?? []) as { id: string; name: string; avatar_url: string | null }[]).map((person) => [person.id, person]));
-      const photos = new Map(((signatures ?? []) as { user_id: string | null; photo_url: string | null }[]).filter((row) => row.user_id && row.photo_url).map((row) => [row.user_id as string, row.photo_url as string]));
-      weekPoints.earners = top.map(([id, points]) => {
-        const person = people_.get(id);
-        return { name: person?.name ?? "Unknown", points, avatarUrl: person?.avatar_url ?? photos.get(id) ?? null };
-      });
-    }
-  }
+  // Admins' weekly summary runs alongside the page's own queries, not before them.
+  const weekPointsPromise = canManage ? loadWeekPoints() : Promise.resolve(EMPTY_WEEK_POINTS);
 
   const [walletResult, catalogueResult, redemptionsResult, pendingResult, staffResult, manageCatalogueResult] = await Promise.all([
     supabaseAdmin.from("reward_wallets").select("balance").eq("user_id", userId).maybeSingle(),
@@ -119,6 +93,8 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
     ...r,
     catalogue_name: catalogueMap.get(r.catalogue_item_id) ?? "Unknown item",
   }));
+
+  const weekPoints = await weekPointsPromise;
 
   return (
     <>
@@ -344,4 +320,36 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
       </div>
     </>
   );
+}
+
+type WeekPoints = { total: number; awards: number; earners: { name: string; points: number; avatarUrl: string | null }[] };
+const EMPTY_WEEK_POINTS: WeekPoints = { total: 0, awards: 0, earners: [] };
+
+async function loadWeekPoints(): Promise<WeekPoints> {
+  const weekPoints: WeekPoints = { total: 0, awards: 0, earners: [] };
+  // eslint-disable-next-line react-hooks/purity -- server component; the window is fixed per request
+  const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reward_ledger is not in the generated types
+  const { data: ledger } = await (supabaseAdmin as any).from("reward_ledger").select("user_id, amount").gt("amount", 0).gte("created_at", since);
+  const rows = (ledger ?? []) as { user_id: string; amount: number }[];
+  const byUser = new Map<string, number>();
+  for (const row of rows) {
+    weekPoints.total += row.amount;
+    byUser.set(row.user_id, (byUser.get(row.user_id) ?? 0) + row.amount);
+  }
+  weekPoints.awards = rows.length;
+  const top = [...byUser.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  if (top.length) {
+    const ids = top.map(([id]) => id);
+    const { data: people } = await supabaseAdmin.from("users").select("id, name, avatar_url").in("id", ids);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- signature_staff_profiles is not in the generated types
+    const { data: signatures } = await (supabaseAdmin as any).from("signature_staff_profiles").select("user_id, photo_url").in("user_id", ids);
+    const people_ = new Map(((people ?? []) as { id: string; name: string; avatar_url: string | null }[]).map((person) => [person.id, person]));
+    const photos = new Map(((signatures ?? []) as { user_id: string | null; photo_url: string | null }[]).filter((row) => row.user_id && row.photo_url).map((row) => [row.user_id as string, row.photo_url as string]));
+    weekPoints.earners = top.map(([id, points]) => {
+      const person = people_.get(id);
+      return { name: person?.name ?? "Unknown", points, avatarUrl: person?.avatar_url ?? photos.get(id) ?? null };
+    });
+  }
+  return weekPoints;
 }

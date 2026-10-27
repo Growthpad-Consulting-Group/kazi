@@ -5,7 +5,7 @@ import type { UserRole } from "@/types/database";
 
 // Grants change rarely. A short per-instance cache keeps the proxy and session from
 // querying on every request; a change takes effect everywhere within this window.
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 5 * 60_000;
 const cache = new Map<UserRole, { paths: string[]; loadedAt: number }>();
 
 /** The pages a role may open, or ["*"] for admin. */

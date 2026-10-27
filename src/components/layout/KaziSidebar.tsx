@@ -80,6 +80,7 @@ export default function KaziSidebar({
                 src={mode === "dark" ? "/assets/images/logo-white.svg" : "/assets/images/logo.svg"}
                 alt="Growthpad Kazi"
                 width={150} height={48}
+                priority
                 style={{ height: "auto" }}
                 className="w-[140px] object-contain hover:opacity-80 transition-opacity"
               />

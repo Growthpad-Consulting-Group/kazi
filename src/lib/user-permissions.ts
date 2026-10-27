@@ -1,9 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import type { GrantablePermission } from "@/lib/rbac";
 
-// Grants change rarely. A short per-instance cache keeps the session callback cheap; a change
-// takes effect everywhere within this window.
-const CACHE_TTL_MS = 30_000;
+// Grants change rarely. A per-instance cache keeps the session callback and proxy cheap. A change
+// clears the cache on the server that made it, and reaches other servers within this window.
+const CACHE_TTL_MS = 5 * 60_000;
 const cache = new Map<string, { value: string[]; loadedAt: number }>();
 
 export async function getExtraPermissions(userId: string): Promise<string[]> {

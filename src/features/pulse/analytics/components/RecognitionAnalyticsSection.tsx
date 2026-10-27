@@ -42,19 +42,42 @@ export default async function RecognitionAnalyticsSection({
   // Build base feedback query conditions
   const sinceIso = since?.toISOString();
   const untilIso = until?.toISOString();
+  const buckets = getWeekBuckets(8);
+  const trendSince = buckets[0]?.start;
 
-  // ── 1. Top givers ─────────────────────────────────────────────────────────
+  // The queries below don't depend on each other, so they run in one batch instead of one after another.
   let giversQuery = supabaseAdmin
     .from("feedback")
     .select("from_user_id, from_user:from_user_id(name)")
     .eq("visibility", "public");
-
   if (sinceIso) giversQuery = giversQuery.gte("created_at", sinceIso);
-
   if (untilIso) giversQuery = giversQuery.lte("created_at", untilIso);
   if (campaignId) giversQuery = giversQuery.eq("campaign_id", campaignId);
 
-  const { data: rawGivers } = await giversQuery;
+  let feedbackIdQuery = supabaseAdmin.from("feedback").select("id").eq("visibility", "public");
+  if (sinceIso) feedbackIdQuery = feedbackIdQuery.gte("created_at", sinceIso);
+  if (untilIso) feedbackIdQuery = feedbackIdQuery.lte("created_at", untilIso);
+  if (campaignId) feedbackIdQuery = feedbackIdQuery.eq("campaign_id", campaignId);
+
+  const valuesQuery = supabaseAdmin.from("recognition_values").select("id, name").eq("is_active", true).order("name");
+
+  // Count value_id usage from the feedback rows, which need value_id included.
+  let valueQuery = supabaseAdmin.from("feedback").select("value_id").eq("visibility", "public").not("value_id", "is", null);
+  if (sinceIso) valueQuery = valueQuery.gte("created_at", sinceIso);
+  if (untilIso) valueQuery = valueQuery.lte("created_at", untilIso);
+  if (campaignId) valueQuery = valueQuery.eq("campaign_id", campaignId);
+
+  let trendQuery = supabaseAdmin.from("feedback").select("created_at").eq("visibility", "public");
+  if (trendSince) trendQuery = trendQuery.gte("created_at", trendSince.toISOString());
+  if (campaignId) trendQuery = trendQuery.eq("campaign_id", campaignId);
+
+  const [{ data: rawGivers }, { data: feedbackIds }, { data: allValues }, { data: valueRows }, { data: trendRows }] = await Promise.all([
+    giversQuery,
+    feedbackIdQuery,
+    valuesQuery,
+    valueQuery,
+    trendQuery,
+  ]);
 
   type GiverRow = { from_user_id: string; from_user: { name: string } | null };
   const giverRows = (rawGivers ?? []) as unknown as GiverRow[];
@@ -80,18 +103,6 @@ export default async function RecognitionAnalyticsSection({
 
   // ── 2. Top receivers ──────────────────────────────────────────────────────
   // Join feedback_recipients → feedback to apply time/campaign filters.
-  // Strategy: fetch feedback IDs matching filters first, then recipients.
-  let feedbackIdQuery = supabaseAdmin
-    .from("feedback")
-    .select("id")
-    .eq("visibility", "public");
-
-  if (sinceIso) feedbackIdQuery = feedbackIdQuery.gte("created_at", sinceIso);
-
-  if (untilIso) feedbackIdQuery = feedbackIdQuery.lte("created_at", untilIso);
-  if (campaignId) feedbackIdQuery = feedbackIdQuery.eq("campaign_id", campaignId);
-
-  const { data: feedbackIds } = await feedbackIdQuery;
   const ids = (feedbackIds ?? []).map((f: { id: string }) => f.id);
 
   type RecipRow = { user_id: string; user: { name: string; department: string | null } | null };
@@ -136,26 +147,6 @@ export default async function RecognitionAnalyticsSection({
     .slice(0, 5);
 
   // ── 3. Value distribution ─────────────────────────────────────────────────
-  const { data: allValues } = await supabaseAdmin
-    .from("recognition_values")
-    .select("id, name")
-    .eq("is_active", true)
-    .order("name");
-
-  // Count value_id usage from giverRows (already fetched, but without value_id)
-  // We need value_id — re-query with it included.
-  let valueQuery = supabaseAdmin
-    .from("feedback")
-    .select("value_id")
-    .eq("visibility", "public")
-    .not("value_id", "is", null);
-
-  if (sinceIso) valueQuery = valueQuery.gte("created_at", sinceIso);
-
-  if (untilIso) valueQuery = valueQuery.lte("created_at", untilIso);
-  if (campaignId) valueQuery = valueQuery.eq("campaign_id", campaignId);
-
-  const { data: valueRows } = await valueQuery;
   const valueCounts = new Map<string, number>();
   for (const row of (valueRows ?? []) as { value_id: string | null }[]) {
     if (row.value_id) {
@@ -169,19 +160,6 @@ export default async function RecognitionAnalyticsSection({
   }));
 
   // ── 4. Weekly trend (last 8 weeks) ────────────────────────────────────────
-  const buckets = getWeekBuckets(8);
-
-  let trendQuery = supabaseAdmin
-    .from("feedback")
-    .select("created_at")
-    .eq("visibility", "public");
-
-  // Use the earliest bucket start to fetch all needed data at once
-  const trendSince = buckets[0]?.start;
-  if (trendSince) trendQuery = trendQuery.gte("created_at", trendSince.toISOString());
-  if (campaignId) trendQuery = trendQuery.eq("campaign_id", campaignId);
-
-  const { data: trendRows } = await trendQuery;
   const trendDates = (trendRows ?? []).map(
     (r: { created_at: string }) => new Date(r.created_at),
   );

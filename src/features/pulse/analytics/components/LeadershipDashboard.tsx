@@ -41,10 +41,12 @@ export default async function LeadershipDashboard() {
   const thisWeek = getWeekStart(0);
   const fourWeeksAgo = getWeekStart(4);
 
+  // The team list and the latest review cycle don't depend on each other, so they load together.
   const membersQuery = supabaseAdmin.from("users").select("id, name, department, manager_id").eq("is_active", true);
-  const { data: allMembers } = isHr
-    ? await membersQuery
-    : await membersQuery.eq("manager_id", session.user.id);
+  const [{ data: allMembers }, { data: latestCycleRows }] = await Promise.all([
+    isHr ? membersQuery : membersQuery.eq("manager_id", session.user.id),
+    supabaseAdmin.from("review_cycles").select("id").order("start_date", { ascending: false }).limit(1),
+  ]);
 
   const members = (allMembers ?? []) as TeamMember[];
   const memberIds = members.map((m) => m.id);
@@ -65,12 +67,14 @@ export default async function LeadershipDashboard() {
     );
   }
 
+  // Everything else needs the team ids (and the cycle id), so it loads together in one round trip.
+  const latestCycleId = (latestCycleRows ?? [])[0]?.id ?? null;
   const [
     { data: rawCheckins },
     { data: rawGoals },
     { data: optedOutRows },
     { data: rewardRows },
-    { data: latestCycleRows },
+    { data: reviewRows },
   ] = await Promise.all([
     supabaseAdmin
       .from("checkins")
@@ -89,24 +93,16 @@ export default async function LeadershipDashboard() {
       .from("reward_ledger")
       .select("user_id, amount")
       .in("user_id", memberIds),
-    // Gap 4: latest review cycle
-    supabaseAdmin
-      .from("review_cycles")
-      .select("id")
-      .order("start_date", { ascending: false })
-      .limit(1),
+    // Performance reviews for the latest cycle (if one exists)
+    latestCycleId
+      ? supabaseAdmin
+          .from("performance_reviews")
+          .select("reviewee_id, overall_rating")
+          .eq("cycle_id", latestCycleId)
+          .not("overall_rating", "is", null)
+          .in("reviewee_id", memberIds)
+      : Promise.resolve({ data: [] }),
   ]);
-
-  // Fetch performance reviews for the latest cycle (if one exists)
-  const latestCycleId = (latestCycleRows ?? [])[0]?.id ?? null;
-  const { data: reviewRows } = latestCycleId
-    ? await supabaseAdmin
-        .from("performance_reviews")
-        .select("reviewee_id, overall_rating")
-        .eq("cycle_id", latestCycleId)
-        .not("overall_rating", "is", null)
-        .in("reviewee_id", memberIds)
-    : { data: [] };
 
   const checkins = (rawCheckins ?? []) as Checkin[];
   const goals = (rawGoals ?? []) as Goal[];
