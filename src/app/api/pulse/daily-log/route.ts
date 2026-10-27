@@ -20,6 +20,29 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
 
+  if (url.searchParams.get("scope") === "history") {
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!isValidLogDate(from) || !isValidLogDate(to) || from > to) return NextResponse.json({ error: "A valid from and to date are required" }, { status: 400 });
+    const { data } = await supabaseAdmin
+      .from("daily_activity_logs")
+      .select("log_date, entries, mood, blockers, wins, updated_at")
+      .eq("user_id", session.user.id)
+      .gte("log_date", from)
+      .lte("log_date", to)
+      .order("log_date", { ascending: false });
+    return NextResponse.json({
+      logs: ((data ?? []) as unknown as { log_date: string; entries: DailyLogEntry[]; mood: number | null; blockers: string | null; wins: string | null; updated_at: string }[]).map((row) => ({
+        date: row.log_date,
+        entries: row.entries,
+        mood: row.mood,
+        blockers: row.blockers,
+        wins: row.wins,
+        updatedAt: row.updated_at,
+      })),
+    });
+  }
+
   if (url.searchParams.get("scope") !== "team") {
     const date = url.searchParams.get("date");
     if (!isValidLogDate(date)) return NextResponse.json({ error: "A valid date is required" }, { status: 400 });

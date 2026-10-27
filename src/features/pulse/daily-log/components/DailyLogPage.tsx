@@ -8,6 +8,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
 import { TeamActivity } from "./TeamActivity";
+import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
 import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type Row = { task: string; client: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
@@ -49,6 +50,9 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const [mood, setMood] = useState<number | null>(null);
   const [blockers, setBlockers] = useState("");
   const [wins, setWins] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [savedEntries, setSavedEntries] = useState<DailyLogEntry[]>([]);
+  const [history, setHistory] = useState<{ date: string; entries: DailyLogEntry[]; mood: number | null }[]>([]);
   const [clients, setClients] = useState<string[]>([]);
   const [asana, setAsana] = useState<{ open: boolean; loading: boolean; connected: boolean; tasks: AsanaTask[]; selected: string[] }>({ open: false, loading: false, connected: false, tasks: [], selected: [] });
 
@@ -80,6 +84,8 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
             }))
           : [emptyRow()]);
         setSavedAt(json.updatedAt ?? null);
+        setSavedEntries(loaded);
+        setEditing(false);
         setMood(json.mood ?? null);
         setBlockers(json.blockers ?? "");
         setWins(json.wins ?? "");
@@ -89,6 +95,23 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
 
     return () => { cancelled = true; };
   }, [date, isReviewer]);
+
+  useEffect(() => {
+    if (isReviewer) return;
+    let cancelled = false;
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    fetch(`/api/pulse/daily-log?scope=history&from=${key(from)}&to=${todayLocal()}`)
+      .then((res) => res.json())
+      .then((json: { logs?: { date: string; entries: DailyLogEntry[]; mood: number | null }[] }) => {
+        if (!cancelled) setHistory(json.logs ?? []);
+      })
+      .catch(() => !cancelled && setHistory([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [isReviewer, savedAt]);
 
   const totalMinutes = rows.reduce((sum, row) => sum + (rowMinutes(row) ?? 0), 0);
 
@@ -152,6 +175,8 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
       const json = await res.json().catch(() => null) as { error?: string } | null;
       if (!res.ok) throw new Error(json?.error ?? "Could not save your log");
       setSavedAt(new Date().toISOString());
+      setSavedEntries(entries);
+      setEditing(false);
       toast.success("Daily log saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save your log");
@@ -171,7 +196,29 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
         icon="solar:notebook-broken"
       />
 
-      {!isReviewer && (
+      {!isReviewer && savedAt && !editing && !loading ? (
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text-hi)]">Daily activity log</h2>
+              <p className="text-[11px] text-[var(--text-lo)]">Review a day, or pick another to log it.</p>
+            </div>
+            <div className="w-48">
+              <DatePicker value={date} onChange={setDate} maxDate={new Date()} />
+            </div>
+          </div>
+          <DailyLogRecap
+            dateLabel={dateHeading(date)}
+            entries={savedEntries}
+            mood={mood}
+            blockers={blockers.trim() || null}
+            wins={wins.trim() || null}
+            updatedAt={savedAt}
+            onEdit={() => setEditing(true)}
+          />
+          <DailyLogHistory logs={history} selected={date} onSelect={setDate} />
+        </div>
+      ) : (!isReviewer && (
       <section className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -314,7 +361,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
           <Button icon="solar:diskette-broken" loading={saving} onClick={save}>Save log</Button>
         </div>
       </section>
-      )}
+      ))}
 
       {isReviewer && <TeamActivity />}
     </div>
