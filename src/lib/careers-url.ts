@@ -3,3 +3,7 @@ const CAREERS_SITE_URL = process.env.NEXT_PUBLIC_CAREERS_SITE_URL ?? "https://gr
 export function publicJobUrl(slug: string) {
   return `${CAREERS_SITE_URL.replace(/\/$/, "")}/careers/${encodeURIComponent(slug)}`;
 }
+
+export function careersPageUrl() {
+  return `${CAREERS_SITE_URL.replace(/\/$/, "")}/careers`;
+}
