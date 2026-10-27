@@ -13,6 +13,7 @@ import { RoleSelector } from "./RoleSelector";
 import EditStaffModal from "./EditStaffModal";
 import GrantPointsModal from "./GrantPointsModal";
 import { ResetPasswordButton } from "./ResetPasswordButton";
+import { ExtraPermissionsControl } from "./ExtraPermissionsControl";
 import type { UserRole } from "@/types/database";
 
 type User = { id: string; name: string; email: string; role: string; department: string | null; job_title: string | null; location: string | null; manager_id: string | null; start_date: string | null; date_of_birth: string | null; avatar_url: string | null };
@@ -54,6 +55,8 @@ export default async function EmployeeProfilePage({ id, tab }: { id: string; tab
   if (error) throw new Error(error.message);
   if (!userData) notFound();
   const user = userData as User;
+  const { data: grantRows } = await (supabaseAdmin as any).from("user_permissions").select("permission").eq("user_id", id); // eslint-disable-line @typescript-eslint/no-explicit-any -- newer table
+  const extraPermissions = ((grantRows ?? []) as { permission: string }[]).map((row) => row.permission);
   const activeTab: ProfileTab = availableTabs.some((item) => item.id === tab) ? tab as ProfileTab : "overview";
   const needsOverview = activeTab === "overview";
   const needsPulse = activeTab === "pulse";
@@ -102,6 +105,7 @@ export default async function EmployeeProfilePage({ id, tab }: { id: string; tab
         <div className="flex flex-wrap gap-2">{seesAllTabs && (<><Link href={`/pulse/checkins?user=${user.id}`} className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-[#2b1108]"><Icon icon="solar:clipboard-check-broken" className="h-4 w-4" />Check-ins</Link><Link href={`/pulse/one-on-ones?report=${user.id}`} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white"><Icon icon="solar:chat-round-dots-broken" className="h-4 w-4" />1-on-1s</Link></>)}</div>
       </div>
     </section>
+    {isAdmin && !isSelf && <ExtraPermissionsControl userId={user.id} userName={user.name} granted={extraPermissions} />}
     <nav aria-label="Staff profile workspaces" className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-sm">{availableTabs.map((item) => <Link key={item.id} href={href(item.id)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-medium transition-colors ${activeTab === item.id ? "bg-brand-500 text-white shadow-sm" : "text-[var(--text-hi)] hover:bg-[var(--surface-2)]"}`}><Icon icon={item.icon} className="h-4 w-4" />{item.label}</Link>)}</nav>
 
     {activeTab === "overview" && <div className="space-y-5">
