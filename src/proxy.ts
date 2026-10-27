@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { isPathAllowed } from "@/lib/page-access";
+import { isPathAllowed, withViewGrant } from "@/lib/page-access";
+import { getExtraPermissions } from "@/lib/user-permissions";
 import { getAllowedPaths } from "@/lib/page-access-server";
 import { mustChangePassword } from "@/lib/must-change-password";
 import type { UserRole } from "@/types/database";
@@ -18,7 +19,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/settings/profile?passwordRequired=1", request.url));
   }
 
-  const allowedPaths = await getAllowedPaths(token.role as UserRole);
+  const allowedPaths = withViewGrant(
+    await getAllowedPaths(token.role as UserRole),
+    token.id ? await getExtraPermissions(token.id as string) : [],
+  );
   if (isPathAllowed(allowedPaths, pathname)) return NextResponse.next();
 
   return NextResponse.redirect(new URL("/pulse", request.url));

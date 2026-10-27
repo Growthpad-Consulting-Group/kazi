@@ -120,7 +120,9 @@ export function can(userRole: UserRole, permission: Permission | Permission[]): 
 
 // ─── Individual permissions ───────────────────────────────────────────────────
 // Admins can grant these to one person on top of their role. Everything else stays role-based.
-export const GRANTABLE_PERMISSIONS = ["manage_side_quests", "manage_recognition_campaigns"] as const;
+export const GRANTABLE_PERMISSIONS = ["manage_side_quests", "manage_recognition_campaigns", "view_admin_screens"] as const;
+/** Read-only: lets someone open admin screens. Grants no ability to change anything. */
+export const VIEW_ADMIN_SCREENS = "view_admin_screens";
 export type GrantablePermission = (typeof GRANTABLE_PERMISSIONS)[number];
 
 /** Role permission, or a permission granted to this person. Use this where the person's extra grants matter. */

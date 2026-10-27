@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getAllowedPaths } from "@/lib/page-access-server";
+import { withViewGrant } from "@/lib/page-access";
 import { getExtraPermissions } from "@/lib/user-permissions";
 import type { UserRole } from "@/types/database";
 
@@ -67,8 +68,8 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as UserRole;
         session.user.department = token.department as string | null;
         session.user.image = (token.picture as string | null) ?? null;
-        session.user.allowedPaths = await getAllowedPaths(session.user.role);
         session.user.extraPermissions = await getExtraPermissions(session.user.id);
+        session.user.allowedPaths = withViewGrant(await getAllowedPaths(session.user.role), session.user.extraPermissions);
       }
       return session;
     },

@@ -46,3 +46,13 @@ export function isPathAllowed(allowedPaths: readonly string[], pathname: string)
   if (gate.adminOnly) return false;
   return allowedPaths.includes(gate.path);
 }
+
+/**
+ * Adds the admin screens for someone with the read-only grant. Roles stays admin-only, and the
+ * grant never changes what a person can write, since writes are checked on the server.
+ */
+export function withViewGrant(allowedPaths: string[], extraPermissions: readonly string[]): string[] {
+  if (allowedPaths.includes("*") || !extraPermissions.includes("view_admin_screens")) return allowedPaths;
+  const viewable = GATED_PAGES.filter((page) => !page.adminOnly).map((page) => page.path);
+  return [...new Set([...allowedPaths, ...viewable])];
+}
