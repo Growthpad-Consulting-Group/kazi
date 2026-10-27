@@ -16,6 +16,8 @@ const TRIGGER_LABEL: Record<AutomationTrigger, string> = {
   campaign_start: "Campaign starts",
   quest_ends_soon: "Quest ends soon",
   recognition_received: "Recognition received",
+  daily_log_logged: "Daily log saved",
+  daily_log_streak: "Daily log streak",
 };
 const ACTION_LABEL: Record<AutomationAction, string> = {
   send_notification: "Send notification",
@@ -27,18 +29,24 @@ const TRIGGER_HELP: Record<AutomationTrigger, string> = {
   campaign_start: "Runs when a recognition campaign begins for its selected audience.",
   quest_ends_soon: "Runs once when an eligible Side Quest is within 48 hours of closing.",
   recognition_received: "Runs immediately when a staff member receives recognition.",
+  daily_log_logged: "Runs once per day when a staff member logs at least 15 minutes of work.",
+  daily_log_streak: "Runs when a staff member logs five days in a row, and again at every further five-day run.",
 };
 const RECIPIENT_LABEL: Record<AutomationTrigger, string> = {
   milestone_anniversary: "the celebrating staff member",
   campaign_start: "eligible campaign staff",
   quest_ends_soon: "eligible Side Quest staff",
   recognition_received: "the recognised staff member",
+  daily_log_logged: "the staff member who logged",
+  daily_log_streak: "the staff member on the streak",
 };
 const TRIGGER_ICON: Record<AutomationTrigger, string> = {
   milestone_anniversary: "solar:cup-star-broken",
   campaign_start: "solar:flag-2-broken",
   quest_ends_soon: "solar:medal-ribbon-star-broken",
   recognition_received: "solar:heart-angle-broken",
+  daily_log_logged: "solar:notebook-broken",
+  daily_log_streak: "solar:fire-broken",
 };
 
 const TRIGGER_OPTIONS = (Object.keys(TRIGGER_LABEL) as AutomationTrigger[]).map((value) => ({

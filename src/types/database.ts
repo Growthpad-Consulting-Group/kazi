@@ -14,7 +14,7 @@ export type SurveyStatus = "draft" | "active" | "closed";
 export type IdpStatus = "active" | "completed" | "cancelled";
 export type RedemptionStatus = "pending" | "approved" | "fulfilled" | "rejected";
 export type MilestoneType = "work_anniversary" | "birthday" | "onboarding_complete" | "service_achievement";
-export type AutomationTrigger = "milestone_anniversary" | "campaign_start" | "quest_ends_soon" | "recognition_received";
+export type AutomationTrigger = "milestone_anniversary" | "campaign_start" | "quest_ends_soon" | "recognition_received" | "daily_log_logged" | "daily_log_streak";
 export type AutomationAction = "send_notification" | "award_points";
 
 export interface Database {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
+import { awardDailyLogRewards } from "@/features/pulse/daily-log/rewards";
 import { supabaseAdmin } from "@/lib/supabase";
 import { cleanText, isEditableLogDate, isValidLogDate, validateDailyLogEntries, validateDailyLogMood, type DailyLogEntry } from "@/features/pulse/daily-log/constants";
 
@@ -182,6 +183,13 @@ export async function POST(req: Request) {
       { onConflict: "user_id,log_date" }
     );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // A saved log can earn points. A failure here must not undo the save.
+  try {
+    await awardDailyLogRewards(session.user.id, body.date, validated.entries);
+  } catch (rewardError) {
+    console.error("Daily log rewards failed", rewardError);
+  }
 
   return NextResponse.json({ ok: true });
 }
