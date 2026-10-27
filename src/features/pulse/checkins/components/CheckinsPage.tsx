@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import StatCard from "@/components/ui/StatCard";
 import { getMyCheckins, getTeamCheckins } from "../actions";
 import { CheckinForm } from "./CheckinForm";
 import { TeamCheckins } from "./TeamCheckins";
@@ -63,7 +64,7 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
   if (teamOnly && isManager) {
     return (
       <>
-        <SetPageHeader title="Team check-ins" description={`Week of ${weekRangeLabel(weekStart)}`} icon="solar:users-group-two-rounded-broken" />
+        <SetPageHeader title="Team check-ins" description={`Week of ${weekRangeLabel(weekStart)}`} icon="solar:users-group-two-rounded-broken" actions={[{ label: "Pulse dashboard", icon: "solar:pulse-broken", variant: "secondary", href: "/pulse" }, { label: "Daily activity", icon: "solar:notebook-broken", variant: "secondary", href: "/pulse/checkins?tab=daily" }]} />
         <div className="mx-auto max-w-7xl">
           <TeamCheckins checkins={teamCheckins} weekStart={weekStart} />
         </div>
@@ -84,11 +85,12 @@ export default async function CheckinsPage({ userId: overrideUserId, teamOnly }:
 
   return (
     <>
-      <SetPageHeader title="Weekly check-in" description={weekRange} icon="solar:clipboard-check-broken" />
+      <SetPageHeader title="Your weekly check-in" description={`Week of ${weekRange}`} icon="solar:clipboard-check-broken" actions={isManager ? [{ label: "Team review", icon: "solar:users-group-two-rounded-broken", variant: "secondary", href: "/pulse/checkins?tab=team" }] : undefined} />
       <div className="mx-auto max-w-7xl space-y-5">
+        <section className="grid gap-3 sm:grid-cols-3"><StatCard title="Current status" value={status.label.replace(" when you are", "")} icon={status.icon} color={thisWeek?.status === "reviewed" ? "green" : thisWeek?.status === "submitted" ? "blue" : thisWeek?.status === "draft" ? "amber" : "orange"} variant="inline" compact /><StatCard title="Week ending" value={new Date(`${weekStart}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short" })} icon="solar:calendar-broken" color="blue" variant="inline" compact subtitle="Monday to Friday" /><StatCard title="Your pulse" value={thisWeek?.mood ? `${MOODS[thisWeek.mood - 1]}` : "—"} icon="solar:heart-pulse-broken" color={thisWeek?.mood && thisWeek.mood <= 2 ? "amber" : "green"} variant="inline" compact subtitle={thisWeek?.mood ? `${thisWeek.mood} out of 5` : "Share how you are"} /></section>
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4 sm:px-6"><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Your update</h2><p className="mt-1 text-xs text-[var(--text-lo)]">{weekRange}</p></div><div className="flex items-center gap-2"><span className={`flex h-7 w-7 items-center justify-center rounded-lg ${status.className}`}><Icon icon={status.icon} className="h-3.5 w-3.5" /></span><span><span className="block text-xs font-semibold text-[var(--text-hi)]">{status.label}</span><span className="block text-[10px] text-[var(--text-lo)]">{status.description}</span></span></div></div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-gradient-to-r from-brand-500/[0.06] to-transparent px-5 py-4 sm:px-6"><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">Your update</h2><p className="mt-1 text-xs text-[var(--text-lo)]">A quick look back, then forward.</p></div><div className="flex items-center gap-2"><span className={`flex h-8 w-8 items-center justify-center rounded-xl ${status.className}`}><Icon icon={status.icon} className="h-4 w-4" /></span><span><span className="block text-xs font-semibold text-[var(--text-hi)]">{status.label}</span><span className="block text-[10px] text-[var(--text-lo)]">{status.description}</span></span></div></div>
             <div className="p-5 sm:p-6"><CheckinForm userId={userId} weekStart={weekStart} existing={thisWeek} /></div>
           </section>
 
