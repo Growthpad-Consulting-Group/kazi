@@ -131,20 +131,6 @@ export function VoiceOutForm() {
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-      <div className="border-b border-[var(--border)] bg-gradient-to-r from-blue-500/10 via-brand-500/5 to-transparent px-6 py-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
-            <Icon icon="solar:incognito-broken" className="h-5 w-5" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold text-[var(--text-hi)]">Share what needs attention</h2>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
-              Your name, account and staff record are not saved with this report. Avoid details that could identify you or others.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="space-y-7 p-6">
         <fieldset>
           <legend className="text-xs font-semibold text-[var(--text-hi)]">What is this about?</legend>

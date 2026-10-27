@@ -1,6 +1,7 @@
 import { getCachedStaff } from "@/lib/cache/queries";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { can } from "@/lib/rbac";
 import { getDepartments } from "@/features/departments/actions";
 import StaffClientView from "./StaffClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -45,7 +46,7 @@ export default async function StaffPage() {
         title="Staff"
         description={`${staff.length} staff members`}
         icon="solar:user-id-broken"
-        trailing={<NewPersonButton departments={departments} managers={managers} canCreateAdmin={session?.user.role === "admin"} />}
+        trailing={session && can(session.user.role, "manage_people") ? <NewPersonButton departments={departments} managers={managers} canCreateAdmin={session.user.role === "admin"} /> : undefined}
       />
       <StaffClientView
         people={enriched}

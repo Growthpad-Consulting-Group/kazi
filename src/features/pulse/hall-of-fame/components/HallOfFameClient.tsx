@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
+import SetPageHeader from "@/components/ui/SetPageHeader";
 import DateRangePicker, {
   type DateRangeValue,
 } from "@/components/ui/DateRangePicker";
@@ -221,39 +222,22 @@ export default function HallOfFameClient({
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-brand-500/20 bg-gradient-to-r from-brand-500/[0.09] via-orange-400/[0.05] to-transparent p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-brand-500/15 blur-3xl" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-lg shadow-brand-500/25">
-              <Icon icon="solar:cup-star-broken" className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-hi)]">
-                {cycle
-                  ? `${monthLabel(cycle.month)} · Hall of Fame`
-                  : "A monthly spotlight for exceptional work"}
-              </p>
-              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-lo)]">
-                Recognise people who create WOW experiences for clients and
-                deliver excellent performance.
-              </p>
-            </div>
-          </div>
-          {canManage && (
-            <Button
-              size="sm"
-              variant={isOpen ? "secondary" : "primary"}
-              icon={isOpen ? "solar:lock-keyhole-broken" : "solar:add-circle-broken"}
-              loading={saving}
-              onClick={isOpen ? closeCycle : () => setNewCycleOpen(true)}
-            >
-              {isOpen ? "Close nominations" : "Open nominations"}
-            </Button>
-          )}
-        </div>
-      </section>
-
+      <SetPageHeader
+        title={cycle ? `${monthLabel(cycle.month)} · Hall of Fame` : "Growthpad Hall of Fame"}
+        description="Recognise people who create WOW experiences for clients and deliver excellent performance."
+        icon="solar:cup-star-broken"
+        trailing={canManage ? (
+          <Button
+            size="sm"
+            variant={isOpen ? "secondary" : "primary"}
+            icon={isOpen ? "solar:lock-keyhole-broken" : "solar:add-circle-broken"}
+            loading={saving}
+            onClick={isOpen ? closeCycle : () => setNewCycleOpen(true)}
+          >
+            {isOpen ? "Close nominations" : "Open nominations"}
+          </Button>
+        ) : undefined}
+      />
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard variant="inline" compact title="Nominations" value={nominations.length} icon="solar:star-fall-broken" color="orange" subtitle="This award cycle" />
         <StatCard variant="inline" compact title="Nominees" value={nomineeCount} icon="solar:users-group-two-rounded-broken" color="green" subtitle="Colleagues recognised" />

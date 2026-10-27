@@ -2,12 +2,12 @@
 // by page-access-server.ts. This file only holds the list of gated pages and the
 // matching rule, so navigation, the settings shell and the proxy all share one check.
 
-export type GatedPage = { path: string; label: string; section: string };
+/** adminOnly pages are never granted to other roles; they are listed so the nav hides them too. */
+export type GatedPage = { path: string; label: string; section: string; adminOnly?: boolean };
 
 /** Pages whose access is granted per role. Paths not listed here are open to every signed-in user. */
 export const GATED_PAGES: GatedPage[] = [
   { path: "/dashboard",                  label: "Dashboard",            section: "Home" },
-  { path: "/staff",                      label: "Staff",                section: "Home" },
   { path: "/hire",                       label: "Hiring (jobs & candidates)", section: "Kazi Hire" },
   { path: "/pulse/analytics",            label: "Analytics",            section: "Kazi Pulse" },
   { path: "/pulse/engagement-calendar",  label: "Engagement calendar",  section: "Kazi Pulse" },
@@ -21,6 +21,7 @@ export const GATED_PAGES: GatedPage[] = [
   { path: "/settings/automations",       label: "Automations",          section: "Settings" },
   { path: "/settings/exports",           label: "Data exports",         section: "Settings" },
   { path: "/settings/data-retention",    label: "Data retention",       section: "Settings" },
+  { path: "/settings/roles",             label: "Roles & permissions",  section: "Settings", adminOnly: true },
 ];
 
 /** Admin is always granted everything, so grants are stored and listed for the other roles only. */
@@ -42,5 +43,6 @@ export function isPathAllowed(allowedPaths: readonly string[], pathname: string)
     if (matchesPath(pathname, page.path) && (!gate || page.path.length > gate.path.length)) gate = page;
   }
   if (!gate) return true;
+  if (gate.adminOnly) return false;
   return allowedPaths.includes(gate.path);
 }

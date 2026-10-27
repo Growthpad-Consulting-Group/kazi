@@ -168,7 +168,7 @@ export default function SettingsShell({ children, allowedPaths }: { children: Re
                   <Icon icon="solar:double-alt-arrow-left-broken" className="h-6 w-6" />
                 </button>
               </div>
-              <div className="space-y-4">{renderItems(SETTINGS_NAV)}</div>
+              <div className="space-y-4">{renderItems(visibleNav)}</div>
             </>
           )}
         </aside>
@@ -176,7 +176,7 @@ export default function SettingsShell({ children, allowedPaths }: { children: Re
         {/* ── Mobile sidebar ── */}
         {mobileOpen && (
           <aside className="sticky top-8 z-30 w-full shrink-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-xl shadow-slate-200/50 hover:shadow-2xl md:hidden transition-shadow duration-200">
-            <div className="space-y-4">{renderItems(SETTINGS_NAV)}</div>
+            <div className="space-y-4">{renderItems(visibleNav)}</div>
           </aside>
         )}
 

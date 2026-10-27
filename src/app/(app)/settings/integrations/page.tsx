@@ -54,6 +54,7 @@ export default async function IntegrationsPage() {
           workspace: asanaRow?.workspace_name,
           connectedAt: asanaRow?.created_at,
         }}
+        canManageOrg={isAdmin}
         googleWorkspaceConnected={googleConnected}
         slackStatus={{
           connected: Boolean(slackRow),

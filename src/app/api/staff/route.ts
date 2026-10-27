@@ -14,7 +14,7 @@ type SignatureDatabase = { from: (table: string) => { select: (columns: string) 
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "view_people")) {
+  if (!session || !can(session.user.role, "manage_people")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

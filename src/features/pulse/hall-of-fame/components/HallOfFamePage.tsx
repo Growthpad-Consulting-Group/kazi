@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import SetPageHeader from "@/components/ui/SetPageHeader";
 import HallOfFameClient from "./HallOfFameClient";
 
 type Cycle = { id: string; month: string; status: "draft" | "open" | "closed"; opens_at: string | null; closes_at: string | null };
@@ -23,5 +22,5 @@ export default async function HallOfFamePage() {
     cycle ? db.from("hall_of_fame_nominations").select("id, nominator_id, nominee_id, category, impact_statement, created_at").eq("cycle_id", cycle.id).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
   ]);
   const signaturePhotos = new Map(((signatureProfiles ?? []) as { user_id: string | null; photo_url: string | null }[]).filter((p) => p.user_id && p.photo_url).map((p) => [p.user_id as string, p.photo_url as string]));
-  return <><SetPageHeader title="Growthpad Hall of Fame" description="Celebrate and recognise excellence in work across Growthpad." icon="solar:cup-star-broken" /><HallOfFameClient currentUserId={session.user.id} canManage={can(session.user.role, "manage_recognition_campaigns")} cycle={cycle} staff={((staffData ?? []) as Staff[]).map((member) => ({ ...member, avatar_url: member.avatar_url ?? signaturePhotos.get(member.id) ?? null }))} nominations={(nominationsResult.data ?? []) as Nomination[]} /></>;
+  return <><HallOfFameClient currentUserId={session.user.id} canManage={can(session.user.role, "manage_recognition_campaigns")} cycle={cycle} staff={((staffData ?? []) as Staff[]).map((member) => ({ ...member, avatar_url: member.avatar_url ?? signaturePhotos.get(member.id) ?? null }))} nominations={(nominationsResult.data ?? []) as Nomination[]} /></>;
 }

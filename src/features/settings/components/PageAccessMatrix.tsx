@@ -77,7 +77,10 @@ export default function PageAccessMatrix({ grants }: { grants: PageGrant[] }) {
                   <p className="font-mono text-[11px] text-[var(--text-lo)]">{page.path}</p>
                 </td>
                 <td className="px-3 py-2.5 text-center text-xs text-[var(--text-lo)]">Always</td>
-                {GRANTABLE_ROLES.map((role) => {
+                {page.adminOnly && (
+                  <td colSpan={GRANTABLE_ROLES.length} className="px-3 py-2.5 text-center text-xs text-[var(--text-lo)]">Admin only</td>
+                )}
+                {!page.adminOnly && GRANTABLE_ROLES.map((role) => {
                   const key = keyOf(role, page.path);
                   return (
                     <td key={role} className="px-3 py-2.5 text-center">

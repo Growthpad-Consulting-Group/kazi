@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { STAFF_ROLES } from "@/lib/rbac";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -41,11 +42,15 @@ export default async function EmployeeProfilePage({ id, tab }: { id: string; tab
   const isAdmin = session?.user.role === "admin";
   const canManage = session ? ["admin", "hr"].includes(session.user.role) : false;
   const isSelf = session?.user.id === id;
+  // Other people's pulse, performance and development records are for managers and HR.
+  // Everyone else sees the overview of a colleague, and their own full profile.
+  const seesAllTabs = (session ? STAFF_ROLES.includes(session.user.role) : false) || isSelf;
+  const availableTabs = seesAllTabs ? tabs : tabs.filter((item) => item.id === "overview");
   const { data: userData, error } = await supabaseAdmin.from("users").select("id, name, email, role, department, job_title, location, manager_id, start_date, date_of_birth, avatar_url").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!userData) notFound();
   const user = userData as User;
-  const activeTab: ProfileTab = tabs.some((item) => item.id === tab) ? tab as ProfileTab : "overview";
+  const activeTab: ProfileTab = availableTabs.some((item) => item.id === tab) ? tab as ProfileTab : "overview";
   const needsOverview = activeTab === "overview";
   const needsPulse = activeTab === "pulse";
   const needsPerformance = activeTab === "performance";
@@ -93,7 +98,7 @@ export default async function EmployeeProfilePage({ id, tab }: { id: string; tab
         <div className="flex flex-wrap gap-2"><Link href={`/pulse/checkins?user=${user.id}`} className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-[#2b1108]"><Icon icon="solar:clipboard-check-broken" className="h-4 w-4" />Check-ins</Link><Link href={`/pulse/one-on-ones?report=${user.id}`} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white"><Icon icon="solar:chat-round-dots-broken" className="h-4 w-4" />1-on-1s</Link></div>
       </div>
     </section>
-    <nav aria-label="Staff profile workspaces" className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-sm">{tabs.map((item) => <Link key={item.id} href={href(item.id)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-medium transition-colors ${activeTab === item.id ? "bg-brand-500 text-white shadow-sm" : "text-[var(--text-hi)] hover:bg-[var(--surface-2)]"}`}><Icon icon={item.icon} className="h-4 w-4" />{item.label}</Link>)}</nav>
+    <nav aria-label="Staff profile workspaces" className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-sm">{availableTabs.map((item) => <Link key={item.id} href={href(item.id)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-medium transition-colors ${activeTab === item.id ? "bg-brand-500 text-white shadow-sm" : "text-[var(--text-hi)] hover:bg-[var(--surface-2)]"}`}><Icon icon={item.icon} className="h-4 w-4" />{item.label}</Link>)}</nav>
 
     {activeTab === "overview" && <div className="space-y-5">
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatCard title="Check-in" value={checkin ? checkin.status : "None"} icon="solar:clipboard-check-broken" color={checkin?.status === "reviewed" ? "green" : "orange"} variant="flat" compact href={`/pulse/checkins?user=${user.id}`} /><StatCard title="Active goals" value={goals.filter((goal) => goal.status !== "completed").length} icon="solar:flag-broken" color="blue" variant="flat" compact href={`/pulse/checkins?tab=goals&user=${user.id}`} /><StatCard title="Scheduled 1-on-1" value={meeting?.scheduled_at ? new Date(meeting.scheduled_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" }) : "None"} icon="solar:chat-round-dots-broken" color="amber" variant="flat" compact href={`/pulse/one-on-ones?report=${user.id}`} /><StatCard title="Signature" value={signature ? "Ready" : "Not set"} icon="solar:document-text-broken" color={signature ? "green" : "slate"} variant="flat" compact href={signature ? `/signatures/staff/${signature.id}` : "/signatures/staff"} /></section>

@@ -29,6 +29,8 @@ interface Props {
   googleWorkspaceConnected: boolean;
   slackStatus: SlackStatus;
   googleCalendarStatus: GoogleCalendarStatus;
+  /** Slack posts to a company-wide channel, so only admins can connect or disconnect it. */
+  canManageOrg: boolean;
 }
 
 function IntegrationCard({
@@ -101,7 +103,7 @@ function IntegrationCard({
   );
 }
 
-export default function IntegrationsClient({ asana, googleWorkspaceConnected, slackStatus, googleCalendarStatus }: Props) {
+export default function IntegrationsClient({ asana, googleWorkspaceConnected, slackStatus, googleCalendarStatus, canManageOrg }: Props) {
   const [asanaConnected, setAsanaConnected] = useState(asana.connected);
 
   // Slack state
@@ -235,9 +237,13 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
             name="Slack"
             description="Send Kazi notifications — milestones, recognitions, and reminders — to a Slack channel via incoming webhook."
             status={slackConnected ? "connected" : "disconnected"}
-            meta={slackConnected && slackChannel ? `Slack channel: #${slackChannel}` : undefined}
-            onConnect={openSlackModal}
-            onDisconnect={disconnectSlack}
+            meta={
+              slackConnected && slackChannel
+                ? `Slack channel: #${slackChannel}`
+                : canManageOrg ? undefined : "Set up by an administrator"
+            }
+            onConnect={canManageOrg ? openSlackModal : undefined}
+            onDisconnect={canManageOrg ? disconnectSlack : undefined}
           />
         </div>
       </SettingsSection>
