@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can, userCan } from "@/lib/rbac";
+import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
 
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
   const db = supabaseAdmin as any;
   const { data, error } = await db.from("hall_of_fame_cycles").insert({ month: `${body.month.slice(0, 7)}-01`, opens_at: body.opensAt ?? null, closes_at: body.closesAt ?? null, status: "open", created_by: session.user.id }).select("id").single();
-  if (error?.code === "23505") return NextResponse.json({ error: "A Hall of Fame cycle already exists for this month." }, { status: 409 });
+  if (error?.code === "23505") return NextResponse.json({ error: "A Wall of Fame cycle already exists for this month." }, { status: 409 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   await broadcastHallOfFameChange(data.id).catch(() => {});
   return NextResponse.json(data);

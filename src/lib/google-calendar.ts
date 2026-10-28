@@ -154,7 +154,7 @@ export async function updateCalendarEvent(
   userId: string,
   eventId: string,
   opts: { title?: string; description?: string; startAt?: string; endAt?: string }
-): Promise<void> {
+): Promise<boolean> {
   try {
     const [accessToken, calendarId] = await Promise.all([
       getGoogleAccessToken(userId),
@@ -182,13 +182,16 @@ export async function updateCalendarEvent(
     if (!res.ok) {
       const data = await res.json().catch(() => null);
       console.error("Google Calendar updateCalendarEvent failed", data);
+      return false;
     }
+    return true;
   } catch (err) {
     console.error("updateCalendarEvent error", err);
+    return false;
   }
 }
 
-export async function deleteCalendarEvent(userId: string, eventId: string): Promise<void> {
+export async function deleteCalendarEvent(userId: string, eventId: string): Promise<boolean> {
   try {
     const [accessToken, calendarId] = await Promise.all([
       getGoogleAccessToken(userId),
@@ -207,8 +210,11 @@ export async function deleteCalendarEvent(userId: string, eventId: string): Prom
       // 410 Gone is fine — already deleted
       const data = await res.json().catch(() => null);
       console.error("Google Calendar deleteCalendarEvent failed", data);
+      return false;
     }
+    return true;
   } catch (err) {
     console.error("deleteCalendarEvent error", err);
+    return false;
   }
 }

@@ -20,7 +20,7 @@ const ITEMS: Record<GrantablePermission, { label: string; help: string; icon: st
   },
   manage_recognition_campaigns: {
     label: "Recognition campaigns",
-    help: "Run campaigns and Hall of Fame cycles, and manage staff groups.",
+    help: "Run campaigns and Wall of Fame cycles, and manage staff groups.",
     icon: "solar:flag-2-broken",
   },
 };

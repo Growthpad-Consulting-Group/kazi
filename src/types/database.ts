@@ -153,6 +153,21 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["candidate_notes"]["Insert"]>;
         Relationships: [];
       };
+      candidate_interviews: {
+        Row: {
+          id: string;
+          candidate_id: string;
+          scheduled_at: string;
+          duration_minutes: number;
+          booked_by: string;
+          interviewer_ids: string[];
+          google_event_id: string;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["candidate_interviews"]["Row"], "id" | "created_at">;
+        Update: Partial<Database["public"]["Tables"]["candidate_interviews"]["Insert"]>;
+        Relationships: [];
+      };
       interview_scorecards: {
         Row: {
           id: string;
@@ -586,9 +601,9 @@ export interface Database {
         Relationships: [];
       };
       milestones: {
-        Row: { id: string; user_id: string; type: MilestoneType; milestone_date: string; years_count: number | null; acknowledged: boolean; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["milestones"]["Row"], "id" | "created_at" | "acknowledged" | "years_count"> & { acknowledged?: boolean; years_count?: number | null };
-        Update: Partial<{ acknowledged: boolean }>;
+        Row: { id: string; user_id: string; type: MilestoneType; milestone_date: string; years_count: number | null; acknowledged: boolean; acknowledged_by: string | null; acknowledged_at: string | null; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["milestones"]["Row"], "id" | "created_at" | "acknowledged" | "acknowledged_by" | "acknowledged_at" | "years_count"> & { acknowledged?: boolean; acknowledged_by?: string | null; acknowledged_at?: string | null; years_count?: number | null };
+        Update: Partial<{ acknowledged: boolean; acknowledged_by: string | null; acknowledged_at: string | null }>;
         Relationships: [];
       };
       automation_rules: {
@@ -626,6 +641,7 @@ export interface Database {
           refresh_token_ciphertext: string;
           token_expiry: string | null;
           calendar_id: string;
+          calendar_name: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -635,12 +651,14 @@ export interface Database {
           refresh_token_ciphertext: string;
           token_expiry?: string | null;
           calendar_id?: string;
+          calendar_name?: string | null;
         };
         Update: Partial<{
           access_token_ciphertext: string;
           refresh_token_ciphertext: string;
           token_expiry: string | null;
           calendar_id: string;
+          calendar_name: string | null;
           updated_at: string;
         }>;
         Relationships: [];

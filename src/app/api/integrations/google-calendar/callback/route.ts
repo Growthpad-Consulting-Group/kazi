@@ -8,26 +8,31 @@ import { supabaseAdmin } from "@/lib/supabase";
 const STATE_COOKIE = "kazi_gcal_oauth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
+function resultRedirect(origin: string, returnTo: string | undefined, status: "connected" | "error") {
+  const destination = new URL(returnTo ?? "/settings/integrations", origin);
+  destination.searchParams.set(returnTo ? "calendar" : "google_calendar", status);
+  return NextResponse.redirect(destination);
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const fallback = new URL("/settings/integrations?google_calendar=error", url.origin);
   const session = await getServerSession(authOptions);
   const store = await cookies();
   const oauthCookie = store.get(STATE_COOKIE)?.value;
   store.delete(STATE_COOKIE);
 
-  if (!session || !oauthCookie) return NextResponse.redirect(fallback);
+  if (!session || !oauthCookie) return resultRedirect(url.origin, undefined, "error");
 
-  let savedState: { state: string };
+  let savedState: { state: string; returnTo?: string };
   try {
-    savedState = JSON.parse(oauthCookie) as { state: string };
+    savedState = JSON.parse(oauthCookie) as { state: string; returnTo?: string };
   } catch {
-    return NextResponse.redirect(fallback);
+    return resultRedirect(url.origin, undefined, "error");
   }
 
   const code = url.searchParams.get("code");
   if (!code || url.searchParams.get("state") !== savedState.state) {
-    return NextResponse.redirect(fallback);
+    return resultRedirect(url.origin, savedState.returnTo, "error");
   }
 
   try {
@@ -82,17 +87,16 @@ export async function GET(request: Request) {
           token_expiry: tokenExpiry,
           calendar_id: "primary",
           // Show the connected Google account so people can tell which calendar this is.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ...((userInfo?.email ?? calendarName) !== null ? { calendar_name: userInfo?.email ?? calendarName } : {}),
-        } as any,
+          calendar_name: userInfo?.email ?? calendarName,
+        },
         { onConflict: "user_id" }
       );
 
     if (error) throw new Error("Could not save the Google Calendar connection.");
 
-    return NextResponse.redirect(new URL("/settings/integrations?google_calendar=connected", url.origin));
+    return resultRedirect(url.origin, savedState.returnTo, "connected");
   } catch (err) {
     console.error("Google Calendar OAuth callback failed", err);
-    return NextResponse.redirect(fallback);
+    return resultRedirect(url.origin, savedState.returnTo, "error");
   }
 }

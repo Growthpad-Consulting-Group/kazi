@@ -48,6 +48,7 @@ const TABLE_GROUPS: Record<string, CacheGroup[]> = {
   review_cycles: ["pulse", "dashboard"],
   surveys: ["pulse"],
   survey_responses: ["pulse"],
+  milestones: ["pulse", "dashboard"],
   notifications: ["notifications"],
 };
 

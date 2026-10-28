@@ -55,7 +55,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     );
   }
 
-  const { data, error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data, error } = await supabaseAdmin
     .from("candidate_interviews")
     .insert({
       candidate_id: row.id,

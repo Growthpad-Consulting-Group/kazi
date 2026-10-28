@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
@@ -8,6 +9,21 @@ import { sendOneOnOneSlackDMs } from "@/lib/slack";
 import { notifyOneOnOneScheduled } from "@/lib/notifications";
 
 type UserRow = { id: string; name: string; email: string };
+type OneOnOneParticipants = {
+  manager_id: string | null;
+  report_id: string | null;
+  google_event_id: string | null;
+};
+
+/** A participant can maintain their own conversation; managers, HR, and admins can manage meetings. */
+function canAccessOneOnOne(
+  user: { id: string; role: Parameters<typeof can>[0] },
+  meeting: OneOnOneParticipants,
+) {
+  return user.id === meeting.manager_id
+    || user.id === meeting.report_id
+    || can(user.role, "manage_one_on_ones");
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -29,17 +45,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (scheduledAt !== undefined) update.scheduled_at = scheduledAt;
 
   // Read existing row before write
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: existingError } = await supabaseAdmin
     .from("one_on_ones")
     .select("manager_id, report_id, google_event_id")
     .eq("id", id)
     .maybeSingle();
 
-  const participants = existing as unknown as {
-    manager_id: string | null;
-    report_id: string | null;
-    google_event_id: string | null;
-  } | null;
+  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  const participants = existing as unknown as OneOnOneParticipants | null;
+  if (!participants) return NextResponse.json({ error: "1-on-1 not found" }, { status: 404 });
+  if (!canAccessOneOnOne(session.user, participants)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { error } = await supabaseAdmin.from("one_on_ones").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -119,17 +136,18 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { id } = await params;
 
   // Fetch existing row to get manager_id, report_id, google_event_id
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: existingError } = await supabaseAdmin
     .from("one_on_ones")
     .select("manager_id, report_id, google_event_id")
     .eq("id", id)
     .maybeSingle();
 
-  const row = existing as unknown as {
-    manager_id: string | null;
-    report_id: string | null;
-    google_event_id: string | null;
-  } | null;
+  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  const row = existing as unknown as OneOnOneParticipants | null;
+  if (!row) return NextResponse.json({ error: "1-on-1 not found" }, { status: 404 });
+  if (!canAccessOneOnOne(session.user, row)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   // Delete calendar event if present (non-blocking)
   if (row?.google_event_id && row?.manager_id) {
@@ -142,6 +160,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   const { error } = await supabaseAdmin.from("one_on_ones").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await invalidateOneOnOneParticipants({
+    managerId: row.manager_id ?? undefined,
+    reportId: row.report_id ?? undefined,
+  });
 
   return NextResponse.json({ ok: true });
 }

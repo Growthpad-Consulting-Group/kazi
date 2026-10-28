@@ -30,12 +30,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS hall_of_fame_one_self_nomination_per_cycle
 CREATE INDEX IF NOT EXISTS hall_of_fame_nominations_cycle_nominee
   ON hall_of_fame_nominations (cycle_id, nominee_id);
 
+DROP TRIGGER IF EXISTS hall_of_fame_cycles_updated_at ON hall_of_fame_cycles;
 CREATE TRIGGER hall_of_fame_cycles_updated_at
   BEFORE UPDATE ON hall_of_fame_cycles
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 ALTER TABLE hall_of_fame_cycles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hall_of_fame_nominations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "anon_no_access_hall_of_fame_cycles" ON hall_of_fame_cycles;
+DROP POLICY IF EXISTS "anon_no_access_hall_of_fame_nominations" ON hall_of_fame_nominations;
 CREATE POLICY "anon_no_access_hall_of_fame_cycles" ON hall_of_fame_cycles FOR ALL TO anon USING (false);
 CREATE POLICY "anon_no_access_hall_of_fame_nominations" ON hall_of_fame_nominations FOR ALL TO anon USING (false);
 GRANT ALL ON hall_of_fame_cycles TO service_role;

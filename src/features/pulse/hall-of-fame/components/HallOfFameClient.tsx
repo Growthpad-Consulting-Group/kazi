@@ -223,7 +223,7 @@ export default function HallOfFameClient({
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       <SetPageHeader
-        title={cycle ? `${monthLabel(cycle.month)} · Hall of Fame` : "Growthpad Hall of Fame"}
+        title={cycle ? `${monthLabel(cycle.month)} · Wall of Fame` : "Growthpad Wall of Fame"}
         description="Recognise people who create WOW experiences for clients and deliver excellent performance."
         icon="solar:cup-star-broken"
         trailing={canManage ? (
@@ -329,7 +329,7 @@ export default function HallOfFameClient({
             <Icon icon="solar:lock-keyhole-broken" className="mx-auto h-5 w-5 text-[var(--text-lo)]" />
             <p className="mt-2 text-xs font-semibold text-[var(--text-hi)]">Nominations are not open</p>
             <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-lo)]">
-              {canManage ? "Open this month’s cycle to start nominating." : "Your HR team will open the next Hall of Fame cycle."}
+              {canManage ? "Open this month’s cycle to start nominating." : "Your HR team will open the next Wall of Fame cycle."}
             </p>
           </div>
         )}
@@ -404,7 +404,7 @@ export default function HallOfFameClient({
       <SimpleModal
         open={newCycleOpen}
         onClose={() => setNewCycleOpen(false)}
-        title="Open Hall of Fame nominations"
+        title="Open Wall of Fame nominations"
         icon="solar:cup-star-broken"
       >
         <div className="space-y-4">

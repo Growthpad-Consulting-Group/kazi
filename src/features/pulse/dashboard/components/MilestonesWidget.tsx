@@ -1,5 +1,9 @@
 import { Icon } from "@iconify/react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { AcknowledgeMilestoneButton } from "./AcknowledgeMilestoneButton";
 
 type MilestoneRow = {
   id: string;
@@ -33,14 +37,24 @@ function daysUntil(dateStr: string): number {
 
 export default async function MilestonesWidget() {
   const todayStr = new Date().toISOString().slice(0, 10);
+  const session = await getServerSession(authOptions);
+  if (!session || !can(session.user.role, "manage_one_on_ones")) return null;
 
-  const { data } = await supabaseAdmin
+  const canManageAll = can(session.user.role, "manage_recognition_campaigns");
+  const { data: reports } = canManageAll
+    ? { data: [] as { id: string }[] }
+    : await supabaseAdmin.from("users").select("id").eq("manager_id", session.user.id).eq("is_active", true);
+  if (!canManageAll && !reports?.length) return null;
+
+  let query = supabaseAdmin
     .from("milestones")
     .select("id, user_id, type, milestone_date, years_count")
     .eq("acknowledged", false)
     .gte("milestone_date", todayStr)
     .order("milestone_date", { ascending: true })
     .limit(5);
+  if (!canManageAll) query = query.in("user_id", (reports ?? []).map((report) => report.id));
+  const { data } = await query;
 
   const rows = data ?? [];
 
@@ -97,9 +111,12 @@ export default async function MilestonesWidget() {
                     {detail && ` — ${detail}`}
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold ${days === 0 ? "bg-brand-500/10 text-brand-500" : "bg-[var(--surface)] text-[var(--text-lo)]"}`}>
-                  {days === 0 ? "Today" : `in ${days}d`}
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${days === 0 ? "bg-brand-500/10 text-brand-500" : "bg-[var(--surface)] text-[var(--text-lo)]"}`}>
+                    {days === 0 ? "Today" : `in ${days}d`}
+                  </span>
+                  <AcknowledgeMilestoneButton milestoneId={milestone.id} />
+                </div>
               </li>
             );
           })}

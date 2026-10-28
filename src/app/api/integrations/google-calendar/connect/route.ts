@@ -8,6 +8,16 @@ import { getGoogleConfig } from "@/lib/google-calendar";
 const STATE_COOKIE = "kazi_gcal_oauth";
 const GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
+function getSafeReturnTo(value: string | null, origin: string) {
+  if (!value?.startsWith("/")) return undefined;
+  try {
+    const destination = new URL(value, origin);
+    return destination.origin === origin ? `${destination.pathname}${destination.search}${destination.hash}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.redirect(new URL("/login", request.url));
@@ -15,8 +25,9 @@ export async function GET(request: Request) {
   try {
     const config = getGoogleConfig();
     const state = randomUUID();
+    const returnTo = getSafeReturnTo(new URL(request.url).searchParams.get("returnTo"), new URL(request.url).origin);
     const store = await cookies();
-    store.set(STATE_COOKIE, JSON.stringify({ state }), {
+    store.set(STATE_COOKIE, JSON.stringify({ state, returnTo }), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
