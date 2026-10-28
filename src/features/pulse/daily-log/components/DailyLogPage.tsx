@@ -573,7 +573,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                       <TooltipIconButton
                         key={value}
                         label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}: ${MOOD_LABELS[index]}`}
-                        position="top"
+                        position="bottom"
                         onClick={() => setMood(mood === value ? null : value)}
                         className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-all duration-150 hover:scale-110 ${mood === value ? "bg-brand-500/15 ring-2 ring-brand-500/40" : "bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
                       >
@@ -582,6 +582,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                     );
                   })}
                 </div>
+                <p className="mt-2 text-xs text-[var(--text-lo)]">{mood ? <>Feeling <span className="font-semibold text-[var(--text-hi)]">{MOOD_LABELS[mood - 1]}</span></> : "No mood selected"}</p>
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">
