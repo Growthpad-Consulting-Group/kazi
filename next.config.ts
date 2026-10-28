@@ -4,17 +4,22 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async headers() {
     const isProduction = process.env.NODE_ENV === "production";
+    // React's development error overlays use eval to reconstruct stack traces.
+    // Keep it local-only: production never needs or receives unsafe-eval.
+    const scriptSource = isProduction
+      ? "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com"
+      : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com";
     const contentSecurityPolicy = [
       "default-src 'self'",
       "base-uri 'self'",
       "object-src 'none'",
       "frame-ancestors 'none'",
       "form-action 'self'",
-      "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com",
+      scriptSource,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com https://*.ingest.de.sentry.io",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com https://*.ingest.de.sentry.io https://api.iconify.design",
       "frame-src https://www.google.com",
     ].join("; ");
     return [{
