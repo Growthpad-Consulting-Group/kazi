@@ -158,9 +158,9 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-6 border-t border-gray-200 pt-5 flex items-center justify-between gap-4 text-xs text-gray-500">
+            <div className="mt-6 border-t border-gray-200 pt-5 flex items-center justify-between gap-4 text-sm text-gray-500">
               <p>Access is managed by Growthpad.</p>
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-brand-500 hover:text-brand-600 transition-colors">Contact administrator</a>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-brand-500 hover:text-brand-600 text-md transition-colors">Contact administrator</a>
             </div>
           </div>
         </div>

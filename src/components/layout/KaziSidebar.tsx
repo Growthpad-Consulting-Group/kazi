@@ -73,18 +73,24 @@ export default function KaziSidebar({
       }`}>
 
         {/* Logo */}
-        <div className={`flex items-center h-[72px] shrink-0 border-b border-white/10 dark:border-white/5 ${isOpen ? "px-6 justify-between" : "px-0 justify-center"}`}>
+        <div className={`flex items-center shrink-0 border-b border-white/10 dark:border-white/5 ${isOpen ? "min-h-[72px] px-6 py-3 justify-between" : "h-[72px] px-0 justify-center"}`}>
           {isOpen ? (
-            <Link href="/dashboard" title="Dashboard">
-              <Image
-                src={mode === "dark" ? "/assets/images/logo-white.svg" : "/assets/images/logo.svg"}
-                alt="Growthpad Kazi"
-                width={150} height={48}
-                priority
-                style={{ height: "auto" }}
-                className="w-[140px] object-contain hover:opacity-80 transition-opacity"
-              />
-            </Link>
+            <div className="flex flex-col">
+              <Link href="/dashboard" title="Dashboard">
+                <Image
+                  src={mode === "dark" ? "/assets/images/logo-white.svg" : "/assets/images/logo.svg"}
+                  alt="Growthpad Kazi"
+                  width={150} height={48}
+                  priority
+                  style={{ height: "auto" }}
+                  className="w-[140px] object-contain hover:opacity-80 transition-opacity"
+                />
+              </Link>
+              <div className="mt-2 flex items-center gap-2">
+                <p className={`text-sm font-bold tracking-[0.2em] ${mode === "dark" ? "text-white" : "text-gray-900"}`}>KAZI</p>
+                <p className="text-[9px] tracking-[0.12em] text-gray-500">STAFF ENGAGEMENT WORKSPACE</p>
+              </div>
+            </div>
           ) : (
             <Link href="/dashboard" title="Dashboard">
               <Image
