@@ -10,6 +10,7 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
 import { TeamActivity } from "./TeamActivity";
 import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
+import TooltipIconButton from "@/components/ui/TooltipIconButton";
 import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, MOOD_LABELS, isEditableLogDate, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type Row = { task: string; client: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
@@ -569,17 +570,15 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                   {MOODS.slice(0, DAILY_LOG_MOOD_COUNT).map((emoji, index) => {
                     const value = index + 1;
                     return (
-                      <button
+                      <TooltipIconButton
                         key={value}
-                        type="button"
+                        label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}: ${MOOD_LABELS[index]}`}
+                        position="top"
                         onClick={() => setMood(mood === value ? null : value)}
-                        aria-label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}: ${MOOD_LABELS[index]}`}
-                        title={MOOD_LABELS[index]}
-                        aria-pressed={mood === value}
                         className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-all duration-150 hover:scale-110 ${mood === value ? "bg-brand-500/15 ring-2 ring-brand-500/40" : "bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
                       >
                         {emoji}
-                      </button>
+                      </TooltipIconButton>
                     );
                   })}
                 </div>
