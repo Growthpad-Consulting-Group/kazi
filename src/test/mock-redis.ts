@@ -92,6 +92,15 @@ export const mockRedis = {
     return "OK";
   },
 
+  async incr(key: string): Promise<number> {
+    assertOk();
+    const entry = state.store.get(key);
+    const current = entry && !isExpired(entry) ? Number(JSON.parse(entry.value)) || 0 : 0;
+    const next = current + 1;
+    state.store.set(key, { value: JSON.stringify(next), expiresAt: entry?.expiresAt ?? null });
+    return next;
+  },
+
   async del(...keys: string[]): Promise<number> {
     assertOk();
     let removed = 0;
@@ -137,7 +146,9 @@ export const mockRedis = {
 
   async expire(key: string, seconds: number): Promise<number> {
     assertOk();
-    if (!state.sets.has(key)) return 0;
+    const entry = state.store.get(key);
+    if (!entry && !state.sets.has(key)) return 0;
+    if (entry) entry.expiresAt = Date.now() + seconds * 1000;
     state.ttls.set(key, seconds);
     return 1;
   },

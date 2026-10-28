@@ -3,6 +3,9 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { redis, SCREENING_QUEUE, SCREENING_PROCESSING } from "@/lib/redis";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import { recordAiUsage } from "@/lib/ai-audit";
+import { hasCronAccess } from "@/lib/cron-auth";
+import { parseCvText } from "@/lib/candidate-cv";
 import type { CandidateStage } from "@/types/database";
 
 // Called by Vercel Cron (vercel.json) or an external scheduler.
@@ -36,8 +39,13 @@ async function screenOne(candidateId: string): Promise<void> {
   const job = candidate.jobs;
   if (!job || candidate.ai_score !== null) return;
 
-  const cvData = candidate.cv_parsed
-    ? JSON.stringify(candidate.cv_parsed)
+  const parsedCv = candidate.cv_parsed ?? (candidate.cv_text ? await parseCvText(candidateId, candidate.cv_text) : null);
+  if (!candidate.cv_parsed && parsedCv) {
+    await supabaseAdmin.from("candidates").update({ cv_parsed: parsedCv }).eq("id", candidateId);
+  }
+
+  const cvData = parsedCv
+    ? JSON.stringify(parsedCv)
     : (candidate.cv_text?.slice(0, 6000) ?? "");
   if (!cvData) return;
 
@@ -88,14 +96,14 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
       stage: candidate.stage === "applied" ? "screened" : candidate.stage,
     }).eq("id", candidateId),
 
-    supabaseAdmin.from("ai_logs").insert({
+    recordAiUsage({
       operation: "screening_queue",
-      entity_type: "candidate",
-      entity_id: candidateId,
+      entityType: "candidate",
+      entityId: candidateId,
       model: GROQ_MODEL,
-      prompt,
-      response: raw,
-      tokens_used: completion.usage?.total_tokens ?? null,
+      inputCharacters: prompt.length,
+      outputCharacters: raw.length,
+      tokensUsed: completion.usage?.total_tokens,
     }),
   ]);
 
@@ -105,8 +113,7 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
 }
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!hasCronAccess(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

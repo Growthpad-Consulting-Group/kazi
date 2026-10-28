@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { isPathAllowed, withViewGrant } from "@/lib/page-access";
+import { isAdminScreenPath, isPathAllowed, withViewGrant } from "@/lib/page-access";
 import { getExtraPermissions } from "@/lib/user-permissions";
 import { getAllowedPaths } from "@/lib/page-access-server";
 import { mustChangePassword } from "@/lib/must-change-password";
@@ -15,9 +15,16 @@ export async function proxy(request: NextRequest) {
 
   // Someone with a temporary password can only use their profile until they choose a new one.
   const { pathname } = request.nextUrl;
-  if (token.id && (await mustChangePassword(token.id as string)) && !pathname.startsWith("/settings/profile")) {
+  const isProfilePath = pathname.startsWith("/settings/profile");
+  if (!isProfilePath && token.id && (await mustChangePassword(token.id as string))) {
     return NextResponse.redirect(new URL("/settings/profile?passwordRequired=1", request.url));
   }
+
+  // Most employee pages are not gated. Avoid two access-grant queries on every
+  // ordinary navigation; protected screens still resolve grants server-side.
+  if (!isAdminScreenPath(pathname)) return NextResponse.next();
+
+  if (token.role === "admin") return NextResponse.next();
 
   const allowedPaths = withViewGrant(
     await getAllowedPaths(token.role as UserRole),

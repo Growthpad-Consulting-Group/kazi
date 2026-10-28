@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { RoleTitleEditor } from "./RoleTitleEditor";
+import { sanitizeSignatureHtml } from "@/features/signatures/lib/sanitizeSignatureHtml";
 
 type QueryResult = { data: unknown; count: number | null; error: { message: string } | null };
 type Database = { from: (table: string) => { select: (columns: string, options?: { count: "exact"; head?: boolean }) => PromiseLike<QueryResult> } };
@@ -20,7 +21,7 @@ type SignatureTemplate = { id: string; name: string; html: string };
 function renderStaffSignature(html: string, profile: StaffProfile) {
   const escape = (value: string | null | undefined) => (value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" })[character] ?? character);
   const values: Record<string, string | null | undefined> = { full_name: profile.full_name, email: profile.email, role_title: profile.role_title, department: profile.department, photo_url: profile.photo_url };
-  return html.replace(/\{\{(full_name|email|role_title|department|photo_url)\}\}/g, (_match, key: string) => escape(values[key]));
+  return sanitizeSignatureHtml(html).replace(/\{\{(full_name|email|role_title|department|photo_url)\}\}/g, (_match, key: string) => escape(values[key]));
 }
 
 export default async function SignaturesOverview() {

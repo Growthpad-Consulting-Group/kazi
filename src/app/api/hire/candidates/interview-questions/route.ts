@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
+import { recordAiUsage } from "@/lib/ai-audit";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -77,14 +78,14 @@ Return ONLY valid JSON:
     return NextResponse.json({ error: "AI returned invalid JSON" }, { status: 500 });
   }
 
-  await supabaseAdmin.from("ai_logs").insert({
+  await recordAiUsage({
     operation: "interview_questions",
-    entity_type: "candidate",
-    entity_id: candidateId,
+    entityType: "candidate",
+    entityId: candidateId,
     model: GROQ_MODEL,
-    prompt,
-    response: raw,
-    tokens_used: completion.usage?.total_tokens ?? null,
+    inputCharacters: prompt.length,
+    outputCharacters: raw.length,
+    tokensUsed: completion.usage?.total_tokens,
   });
 
   return NextResponse.json(result);

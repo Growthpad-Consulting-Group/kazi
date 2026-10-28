@@ -5,12 +5,11 @@ import {
   notifySurveyClosingSoon,
   notifyWeeklyDigest,
 } from "@/lib/notifications";
+import { hasCronAccess } from "@/lib/cron-auth";
 
 export async function POST(req: Request): Promise<Response> {
   // Auth: Bearer CRON_SECRET
-  const auth = req.headers.get("authorization") ?? "";
-  const secret = process.env.CRON_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!hasCronAccess(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

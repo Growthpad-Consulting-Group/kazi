@@ -93,7 +93,10 @@ export async function getCachedJob(id: string): Promise<Job | null> {
 
 /* ── Candidates ──────────────────────────────────────────────────────────── */
 
-export interface CachedCandidate extends Candidate {
+export interface CachedCandidate extends Omit<Candidate, "cv_text"> {
+  // The list and pipeline never render raw CV text. Keep the shape explicit so
+  // callers cannot accidentally reintroduce that large, sensitive payload.
+  cv_text: null;
   jobs: { title: string; department: string | null } | null;
 }
 
@@ -115,7 +118,7 @@ export async function getCachedCandidates(
   return cached("candidates", key, "dynamic", async () => {
     let query = supabaseAdmin
       .from("candidates")
-      .select("*, jobs(title, department)")
+      .select("id, job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, cv_url, cv_parsed, stage, assigned_to, source, ai_score, ai_justification, shortlisted, consented_at, hired_user_id, applied_at, created_at, updated_at, jobs(title, department)")
       // Highest AI fit first; candidates awaiting analysis remain after scored candidates.
       .order("ai_score", { ascending: false, nullsFirst: false })
       .order("applied_at", { ascending: false });

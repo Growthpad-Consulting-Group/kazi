@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { sanitizeSignatureHtml } from "@/features/signatures/lib/sanitizeSignatureHtml";
 
 type RouteContext = { params: Promise<{ id: string }> };
 type Result = { data?: unknown; error: { message: string } | null };
@@ -22,7 +23,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const values: Record<string, unknown> = {};
   if (typeof body.name === "string" && body.name.trim()) values.name = body.name.trim();
   if (typeof body.description === "string") values.description = body.description.trim() || null;
-  if (typeof body.html === "string") values.html = body.html;
+  if (typeof body.html === "string") values.html = sanitizeSignatureHtml(body.html);
   if (Array.isArray(body.blocks)) values.blocks = body.blocks;
   if (typeof body.canvasWidth === "number" && Number.isFinite(body.canvasWidth)) values.canvas_width = Math.max(320, Math.min(800, Math.round(body.canvasWidth)));
   if (body.isDefault === true) values.is_default = true;

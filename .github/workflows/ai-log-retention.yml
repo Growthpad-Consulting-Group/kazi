@@ -1,0 +1,32 @@
+name: AI Log Retention
+
+on:
+  schedule:
+    - cron: "17 2 1 * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report eligible logs without deleting them"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  purge-expired-ai-logs:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Verify retention credentials
+        if: env.CRON_SECRET == ''
+        run: |
+          echo "::notice::Skipping AI log retention because CRON_SECRET is not configured in GitHub Actions."
+      - name: Purge expired AI audit logs
+        if: env.CRON_SECRET != ''
+        env:
+          DRY_RUN: ${{ inputs.dry_run == true && '?dryRun=1' || '' }}
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/admin/retention/ai-logs$DRY_RUN"

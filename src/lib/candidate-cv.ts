@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { redis, SCREENING_QUEUE } from "@/lib/redis";
 import { ApplicationError } from "@/lib/application-error";
+import { recordAiUsage } from "@/lib/ai-audit";
 
 export const MAX_CV_BYTES = 10 * 1024 * 1024;
 const CV_EXTENSIONS = ["pdf", "docx"];
@@ -30,7 +31,8 @@ export async function readCv(file: File): Promise<ReadCv> {
   return { bytes, text, extension, contentType: file.type || "application/octet-stream" };
 }
 
-async function parseCv(candidateId: string, cvText: string) {
+/** Runs only in the scheduled screening worker, never on an applicant request. */
+export async function parseCvText(candidateId: string, cvText: string) {
   const prompt = `Extract structured information from this CV text. Return ONLY valid JSON, no explanation.
 
 CV:
@@ -51,14 +53,14 @@ Return this exact JSON shape:
       response_format: { type: "json_object" },
     });
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    await supabaseAdmin.from("ai_logs").insert({
+    await recordAiUsage({
       operation: "cv_parse",
-      entity_type: "candidate",
-      entity_id: candidateId,
+      entityType: "candidate",
+      entityId: candidateId,
       model: GROQ_MODEL,
-      prompt,
-      response: raw,
-      tokens_used: completion.usage?.total_tokens ?? null,
+      inputCharacters: prompt.length,
+      outputCharacters: raw.length,
+      tokensUsed: completion.usage?.total_tokens,
     });
     return JSON.parse(raw);
   } catch {
@@ -76,10 +78,9 @@ export async function attachCv(candidateId: string, jobId: string, cv: ReadCv) {
     throw new ApplicationError(error instanceof Error ? error.message : "Upload failed", 500);
   }
 
-  const cvParsed = await parseCv(candidateId, cv.text);
   await supabaseAdmin
     .from("candidates")
-    .update({ cv_url: cvUrl, cv_text: cv.text || null, cv_parsed: cvParsed })
+    .update({ cv_url: cvUrl, cv_text: cv.text || null, cv_parsed: null })
     .eq("id", candidateId);
 
   // A later worker sweep catches this candidate if Redis is briefly unavailable.
@@ -92,5 +93,5 @@ export async function attachCv(candidateId: string, jobId: string, cv: ReadCv) {
   }
 
   await invalidateTables("candidates");
-  return { cvUrl, cvParsed, queuedForScreening };
+  return { cvUrl, queuedForScreening };
 }

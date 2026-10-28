@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { syncStaffSignature } from "@/features/signatures/lib/syncStaffSignature";
 import { MAX_AUTOMATIC_SYNC_ATTEMPTS } from "@/features/signatures/lib/syncLimits";
+import { hasCronAccess } from "@/lib/cron-auth";
 
 // Called on a schedule by GitHub Actions (.github/workflows/signature-retry.yml).
 // Re-sends signatures whose last Gmail sync failed, a few mailboxes per run, so one
@@ -21,8 +22,7 @@ type Database = {
 };
 
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!hasCronAccess(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -5,6 +5,7 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { groq, GROQ_MODEL } from "@/lib/ai";
+import { recordAiUsage } from "@/lib/ai-audit";
 import type { Candidate } from "@/types/database";
 
 type CandidateWithJobData = Candidate & {
@@ -102,14 +103,14 @@ Shortlist if score >= 65.`;
   // Screening changed the candidate's score, shortlist flag and stage.
   await invalidateTables("candidates");
 
-  await supabaseAdmin.from("ai_logs").insert({
+  await recordAiUsage({
     operation: "screening",
-    entity_type: "candidate",
-    entity_id: candidateId,
+    entityType: "candidate",
+    entityId: candidateId,
     model: GROQ_MODEL,
-    prompt,
-    response: raw,
-    tokens_used: completion.usage?.total_tokens ?? null,
+    inputCharacters: prompt.length,
+    outputCharacters: raw.length,
+    tokensUsed: completion.usage?.total_tokens,
   });
 
   return NextResponse.json(result);

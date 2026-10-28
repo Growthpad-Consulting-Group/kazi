@@ -31,9 +31,11 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    let recaptchaToken: string;
     try {
       const token = await recaptchaRef.current?.executeAsync();
       if (!token) throw new Error("CAPTCHA verification failed. Please try again.");
+      recaptchaToken = token;
       recaptchaRef.current?.reset();
     } catch {
       setLoading(false);
@@ -43,7 +45,7 @@ export default function LoginPage() {
 
     const loadingToast = toast.loading("Signing in…");
     try {
-      const res = await signIn("credentials", { email, password, redirect: false });
+      const res = await signIn("credentials", { email, password, recaptchaToken, redirect: false });
       if (res?.error) throw new Error("Invalid email or password.");
       if (rememberMe) localStorage.setItem("kazi_remembered_email", email);
       else localStorage.removeItem("kazi_remembered_email");

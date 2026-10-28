@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { getAutomationAudience, runAutomationEvent } from "@/lib/automations";
 import { notifyCampaignLive, notifyMilestone, notifyQuestEndingSoon } from "@/lib/notifications";
 import { supabaseAdmin } from "@/lib/supabase";
+import { hasCronAccess } from "@/lib/cron-auth";
 
 export async function POST(req: Request): Promise<Response> {
-  const auth = req.headers.get("authorization") ?? "";
-  const secret = process.env.CRON_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!hasCronAccess(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

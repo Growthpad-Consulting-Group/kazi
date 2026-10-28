@@ -5,6 +5,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { getAllowedPaths } from "@/lib/page-access-server";
 import { withViewGrant } from "@/lib/page-access";
 import { getExtraPermissions } from "@/lib/user-permissions";
+import { checkRateLimit, requestIp } from "@/lib/rate-limit";
+import { verifyRecaptcha } from "@/lib/recaptcha";
 import type { UserRole } from "@/types/database";
 
 export const authOptions: NextAuthOptions = {
@@ -15,14 +17,24 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        recaptchaToken: { label: "CAPTCHA token", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials.password) return null;
+
+        const email = credentials.email.toLowerCase().trim();
+        const headers = new Headers(request?.headers ?? {});
+        const [ipLimit, emailLimit] = await Promise.all([
+          checkRateLimit({ scope: "login-ip", identifier: requestIp(headers), limit: 10, windowSeconds: 15 * 60 }),
+          checkRateLimit({ scope: "login-email", identifier: email, limit: 5, windowSeconds: 15 * 60 }),
+        ]);
+        if (!ipLimit.allowed || !emailLimit.allowed) return null;
+        if (!(await verifyRecaptcha(credentials.recaptchaToken, headers))) return null;
 
         const { data: user, error } = await supabaseAdmin
           .from("users")
           .select("id, email, name, password_hash, role, department, avatar_url, is_active")
-          .eq("email", credentials.email.toLowerCase())
+          .eq("email", email)
           .single();
 
         if (error || !user || !user.is_active) return null;

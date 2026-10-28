@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { verifyCandidateUploadToken } from "@/lib/candidate-upload-token";
 import { readCv, attachCv } from "@/lib/candidate-cv";
 import { ApplicationError } from "@/lib/application-error";
+import { checkRateLimit, rateLimitHeaders, requestIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,9 @@ export async function POST(req: Request) {
   if (!file || !candidateId || !jobId) {
     return NextResponse.json({ error: "cv, candidateId, jobId required" }, { status: 400 });
   }
+
+  const limit = await checkRateLimit({ scope: "cv-upload", identifier: `${requestIp(req.headers)}:${candidateId}`, limit: 5, windowSeconds: 60 * 60 });
+  if (!limit.allowed) return NextResponse.json({ error: "Too many CV upload attempts. Please try again later." }, { status: 429, headers: rateLimitHeaders(limit) });
 
   const hasPublicUploadAuthority = verifyCandidateUploadToken(uploadToken, candidateId, jobId);
   if (!session && !hasPublicUploadAuthority) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
@@ -38,7 +42,7 @@ export async function POST(req: Request) {
   try {
     const readable = await readCv(file);
     const stored = await attachCv(candidateId, jobId, readable);
-    return NextResponse.json({ cv_url: stored.cvUrl, cv_parsed: stored.cvParsed, queuedForScreening: stored.queuedForScreening });
+    return NextResponse.json({ cv_url: stored.cvUrl, queuedForScreening: stored.queuedForScreening });
   } catch (error) {
     if (error instanceof ApplicationError) return NextResponse.json({ error: error.message }, { status: error.status });
     throw error;
