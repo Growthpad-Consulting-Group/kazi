@@ -7,7 +7,9 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import ReCAPTCHA from "react-google-recaptcha";
+import { SimpleModal } from "@/components/ui/SimpleModal";
 
+const SUPPORT_EMAIL = "njue.duncan@growthpad.net";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signInHelpOpen, setSignInHelpOpen] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => {
@@ -63,183 +66,144 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#fdfaf5]">
-      {/* ── Left panel — login form ─────────────────────────────────────── */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12">
-        <div className="max-w-md w-full mx-auto">
-          {/* Logo */}
-          <div className="mb-8">
-            <Image
-              src="/logo-tagline-orange.svg"
-              alt="Growthpad Consulting Group"
-              width={300}
-              height={0}
-              className="animate-fade-in"
-            />
-          </div>
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#f8f6f2]">
+      {/* ── Left — sign-in ──────────────────────────────────────────────── */}
+      <div className="w-full lg:w-1/2 flex flex-col px-6 sm:px-12 lg:px-20 py-10">
+        <Image src="/kazi-logo.svg" alt="Kazi" width={460} height={68} priority className="mb-8 h-auto w-full max-w-[460px]" />
 
-          <h1 className="text-3xl sm:text-4xl font-bold text-[#231812] mb-2">Welcome back</h1>
-          <p className="text-gray-500 mb-8">Sign in to your Kazi workspace</p>
+        <div className="flex flex-1 items-center">
+          <div className="w-full max-w-md">
+            <div className="flex items-center gap-3">
+              <span className="h-1 w-8 bg-brand-500" aria-hidden />
+              <p className="text-[11px] font-semibold tracking-[0.15em] text-brand-500">YOUR GROWTHPAD WORKSPACE</p>
+            </div>
+            <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight text-[#231812]">Welcome back.</h1>
+            <p className="mt-3 text-gray-500">Sign in to continue to your Kazi workspace.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-[#231812] mb-1.5">Email Address</label>
-              <div className="relative flex items-center">
-                <Icon icon="solar:letter-broken" className="absolute left-3 text-gray-400 h-5 w-5 pointer-events-none" />
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <div>
+                <label htmlFor="work-email" className="block text-sm font-medium text-[#231812] mb-1.5">Work email</label>
                 <input
+                  id="work-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 text-[#231812] placeholder-gray-400"
-                  placeholder="you@growthpad.co.ke"
+                  placeholder="name@growthpad.net"
                   autoComplete="email"
                   required
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-[#231812] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
                 />
               </div>
-            </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-[#231812] mb-1.5">Password</label>
-              <div className="relative flex items-center">
-                <Icon icon="solar:lock-password-broken" className="absolute left-3 text-gray-400 h-5 w-5 pointer-events-none" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 text-[#231812] placeholder-gray-400"
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  required
-                />
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-[#231812] mb-1.5">Password</label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    required
+                    className="w-full pl-4 pr-11 py-3 bg-white border border-gray-200 rounded-xl text-[#231812] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-500 transition-colors"
+                  >
+                    <Icon icon={showPassword ? "solar:eye-closed-broken" : "solar:eye-broken"} className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 text-[#231812] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 bg-white accent-brand-500 cursor-pointer"
+                  />
+                  Remember me
+                </label>
                 <button
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 text-gray-400 hover:text-brand-500 focus:outline-none transition-colors"
+                  onClick={() => setSignInHelpOpen(true)}
+                  className="font-medium text-brand-500 transition-colors hover:text-brand-600"
                 >
-                  <Icon icon={showPassword ? "solar:eye-closed-broken" : "solar:eye-broken"} className="h-5 w-5" />
+                  Need help signing in?
                 </button>
               </div>
+
+              {/* Invisible reCAPTCHA — executes programmatically on submit */}
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string}
+                size="invisible"
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl shadow-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500/50"
+              >
+                {loading ? (
+                  <><Icon icon="solar:wheel-angle-broken" className="h-5 w-5 animate-spin" />Signing in…</>
+                ) : (
+                  <>Sign in to Kazi<Icon icon="solar:arrow-right-broken" className="h-5 w-5" /></>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 border-t border-gray-200 pt-5 flex items-center justify-between gap-4 text-xs text-gray-500">
+              <p>Access is managed by Growthpad.</p>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-brand-500 hover:text-brand-600 transition-colors">Contact administrator</a>
             </div>
-
-            {/* Remember me */}
-            <div className="flex items-center">
-              <label className="flex items-center gap-2 text-sm text-[#231812] cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded accent-brand-500 border-gray-300"
-                />
-                Remember me
-              </label>
-            </div>
-
-            {/* Invisible reCAPTCHA — executes programmatically on submit */}
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY as string}
-              size="invisible"
-            />
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-            >
-              {loading ? (
-                <><Icon icon="solar:wheel-angle-broken" className="h-5 w-5 animate-spin" />Signing in…</>
-              ) : (
-                <>Sign In<Icon icon="solar:arrow-right-broken" className="h-5 w-5" /></>
-              )}
-            </button>
-          </form>
-
-          <p className="mt-8 text-center text-sm text-gray-500">
-            Don&apos;t have an account?{" "}
-            <span className="text-brand-500 font-medium">Contact your administrator.</span>
-          </p>
-
-          <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-500">
-            <a href="https://growthpad.co.ke" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-brand-500 transition-colors">
-              <Icon icon="solar:arrow-left-broken" className="h-4 w-4" />
-              Back to Home
-            </a>
-            <span className="text-gray-300">•</span>
-            <a href="mailto:support@growthpad.co.ke" className="flex items-center gap-1 hover:text-brand-500 transition-colors">
-              <Icon icon="solar:info-circle-broken" className="h-4 w-4" />
-              Need Help?
-            </a>
           </div>
+        </div>
 
-          <div className="mt-6 text-center text-xs text-gray-400 space-y-1">
-            <p>
-              Powered by{" "}
-              <a href="https://growthpad.co.ke" target="_blank" rel="noopener noreferrer" className="text-brand-500 font-medium hover:text-brand-600 transition-colors">
-                Growthpad Consulting Group
-              </a>
-            </p>
-            <p>© {new Date().getFullYear()} Growthpad Consulting Group. All rights reserved.</p>
-          </div>
+        <div className="max-w-md w-full">
+          <p className="mt-8 text-xs text-gray-400">© {new Date().getFullYear()} Growthpad Consulting Group</p>
         </div>
       </div>
 
-      {/* ── Right panel — brand showcase ────────────────────────────────── */}
-      <div className="hidden lg:flex w-1/2 bg-[#f4ede2] relative overflow-hidden items-center justify-center px-16">
-        <div className="relative z-10 max-w-lg w-full">
-          <div className="flex items-center gap-3 mb-6">
-            <Image
-              src="/logo.svg"
-              alt="GCG"
-              width={200}
-              height={0}
-            />
-          </div>
-
-          <span className="inline-block mb-8 px-4 py-1.5 rounded-full bg-white/70 text-sm text-[#231812] border border-[#231812]/10">
-            ● Kazi · Staff &amp; Hiring Platform
-          </span>
-
-          <div className="grid grid-cols-2 gap-5">
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="h-10 w-10 rounded-xl bg-[#fdf1e7] flex items-center justify-center mb-4">
-                <Icon icon="solar:user-id-broken" className="h-5 w-5 text-brand-500" />
-              </div>
-              <h3 className="font-bold text-[#231812] mb-1">Staff</h3>
-              <p className="text-sm text-gray-500">Manage your entire workforce in one place</p>
-            </div>
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="h-10 w-10 rounded-xl bg-[#e9f7ee] flex items-center justify-center mb-4">
-                <Icon icon="solar:case-minimalistic-broken" className="h-5 w-5 text-green-600" />
-              </div>
-              <h3 className="font-bold text-[#231812] mb-1">Hiring</h3>
-              <p className="text-sm text-gray-500">Post jobs and screen candidates with AI</p>
-            </div>
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="h-10 w-10 rounded-xl bg-[#e9f0fb] flex items-center justify-center mb-4">
-                <Icon icon="solar:pulse-broken" className="h-5 w-5 text-blue-600" />
-              </div>
-              <h3 className="font-bold text-[#231812] mb-1">Pulse</h3>
-              <p className="text-sm text-gray-500">Track engagement, feedback &amp; performance</p>
-            </div>
-            <div className="bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="h-10 w-10 rounded-xl bg-[#fdeaea] flex items-center justify-center mb-4">
-                <Icon icon="solar:shield-check-broken" className="h-5 w-5 text-red-500" />
-              </div>
-              <h3 className="font-bold text-[#231812] mb-1">Secure</h3>
-              <p className="text-sm text-gray-500">Role-based access &amp; bank-level security</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Subtle radial gradient overlay */}
-        <div
-          className="absolute inset-0 opacity-30 pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 30%, #f05d23 0, transparent 40%), radial-gradient(circle at 80% 70%, #231812 0, transparent 40%)" }}
+      {/* ── Right — image ───────────────────────────────────────────────── */}
+      <div className="hidden lg:block relative w-1/2 min-h-screen">
+        <Image
+          src="/assets/images/login-hero.png"
+          alt="Growthpad team collaborating at a shared table"
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
         />
       </div>
+
+      <SimpleModal
+        open={signInHelpOpen}
+        onClose={() => setSignInHelpOpen(false)}
+        title="Need help signing in?"
+        icon="solar:question-circle-broken"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-5">
+          <p className="text-sm leading-relaxed text-[var(--text-lo)]">
+            Try these quick checks before contacting your administrator.
+          </p>
+          <ol className="space-y-3 text-sm text-[var(--text-hi)]">
+            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">1</span><span>Use your Growthpad work email address.</span></li>
+            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">2</span><span>Check that Caps Lock is off and try your password again.</span></li>
+            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">3</span><span>If you still cannot sign in, ask your administrator to confirm your access or reset your password.</span></li>
+          </ol>
+          <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--border)] pt-4">
+            <button type="button" onClick={() => setSignInHelpOpen(false)} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]">Close</button>
+            <a href={`mailto:${SUPPORT_EMAIL}?subject=Kazi%20sign-in%20help`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600"><Icon icon="solar:letter-broken" className="h-3.5 w-3.5" />Contact administrator</a>
+          </div>
+        </div>
+      </SimpleModal>
     </div>
   );
 }
