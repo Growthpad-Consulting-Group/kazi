@@ -10,7 +10,7 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
 import { TeamActivity } from "./TeamActivity";
 import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
-import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, isEditableLogDate, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
+import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, MOOD_LABELS, isEditableLogDate, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type Row = { task: string; client: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
 type AsanaTask = { id: string; name: string; project: string | null };
@@ -149,6 +149,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const weeklyLogs = history.filter((log) => activeWeek.some((day) => day.key === log.date));
   const weeklyMinutes = weeklyLogs.reduce((sum, log) => sum + log.entries.reduce((entryTotal, entry) => entryTotal + entry.minutes, 0), 0);
   const loggedDays = new Set(weeklyLogs.filter((log) => log.entries.length > 0).map((log) => log.date));
+  const weekComplete = activeWeek.every((day) => loggedDays.has(day.key));
 
   const updateRow = (index: number, patch: Partial<Row>) => {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -211,8 +212,19 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
       if (!res.ok) throw new Error(json?.error ?? "Could not save your log");
       setSavedAt(new Date().toISOString());
       setSavedEntries(entries);
+      setHistory((current) => [
+        ...current.filter((log) => log.date !== date),
+        { date, entries, mood },
+      ]);
       setEditing(false);
-      toast.success("Daily log saved");
+      const daysAfterSave = new Set(loggedDays);
+      daysAfterSave.add(date);
+      const completedAfterSave = activeWeek.every((day) => daysAfterSave.has(day.key));
+      toast.success(
+        completedAfterSave
+          ? "Week complete. Review your weekly report before submitting."
+          : "Daily log shared with your manager."
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save your log");
     } finally {
@@ -235,7 +247,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
         icon="solar:notebook-broken"
       />
 
-      {!isReviewer && <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon="solar:calendar-mark-broken" className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">This week&apos;s report</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Log work each day, then complete your reflection by Friday.</p></div></div><p className="mt-3 text-xs text-[var(--text-lo)]"><span className="font-semibold text-brand-500">{loggedDays.size}/5 days logged</span> · {formatMinutes(weeklyMinutes)} tracked this week</p></div><div className="flex flex-wrap items-center gap-3"><div className="flex items-center gap-1 rounded-xl bg-[var(--surface-2)] p-1">{activeWeek.map((day) => { const selected = day.key === date; const logged = loggedDays.has(day.key); const future = day.key > todayLocal(); return <button key={day.key} type="button" disabled={future} onClick={() => setDate(day.key)} className={`flex min-w-11 flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${selected ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}><span className="font-medium">{day.label}</span><span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">{logged ? <Icon icon="solar:check-circle-bold" className="h-3.5 w-3.5 text-emerald-500" /> : future ? "" : day.number}</span></button>; })}</div><Link href="/pulse/checkins?tab=checkins" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />Weekly reflection</Link></div></div></section>}
+      {!isReviewer && <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2"><span className={`flex h-8 w-8 items-center justify-center rounded-xl ${weekComplete ? "bg-emerald-500/10 text-emerald-600" : "bg-brand-500/10 text-brand-500"}`}><Icon icon={weekComplete ? "solar:check-circle-broken" : "solar:calendar-mark-broken"} className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">{weekComplete ? "Your week is ready to review" : "This week&apos;s report"}</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">{weekComplete ? "Your daily work is shared. Add your reflection, then submit when you are ready." : "Log work each day, then complete your reflection by Friday."}</p></div></div><p className="mt-3 text-xs text-[var(--text-lo)]"><span className={`font-semibold ${weekComplete ? "text-emerald-600" : "text-brand-500"}`}>{loggedDays.size}/5 days logged</span> · {formatMinutes(weeklyMinutes)} tracked this week</p></div><div className="flex flex-wrap items-center gap-3"><div className="flex items-center gap-1 rounded-xl bg-[var(--surface-2)] p-1">{activeWeek.map((day) => { const selected = day.key === date; const logged = loggedDays.has(day.key); const future = day.key > todayLocal(); return <button key={day.key} type="button" disabled={future} onClick={() => setDate(day.key)} className={`flex min-w-11 flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${selected ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}><span className="font-medium">{day.label}</span><span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">{logged ? <Icon icon="solar:check-circle-bold" className="h-3.5 w-3.5 text-emerald-500" /> : future ? "" : day.number}</span></button>; })}</div><Link href="/pulse/checkins?tab=checkins" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />{weekComplete ? "Review weekly report" : "Weekly reflection"}</Link></div></div></section>}
 
       {!isReviewer && savedAt && !editing && !loading ? (
         <div className="space-y-5">
@@ -561,9 +573,10 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                         key={value}
                         type="button"
                         onClick={() => setMood(mood === value ? null : value)}
-                        aria-label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}`}
+                        aria-label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}: ${MOOD_LABELS[index]}`}
+                        title={MOOD_LABELS[index]}
                         aria-pressed={mood === value}
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-colors ${mood === value ? "bg-brand-500/15 ring-2 ring-brand-500/40" : "bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-all duration-150 hover:scale-110 ${mood === value ? "bg-brand-500/15 ring-2 ring-brand-500/40" : "bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
                       >
                         {emoji}
                       </button>

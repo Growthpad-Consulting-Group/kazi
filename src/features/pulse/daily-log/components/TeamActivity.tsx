@@ -8,7 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import toast from "react-hot-toast";
 import StatCard from "@/components/ui/StatCard";
-import { DAILY_LOG_CATEGORIES, type DailyLogCategory, type DailyLogEntry } from "../constants";
+import { DAILY_LOG_CATEGORIES, MOOD_LABELS, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 type TeamEntry = DailyLogEntry & { date: string };
 type TeamDay = { date: string; mood: number | null; blockers: string | null; wins: string | null; hasEntries: boolean; acknowledged: boolean };
@@ -267,7 +267,7 @@ export function TeamActivity() {
                       >
                         {(() => { const day = member.days.find((d) => d.date === date); return day && (day.mood || day.blockers || day.wins) ? (
                           <div className="mb-2 space-y-1 rounded-lg bg-brand-500/5 px-3 py-2 text-xs text-[var(--text-hi)]">
-                            {day.mood ? <p>Mood {moodEmoji(day.mood)}</p> : null}
+                            {day.mood ? <p>Mood <span title={MOOD_LABELS[day.mood - 1]} className="cursor-help hover:scale-110 inline-block transition-transform">{moodEmoji(day.mood)}</span> <span className="text-[var(--text-lo)]">{MOOD_LABELS[day.mood - 1]}</span></p> : null}
                             {day.blockers ? <p><span className="font-semibold">Blockers:</span> {day.blockers}</p> : null}
                             {day.wins ? <p><span className="font-semibold">Wins:</span> {day.wins}</p> : null}
                           </div>

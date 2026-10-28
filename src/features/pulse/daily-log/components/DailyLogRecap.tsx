@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
 import StatCard from "@/components/ui/StatCard";
-import { DAILY_LOG_CATEGORIES, type DailyLogCategory, type DailyLogEntry } from "../constants";
+import { DAILY_LOG_CATEGORIES, MOOD_LABELS, type DailyLogCategory, type DailyLogEntry } from "../constants";
 
 export const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
@@ -114,7 +114,7 @@ export function DailyLogRecap({
           {mood ? (
             <div className="rounded-xl bg-[var(--surface-2)] p-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">Feeling</p>
-              <p className="mt-1 text-2xl">{MOODS[mood - 1]}</p>
+              <p title={MOOD_LABELS[mood - 1]} className="mt-1 inline-block cursor-help text-2xl transition-transform duration-150 hover:scale-110">{MOODS[mood - 1]}</p>
             </div>
           ) : null}
           {blockers ? (

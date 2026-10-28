@@ -67,6 +67,8 @@ export function parseDurationMinutes(input: string): number | null {
 }
 
 export const DAILY_LOG_MOOD_COUNT = 5;
+/** Names for the five moods, shown as tooltips. Index 0 is mood 1. */
+export const MOOD_LABELS = ["Very low", "Low", "Okay", "Good", "Great"];
 const MAX_BLOCKERS_LENGTH = 1000;
 
 export function validateDailyLogMood(input: unknown): { ok: true; mood: number | null } | { ok: false; error: string } {
