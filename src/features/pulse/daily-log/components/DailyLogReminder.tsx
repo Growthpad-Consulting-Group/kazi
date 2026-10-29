@@ -11,7 +11,11 @@ function todayLocal() {
 }
 
 export function DailyLogReminder() {
-  const [state, setState] = useState<{ loaded: boolean; minutes: number; tasks: number }>({ loaded: false, minutes: 0, tasks: 0 });
+  const [state, setState] = useState<{
+    loaded: boolean;
+    minutes: number;
+    tasks: number;
+  }>({ loaded: false, minutes: 0, tasks: 0 });
 
   useEffect(() => {
     let cancelled = false;
@@ -20,9 +24,15 @@ export function DailyLogReminder() {
       .then((json: { entries?: { minutes: number }[] }) => {
         if (cancelled) return;
         const entries = json.entries ?? [];
-        setState({ loaded: true, minutes: entries.reduce((sum, entry) => sum + entry.minutes, 0), tasks: entries.length });
+        setState({
+          loaded: true,
+          minutes: entries.reduce((sum, entry) => sum + entry.minutes, 0),
+          tasks: entries.length,
+        });
       })
-      .catch(() => !cancelled && setState({ loaded: true, minutes: 0, tasks: 0 }));
+      .catch(
+        () => !cancelled && setState({ loaded: true, minutes: 0, tasks: 0 }),
+      );
     return () => {
       cancelled = true;
     };
@@ -41,11 +51,19 @@ export function DailyLogReminder() {
             <Icon icon="solar:check-circle-broken" className="h-4 w-4" />
           </span>
           <span>
-            <span className="block text-sm font-semibold text-[var(--text-hi)]">Logged today · {formatMinutes(state.minutes)}</span>
-            <span className="block text-xs text-[var(--text-lo)]">{state.tasks} task{state.tasks === 1 ? "" : "s"}. Review today&apos;s recap.</span>
+            <span className="block text-sm font-semibold text-[var(--text-hi)]">
+              Logged today · {formatMinutes(state.minutes)}
+            </span>
+            <span className="block text-xs text-[var(--text-lo)]">
+              {state.tasks} task{state.tasks === 1 ? "" : "s"}. Review
+              today&apos;s recap.
+            </span>
           </span>
         </span>
-        <Icon icon="solar:arrow-right-broken" className="h-4 w-4 shrink-0 text-emerald-600" />
+        <Icon
+          icon="solar:arrow-right-broken"
+          className="h-4 w-4 shrink-0 text-emerald-600"
+        />
       </Link>
     );
   }
@@ -60,11 +78,19 @@ export function DailyLogReminder() {
           <Icon icon="solar:notebook-broken" className="h-4 w-4" />
         </span>
         <span>
-          <span className="block text-sm font-semibold text-[var(--text-hi)]">Log today&apos;s activity</span>
-          <span className="block text-xs text-[var(--text-lo)]">Note what you worked on and how long it took before you finish for the day.</span>
+          <span className="block text-sm font-semibold text-[var(--text-hi)]">
+            Log today&apos;s activity
+          </span>
+          <span className="block text-xs text-[var(--text-lo)]">
+            Note what you worked on and how long it took before you finish for
+            the day.
+          </span>
         </span>
       </span>
-      <Icon icon="solar:arrow-right-broken" className="h-4 w-4 shrink-0 text-amber-600" />
+      <Icon
+        icon="solar:arrow-right-broken"
+        className="h-4 w-4 shrink-0 text-amber-600"
+      />
     </Link>
   );
 }

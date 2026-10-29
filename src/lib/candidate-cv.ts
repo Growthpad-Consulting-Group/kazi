@@ -10,25 +10,43 @@ import { recordAiUsage } from "@/lib/ai-audit";
 export const MAX_CV_BYTES = 10 * 1024 * 1024;
 const CV_EXTENSIONS = ["pdf", "docx"];
 
-export type ReadCv = { bytes: Uint8Array; text: string; extension: string; contentType: string };
+export type ReadCv = {
+  bytes: Uint8Array;
+  text: string;
+  extension: string;
+  contentType: string;
+};
 
 /** Validates and reads a CV. Throws ApplicationError before anything is stored, so a bad file never creates a candidate. */
 export async function readCv(file: File): Promise<ReadCv> {
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (!CV_EXTENSIONS.includes(extension)) throw new ApplicationError("Please upload a PDF or DOCX CV.", 400);
-  if (file.size > MAX_CV_BYTES) throw new ApplicationError("CV files must be 10 MB or smaller.", 400);
+  if (!CV_EXTENSIONS.includes(extension))
+    throw new ApplicationError("Please upload a PDF or DOCX CV.", 400);
+  if (file.size > MAX_CV_BYTES)
+    throw new ApplicationError("CV files must be 10 MB or smaller.", 400);
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   let text = "";
   try {
     text = await extractCvText(file, bytes);
   } catch {
-    throw new ApplicationError("We could not read that CV. Please try another PDF or DOCX file.", 422);
+    throw new ApplicationError(
+      "We could not read that CV. Please try another PDF or DOCX file.",
+      422,
+    );
   }
   if (text.length < 50) {
-    throw new ApplicationError("We could not find enough readable text in that CV. Please try another PDF or DOCX file.", 422);
+    throw new ApplicationError(
+      "We could not find enough readable text in that CV. Please try another PDF or DOCX file.",
+      422,
+    );
   }
-  return { bytes, text, extension, contentType: file.type || "application/octet-stream" };
+  return {
+    bytes,
+    text,
+    extension,
+    contentType: file.type || "application/octet-stream",
+  };
 }
 
 /** Runs only in the scheduled screening worker, never on an applicant request. */
@@ -75,7 +93,10 @@ export async function attachCv(candidateId: string, jobId: string, cv: ReadCv) {
   try {
     cvUrl = await uploadToR2(key, cv.bytes, cv.contentType);
   } catch (error) {
-    throw new ApplicationError(error instanceof Error ? error.message : "Upload failed", 500);
+    throw new ApplicationError(
+      error instanceof Error ? error.message : "Upload failed",
+      500,
+    );
   }
 
   await supabaseAdmin

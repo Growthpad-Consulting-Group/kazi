@@ -77,7 +77,11 @@ export async function invalidateCacheGroup(group: CacheGroup): Promise<number> {
  * `owner=u12`, so the segment boundaries are enforced explicitly. The first
  * segment is preceded by ":" (the key separator), the rest by "&".
  */
-function hasFilterSegment(key: string, segment: string, value: string): boolean {
+function hasFilterSegment(
+  key: string,
+  segment: string,
+  value: string,
+): boolean {
   const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`(^|&|:)${segment}=${escaped}(&|$)`).test(key);
 }
@@ -94,8 +98,13 @@ function hasSegment(key: string, segment: string): boolean {
  * must not evict every other user's cached list. Falls back to dropping the
  * whole group if the targeted delete fails.
  */
-export async function invalidateUserNotifications(userId: string): Promise<void> {
-  const deleted = await deleteCachedInGroup("notifications", notificationsCacheKey(userId));
+export async function invalidateUserNotifications(
+  userId: string,
+): Promise<void> {
+  const deleted = await deleteCachedInGroup(
+    "notifications",
+    notificationsCacheKey(userId),
+  );
   if (!deleted) await invalidateGroup("notifications");
 }
 
@@ -128,8 +137,13 @@ export async function invalidateUserCheckins(userId: string): Promise<void> {
  * Only the recipient's private list is affected — the public wall is only
  * touched when the feedback was actually public.
  */
-export async function invalidateUserPrivateFeedback(userId: string): Promise<void> {
-  const deleted = await deleteCachedInGroup("pulse", privateFeedbackCacheKey(userId));
+export async function invalidateUserPrivateFeedback(
+  userId: string,
+): Promise<void> {
+  const deleted = await deleteCachedInGroup(
+    "pulse",
+    privateFeedbackCacheKey(userId),
+  );
   if (!deleted) await invalidateGroup("pulse");
 }
 
@@ -142,7 +156,7 @@ export async function invalidateUserPrivateFeedback(userId: string): Promise<voi
 export async function invalidatePublicFeedback(): Promise<void> {
   const { removed, failed } = await deleteCachedInGroupMatching(
     "pulse",
-    (key) => key.startsWith(PUBLIC_FEEDBACK_KEY_PREFIX)
+    (key) => key.startsWith(PUBLIC_FEEDBACK_KEY_PREFIX),
   );
   // Nothing matched means nothing was cached for the wall — that is fine.
   // A failure means we cannot know, so drop the whole group to be safe.
@@ -188,13 +202,21 @@ export async function invalidateOneOnOneParticipants(params: {
   managerId?: string;
   reportId?: string;
 }): Promise<void> {
-  const { removed, failed } = await deleteCachedInGroupMatching("pulse", (key) => {
-    if (!key.startsWith(ONE_ON_ONES_KEY_PREFIX)) return false;
-    if (key === `${ONE_ON_ONES_KEY_PREFIX}all`) return true;
-    if (params.managerId && hasFilterSegment(key, "manager", params.managerId)) return true;
-    if (params.reportId && hasFilterSegment(key, "report", params.reportId)) return true;
-    return false;
-  });
+  const { removed, failed } = await deleteCachedInGroupMatching(
+    "pulse",
+    (key) => {
+      if (!key.startsWith(ONE_ON_ONES_KEY_PREFIX)) return false;
+      if (key === `${ONE_ON_ONES_KEY_PREFIX}all`) return true;
+      if (
+        params.managerId &&
+        hasFilterSegment(key, "manager", params.managerId)
+      )
+        return true;
+      if (params.reportId && hasFilterSegment(key, "report", params.reportId))
+        return true;
+      return false;
+    },
+  );
   if (failed) {
     // Redis is unhappy — drop the whole group rather than risk a stale list.
     await invalidateGroup("pulse");
@@ -203,11 +225,11 @@ export async function invalidateOneOnOneParticipants(params: {
     // was lost, so try them directly.
     await deleteCachedInGroup(
       "pulse",
-      oneOnOnesCacheKey({ managerId: params.managerId })
+      oneOnOnesCacheKey({ managerId: params.managerId }),
     );
     await deleteCachedInGroup(
       "pulse",
-      oneOnOnesCacheKey({ reportId: params.reportId })
+      oneOnOnesCacheKey({ reportId: params.reportId }),
     );
   }
 }

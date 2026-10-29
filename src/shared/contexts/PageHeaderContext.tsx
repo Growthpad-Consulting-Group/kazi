@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 export interface PageHeaderAction {
   label: string;
@@ -19,7 +25,7 @@ export interface PageHeaderConfig {
   content?: ReactNode;
 }
 
-const ReadCtx  = createContext<PageHeaderConfig | null>(null);
+const ReadCtx = createContext<PageHeaderConfig | null>(null);
 const WriteCtx = createContext<(c: PageHeaderConfig | null) => void>(() => {});
 
 export function PageHeaderProvider({ children }: { children: ReactNode }) {
@@ -37,6 +43,8 @@ export function usePageHeaderValue() {
 
 export function usePageHeader(config: PageHeaderConfig | null) {
   const set = useContext(WriteCtx);
-  useEffect(() => { set(config); });
+  useEffect(() => {
+    set(config);
+  });
   useEffect(() => () => set(null), []); // eslint-disable-line react-hooks/exhaustive-deps
 }

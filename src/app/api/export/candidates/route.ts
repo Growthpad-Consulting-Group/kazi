@@ -5,17 +5,41 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
 
 type Row = {
-  id: string; full_name: string; email: string; phone: string | null;
-  stage: string; ai_score: number | null; applied_at: string;
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  stage: string;
+  ai_score: number | null;
+  applied_at: string;
   jobs: { title: string } | null;
 };
 
 function toCsv(rows: Row[]): string {
-  const header = ["ID", "Full Name", "Email", "Phone", "Stage", "AI Score", "Job Title", "Applied At"];
-  const lines = rows.map((r) => [
-    r.id, r.full_name, r.email, r.phone ?? "", r.stage,
-    r.ai_score ?? "", r.jobs?.title ?? "", r.applied_at,
-  ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
+  const header = [
+    "ID",
+    "Full Name",
+    "Email",
+    "Phone",
+    "Stage",
+    "AI Score",
+    "Job Title",
+    "Applied At",
+  ];
+  const lines = rows.map((r) =>
+    [
+      r.id,
+      r.full_name,
+      r.email,
+      r.phone ?? "",
+      r.stage,
+      r.ai_score ?? "",
+      r.jobs?.title ?? "",
+      r.applied_at,
+    ]
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .join(","),
+  );
   return [header.join(","), ...lines].join("\r\n");
 }
 
@@ -27,7 +51,9 @@ export async function GET() {
 
   const { data } = await supabaseAdmin
     .from("candidates")
-    .select("id, full_name, email, phone, stage, ai_score, applied_at, jobs(title)")
+    .select(
+      "id, full_name, email, phone, stage, ai_score, applied_at, jobs(title)",
+    )
     .order("applied_at", { ascending: false });
 
   const rows = (data ?? []) as unknown as Row[];

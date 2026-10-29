@@ -3,10 +3,18 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import SettingsShell from "@/features/settings/components/SettingsShell";
 
-export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
+export default async function SettingsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const session = await getServerSession(authOptions);
   // All authenticated users may access their personal settings.
   // Org/data sections guard themselves individually.
   if (!session) redirect("/login");
-  return <SettingsShell allowedPaths={session.user.allowedPaths}>{children}</SettingsShell>;
+  return (
+    <SettingsShell allowedPaths={session.user.allowedPaths}>
+      {children}
+    </SettingsShell>
+  );
 }

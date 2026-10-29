@@ -37,35 +37,58 @@ export default function TableHeader({
   columnWidths = {},
   onColumnResize,
 }: TableHeaderProps) {
-  const dragState = useRef<{ th: HTMLTableCellElement; startX: number; startWidth: number; accessor: string } | null>(null);
+  const dragState = useRef<{
+    th: HTMLTableCellElement;
+    startX: number;
+    startWidth: number;
+    accessor: string;
+  } | null>(null);
   const rowRef = useRef<HTMLTableRowElement>(null);
 
   const handleResizeStart = (e: React.MouseEvent, accessor: string) => {
     e.preventDefault();
     e.stopPropagation();
-    const th = (e.currentTarget as HTMLElement).closest("th") as HTMLTableCellElement | null;
+    const th = (e.currentTarget as HTMLElement).closest(
+      "th",
+    ) as HTMLTableCellElement | null;
     if (!th) return;
 
-    if (Object.keys(columnWidths).length === 0 && onColumnResize && rowRef.current) {
+    if (
+      Object.keys(columnWidths).length === 0 &&
+      onColumnResize &&
+      rowRef.current
+    ) {
       const offset = selectable ? 1 : 0;
       const cells = rowRef.current.querySelectorAll("th");
       columns.forEach((c, i) => {
         const el = cells[i + offset];
-        if (el) onColumnResize(String(c.accessor), el.getBoundingClientRect().width);
+        if (el)
+          onColumnResize(String(c.accessor), el.getBoundingClientRect().width);
       });
     }
 
-    dragState.current = { th, startX: e.clientX, startWidth: th.getBoundingClientRect().width, accessor };
+    dragState.current = {
+      th,
+      startX: e.clientX,
+      startWidth: th.getBoundingClientRect().width,
+      accessor,
+    };
 
     const onMove = (ev: MouseEvent) => {
       if (!dragState.current) return;
-      const w = Math.max(MIN_COL_WIDTH, dragState.current.startWidth + (ev.clientX - dragState.current.startX));
+      const w = Math.max(
+        MIN_COL_WIDTH,
+        dragState.current.startWidth + (ev.clientX - dragState.current.startX),
+      );
       dragState.current.th.style.width = `${w}px`;
       dragState.current.th.style.minWidth = `${w}px`;
     };
     const onUp = () => {
       if (dragState.current) {
-        const w = Math.max(MIN_COL_WIDTH, dragState.current.th.getBoundingClientRect().width);
+        const w = Math.max(
+          MIN_COL_WIDTH,
+          dragState.current.th.getBoundingClientRect().width,
+        );
         onColumnResize?.(dragState.current.accessor, w);
       }
       dragState.current = null;
@@ -77,14 +100,22 @@ export default function TableHeader({
   };
 
   return (
-    <thead className={cn("bg-[var(--surface-2)] transition-colors", stickyHeader && "sticky top-0 z-20")}>
+    <thead
+      className={cn(
+        "bg-[var(--surface-2)] transition-colors",
+        stickyHeader && "sticky top-0 z-20",
+      )}
+    >
       <tr ref={rowRef}>
         {selectable && (
           <th className="w-10 px-3 py-3.5 border-b border-r border-slate-200/60 dark:border-slate-800/60 bg-[var(--surface-2)] sticky left-0 top-0 z-30">
             <input
               type="checkbox"
               checked={table.allPageSel}
-              ref={(el) => { if (el) el.indeterminate = table.somePageSel && !table.allPageSel; }}
+              ref={(el) => {
+                if (el)
+                  el.indeterminate = table.somePageSel && !table.allPageSel;
+              }}
               onChange={table.toggleAll}
               className="h-4 w-4 rounded border-[var(--border)] accent-brand-500 cursor-pointer"
             />
@@ -94,8 +125,14 @@ export default function TableHeader({
         {columns.map((col, idx) => {
           const accessor = String(col.accessor);
           const style: React.CSSProperties = {};
-          if (col.width) { style.width = col.width; style.minWidth = col.width; }
-          if (columnWidths[accessor]) { style.width = columnWidths[accessor]; style.minWidth = columnWidths[accessor]; }
+          if (col.width) {
+            style.width = col.width;
+            style.minWidth = col.width;
+          }
+          if (columnWidths[accessor]) {
+            style.width = columnWidths[accessor];
+            style.minWidth = columnWidths[accessor];
+          }
 
           return (
             <th
@@ -103,8 +140,9 @@ export default function TableHeader({
               style={style}
               className={cn(
                 "group/col relative px-4 py-3.5 border-b border-slate-200/80 dark:border-slate-800/80 text-left text-md font-semibold text-[var(--text-lo)] bg-[var(--surface-2)] select-none",
-                col.sortable && "cursor-pointer hover:text-[var(--text-hi)] transition-colors",
-                col.headerClassName
+                col.sortable &&
+                  "cursor-pointer hover:text-[var(--text-hi)] transition-colors",
+                col.headerClassName,
               )}
               onClick={() => col.sortable && table.toggleSort(accessor)}
             >
@@ -114,11 +152,21 @@ export default function TableHeader({
                   <div className="flex flex-col shrink-0">
                     <Icon
                       icon="solar:alt-arrow-up-broken"
-                      className={cn("h-2.5 w-2.5", table.sortKey === accessor && table.sortDir === "asc" ? "text-brand-500" : "opacity-20")}
+                      className={cn(
+                        "h-2.5 w-2.5",
+                        table.sortKey === accessor && table.sortDir === "asc"
+                          ? "text-brand-500"
+                          : "opacity-20",
+                      )}
                     />
                     <Icon
                       icon="solar:alt-arrow-down-broken"
-                      className={cn("h-2.5 w-2.5 -mt-0.5", table.sortKey === accessor && table.sortDir === "desc" ? "text-brand-500" : "opacity-20")}
+                      className={cn(
+                        "h-2.5 w-2.5 -mt-0.5",
+                        table.sortKey === accessor && table.sortDir === "desc"
+                          ? "text-brand-500"
+                          : "opacity-20",
+                      )}
                     />
                   </div>
                 )}

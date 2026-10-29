@@ -10,7 +10,8 @@ import { listPageGrants } from "@/lib/page-access-server";
 export default async function RolesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (!isPathAllowed(session.user.allowedPaths, "/settings/roles")) redirect("/settings/profile");
+  if (!isPathAllowed(session.user.allowedPaths, "/settings/roles"))
+    redirect("/settings/profile");
 
   const grants = await listPageGrants();
 
@@ -21,7 +22,10 @@ export default async function RolesPage() {
         description="Choose what each role can open in Kazi."
         icon="solar:shield-check-broken"
       />
-      <RolesClient grants={grants} canEdit={can(session.user.role, "manage_roles")} />
+      <RolesClient
+        grants={grants}
+        canEdit={can(session.user.role, "manage_roles")}
+      />
     </div>
   );
 }

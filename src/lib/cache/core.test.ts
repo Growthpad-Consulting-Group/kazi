@@ -17,7 +17,11 @@ import {
   setCached,
 } from "@/lib/cache/core";
 import { cacheKey, filterSuffix, groupIndexKey } from "@/lib/cache/groups";
-import { getCacheStats, getCacheSummary, resetCacheStats } from "@/lib/cache/monitoring";
+import {
+  getCacheStats,
+  getCacheSummary,
+  resetCacheStats,
+} from "@/lib/cache/monitoring";
 
 beforeEach(() => {
   mockRedis.__reset();
@@ -27,7 +31,9 @@ beforeEach(() => {
 describe("cache keys", () => {
   it("namespaces keys by group", () => {
     expect(cacheKey("staff", "list")).toBe("kazi:staff:list");
-    expect(cacheKey("pulse", "checkins", "me", "u1")).toBe("kazi:pulse:checkins:me:u1");
+    expect(cacheKey("pulse", "checkins", "me", "u1")).toBe(
+      "kazi:pulse:checkins:me:u1",
+    );
   });
 
   it("builds a distinct group index key", () => {
@@ -35,100 +41,112 @@ describe("cache keys", () => {
   });
 
   it("produces a stable suffix regardless of filter key order", () => {
-    expect(filterSuffix({ b: "2", a: "1" })).toBe(filterSuffix({ a: "1", b: "2" }));
+    expect(filterSuffix({ b: "2", a: "1" })).toBe(
+      filterSuffix({ a: "1", b: "2" }),
+    );
     expect(filterSuffix({ a: "1" })).toBe("a=1");
   });
 
   it("falls back to 'all' for empty filters", () => {
+    describe("cached()", () => {
+      it("returns the cached value on a hit without re-running the loader", async () => {
+        const loader = vi.fn().mockResolvedValue([1, 2, 3]);
+        const key = cacheKey("staff", "list");
 
-describe("cached()", () => {
-  it("returns the cached value on a hit without re-running the loader", async () => {
-    const loader = vi.fn().mockResolvedValue([1, 2, 3]);
-    const key = cacheKey("staff", "list");
+        const first = await cached("staff", key, "dynamic", loader);
+        const second = await cached("staff", key, "dynamic", loader);
 
-    const first = await cached("staff", key, "dynamic", loader);
-    const second = await cached("staff", key, "dynamic", loader);
+        expect(first).toEqual([1, 2, 3]);
+        expect(second).toEqual([1, 2, 3]);
+        expect(loader).toHaveBeenCalledTimes(1);
+      });
 
-    expect(first).toEqual([1, 2, 3]);
-    expect(second).toEqual([1, 2, 3]);
-    expect(loader).toHaveBeenCalledTimes(1);
-  });
+      it("records a hit and a miss in the monitoring counters", async () => {
+        const key = cacheKey("staff", "list");
+        await cached("staff", key, "dynamic", async () => "value");
+        await cached("staff", key, "dynamic", async () => "value");
 
-  it("records a hit and a miss in the monitoring counters", async () => {
-    const key = cacheKey("staff", "list");
-    await cached("staff", key, "dynamic", async () => "value");
-    await cached("staff", key, "dynamic", async () => "value");
+        const stats = getCacheStats().find((s) => s.group === "staff");
+        expect(stats?.hits).toBe(1);
+        expect(stats?.misses).toBe(1);
+        expect(stats?.hitRate).toBe(0.5);
+      });
 
-    const stats = getCacheStats().find((s) => s.group === "staff");
-    expect(stats?.hits).toBe(1);
-    expect(stats?.misses).toBe(1);
-    expect(stats?.hitRate).toBe(0.5);
-  });
+      it("shares a single loader call between concurrent callers (single-flight)", async () => {
+        let resolveLoader: (v: string[]) => void = () => {};
+        const loader = vi.fn(
+          () =>
+            new Promise<string[]>((resolve) => {
+              resolveLoader = resolve;
+            }),
+        );
+        const key = cacheKey("jobs", "list");
 
-  it("shares a single loader call between concurrent callers (single-flight)", async () => {
-    let resolveLoader: (v: string[]) => void = () => {};
-    const loader = vi.fn(
-      () =>
-        new Promise<string[]>((resolve) => {
-          resolveLoader = resolve;
-        })
-    );
-    const key = cacheKey("jobs", "list");
+        const a = cached("jobs", key, "dynamic", loader);
+        const b = cached("jobs", key, "dynamic", loader);
+        const c = cached("jobs", key, "dynamic", loader);
 
-    const a = cached("jobs", key, "dynamic", loader);
-    const b = cached("jobs", key, "dynamic", loader);
-    const c = cached("jobs", key, "dynamic", loader);
+        resolveLoader(["x"]);
+        const [ra, rb, rc] = await Promise.all([a, b, c]);
 
-    resolveLoader(["x"]);
-    const [ra, rb, rc] = await Promise.all([a, b, c]);
+        expect(loader).toHaveBeenCalledTimes(1);
+        expect(ra).toEqual(["x"]);
+        expect(rb).toEqual(["x"]);
+        expect(rc).toEqual(["x"]);
+      });
 
-    expect(loader).toHaveBeenCalledTimes(1);
-    expect(ra).toEqual(["x"]);
-    expect(rb).toEqual(["x"]);
-    expect(rc).toEqual(["x"]);
-  });
+      it("fails open to the loader when Redis is unavailable", async () => {
+        mockRedis.redisState.failing = true;
+        const loader = vi.fn().mockResolvedValue("fallback");
 
-  it("fails open to the loader when Redis is unavailable", async () => {
-    mockRedis.redisState.failing = true;
-    const loader = vi.fn().mockResolvedValue("fallback");
+        const result = await cached(
+          "staff",
+          cacheKey("staff", "list"),
+          "dynamic",
+          loader,
+        );
 
-    const result = await cached("staff", cacheKey("staff", "list"), "dynamic", loader);
+        expect(result).toBe("fallback");
+        expect(loader).toHaveBeenCalledTimes(1);
+        expect(getCacheSummary().errors).toBeGreaterThan(0);
+      });
 
-    expect(result).toBe("fallback");
-    expect(loader).toHaveBeenCalledTimes(1);
-    expect(getCacheSummary().errors).toBeGreaterThan(0);
-  });
+      it("propagates loader errors and does not cache them", async () => {
+        const key = cacheKey("jobs", "list");
+        const loader = vi.fn().mockRejectedValue(new Error("boom"));
 
-  it("propagates loader errors and does not cache them", async () => {
-    const key = cacheKey("jobs", "list");
-    const loader = vi.fn().mockRejectedValue(new Error("boom"));
+        await expect(cached("jobs", key, "dynamic", loader)).rejects.toThrow(
+          "boom",
+        );
+        expect(mockRedis.__has(key)).toBe(false);
+      });
 
-    await expect(cached("jobs", key, "dynamic", loader)).rejects.toThrow("boom");
-    expect(mockRedis.__has(key)).toBe(false);
-  });
+      it("applies the TTL of the chosen strategy", async () => {
+        const key = cacheKey("notifications", "user", "u1");
+        await setCached("notifications", key, { ok: true }, "realtime");
+        expect(mockRedis.__ttl(key)).toBe(30);
 
-  it("applies the TTL of the chosen strategy", async () => {
-    const key = cacheKey("notifications", "user", "u1");
-    await setCached("notifications", key, { ok: true }, "realtime");
-    expect(mockRedis.__ttl(key)).toBe(30);
+        const stableKey = cacheKey("reference", "departments");
+        await setCached("reference", stableKey, ["a"], "stable");
+        expect(mockRedis.__ttl(stableKey)).toBe(1800);
+      });
 
-    const stableKey = cacheKey("reference", "departments");
-    await setCached("reference", stableKey, ["a"], "stable");
-    expect(mockRedis.__ttl(stableKey)).toBe(1800);
-  });
-
-  it("indexes written keys under their group", async () => {
-    await cached("staff", cacheKey("staff", "list"), "dynamic", async () => []);
-    expect(mockRedis.__setIndexSize("staff")).toBe(1);
-  });
-});
+      it("indexes written keys under their group", async () => {
+        await cached(
+          "staff",
+          cacheKey("staff", "list"),
+          "dynamic",
+          async () => [],
+        );
+        expect(mockRedis.__setIndexSize("staff")).toBe(1);
+      });
+    });
 
     expect(filterSuffix()).toBe("all");
     expect(filterSuffix({})).toBe("all");
     expect(filterSuffix({ a: "", b: null })).toBe("all");
   });
 });
-
 
 describe("invalidation", () => {
   it("removes every key in a group", async () => {
@@ -192,7 +210,9 @@ describe("deleteCachedInGroupMatching", () => {
     await setCached("pulse", other, 1, "dynamic");
     await setCached("pulse", unrelated, 1, "dynamic");
 
-    const result = await deleteCachedInGroupMatching("pulse", (key) => key.includes("owner=u1"));
+    const result = await deleteCachedInGroupMatching("pulse", (key) =>
+      key.includes("owner=u1"),
+    );
 
     expect(result).toEqual({ removed: 1, failed: false });
     expect(mockRedis.__has(match)).toBe(false);
@@ -206,15 +226,24 @@ describe("deleteCachedInGroupMatching", () => {
     await setCached("pulse", match, 1, "dynamic");
     await setCached("pulse", other, 1, "dynamic");
 
-    await deleteCachedInGroupMatching("pulse", (key) => key.includes("owner=u1"));
+    await deleteCachedInGroupMatching("pulse", (key) =>
+      key.includes("owner=u1"),
+    );
 
     expect(mockRedis.__setIndexSize("pulse")).toBe(1);
   });
 
   it("reports 'no match' rather than a failure when nothing matches", async () => {
-    await setCached("pulse", cacheKey("pulse", "goals", "owner=u1"), 1, "dynamic");
+    await setCached(
+      "pulse",
+      cacheKey("pulse", "goals", "owner=u1"),
+      1,
+      "dynamic",
+    );
 
-    const result = await deleteCachedInGroupMatching("pulse", (key) => key.includes("nope="));
+    const result = await deleteCachedInGroupMatching("pulse", (key) =>
+      key.includes("nope="),
+    );
 
     expect(result).toEqual({ removed: 0, failed: false });
   });
@@ -240,6 +269,8 @@ describe("getCached / setCached", () => {
 
   it("does not write when Redis fails", async () => {
     mockRedis.redisState.failing = true;
-    expect(await setCached("staff", cacheKey("staff", "list"), 1, "dynamic")).toBe(false);
+    expect(
+      await setCached("staff", cacheKey("staff", "list"), 1, "dynamic"),
+    ).toBe(false);
   });
 });

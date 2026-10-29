@@ -3,8 +3,16 @@
 import { useState, useMemo } from "react";
 import { publicJobUrl } from "@/lib/careers-url";
 import { useRouter } from "next/navigation";
-import { GenericTable, type Column, type RowAction } from "@/components/ui/GenericTable";
-import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
+import {
+  GenericTable,
+  type Column,
+  type RowAction,
+} from "@/components/ui/GenericTable";
+import UnifiedSearchFilter, {
+  type ActiveFilter,
+  type FilterCategoryDef,
+  type FilterOption,
+} from "@/components/ui/UnifiedSearchFilter";
 import { StatusPill } from "@/components/ui/StatusPill";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 
@@ -21,7 +29,11 @@ interface Job extends Record<string, unknown> {
 
 const FILTER_CATEGORIES: FilterCategoryDef[] = [
   { id: "status", label: "Status", icon: "solar:chart-2-broken" },
-  { id: "availability", label: "Availability", icon: "solar:calendar-mark-broken" },
+  {
+    id: "availability",
+    label: "Availability",
+    icon: "solar:calendar-mark-broken",
+  },
   { id: "department", label: "Department", icon: "solar:buildings-broken" },
 ];
 
@@ -34,8 +46,18 @@ const STATUS_OPTIONS: FilterOption[] = [
 
 const AVAILABILITY_OPTIONS: FilterOption[] = [
   { id: "live", label: "Live now", category: "availability", value: "live" },
-  { id: "scheduled", label: "Scheduled", category: "availability", value: "scheduled" },
-  { id: "closing_soon", label: "Closing in 7 days", category: "availability", value: "closing_soon" },
+  {
+    id: "scheduled",
+    label: "Scheduled",
+    category: "availability",
+    value: "scheduled",
+  },
+  {
+    id: "closing_soon",
+    label: "Closing in 7 days",
+    category: "availability",
+    value: "closing_soon",
+  },
 ];
 
 function jobAvailability(job: Job, now: Date, nextWeek: Date) {
@@ -43,7 +65,8 @@ function jobAvailability(job: Job, now: Date, nextWeek: Date) {
   const published = job.published_at ? new Date(job.published_at) : null;
   const closes = job.closes_at ? new Date(job.closes_at) : null;
   return {
-    live: isOpen && (!published || published <= now) && (!closes || closes > now),
+    live:
+      isOpen && (!published || published <= now) && (!closes || closes > now),
     scheduled: isOpen && !!published && published > now,
     closingSoon: isOpen && !!closes && closes > now && closes <= nextWeek,
   };
@@ -55,12 +78,25 @@ interface Props {
   initialStatus?: string;
 }
 
-export default function JobsClientView({ jobs, departments, initialStatus }: Props) {
+export default function JobsClientView({
+  jobs,
+  departments,
+  initialStatus,
+}: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<ActiveFilter[]>(() => STATUS_OPTIONS.some((option) => option.value === initialStatus)
-    ? [{ category: "status", values: [initialStatus!], label: `Status: is ${initialStatus}`, operator: "is" }]
-    : []);
+  const [filters, setFilters] = useState<ActiveFilter[]>(() =>
+    STATUS_OPTIONS.some((option) => option.value === initialStatus)
+      ? [
+          {
+            category: "status",
+            values: [initialStatus!],
+            label: `Status: is ${initialStatus}`,
+            operator: "is",
+          },
+        ]
+      : [],
+  );
 
   const deptOptions: FilterOption[] = departments.map((d) => ({
     id: d,
@@ -81,25 +117,38 @@ export default function JobsClientView({ jobs, departments, initialStatus }: Pro
         (j) =>
           j.title.toLowerCase().includes(q) ||
           (j.department ?? "").toLowerCase().includes(q) ||
-          (j.location ?? "").toLowerCase().includes(q)
+          (j.location ?? "").toLowerCase().includes(q),
       );
     }
 
     for (const f of filters) {
       if (f.category === "status") {
-        if (f.operator === "is") list = list.filter((j) => f.values.includes(j.status));
+        if (f.operator === "is")
+          list = list.filter((j) => f.values.includes(j.status));
         else list = list.filter((j) => !f.values.includes(j.status));
       }
       if (f.category === "department") {
-        if (f.operator === "is") list = list.filter((j) => f.values.includes(j.department ?? ""));
+        if (f.operator === "is")
+          list = list.filter((j) => f.values.includes(j.department ?? ""));
         else list = list.filter((j) => !f.values.includes(j.department ?? ""));
       }
       if (f.category === "availability") {
         const matches = (job: Job) => {
           const availability = jobAvailability(job, now, nextWeek);
-          return f.values.some((value) => value === "live" ? availability.live : value === "scheduled" ? availability.scheduled : value === "closing_soon" ? availability.closingSoon : false);
+          return f.values.some((value) =>
+            value === "live"
+              ? availability.live
+              : value === "scheduled"
+                ? availability.scheduled
+                : value === "closing_soon"
+                  ? availability.closingSoon
+                  : false,
+          );
         };
-        list = f.operator === "is" ? list.filter(matches) : list.filter((job) => !matches(job));
+        list =
+          f.operator === "is"
+            ? list.filter(matches)
+            : list.filter((job) => !matches(job));
       }
     }
 
@@ -110,15 +159,73 @@ export default function JobsClientView({ jobs, departments, initialStatus }: Pro
     const now = new Date();
     const nextWeek = new Date(now);
     nextWeek.setDate(nextWeek.getDate() + 7);
-    const live = jobs.filter((job) => jobAvailability(job, now, nextWeek).live).length;
+    const live = jobs.filter(
+      (job) => jobAvailability(job, now, nextWeek).live,
+    ).length;
     const drafts = jobs.filter((job) => job.status === "draft").length;
-    const scheduled = jobs.filter((job) => jobAvailability(job, now, nextWeek).scheduled).length;
-    const closingSoon = jobs.filter((job) => jobAvailability(job, now, nextWeek).closingSoon).length;
+    const scheduled = jobs.filter(
+      (job) => jobAvailability(job, now, nextWeek).scheduled,
+    ).length;
+    const closingSoon = jobs.filter(
+      (job) => jobAvailability(job, now, nextWeek).closingSoon,
+    ).length;
     return [
-      { label: "Live roles", value: live, icon: "solar:case-round-broken", color: "orange", filter: [{ category: "availability", values: ["live"], label: "Availability: is Live now", operator: "is" as const }] },
-      { label: "Drafts", value: drafts, icon: "solar:document-add-broken", color: "slate", filter: [{ category: "status", values: ["draft"], label: "Status: is Draft", operator: "is" as const }] },
-      { label: "Scheduled", value: scheduled, icon: "solar:calendar-mark-broken", color: "violet", filter: [{ category: "availability", values: ["scheduled"], label: "Availability: is Scheduled", operator: "is" as const }] },
-      { label: "Closing in 7 days", value: closingSoon, icon: "solar:alarm-broken", color: "amber", filter: [{ category: "availability", values: ["closing_soon"], label: "Availability: is Closing in 7 days", operator: "is" as const }] },
+      {
+        label: "Live roles",
+        value: live,
+        icon: "solar:case-round-broken",
+        color: "orange",
+        filter: [
+          {
+            category: "availability",
+            values: ["live"],
+            label: "Availability: is Live now",
+            operator: "is" as const,
+          },
+        ],
+      },
+      {
+        label: "Drafts",
+        value: drafts,
+        icon: "solar:document-add-broken",
+        color: "slate",
+        filter: [
+          {
+            category: "status",
+            values: ["draft"],
+            label: "Status: is Draft",
+            operator: "is" as const,
+          },
+        ],
+      },
+      {
+        label: "Scheduled",
+        value: scheduled,
+        icon: "solar:calendar-mark-broken",
+        color: "violet",
+        filter: [
+          {
+            category: "availability",
+            values: ["scheduled"],
+            label: "Availability: is Scheduled",
+            operator: "is" as const,
+          },
+        ],
+      },
+      {
+        label: "Closing in 7 days",
+        value: closingSoon,
+        icon: "solar:alarm-broken",
+        color: "amber",
+        filter: [
+          {
+            category: "availability",
+            values: ["closing_soon"],
+            label: "Availability: is Closing in 7 days",
+            operator: "is" as const,
+          },
+        ],
+      },
     ];
   }, [jobs]);
 
@@ -127,18 +234,24 @@ export default function JobsClientView({ jobs, departments, initialStatus }: Pro
       header: "Role",
       accessor: "title",
       sortable: true,
-      render: (row) => <span className="font-medium text-[var(--text-hi)]">{row.title}</span>,
+      render: (row) => (
+        <span className="font-medium text-[var(--text-hi)]">{row.title}</span>
+      ),
     },
     {
       header: "Department",
       accessor: "department",
       sortable: true,
-      render: (row) => <span className="text-[var(--text-lo)]">{row.department ?? "—"}</span>,
+      render: (row) => (
+        <span className="text-[var(--text-lo)]">{row.department ?? "—"}</span>
+      ),
     },
     {
       header: "Location",
       accessor: "location",
-      render: (row) => <span className="text-[var(--text-lo)]">{row.location ?? "—"}</span>,
+      render: (row) => (
+        <span className="text-[var(--text-lo)]">{row.location ?? "—"}</span>
+      ),
     },
     {
       header: "Status",
@@ -160,7 +273,9 @@ export default function JobsClientView({ jobs, departments, initialStatus }: Pro
             })}
           </span>
         ) : (
-          <span className="text-xs italic text-[var(--text-lo)]">Open-ended</span>
+          <span className="text-xs italic text-[var(--text-lo)]">
+            Open-ended
+          </span>
         ),
     },
   ];
@@ -182,34 +297,56 @@ export default function JobsClientView({ jobs, departments, initialStatus }: Pro
       label: "Open careers page",
       variant: "success",
       show: (row) => jobAvailability(row, new Date(), new Date()).live,
-      onClick: (row) => window.open(publicJobUrl(String(row.slug)), "_blank", "noopener,noreferrer"),
+      onClick: (row) =>
+        window.open(
+          publicJobUrl(String(row.slug)),
+          "_blank",
+          "noopener,noreferrer",
+        ),
     },
   ];
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {jobStats.map((stat) => <StatCard key={stat.label} title={stat.label} value={stat.value} icon={stat.icon} color={stat.color as StatCardColor} compact onClick={() => setFilters(stat.filter)} />)}
+        {jobStats.map((stat) => (
+          <StatCard
+            key={stat.label}
+            title={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color as StatCardColor}
+            compact
+            onClick={() => setFilters(stat.filter)}
+          />
+        ))}
       </div>
       <GenericTable
-      data={filtered}
-      columns={columns}
-      actions={actions}
-      onRowClick={(row) => router.push(`/hire/jobs/${row.id}`)}
-      emptyMessage="No jobs match your filters."
-      emptyIcon="solar:case-broken"
-      icon="solar:case-minimalistic-broken"
-      unifiedSearchFilter={
-        <UnifiedSearchFilter
-          onSearchChange={setSearch}
-          onFilterChange={setFilters}
-          filterCategories={FILTER_CATEGORIES}
-          categoryOptions={{ status: STATUS_OPTIONS, availability: AVAILABILITY_OPTIONS, department: deptOptions }}
-          initialFilters={filters}
-          searchPlaceholder="Search jobs by title, department or location…"
-        />
-      }
-      onRefresh={() => { setSearch(""); setFilters([]); }}
+        data={filtered}
+        columns={columns}
+        actions={actions}
+        onRowClick={(row) => router.push(`/hire/jobs/${row.id}`)}
+        emptyMessage="No jobs match your filters."
+        emptyIcon="solar:case-broken"
+        icon="solar:case-minimalistic-broken"
+        unifiedSearchFilter={
+          <UnifiedSearchFilter
+            onSearchChange={setSearch}
+            onFilterChange={setFilters}
+            filterCategories={FILTER_CATEGORIES}
+            categoryOptions={{
+              status: STATUS_OPTIONS,
+              availability: AVAILABILITY_OPTIONS,
+              department: deptOptions,
+            }}
+            initialFilters={filters}
+            searchPlaceholder="Search jobs by title, department or location…"
+          />
+        }
+        onRefresh={() => {
+          setSearch("");
+          setFilters([]);
+        }}
       />
     </div>
   );

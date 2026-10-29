@@ -18,9 +18,12 @@ export default function HeaderProfileDropdown() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
-        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
-        buttonRef.current && !buttonRef.current.contains(e.target as Node)
-      ) setIsOpen(false);
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      )
+        setIsOpen(false);
     };
     if (isOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -31,8 +34,12 @@ export default function HeaderProfileDropdown() {
     setIsOpen((o) => !o);
   };
 
-  const initials = session?.user?.name
-    ?.split(" ").map((n) => n[0]).slice(0, 2).join("") ?? "U";
+  const initials =
+    session?.user?.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("") ?? "U";
   const avatarUrl = useAvatar();
 
   return (
@@ -43,29 +50,59 @@ export default function HeaderProfileDropdown() {
         title="Profile"
         className="group flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-xs font-bold text-[var(--text-hi)] ring-2 ring-[var(--border)] transition-all active:scale-95 hover:ring-brand-500/40"
       >
-        {avatarUrl
-          ? <Image src={avatarUrl} alt={initials} width={32} height={32} className="h-full w-full object-cover" />
-          : initials}
+        {avatarUrl ? (
+          <Image
+            src={avatarUrl}
+            alt={initials}
+            width={32}
+            height={32}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          initials
+        )}
       </button>
 
-      {isOpen && rect && typeof document !== "undefined" &&
+      {isOpen &&
+        rect &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
             ref={dropdownRef}
-            style={{ position: "fixed", top: rect.bottom + 8, right: window.innerWidth - rect.right, zIndex: 9999, width: 280 }}
+            style={{
+              position: "fixed",
+              top: rect.bottom + 8,
+              right: window.innerWidth - rect.right,
+              zIndex: 9999,
+              width: 280,
+            }}
           >
             <div className="rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-black/10 dark:shadow-black/40">
               {/* User info */}
               <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
                 <div className="flex h-10 w-10 shrink-0 overflow-hidden items-center justify-center rounded-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 text-sm font-bold text-[var(--text-hi)]">
-                  {avatarUrl
-                    ? <Image src={avatarUrl} alt={initials} width={40} height={40} className="h-full w-full object-cover" />
-                    : initials}
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={initials}
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-md font-semibold text-[var(--text-hi)] truncate">{session?.user?.name ?? "—"}</p>
-                  <p className="text-xs text-[var(--text-lo)] truncate">{session?.user?.email ?? ""}</p>
-                  <p className="text-[10px] text-brand-500 capitalize font-medium mt-0.5">{session?.user?.role?.replace("_", " ") ?? ""}</p>
+                  <p className="text-md font-semibold text-[var(--text-hi)] truncate">
+                    {session?.user?.name ?? "—"}
+                  </p>
+                  <p className="text-xs text-[var(--text-lo)] truncate">
+                    {session?.user?.email ?? ""}
+                  </p>
+                  <p className="text-[10px] text-brand-500 capitalize font-medium mt-0.5">
+                    {session?.user?.role?.replace("_", " ") ?? ""}
+                  </p>
                 </div>
               </div>
 
@@ -76,7 +113,10 @@ export default function HeaderProfileDropdown() {
                   onClick={() => setIsOpen(false)}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-hi)] transition-all hover:bg-[var(--surface-2)] active:scale-95"
                 >
-                  <Icon icon="solar:user-circle-broken" className="h-4 w-4 text-[var(--text-lo)]" />
+                  <Icon
+                    icon="solar:user-circle-broken"
+                    className="h-4 w-4 text-[var(--text-lo)]"
+                  />
                   Profile settings
                 </Link>
                 <button
@@ -89,7 +129,7 @@ export default function HeaderProfileDropdown() {
               </div>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

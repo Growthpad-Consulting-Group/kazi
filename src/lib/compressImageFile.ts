@@ -24,10 +24,10 @@ export async function compressImageFile(
   file: File,
   { maxDimension = 1600, quality = 0.8 }: CompressImageOptions = {},
 ): Promise<File> {
-  if (typeof document === 'undefined') return file; // SSR guard
-  if (!file.type.startsWith('image/')) return file;
+  if (typeof document === "undefined") return file; // SSR guard
+  if (!file.type.startsWith("image/")) return file;
   // Don't rasterise vectors or drop GIF animation.
-  if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file;
+  if (file.type === "image/svg+xml" || file.type === "image/gif") return file;
 
   let source: ImageBitmap | HTMLImageElement;
   try {
@@ -36,8 +36,14 @@ export async function compressImageFile(
     return file;
   }
 
-  const srcW = 'width' in source ? source.width : (source as HTMLImageElement).naturalWidth;
-  const srcH = 'height' in source ? source.height : (source as HTMLImageElement).naturalHeight;
+  const srcW =
+    "width" in source
+      ? source.width
+      : (source as HTMLImageElement).naturalWidth;
+  const srcH =
+    "height" in source
+      ? source.height
+      : (source as HTMLImageElement).naturalHeight;
   if (!srcW || !srcH) {
     closeBitmap(source);
     return file;
@@ -47,10 +53,10 @@ export async function compressImageFile(
   const w = Math.max(1, Math.round(srcW * scale));
   const h = Math.max(1, Math.round(srcH * scale));
 
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   if (!ctx) {
     closeBitmap(source);
     return file;
@@ -58,8 +64,8 @@ export async function compressImageFile(
   ctx.drawImage(source, 0, 0, w, h);
   closeBitmap(source);
 
-  const type = supportsWebpEncode(canvas) ? 'image/webp' : 'image/jpeg';
-  const ext = type === 'image/webp' ? 'webp' : 'jpg';
+  const type = supportsWebpEncode(canvas) ? "image/webp" : "image/jpeg";
+  const ext = type === "image/webp" ? "webp" : "jpg";
 
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, type, quality),
@@ -67,17 +73,17 @@ export async function compressImageFile(
   // No blob, or the re-encode isn't actually smaller — keep the original.
   if (!blob || blob.size >= file.size) return file;
 
-  const base = file.name.replace(/\.[^.]+$/, '') || 'image';
+  const base = file.name.replace(/\.[^.]+$/, "") || "image";
   return new File([blob], `${base}.${ext}`, { type, lastModified: Date.now() });
 }
 
 async function loadImage(file: File): Promise<ImageBitmap | HTMLImageElement> {
-  if (typeof createImageBitmap === 'function') {
+  if (typeof createImageBitmap === "function") {
     try {
       // `imageOrientation` bakes in EXIF rotation so portrait phone photos
       // don't come out sideways. Not in every lib.dom version — hence the cast.
       return await createImageBitmap(file, {
-        imageOrientation: 'from-image',
+        imageOrientation: "from-image",
       } as ImageBitmapOptions);
     } catch {
       /* fall through to <img> */
@@ -88,7 +94,7 @@ async function loadImage(file: File): Promise<ImageBitmap | HTMLImageElement> {
     return await new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('image decode failed'));
+      img.onerror = () => reject(new Error("image decode failed"));
       img.src = url;
     });
   } finally {
@@ -97,7 +103,7 @@ async function loadImage(file: File): Promise<ImageBitmap | HTMLImageElement> {
 }
 
 function closeBitmap(source: ImageBitmap | HTMLImageElement) {
-  if (typeof ImageBitmap !== 'undefined' && source instanceof ImageBitmap) {
+  if (typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap) {
     source.close();
   }
 }
@@ -105,7 +111,9 @@ function closeBitmap(source: ImageBitmap | HTMLImageElement) {
 let webpEncodeSupport: boolean | null = null;
 function supportsWebpEncode(canvas: HTMLCanvasElement): boolean {
   if (webpEncodeSupport === null) {
-    webpEncodeSupport = canvas.toDataURL('image/webp').startsWith('data:image/webp');
+    webpEncodeSupport = canvas
+      .toDataURL("image/webp")
+      .startsWith("data:image/webp");
   }
   return webpEncodeSupport;
 }

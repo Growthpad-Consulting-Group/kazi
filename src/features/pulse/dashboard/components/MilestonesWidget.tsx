@@ -15,15 +15,15 @@ type MilestoneRow = {
 };
 
 const TYPE_ICON: Record<string, string> = {
-  work_anniversary:    "solar:calendar-mark-broken",
-  birthday:            "solar:gift-broken",
+  work_anniversary: "solar:calendar-mark-broken",
+  birthday: "solar:gift-broken",
   onboarding_complete: "solar:star-broken",
   service_achievement: "solar:medal-ribbon-broken",
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  work_anniversary:    "Work anniversary",
-  birthday:            "Birthday",
+  work_anniversary: "Work anniversary",
+  birthday: "Birthday",
   onboarding_complete: "Onboarding complete",
   service_achievement: "Service achievement",
 };
@@ -43,7 +43,11 @@ export default async function MilestonesWidget() {
   const canManageAll = can(session.user.role, "manage_recognition_campaigns");
   const { data: reports } = canManageAll
     ? { data: [] as { id: string }[] }
-    : await supabaseAdmin.from("users").select("id").eq("manager_id", session.user.id).eq("is_active", true);
+    : await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("manager_id", session.user.id)
+        .eq("is_active", true);
   if (!canManageAll && !reports?.length) return null;
 
   let query = supabaseAdmin
@@ -53,7 +57,11 @@ export default async function MilestonesWidget() {
     .gte("milestone_date", todayStr)
     .order("milestone_date", { ascending: true })
     .limit(5);
-  if (!canManageAll) query = query.in("user_id", (reports ?? []).map((report) => report.id));
+  if (!canManageAll)
+    query = query.in(
+      "user_id",
+      (reports ?? []).map((report) => report.id),
+    );
   const { data } = await query;
 
   const rows = data ?? [];
@@ -78,12 +86,16 @@ export default async function MilestonesWidget() {
         <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
           <Icon icon="solar:confetti-broken" className="h-3.5 w-3.5" />
         </span>
-        <h2 className="text-sm font-semibold text-[var(--text-hi)]">Upcoming milestones</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+          Upcoming milestones
+        </h2>
       </div>
 
       {milestones.length === 0 ? (
         <div className="flex min-h-24 items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 text-center">
-          <p className="text-xs text-[var(--text-lo)]">No upcoming milestones.</p>
+          <p className="text-xs text-[var(--text-lo)]">
+            No upcoming milestones.
+          </p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -105,14 +117,18 @@ export default async function MilestonesWidget() {
                   <Icon icon={icon} className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[var(--text-hi)]">{milestone.user_name}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                    {milestone.user_name}
+                  </p>
                   <p className="truncate text-xs text-[var(--text-lo)]">
                     {label}
                     {detail && ` — ${detail}`}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${days === 0 ? "bg-brand-500/10 text-brand-500" : "bg-[var(--surface)] text-[var(--text-lo)]"}`}>
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${days === 0 ? "bg-brand-500/10 text-brand-500" : "bg-[var(--surface)] text-[var(--text-lo)]"}`}
+                  >
                     {days === 0 ? "Today" : `in ${days}d`}
                   </span>
                   <AcknowledgeMilestoneButton milestoneId={milestone.id} />

@@ -1,7 +1,21 @@
-export const DAILY_LOG_CATEGORIES = ["Meetings", "Hiring", "Reporting", "Projects", "Admin", "Other"] as const;
+export const DAILY_LOG_CATEGORIES = [
+  "Meetings",
+  "Hiring",
+  "Reporting",
+  "Projects",
+  "Admin",
+  "Other",
+] as const;
 export type DailyLogCategory = (typeof DAILY_LOG_CATEGORIES)[number];
 
-export type DailyLogEntry = { task: string; client?: string | null; minutes: number; category: DailyLogCategory; startTime?: string | null; endTime?: string | null };
+export type DailyLogEntry = {
+  task: string;
+  client?: string | null;
+  minutes: number;
+  category: DailyLogCategory;
+  startTime?: string | null;
+  endTime?: string | null;
+};
 
 const CLOCK_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -14,35 +28,62 @@ const MAX_ENTRIES = 30;
 const MAX_TASK_LENGTH = 200;
 const MAX_MINUTES_PER_DAY = 24 * 60;
 
-export function validateDailyLogEntries(input: unknown): { ok: true; entries: DailyLogEntry[] } | { ok: false; error: string } {
-  if (!Array.isArray(input)) return { ok: false, error: "entries must be a list" };
-  if (input.length > MAX_ENTRIES) return { ok: false, error: `Log at most ${MAX_ENTRIES} tasks a day` };
+export function validateDailyLogEntries(
+  input: unknown,
+): { ok: true; entries: DailyLogEntry[] } | { ok: false; error: string } {
+  if (!Array.isArray(input))
+    return { ok: false, error: "entries must be a list" };
+  if (input.length > MAX_ENTRIES)
+    return { ok: false, error: `Log at most ${MAX_ENTRIES} tasks a day` };
 
   const entries: DailyLogEntry[] = [];
   for (const raw of input as Record<string, unknown>[]) {
     const task = typeof raw?.task === "string" ? raw.task.trim() : "";
     const category = raw?.category as DailyLogCategory;
-    const startTime = typeof raw?.startTime === "string" && raw.startTime ? raw.startTime : null;
-    const endTime = typeof raw?.endTime === "string" && raw.endTime ? raw.endTime : null;
-    if (!task || task.length > MAX_TASK_LENGTH) return { ok: false, error: `Each task needs a description up to ${MAX_TASK_LENGTH} characters` };
-    if (!DAILY_LOG_CATEGORIES.includes(category)) return { ok: false, error: "Choose a valid category for each task" };
+    const startTime =
+      typeof raw?.startTime === "string" && raw.startTime
+        ? raw.startTime
+        : null;
+    const endTime =
+      typeof raw?.endTime === "string" && raw.endTime ? raw.endTime : null;
+    if (!task || task.length > MAX_TASK_LENGTH)
+      return {
+        ok: false,
+        error: `Each task needs a description up to ${MAX_TASK_LENGTH} characters`,
+      };
+    if (!DAILY_LOG_CATEGORIES.includes(category))
+      return { ok: false, error: "Choose a valid category for each task" };
 
     let minutes = Number(raw?.minutes);
     if (startTime || endTime) {
-      if (!startTime || !endTime || !CLOCK_PATTERN.test(startTime) || !CLOCK_PATTERN.test(endTime)) {
-        return { ok: false, error: "Start and end times must both be set as HH:MM" };
+      if (
+        !startTime ||
+        !endTime ||
+        !CLOCK_PATTERN.test(startTime) ||
+        !CLOCK_PATTERN.test(endTime)
+      ) {
+        return {
+          ok: false,
+          error: "Start and end times must both be set as HH:MM",
+        };
       }
       minutes = clockToMinutes(endTime) - clockToMinutes(startTime);
-      if (minutes <= 0) return { ok: false, error: `"${task}" must end after it starts` };
+      if (minutes <= 0)
+        return { ok: false, error: `"${task}" must end after it starts` };
     }
-    if (!Number.isInteger(minutes) || minutes <= 0) return { ok: false, error: "Minutes must be a whole number above zero" };
+    if (!Number.isInteger(minutes) || minutes <= 0)
+      return { ok: false, error: "Minutes must be a whole number above zero" };
 
-    const client = typeof raw?.client === "string" && raw.client.trim() ? raw.client.trim().slice(0, 100) : null;
+    const client =
+      typeof raw?.client === "string" && raw.client.trim()
+        ? raw.client.trim().slice(0, 100)
+        : null;
     entries.push({ task, client, minutes, category, startTime, endTime });
   }
 
   const total = entries.reduce((sum, entry) => sum + entry.minutes, 0);
-  if (total > MAX_MINUTES_PER_DAY) return { ok: false, error: "A day can't exceed 24 hours" };
+  if (total > MAX_MINUTES_PER_DAY)
+    return { ok: false, error: "A day can't exceed 24 hours" };
   return { ok: true, entries };
 }
 
@@ -54,7 +95,9 @@ export function parseDurationMinutes(input: string): number | null {
   const clock = text.match(/^(\d{1,2}):(\d{2})$/);
   if (clock) return Number(clock[1]) * 60 + Number(clock[2]);
 
-  const hoursMinutes = text.match(/^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/);
+  const hoursMinutes = text.match(
+    /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/,
+  );
   if (hoursMinutes && (hoursMinutes[1] || hoursMinutes[2])) {
     const hours = hoursMinutes[1] ? Number(hoursMinutes[1]) : 0;
     const minutes = hoursMinutes[2] ? Number(hoursMinutes[2]) : 0;
@@ -71,10 +114,14 @@ export const DAILY_LOG_MOOD_COUNT = 5;
 export const MOOD_LABELS = ["Very low", "Low", "Okay", "Good", "Great"];
 const MAX_BLOCKERS_LENGTH = 1000;
 
-export function validateDailyLogMood(input: unknown): { ok: true; mood: number | null } | { ok: false; error: string } {
-  if (input === null || input === undefined || input === "") return { ok: true, mood: null };
+export function validateDailyLogMood(
+  input: unknown,
+): { ok: true; mood: number | null } | { ok: false; error: string } {
+  if (input === null || input === undefined || input === "")
+    return { ok: true, mood: null };
   const mood = Number(input);
-  if (!Number.isInteger(mood) || mood < 1 || mood > DAILY_LOG_MOOD_COUNT) return { ok: false, error: "Choose a mood from 1 to 5" };
+  if (!Number.isInteger(mood) || mood < 1 || mood > DAILY_LOG_MOOD_COUNT)
+    return { ok: false, error: "Choose a mood from 1 to 5" };
   return { ok: true, mood };
 }
 
@@ -85,7 +132,11 @@ export function cleanText(input: unknown): string | null {
 }
 
 export function isValidLogDate(value: unknown): value is string {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime());
+  return (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime())
+  );
 }
 
 export const DAILY_LOG_EDIT_WINDOW_DAYS = 7;
@@ -93,7 +144,11 @@ export const DAILY_LOG_EDIT_WINDOW_DAYS = 7;
 /** A day can be logged or corrected for the last N days, plus tomorrow to allow for timezone differences. */
 export function isEditableLogDate(date: string, today = new Date()): boolean {
   const day = new Date(`${date}T00:00:00Z`).getTime();
-  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const todayUtc = Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate(),
+  );
   const earliest = todayUtc - (DAILY_LOG_EDIT_WINDOW_DAYS + 1) * 86_400_000;
   const latest = todayUtc + 86_400_000;
   return day >= earliest && day <= latest;

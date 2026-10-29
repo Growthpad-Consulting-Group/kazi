@@ -6,7 +6,8 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 import { Toaster } from "react-hot-toast";
 import ServiceWorkerRegister from "@/components/providers/ServiceWorkerRegister";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://kazi.growthpad.africa";
+const SITE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://kazi.growthpad.africa";
 
 const figtree = Figtree({
   variable: "--font-figtree",
@@ -16,8 +17,16 @@ const figtree = Figtree({
 
 const cloverDisplay = localFont({
   src: [
-    { path: "../../public/assets/fonts/CloverDisplay-SemiBold.woff2", weight: "600", style: "normal" },
-    { path: "../../public/assets/fonts/CloverDisplay-Bold.woff2",     weight: "700", style: "normal" },
+    {
+      path: "../../public/assets/fonts/CloverDisplay-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/assets/fonts/CloverDisplay-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
   ],
   variable: "--font-clover-display",
   display: "swap",
@@ -39,7 +48,9 @@ export const metadata: Metadata = {
       { url: "/favicon.png", sizes: "376x376", type: "image/png" },
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -69,9 +80,16 @@ export const viewport: Viewport = {
   colorScheme: "light dark",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" className={`${figtree.variable} ${cloverDisplay.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${figtree.variable} ${cloverDisplay.variable} h-full antialiased`}
+    >
       <body className="min-h-full">
         <SessionProvider>{children}</SessionProvider>
         <ServiceWorkerRegister />

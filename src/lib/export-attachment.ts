@@ -21,23 +21,34 @@ export interface ExportAttachment {
 /** RFC-4180 CSV cell escaping. */
 function escapeCsv(value: unknown): string {
   const s = value === null || value === undefined ? "" : String(value);
-  return s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")
+  return s.includes(",") ||
+    s.includes('"') ||
+    s.includes("\n") ||
+    s.includes("\r")
     ? `"${s.replace(/"/g, '""')}"`
     : s;
 }
 
-function buildCsv(data: Record<string, unknown>[], headers: ExportHeader[]): Buffer {
+function buildCsv(
+  data: Record<string, unknown>[],
+  headers: ExportHeader[],
+): Buffer {
   const headerRow = headers.map((h) => escapeCsv(h.label)).join(",");
-  const rows = data.map((row) => headers.map((h) => escapeCsv(row[h.key])).join(","));
+  const rows = data.map((row) =>
+    headers.map((h) => escapeCsv(row[h.key])).join(","),
+  );
   const csv = [headerRow, ...rows].join("\n");
   return Buffer.from(csv, "utf-8");
 }
 
-async function buildXlsx(data: Record<string, unknown>[], headers: ExportHeader[]): Promise<Buffer> {
+async function buildXlsx(
+  data: Record<string, unknown>[],
+  headers: ExportHeader[],
+): Promise<Buffer> {
   // Dynamic import so this module is not bundled unless used.
   const XLSX = await import("xlsx");
   const labeledRows = data.map((row) =>
-    Object.fromEntries(headers.map((h) => [h.label, row[h.key] ?? ""]))
+    Object.fromEntries(headers.map((h) => [h.label, row[h.key] ?? ""])),
   );
   const ws = XLSX.utils.json_to_sheet(labeledRows);
   const wb = XLSX.utils.book_new();
@@ -49,7 +60,7 @@ async function buildXlsx(data: Record<string, unknown>[], headers: ExportHeader[
 async function buildPdf(
   data: Record<string, unknown>[],
   headers: ExportHeader[],
-  filename: string
+  filename: string,
 ): Promise<Buffer> {
   const { default: jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
@@ -79,7 +90,7 @@ export async function buildExportAttachment(
   format: ExportFormat,
   data: Record<string, unknown>[],
   headers: ExportHeader[],
-  filename: string
+  filename: string,
 ): Promise<ExportAttachment> {
   switch (format) {
     case "csv": {
@@ -95,7 +106,8 @@ export async function buildExportAttachment(
       return {
         content,
         filename: `${filename}.xlsx`,
-        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        contentType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       };
     }
     case "pdf": {

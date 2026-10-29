@@ -10,7 +10,8 @@ let cached: { userId: string; url: string | null; at: number } | null = null;
 let pending: { userId: string; promise: Promise<string | null> } | null = null;
 
 function loadAvatar(userId: string): Promise<string | null> {
-  if (cached && cached.userId === userId && Date.now() - cached.at < TTL_MS) return Promise.resolve(cached.url);
+  if (cached && cached.userId === userId && Date.now() - cached.at < TTL_MS)
+    return Promise.resolve(cached.url);
   if (pending && pending.userId === userId) return pending.promise;
   const promise = fetch("/api/me/avatar")
     .then((r) => r.json())
@@ -34,9 +35,13 @@ export function useAvatar(): string | null {
     if (!session?.user?.id) return;
     let active = true;
     loadAvatar(session.user.id)
-      .then((value) => { if (active && value !== undefined) setUrl(value); })
+      .then((value) => {
+        if (active && value !== undefined) setUrl(value);
+      })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [session?.user?.id]);
 
   return url;

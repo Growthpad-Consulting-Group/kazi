@@ -1,6 +1,6 @@
 import { isPathAllowed } from "@/lib/page-access";
 
-export type NavItem  = { href: string; icon: string; label: string };
+export type NavItem = { href: string; icon: string; label: string };
 export type NavGroup = { category: string; icon: string; items: NavItem[] };
 
 export const sidebarNavGroups: NavGroup[] = [
@@ -8,35 +8,79 @@ export const sidebarNavGroups: NavGroup[] = [
     category: "Home",
     icon: "solar:widget-2-broken",
     items: [
-      { href: "/dashboard", icon: "solar:widget-2-broken",       label: "Dashboard" },
-      { href: "/staff",    icon: "solar:user-id-broken",         label: "Staff" },
+      { href: "/dashboard", icon: "solar:widget-2-broken", label: "Dashboard" },
+      { href: "/staff", icon: "solar:user-id-broken", label: "Staff" },
     ],
   },
   {
     category: "Kazi Hire",
     icon: "solar:case-minimalistic-broken",
     items: [
-      { href: "/hire/jobs",       icon: "solar:case-minimalistic-broken", label: "Jobs" },
-      { href: "/hire/candidates", icon: "solar:user-speak-broken",        label: "Candidates" },
+      {
+        href: "/hire/jobs",
+        icon: "solar:case-minimalistic-broken",
+        label: "Jobs",
+      },
+      {
+        href: "/hire/candidates",
+        icon: "solar:user-speak-broken",
+        label: "Candidates",
+      },
     ],
   },
   {
     category: "Kazi Pulse",
     icon: "solar:pulse-broken",
     items: [
-      { href: "/pulse",           icon: "solar:pulse-broken",           label: "Pulse" },
-      { href: "/pulse/checkins",  icon: "solar:checklist-broken",       label: "Check-ins" },
-      { href: "/pulse/feedback",  icon: "solar:star-broken",            label: "Feedback" },
-      { href: "/pulse/campaigns", icon: "solar:flag-2-broken",          label: "Campaigns" },
-      { href: "/pulse/side-quests", icon: "solar:cup-star-broken",      label: "Side Quests" },
-      { href: "/pulse/leaderboards", icon: "solar:medal-ribbon-broken", label: "Leaderboards" },
-      { href: "/pulse/hall-of-fame", icon: "solar:cup-star-broken",      label: "Wall of Fame" },
-      { href: "/pulse/rewards",      icon: "solar:gift-broken",          label: "Rewards" },
-      { href: "/pulse/engagement-calendar", icon: "solar:calendar-broken", label: "Engagement calendar" },
-      { href: "/pulse/voice-out", icon: "solar:incognito-broken",       label: "Voice Out" },
-      { href: "/pulse/reviews",   icon: "solar:clipboard-list-broken",  label: "Performance" },
-      { href: "/pulse/surveys",   icon: "solar:list-broken",            label: "Surveys" },
-      { href: "/pulse/analytics", icon: "solar:graph-new-up-broken",    label: "Analytics" },
+      { href: "/pulse", icon: "solar:pulse-broken", label: "Pulse" },
+      {
+        href: "/pulse/checkins",
+        icon: "solar:checklist-broken",
+        label: "Check-ins",
+      },
+      { href: "/pulse/feedback", icon: "solar:star-broken", label: "Feedback" },
+      {
+        href: "/pulse/campaigns",
+        icon: "solar:flag-2-broken",
+        label: "Campaigns",
+      },
+      {
+        href: "/pulse/side-quests",
+        icon: "solar:cup-star-broken",
+        label: "Side Quests",
+      },
+      {
+        href: "/pulse/leaderboards",
+        icon: "solar:medal-ribbon-broken",
+        label: "Leaderboards",
+      },
+      {
+        href: "/pulse/hall-of-fame",
+        icon: "solar:cup-star-broken",
+        label: "Wall of Fame",
+      },
+      { href: "/pulse/rewards", icon: "solar:gift-broken", label: "Rewards" },
+      {
+        href: "/pulse/engagement-calendar",
+        icon: "solar:calendar-broken",
+        label: "Engagement calendar",
+      },
+      {
+        href: "/pulse/voice-out",
+        icon: "solar:incognito-broken",
+        label: "Voice Out",
+      },
+      {
+        href: "/pulse/reviews",
+        icon: "solar:clipboard-list-broken",
+        label: "Performance",
+      },
+      { href: "/pulse/surveys", icon: "solar:list-broken", label: "Surveys" },
+      {
+        href: "/pulse/analytics",
+        icon: "solar:graph-new-up-broken",
+        label: "Analytics",
+      },
     ],
   },
   {
@@ -44,10 +88,26 @@ export const sidebarNavGroups: NavGroup[] = [
     icon: "solar:letter-broken",
     items: [
       { href: "/signatures", icon: "solar:letter-broken", label: "Overview" },
-      { href: "/signatures/templates", icon: "solar:document-text-broken", label: "Templates" },
-      { href: "/signatures/staff", icon: "solar:users-group-rounded-broken", label: "Signature staff" },
-      { href: "/signatures/campaigns", icon: "solar:flag-2-broken", label: "Campaigns" },
-      { href: "/signatures/domains", icon: "solar:global-broken", label: "Domains" },
+      {
+        href: "/signatures/templates",
+        icon: "solar:document-text-broken",
+        label: "Templates",
+      },
+      {
+        href: "/signatures/staff",
+        icon: "solar:users-group-rounded-broken",
+        label: "Signature staff",
+      },
+      {
+        href: "/signatures/campaigns",
+        icon: "solar:flag-2-broken",
+        label: "Campaigns",
+      },
+      {
+        href: "/signatures/domains",
+        icon: "solar:global-broken",
+        label: "Domains",
+      },
     ],
   },
   {
@@ -63,6 +123,11 @@ export const sidebarNavGroups: NavGroup[] = [
  * route layouts enforce the same rules for direct URLs. */
 export function navigationForRole(allowedPaths: readonly string[]): NavGroup[] {
   return sidebarNavGroups
-    .map((group) => ({ ...group, items: group.items.filter((item) => isPathAllowed(allowedPaths, item.href)) }))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        isPathAllowed(allowedPaths, item.href),
+      ),
+    }))
     .filter((group) => group.items.length > 0);
 }

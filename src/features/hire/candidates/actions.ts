@@ -10,7 +10,11 @@ import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
 
 export type CandidateWithJob = Candidate & {
-  jobs: { title: string; department: string | null; location: string | null } | null;
+  jobs: {
+    title: string;
+    department: string | null;
+    location: string | null;
+  } | null;
 };
 
 export type NoteWithUser = {
@@ -22,7 +26,9 @@ export type NoteWithUser = {
   users: { name: string } | null;
 };
 
-export async function getCandidates(jobId?: string): Promise<CandidateWithJob[]> {
+export async function getCandidates(
+  jobId?: string,
+): Promise<CandidateWithJob[]> {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
@@ -45,7 +51,8 @@ export async function getCandidate(id: string): Promise<CandidateWithJob> {
 
 export async function updateCandidateStage(id: string, stage: CandidateStage) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "view_hiring")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "view_hiring"))
+    throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin
     .from("candidates")
@@ -61,7 +68,8 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
 
 export async function assignCandidate(id: string, userId: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring"))
+    throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin
     .from("candidates")
@@ -75,7 +83,8 @@ export async function assignCandidate(id: string, userId: string) {
 
 export async function addNote(candidateId: string, note: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "conduct_interviews")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "conduct_interviews"))
+    throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin.from("candidate_notes").insert({
     candidate_id: candidateId,
@@ -88,7 +97,9 @@ export async function addNote(candidateId: string, note: string) {
   await invalidateTables("candidate_notes");
 }
 
-export async function getCandidateNotes(candidateId: string): Promise<NoteWithUser[]> {
+export async function getCandidateNotes(
+  candidateId: string,
+): Promise<NoteWithUser[]> {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
@@ -104,7 +115,8 @@ export async function getCandidateNotes(candidateId: string): Promise<NoteWithUs
 
 export async function shortlistCandidate(id: string, shortlisted: boolean) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring"))
+    throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin
     .from("candidates")

@@ -29,7 +29,7 @@ export function StaffGroupsClient({ initial, users }: Props) {
 
   function toggleMember(id: string) {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
 
@@ -46,7 +46,9 @@ export function StaffGroupsClient({ initial, users }: Props) {
 
   function toggleManagedMember(id: string) {
     setManagingIds((prev) =>
-      prev.includes(id) ? prev.filter((memberId) => memberId !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((memberId) => memberId !== id)
+        : [...prev, id],
     );
   }
 
@@ -57,17 +59,24 @@ export function StaffGroupsClient({ initial, users }: Props) {
       const res = await fetch("/api/pulse/staff-groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: groupName.trim(), member_ids: selectedIds }),
+        body: JSON.stringify({
+          name: groupName.trim(),
+          member_ids: selectedIds,
+        }),
       });
-      const data = await res.json() as { error?: string; group?: StaffGroup };
+      const data = (await res.json()) as { error?: string; group?: StaffGroup };
       if (!res.ok) throw new Error(data.error ?? "Could not create group.");
       if (data.group) {
-        setGroups((prev) => [...prev, data.group!].sort((a, b) => a.name.localeCompare(b.name)));
+        setGroups((prev) =>
+          [...prev, data.group!].sort((a, b) => a.name.localeCompare(b.name)),
+        );
       }
       toast.success("Staff group created.");
       setModalOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not create group.");
+      toast.error(
+        err instanceof Error ? err.message : "Could not create group.",
+      );
     } finally {
       setSaving(false);
     }
@@ -81,13 +90,15 @@ export function StaffGroupsClient({ initial, users }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: group.id }),
       });
-      const data = await res.json() as { error?: string };
+      const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Could not delete group.");
       setGroups((prev) => prev.filter((g) => g.id !== group.id));
       setGroupToDelete(null);
       toast.success("Staff group deleted.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not delete group.");
+      toast.error(
+        err instanceof Error ? err.message : "Could not delete group.",
+      );
     } finally {
       setDeleting(false);
     }
@@ -102,15 +113,22 @@ export function StaffGroupsClient({ initial, users }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: groupToManage.id, member_ids: managingIds }),
       });
-      const data = await res.json() as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Could not update group members.");
-      setGroups((prev) => prev.map((group) => (
-        group.id === groupToManage.id ? { ...group, member_ids: managingIds } : group
-      )));
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok)
+        throw new Error(data.error ?? "Could not update group members.");
+      setGroups((prev) =>
+        prev.map((group) =>
+          group.id === groupToManage.id
+            ? { ...group, member_ids: managingIds }
+            : group,
+        ),
+      );
       setGroupToManage(null);
       toast.success("Group members updated.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update group members.");
+      toast.error(
+        err instanceof Error ? err.message : "Could not update group members.",
+      );
     } finally {
       setUpdatingMembers(false);
     }
@@ -121,7 +139,9 @@ export function StaffGroupsClient({ initial, users }: Props) {
       <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
         <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-[var(--text-hi)]">Staff groups</p>
+            <p className="text-sm font-semibold text-[var(--text-hi)]">
+              Staff groups
+            </p>
             <p className="mt-0.5 text-xs text-[var(--text-lo)]">
               Reusable groups for targeting feedback and campaigns.
             </p>
@@ -134,9 +154,14 @@ export function StaffGroupsClient({ initial, users }: Props) {
         {groups.length === 0 ? (
           <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
-              <Icon icon="solar:users-group-rounded-broken" className="h-5 w-5" />
+              <Icon
+                icon="solar:users-group-rounded-broken"
+                className="h-5 w-5"
+              />
             </span>
-            <p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">No groups yet</p>
+            <p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+              No groups yet
+            </p>
             <p className="mt-1 text-xs text-[var(--text-lo)]">
               Create a group to send feedback to multiple people at once.
             </p>
@@ -149,9 +174,12 @@ export function StaffGroupsClient({ initial, users }: Props) {
                 className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[var(--text-hi)]">{group.name}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                    {group.name}
+                  </p>
                   <p className="text-xs text-[var(--text-lo)]">
-                    {group.member_ids.length} member{group.member_ids.length !== 1 ? "s" : ""}
+                    {group.member_ids.length} member
+                    {group.member_ids.length !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <Button
@@ -168,7 +196,10 @@ export function StaffGroupsClient({ initial, users }: Props) {
                   onClick={() => setGroupToDelete(group)}
                   className="rounded-lg p-2 text-red-500 hover:bg-red-500/10"
                 >
-                  <Icon icon="solar:trash-bin-minimalistic-broken" className="h-4 w-4" />
+                  <Icon
+                    icon="solar:trash-bin-minimalistic-broken"
+                    className="h-4 w-4"
+                  />
                 </button>
               </li>
             ))}
@@ -219,14 +250,17 @@ export function StaffGroupsClient({ initial, users }: Props) {
                       onChange={() => toggleMember(user.id)}
                       className="accent-brand-500"
                     />
-                    <span className="text-sm text-[var(--text-hi)]">{user.name}</span>
+                    <span className="text-sm text-[var(--text-hi)]">
+                      {user.name}
+                    </span>
                   </label>
                 );
               })}
             </div>
             {selectedIds.length > 0 && (
               <p className="mt-1.5 text-[10px] text-[var(--text-lo)]">
-                {selectedIds.length} member{selectedIds.length !== 1 ? "s" : ""} selected
+                {selectedIds.length} member{selectedIds.length !== 1 ? "s" : ""}{" "}
+                selected
               </p>
             )}
           </div>
@@ -271,14 +305,17 @@ export function StaffGroupsClient({ initial, users }: Props) {
                   onChange={() => toggleManagedMember(user.id)}
                   className="accent-brand-500"
                 />
-                <span className="text-sm text-[var(--text-hi)]">{user.name}</span>
+                <span className="text-sm text-[var(--text-hi)]">
+                  {user.name}
+                </span>
               </label>
             );
           })}
         </div>
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
           <p className="text-xs text-[var(--text-lo)]">
-            {managingIds.length} member{managingIds.length !== 1 ? "s" : ""} selected
+            {managingIds.length} member{managingIds.length !== 1 ? "s" : ""}{" "}
+            selected
           </p>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setGroupToManage(null)}>
@@ -305,8 +342,10 @@ export function StaffGroupsClient({ initial, users }: Props) {
       >
         <p className="text-sm text-[var(--text-lo)]">
           Delete{" "}
-          <strong className="text-[var(--text-hi)]">{groupToDelete?.name}</strong>? This
-          cannot be undone.
+          <strong className="text-[var(--text-hi)]">
+            {groupToDelete?.name}
+          </strong>
+          ? This cannot be undone.
         </p>
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
           <Button variant="secondary" onClick={() => setGroupToDelete(null)}>

@@ -92,7 +92,10 @@ export interface ColumnsBlock {
  * there being no room left, rather than silently overflowing past 100%). Shared by the editor's
  * live preview and blockSerializer's HTML output so they never disagree with each other. */
 export function computeColumnWidths(styles: ColumnStyle[]): number[] {
-  const explicit = styles.reduce((sum, s) => sum + (s.width && s.width > 0 ? s.width : 0), 0);
+  const explicit = styles.reduce(
+    (sum, s) => sum + (s.width && s.width > 0 ? s.width : 0),
+    0,
+  );
   const unsetCount = styles.filter((s) => !s.width || s.width <= 0).length;
   const share = unsetCount > 0 ? Math.max(0, 100 - explicit) / unsetCount : 0;
   return styles.map((s) => (s.width && s.width > 0 ? s.width : share));
@@ -107,7 +110,15 @@ export interface HtmlBlock {
   html: string;
 }
 
-export type Block = TextBlock | ImageBlock | ButtonBlock | DividerBlock | SpacerBlock | SocialBlock | ColumnsBlock | HtmlBlock;
+export type Block =
+  | TextBlock
+  | ImageBlock
+  | ButtonBlock
+  | DividerBlock
+  | SpacerBlock
+  | SocialBlock
+  | ColumnsBlock
+  | HtmlBlock;
 
 /** CSS border-radius for an image's `shape` — shared between the editor's live preview and
  * blockSerializer's HTML output so they never drift. A large fixed px value (rather than 50%)
@@ -120,7 +131,9 @@ export function imageBorderRadius(shape: ImageShape | undefined): string {
 }
 
 export function newBlockId(): string {
-  return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
 }
 
 export function createBlock(type: Block["type"]): Block {
@@ -131,7 +144,15 @@ export function createBlock(type: Block["type"]): Block {
     case "image":
       return { id, type, src: "", alt: "", width: 300, align: "left" };
     case "button":
-      return { id, type, label: "Click here", url: "https://", bgColor: "#f05d23", textColor: "#ffffff", align: "left" };
+      return {
+        id,
+        type,
+        label: "Click here",
+        url: "https://",
+        bgColor: "#f05d23",
+        textColor: "#ffffff",
+        align: "left",
+      };
     case "divider":
       return { id, type, color: "#e5e7eb" };
     case "spacer":
@@ -174,10 +195,18 @@ export function findBlockById(blocks: Block[], id: string): Block | null {
 }
 
 /** Patches a block by id, wherever it lives in the tree. */
-export function updateBlockById(blocks: Block[], id: string, patch: Partial<Block>): Block[] {
+export function updateBlockById(
+  blocks: Block[],
+  id: string,
+  patch: Partial<Block>,
+): Block[] {
   return blocks.map((b) => {
     if (b.id === id) return { ...b, ...patch } as Block;
-    if (b.type === "columns") return { ...b, columns: b.columns.map((col) => updateBlockById(col, id, patch)) };
+    if (b.type === "columns")
+      return {
+        ...b,
+        columns: b.columns.map((col) => updateBlockById(col, id, patch)),
+      };
     return b;
   });
 }
@@ -186,13 +215,21 @@ export function updateBlockById(blocks: Block[], id: string, patch: Partial<Bloc
 export function removeBlockById(blocks: Block[], id: string): Block[] {
   return blocks
     .filter((b) => b.id !== id)
-    .map((b) => (b.type === "columns" ? { ...b, columns: b.columns.map((col) => removeBlockById(col, id)) } : b));
+    .map((b) =>
+      b.type === "columns"
+        ? { ...b, columns: b.columns.map((col) => removeBlockById(col, id)) }
+        : b,
+    );
 }
 
 /** Splices `newBlock` right after the block with id `afterId`, wherever it lives in the tree.
  * `inserted` tells the caller whether `afterId` was actually found (so it can fall back to
  * appending at the top level otherwise). */
-export function insertAfterId(blocks: Block[], afterId: string, newBlock: Block): { result: Block[]; inserted: boolean } {
+export function insertAfterId(
+  blocks: Block[],
+  afterId: string,
+  newBlock: Block,
+): { result: Block[]; inserted: boolean } {
   let inserted = false;
   const result = blocks.flatMap((b): Block[] => {
     if (b.id === afterId) {
@@ -215,13 +252,23 @@ export function insertAfterId(blocks: Block[], afterId: string, newBlock: Block)
 /** Applies `fn` to the block list at `path` (one specific column of one specific `columns`
  * block), wherever that block lives in the tree — used for reordering within, or adding into, a
  * single column. */
-export function updateColumnList(blocks: Block[], path: ColumnPath, fn: (col: Block[]) => Block[]): Block[] {
+export function updateColumnList(
+  blocks: Block[],
+  path: ColumnPath,
+  fn: (col: Block[]) => Block[],
+): Block[] {
   return blocks.map((b) => {
     if (b.id === path.columnsId && b.type === "columns") {
-      const columns = b.columns.map((col, i) => (i === path.colIndex ? fn(col) : col));
+      const columns = b.columns.map((col, i) =>
+        i === path.colIndex ? fn(col) : col,
+      );
       return { ...b, columns };
     }
-    if (b.type === "columns") return { ...b, columns: b.columns.map((col) => updateColumnList(col, path, fn)) };
+    if (b.type === "columns")
+      return {
+        ...b,
+        columns: b.columns.map((col) => updateColumnList(col, path, fn)),
+      };
     return b;
   });
 }
@@ -236,12 +283,19 @@ export function getListAt(blocks: Block[], path: ColumnPath | null): Block[] {
 /** Finds which list a block id lives in — `null` for the top level, a `ColumnPath` for a
  * column, or `undefined` if the id isn't a block anywhere in the tree. Needed for cross-column
  * dragging, where the drop target's container isn't known ahead of time. */
-export function findContainerPath(blocks: Block[], id: string, path: ColumnPath | null = null): ColumnPath | null | undefined {
+export function findContainerPath(
+  blocks: Block[],
+  id: string,
+  path: ColumnPath | null = null,
+): ColumnPath | null | undefined {
   for (const b of blocks) {
     if (b.id === id) return path;
     if (b.type === "columns") {
       for (let i = 0; i < b.columns.length; i++) {
-        const found = findContainerPath(b.columns[i], id, { columnsId: b.id, colIndex: i });
+        const found = findContainerPath(b.columns[i], id, {
+          columnsId: b.id,
+          colIndex: i,
+        });
         if (found !== undefined) return found;
       }
     }
@@ -251,7 +305,10 @@ export function findContainerPath(blocks: Block[], id: string, path: ColumnPath 
 
 /** Like `removeBlockById`, but also hands back the removed block so it can be re-inserted
  * elsewhere (cross-column drag, essentially "cut"). */
-export function removeBlockWithResult(blocks: Block[], id: string): { result: Block[]; removed: Block | null } {
+export function removeBlockWithResult(
+  blocks: Block[],
+  id: string,
+): { result: Block[]; removed: Block | null } {
   let removed: Block | null = null;
   const result = blocks
     .filter((b) => {
@@ -275,7 +332,12 @@ export function removeBlockWithResult(blocks: Block[], id: string): { result: Bl
 
 /** Inserts `block` at `index` in the list at `path` (top level or a specific column) —
  * `index` beyond the list's length appends. The "paste" half of a cross-column move. */
-export function insertIntoList(blocks: Block[], path: ColumnPath | null, block: Block, index: number): Block[] {
+export function insertIntoList(
+  blocks: Block[],
+  path: ColumnPath | null,
+  block: Block,
+  index: number,
+): Block[] {
   const insertAt = (list: Block[]) => {
     const next = [...list];
     next.splice(Math.min(index, next.length), 0, block);
@@ -296,8 +358,11 @@ export { sameColumnPath };
  * block), so the clone and the original never share identity. */
 export function cloneBlockWithNewIds(block: Block): Block {
   if (block.type === "columns") {
-    return { ...block, id: newBlockId(), columns: block.columns.map((col) => col.map(cloneBlockWithNewIds)) };
+    return {
+      ...block,
+      id: newBlockId(),
+      columns: block.columns.map((col) => col.map(cloneBlockWithNewIds)),
+    };
   }
   return { ...block, id: newBlockId() };
 }
-

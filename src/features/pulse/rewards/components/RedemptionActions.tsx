@@ -9,24 +9,31 @@ interface RedemptionActionsProps {
   redemptionId: string;
 }
 
-export default function RedemptionActions({ redemptionId }: RedemptionActionsProps) {
+export default function RedemptionActions({
+  redemptionId,
+}: RedemptionActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<"approved" | "rejected" | null>(null);
 
   async function handleAction(status: "approved" | "rejected") {
     setLoading(status);
     try {
-      const res = await fetch(`/api/pulse/rewards/redemptions/${redemptionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      const res = await fetch(
+        `/api/pulse/rewards/redemptions/${redemptionId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
       if (!res.ok) {
-        const data = await res.json() as { error?: string };
+        const data = (await res.json()) as { error?: string };
         toast.error(data.error ?? "Action failed.");
         return;
       }
-      toast.success(status === "approved" ? "Redemption approved." : "Redemption rejected.");
+      toast.success(
+        status === "approved" ? "Redemption approved." : "Redemption rejected.",
+      );
       router.refresh();
     } catch {
       toast.error("Something went wrong.");

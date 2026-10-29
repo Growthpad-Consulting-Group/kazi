@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getAutomationAudience, runAutomationEvent } from "@/lib/automations";
-import { notifyCampaignLive, notifyMilestone, notifyQuestEndingSoon } from "@/lib/notifications";
+import {
+  notifyCampaignLive,
+  notifyMilestone,
+  notifyQuestEndingSoon,
+} from "@/lib/notifications";
 import { supabaseAdmin } from "@/lib/supabase";
 import { hasCronAccess } from "@/lib/cron-auth";
 
@@ -26,7 +30,12 @@ export async function POST(req: Request): Promise<Response> {
       trigger: "milestone_anniversary",
       eventKey: `milestone:${milestone.id}`,
       recipientIds: [milestone.user_id],
-      notification: (userId) => notifyMilestone(userId, milestone.type, milestone.years_count ?? undefined),
+      notification: (userId) =>
+        notifyMilestone(
+          userId,
+          milestone.type,
+          milestone.years_count ?? undefined,
+        ),
       pointReason: `${milestone.type.replaceAll("_", " ")} automation reward`,
       referenceId: milestone.id,
     });
@@ -40,7 +49,10 @@ export async function POST(req: Request): Promise<Response> {
     .in("status", ["upcoming", "live"]);
 
   for (const campaign of campaigns ?? []) {
-    const recipientIds = await getAutomationAudience(campaign.audience_type, campaign.audience_filters);
+    const recipientIds = await getAutomationAudience(
+      campaign.audience_type,
+      campaign.audience_filters,
+    );
     processed += await runAutomationEvent({
       trigger: "campaign_start",
       eventKey: `campaign:${campaign.id}:start:${campaign.starts_at}`,
@@ -56,16 +68,23 @@ export async function POST(req: Request): Promise<Response> {
     .select("id, title, ends_at, audience_type, audience_filters")
     .eq("status", "live")
     .gte("ends_at", now.toISOString())
-    .lte("ends_at", new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString());
+    .lte(
+      "ends_at",
+      new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(),
+    );
 
   for (const quest of quests ?? []) {
     if (!quest.ends_at) continue;
-    const recipientIds = await getAutomationAudience(quest.audience_type, quest.audience_filters);
+    const recipientIds = await getAutomationAudience(
+      quest.audience_type,
+      quest.audience_filters,
+    );
     processed += await runAutomationEvent({
       trigger: "quest_ends_soon",
       eventKey: `quest:${quest.id}:ending:${quest.ends_at}`,
       recipientIds,
-      notification: (userId) => notifyQuestEndingSoon(userId, quest.title, quest.ends_at!),
+      notification: (userId) =>
+        notifyQuestEndingSoon(userId, quest.title, quest.ends_at!),
       pointReason: `Side Quest ending soon: ${quest.title}`,
       referenceId: quest.id,
     });

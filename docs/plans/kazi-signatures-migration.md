@@ -52,14 +52,14 @@ Move Signoff's signature-management data, assets and operational configuration i
 
 ## Data ownership decisions
 
-| Signoff data | Kazi destination | Migration rule |
-| --- | --- | --- |
-| `users`, `sessions`, `magic_tokens` | Kazi `users` and NextAuth | Do not copy sessions or tokens. Match admins by normalised email; reuse a compatible password hash only after review. |
-| `staff` | `signature_staff_profiles` plus Kazi `users` | Match by normalised email. Preserve unmatched mailboxes as profiles with `user_id = null`; invite them later instead of creating unknown passwords. |
-| `departments` | Kazi `departments` | Merge case-insensitively and keep Kazi as the canonical list. |
-| Domains, templates, versions, assignments, campaigns and analytics | `signature_*` tables | Preserve IDs during import so every relationship remains intact. |
-| `signature-assets` storage | Kazi R2 | Copy objects, rewrite every media URL in templates/campaigns/media records, then validate rendered HTML. |
-| Cloudflare tokens and Gmail configuration | Kazi secrets/configuration | Re-encrypt domain tokens with a Kazi-owned key. Never copy opaque encrypted values because Signoff's key cannot decrypt them in Kazi. |
+| Signoff data                                                       | Kazi destination                             | Migration rule                                                                                                                                      |
+| ------------------------------------------------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`, `sessions`, `magic_tokens`                                | Kazi `users` and NextAuth                    | Do not copy sessions or tokens. Match admins by normalised email; reuse a compatible password hash only after review.                               |
+| `staff`                                                            | `signature_staff_profiles` plus Kazi `users` | Match by normalised email. Preserve unmatched mailboxes as profiles with `user_id = null`; invite them later instead of creating unknown passwords. |
+| `departments`                                                      | Kazi `departments`                           | Merge case-insensitively and keep Kazi as the canonical list.                                                                                       |
+| Domains, templates, versions, assignments, campaigns and analytics | `signature_*` tables                         | Preserve IDs during import so every relationship remains intact.                                                                                    |
+| `signature-assets` storage                                         | Kazi R2                                      | Copy objects, rewrite every media URL in templates/campaigns/media records, then validate rendered HTML.                                            |
+| Cloudflare tokens and Gmail configuration                          | Kazi secrets/configuration                   | Re-encrypt domain tokens with a Kazi-owned key. Never copy opaque encrypted values because Signoff's key cannot decrypt them in Kazi.               |
 
 ## Execution plan
 

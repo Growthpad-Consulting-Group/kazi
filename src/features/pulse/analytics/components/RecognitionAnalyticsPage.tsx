@@ -23,7 +23,9 @@ function getString(
   return v ?? fallback;
 }
 
-export default async function RecognitionAnalyticsPage({ searchParams }: Props) {
+export default async function RecognitionAnalyticsPage({
+  searchParams,
+}: Props) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
   if (!canView(session.user, "view_analytics")) redirect("/pulse");
@@ -35,7 +37,6 @@ export default async function RecognitionAnalyticsPage({ searchParams }: Props) 
   });
   const departmentFilter = getString(searchParams.dept);
   const campaignId = getString(searchParams.campaign);
-
 
   // Fetch filter options server-side for the filters component
   const [{ data: deptRows }, { data: campaignRows }] = await Promise.all([

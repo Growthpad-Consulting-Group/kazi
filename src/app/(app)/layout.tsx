@@ -4,7 +4,11 @@ import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth";
 import AppShell from "@/components/layout/AppShell";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   await cookies();
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");

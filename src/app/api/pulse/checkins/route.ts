@@ -9,12 +9,17 @@ import type { CheckinStatus } from "@/types/database";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId, weekStart, wins, priorities, blockers, mood, status } = await req.json();
+  const { userId, weekStart, wins, priorities, blockers, mood, status } =
+    await req.json();
 
   // Users can only update their own check-in (unless admin/hr)
-  if (userId !== session.user.id && !["admin", "hr"].includes(session.user.role)) {
+  if (
+    userId !== session.user.id &&
+    !["admin", "hr"].includes(session.user.role)
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const { data: existing } = await supabaseAdmin
@@ -24,7 +29,13 @@ export async function POST(req: Request) {
     .eq("week_start", weekStart)
     .maybeSingle();
   if (existing?.status === "reviewed" && userId === session.user.id) {
-    return NextResponse.json({ error: "This check-in has already been reviewed and can no longer be changed." }, { status: 409 });
+    return NextResponse.json(
+      {
+        error:
+          "This check-in has already been reviewed and can no longer be changed.",
+      },
+      { status: 409 },
+    );
   }
 
   const { error } = await supabaseAdmin.from("checkins").upsert(
@@ -37,10 +48,11 @@ export async function POST(req: Request) {
       mood: mood ?? null,
       status: (status ?? "draft") as CheckinStatus,
     },
-    { onConflict: "user_id,week_start" }
+    { onConflict: "user_id,week_start" },
   );
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   await invalidateUserCheckins(userId);
   // Award +2 points for submitting a check-in (non-blocking)
   if (status === "submitted") {
@@ -53,7 +65,9 @@ export async function POST(req: Request) {
         referenceId: weekStart,
         createdBy: null,
       });
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     // Slack Block Kit notification (non-blocking)
     try {
@@ -62,7 +76,8 @@ export async function POST(req: Request) {
         .select("name")
         .eq("id", userId)
         .maybeSingle();
-      const employeeName = (userRow as unknown as { name: string } | null)?.name ?? "An employee";
+      const employeeName =
+        (userRow as unknown as { name: string } | null)?.name ?? "An employee";
       const weekLabel = new Date(weekStart).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
@@ -80,13 +95,21 @@ export async function POST(req: Request) {
           },
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*${employeeName}* submitted their weekly check-in for the week of ${weekLabel}.` },
+            text: {
+              type: "mrkdwn",
+              text: `*${employeeName}* submitted their weekly check-in for the week of ${weekLabel}.`,
+            },
           },
           {
             type: "context",
-            elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse/checkins|View in Kazi>` }],
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `<${appUrl}/pulse/checkins|View in Kazi>`,
+              },
+            ],
           },
-        ]
+        ],
       );
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);

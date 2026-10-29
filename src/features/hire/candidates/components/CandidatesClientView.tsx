@@ -3,12 +3,21 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { GenericTable, type BulkAction, type Column, type RowAction } from "@/components/ui/GenericTable";
+import {
+  GenericTable,
+  type BulkAction,
+  type Column,
+  type RowAction,
+} from "@/components/ui/GenericTable";
 import toast from "react-hot-toast";
 import { BulkEmailModal } from "./BulkEmailModal";
 import { BulkInterviewModal } from "./BulkInterviewModal";
 import { type InterviewerOption } from "./InterviewerPicker";
-import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
+import UnifiedSearchFilter, {
+  type ActiveFilter,
+  type FilterCategoryDef,
+  type FilterOption,
+} from "@/components/ui/UnifiedSearchFilter";
 import { StatusPill } from "@/components/ui/StatusPill";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 import type { CandidateWithJob } from "../actions";
@@ -17,7 +26,12 @@ import CandidateStageSelect from "./CandidateStageSelect";
 const STAGE_FILTER_OPTIONS: FilterOption[] = [
   { id: "applied", label: "Applied", category: "stage", value: "applied" },
   { id: "screened", label: "Screened", category: "stage", value: "screened" },
-  { id: "interview", label: "Interview", category: "stage", value: "interview" },
+  {
+    id: "interview",
+    label: "Interview",
+    category: "stage",
+    value: "interview",
+  },
   { id: "offer", label: "Offer", category: "stage", value: "offer" },
   { id: "hired", label: "Hired", category: "stage", value: "hired" },
   { id: "rejected", label: "Rejected", category: "stage", value: "rejected" },
@@ -44,35 +58,127 @@ interface Props {
   currentUserId: string;
 }
 
-function dashboardFilters(stage?: string, attention?: string, role?: string): ActiveFilter[] {
+function dashboardFilters(
+  stage?: string,
+  attention?: string,
+  role?: string,
+): ActiveFilter[] {
   const filters: ActiveFilter[] = [];
   const activeStages = ["applied", "screened", "interview", "offer"];
-  const stages = stage === "active" ? activeStages : STAGE_FILTER_OPTIONS.some((option) => option.value === stage) ? [stage!] : [];
-  if (stages.length) filters.push({ category: "stage", values: stages, label: `Stage: is ${stage === "active" ? "Active pipeline" : stages[0]}`, operator: "is" });
-  if (["needs_screening", "stalled"].includes(attention ?? "")) filters.push({ category: "attention", values: [attention!], label: `Attention: is ${attention!.replaceAll("_", " ")}`, operator: "is" });
-  if (role) filters.push({ category: "role", values: [role], label: `Role: is ${role}`, operator: "is" });
+  const stages =
+    stage === "active"
+      ? activeStages
+      : STAGE_FILTER_OPTIONS.some((option) => option.value === stage)
+        ? [stage!]
+        : [];
+  if (stages.length)
+    filters.push({
+      category: "stage",
+      values: stages,
+      label: `Stage: is ${stage === "active" ? "Active pipeline" : stages[0]}`,
+      operator: "is",
+    });
+  if (["needs_screening", "stalled"].includes(attention ?? ""))
+    filters.push({
+      category: "attention",
+      values: [attention!],
+      label: `Attention: is ${attention!.replaceAll("_", " ")}`,
+      operator: "is",
+    });
+  if (role)
+    filters.push({
+      category: "role",
+      values: [role],
+      label: `Role: is ${role}`,
+      operator: "is",
+    });
   return filters;
 }
 
-export default function CandidatesClientView({ candidates, unscreenedIds, initialStage, initialAttention, initialRole, interviewers, currentUserId }: Props) {
+export default function CandidatesClientView({
+  candidates,
+  unscreenedIds,
+  initialStage,
+  initialAttention,
+  initialRole,
+  interviewers,
+  currentUserId,
+}: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<ActiveFilter[]>(() => dashboardFilters(initialStage, initialAttention, initialRole));
+  const [filters, setFilters] = useState<ActiveFilter[]>(() =>
+    dashboardFilters(initialStage, initialAttention, initialRole),
+  );
   const [referenceTime] = useState(() => Date.now());
-  const [bulkEmailRecipients, setBulkEmailRecipients] = useState<{ id: string; full_name: string }[] | null>(null);
-  const [bulkInterviewRecipients, setBulkInterviewRecipients] = useState<{ id: string; full_name: string }[] | null>(null);
+  const [bulkEmailRecipients, setBulkEmailRecipients] = useState<
+    { id: string; full_name: string }[] | null
+  >(null);
+  const [bulkInterviewRecipients, setBulkInterviewRecipients] = useState<
+    { id: string; full_name: string }[] | null
+  >(null);
 
   const categoryOptions = useMemo<Record<string, FilterOption[]>>(() => {
-    const unique = (values: (string | null | undefined)[]) => [...new Set(values.filter((value): value is string => !!value))].sort();
+    const unique = (values: (string | null | undefined)[]) =>
+      [...new Set(values.filter((value): value is string => !!value))].sort();
     return {
       stage: STAGE_FILTER_OPTIONS,
-      shortlisted: [{ id: "yes", label: "Yes", category: "shortlisted", value: "true" }, { id: "no", label: "No", category: "shortlisted", value: "false" }],
-      role: unique(candidates.map((candidate) => candidate.jobs?.title)).map((value) => ({ id: value, label: value, category: "role", value })),
-      source: unique(candidates.map((candidate) => candidate.source)).map((value) => ({ id: value, label: value, category: "source", value })),
-      location: unique(candidates.map((candidate) => candidate.location)).map((value) => ({ id: value, label: value, category: "location", value })),
-      score: [{ id: "high", label: "High (75+)", category: "score", value: "high" }, { id: "review", label: "Review (50–74)", category: "score", value: "review" }, { id: "low", label: "Low (<50)", category: "score", value: "low" }, { id: "pending", label: "Not screened", category: "score", value: "pending" }],
-      cv: [{ id: "available", label: "CV available", category: "cv", value: "available" }, { id: "missing", label: "CV missing", category: "cv", value: "missing" }],
-      attention: [{ id: "needs_screening", label: "Awaiting AI review", category: "attention", value: "needs_screening" }, { id: "stalled", label: "Stalled 14+ days", category: "attention", value: "stalled" }],
+      shortlisted: [
+        { id: "yes", label: "Yes", category: "shortlisted", value: "true" },
+        { id: "no", label: "No", category: "shortlisted", value: "false" },
+      ],
+      role: unique(candidates.map((candidate) => candidate.jobs?.title)).map(
+        (value) => ({ id: value, label: value, category: "role", value }),
+      ),
+      source: unique(candidates.map((candidate) => candidate.source)).map(
+        (value) => ({ id: value, label: value, category: "source", value }),
+      ),
+      location: unique(candidates.map((candidate) => candidate.location)).map(
+        (value) => ({ id: value, label: value, category: "location", value }),
+      ),
+      score: [
+        { id: "high", label: "High (75+)", category: "score", value: "high" },
+        {
+          id: "review",
+          label: "Review (50–74)",
+          category: "score",
+          value: "review",
+        },
+        { id: "low", label: "Low (<50)", category: "score", value: "low" },
+        {
+          id: "pending",
+          label: "Not screened",
+          category: "score",
+          value: "pending",
+        },
+      ],
+      cv: [
+        {
+          id: "available",
+          label: "CV available",
+          category: "cv",
+          value: "available",
+        },
+        {
+          id: "missing",
+          label: "CV missing",
+          category: "cv",
+          value: "missing",
+        },
+      ],
+      attention: [
+        {
+          id: "needs_screening",
+          label: "Awaiting AI review",
+          category: "attention",
+          value: "needs_screening",
+        },
+        {
+          id: "stalled",
+          label: "Stalled 14+ days",
+          category: "attention",
+          value: "stalled",
+        },
+      ],
     };
   }, [candidates]);
 
@@ -86,34 +192,77 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
         (c) =>
           c.full_name.toLowerCase().includes(q) ||
           c.email.toLowerCase().includes(q) ||
-          (c.jobs?.title ?? "").toLowerCase().includes(q)
+          (c.jobs?.title ?? "").toLowerCase().includes(q),
       );
     }
 
     for (const f of filters) {
       if (f.category === "stage") {
-        if (f.operator === "is") list = list.filter((c) => f.values.includes(c.stage));
+        if (f.operator === "is")
+          list = list.filter((c) => f.values.includes(c.stage));
         else list = list.filter((c) => !f.values.includes(c.stage));
       }
       if (f.category === "shortlisted") {
         const wantShortlisted = f.values.includes("true");
-        if (f.operator === "is") list = list.filter((c) => c.shortlisted === wantShortlisted);
+        if (f.operator === "is")
+          list = list.filter((c) => c.shortlisted === wantShortlisted);
         else list = list.filter((c) => c.shortlisted !== wantShortlisted);
       }
-      if (f.category === "role") list = f.operator === "is" ? list.filter((c) => f.values.includes(c.jobs?.title ?? "")) : list.filter((c) => !f.values.includes(c.jobs?.title ?? ""));
-      if (f.category === "source") list = f.operator === "is" ? list.filter((c) => f.values.includes(c.source ?? "")) : list.filter((c) => !f.values.includes(c.source ?? ""));
-      if (f.category === "location") list = f.operator === "is" ? list.filter((c) => f.values.includes(c.location ?? "")) : list.filter((c) => !f.values.includes(c.location ?? ""));
+      if (f.category === "role")
+        list =
+          f.operator === "is"
+            ? list.filter((c) => f.values.includes(c.jobs?.title ?? ""))
+            : list.filter((c) => !f.values.includes(c.jobs?.title ?? ""));
+      if (f.category === "source")
+        list =
+          f.operator === "is"
+            ? list.filter((c) => f.values.includes(c.source ?? ""))
+            : list.filter((c) => !f.values.includes(c.source ?? ""));
+      if (f.category === "location")
+        list =
+          f.operator === "is"
+            ? list.filter((c) => f.values.includes(c.location ?? ""))
+            : list.filter((c) => !f.values.includes(c.location ?? ""));
       if (f.category === "score") {
-        const matches = (c: CandidateWithJob) => f.values.some((value) => value === "pending" ? c.ai_score === null : value === "high" ? (c.ai_score ?? -1) >= 75 : value === "review" ? (c.ai_score ?? -1) >= 50 && (c.ai_score ?? -1) < 75 : c.ai_score !== null && c.ai_score < 50);
-        list = f.operator === "is" ? list.filter(matches) : list.filter((candidate) => !matches(candidate));
+        const matches = (c: CandidateWithJob) =>
+          f.values.some((value) =>
+            value === "pending"
+              ? c.ai_score === null
+              : value === "high"
+                ? (c.ai_score ?? -1) >= 75
+                : value === "review"
+                  ? (c.ai_score ?? -1) >= 50 && (c.ai_score ?? -1) < 75
+                  : c.ai_score !== null && c.ai_score < 50,
+          );
+        list =
+          f.operator === "is"
+            ? list.filter(matches)
+            : list.filter((candidate) => !matches(candidate));
       }
       if (f.category === "cv") {
-        const matches = (c: CandidateWithJob) => f.values.some((value) => value === "available" ? !!(c.cv_url || c.cv_text || c.cv_parsed) : !(c.cv_url || c.cv_text || c.cv_parsed));
-        list = f.operator === "is" ? list.filter(matches) : list.filter((candidate) => !matches(candidate));
+        const matches = (c: CandidateWithJob) =>
+          f.values.some((value) =>
+            value === "available"
+              ? !!(c.cv_url || c.cv_text || c.cv_parsed)
+              : !(c.cv_url || c.cv_text || c.cv_parsed),
+          );
+        list =
+          f.operator === "is"
+            ? list.filter(matches)
+            : list.filter((candidate) => !matches(candidate));
       }
       if (f.category === "attention") {
-        const matches = (c: CandidateWithJob) => f.values.some((value) => value === "needs_screening" ? c.ai_score === null && !!(c.cv_text || c.cv_parsed) : !["hired", "rejected"].includes(c.stage) && new Date(c.applied_at).getTime() < fourteenDaysAgo);
-        list = f.operator === "is" ? list.filter(matches) : list.filter((candidate) => !matches(candidate));
+        const matches = (c: CandidateWithJob) =>
+          f.values.some((value) =>
+            value === "needs_screening"
+              ? c.ai_score === null && !!(c.cv_text || c.cv_parsed)
+              : !["hired", "rejected"].includes(c.stage) &&
+                new Date(c.applied_at).getTime() < fourteenDaysAgo,
+          );
+        list =
+          f.operator === "is"
+            ? list.filter(matches)
+            : list.filter((candidate) => !matches(candidate));
       }
     }
 
@@ -121,13 +270,70 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
   }, [candidates, search, filters, referenceTime]);
 
   const stats = useMemo(() => {
-    const stalled = candidates.filter((candidate) => !["hired", "rejected"].includes(candidate.stage) && referenceTime - new Date(candidate.applied_at).getTime() > 14 * 24 * 60 * 60 * 1000).length;
+    const stalled = candidates.filter(
+      (candidate) =>
+        !["hired", "rejected"].includes(candidate.stage) &&
+        referenceTime - new Date(candidate.applied_at).getTime() >
+          14 * 24 * 60 * 60 * 1000,
+    ).length;
     return [
-      { label: "All candidates", value: candidates.length, icon: "solar:users-group-two-rounded-broken", color: "blue", filter: [] as ActiveFilter[] },
-      { label: "Awaiting AI", value: unscreenedIds.length, icon: "solar:cpu-bolt-broken", color: "amber", filter: [{ category: "attention", values: ["needs_screening"], label: "Attention: is Awaiting AI review", operator: "is" as const }] },
-      { label: "Interviews", value: candidates.filter((candidate) => candidate.stage === "interview").length, icon: "solar:calendar-broken", color: "blue", filter: [{ category: "stage", values: ["interview"], label: "Stage: is Interview", operator: "is" as const }] },
-      { label: "Stalled", value: stalled, icon: "solar:alarm-broken", color: "red", filter: [{ category: "attention", values: ["stalled"], label: "Attention: is Stalled 14+ days", operator: "is" as const }] },
-    ] as { label: string; value: number; icon: string; color: StatCardColor; filter: ActiveFilter[] }[];
+      {
+        label: "All candidates",
+        value: candidates.length,
+        icon: "solar:users-group-two-rounded-broken",
+        color: "blue",
+        filter: [] as ActiveFilter[],
+      },
+      {
+        label: "Awaiting AI",
+        value: unscreenedIds.length,
+        icon: "solar:cpu-bolt-broken",
+        color: "amber",
+        filter: [
+          {
+            category: "attention",
+            values: ["needs_screening"],
+            label: "Attention: is Awaiting AI review",
+            operator: "is" as const,
+          },
+        ],
+      },
+      {
+        label: "Interviews",
+        value: candidates.filter((candidate) => candidate.stage === "interview")
+          .length,
+        icon: "solar:calendar-broken",
+        color: "blue",
+        filter: [
+          {
+            category: "stage",
+            values: ["interview"],
+            label: "Stage: is Interview",
+            operator: "is" as const,
+          },
+        ],
+      },
+      {
+        label: "Stalled",
+        value: stalled,
+        icon: "solar:alarm-broken",
+        color: "red",
+        filter: [
+          {
+            category: "attention",
+            values: ["stalled"],
+            label: "Attention: is Stalled 14+ days",
+            operator: "is" as const,
+          },
+        ],
+      },
+    ] as {
+      label: string;
+      value: number;
+      icon: string;
+      color: StatCardColor;
+      filter: ActiveFilter[];
+    }[];
   }, [candidates, unscreenedIds, referenceTime]);
 
   const columns: Column<CandidateWithJob>[] = [
@@ -137,7 +343,9 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
       sortable: true,
       render: (row) => (
         <div>
-          <div className="font-medium text-[var(--text-hi)]">{row.full_name}</div>
+          <div className="font-medium text-[var(--text-hi)]">
+            {row.full_name}
+          </div>
           <div className="text-xs text-[var(--text-lo)]">{row.email}</div>
         </div>
       ),
@@ -146,13 +354,20 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
       header: "Role",
       accessor: "jobs.title",
       sortable: true,
-      render: (row) => <span className="text-[var(--text-lo)]">{row.jobs?.title ?? "—"}</span>,
+      render: (row) => (
+        <span className="text-[var(--text-lo)]">{row.jobs?.title ?? "—"}</span>
+      ),
     },
     {
       header: "Stage",
       accessor: "stage",
       sortable: true,
-      render: (row) => <div className="flex flex-col items-start gap-1.5"><StatusPill context="stage" value={row.stage} /><CandidateStageSelect candidateId={row.id} stage={row.stage} /></div>,
+      render: (row) => (
+        <div className="flex flex-col items-start gap-1.5">
+          <StatusPill context="stage" value={row.stage} />
+          <CandidateStageSelect candidateId={row.id} stage={row.stage} />
+        </div>
+      ),
     },
     {
       header: "AI Score",
@@ -186,9 +401,27 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
     {
       header: "AI status",
       accessor: "ai_score",
-      render: (row) => row.ai_score === null
-        ? <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${row.cv_text || row.cv_parsed ? "text-amber-600" : "text-[var(--text-lo)]"}`}><Icon icon={row.cv_text || row.cv_parsed ? "solar:clock-circle-broken" : "solar:file-remove-broken"} className="h-3.5 w-3.5" />{row.cv_text || row.cv_parsed ? "Queued for AI" : "CV needed"}</span>
-        : <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />Screened</span>,
+      render: (row) =>
+        row.ai_score === null ? (
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs font-medium ${row.cv_text || row.cv_parsed ? "text-amber-600" : "text-[var(--text-lo)]"}`}
+          >
+            <Icon
+              icon={
+                row.cv_text || row.cv_parsed
+                  ? "solar:clock-circle-broken"
+                  : "solar:file-remove-broken"
+              }
+              className="h-3.5 w-3.5"
+            />
+            {row.cv_text || row.cv_parsed ? "Queued for AI" : "CV needed"}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+            <Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />
+            Screened
+          </span>
+        ),
     },
     {
       header: "Shortlisted",
@@ -208,7 +441,11 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
       sortable: true,
       render: (row) => (
         <span className="text-xs text-[var(--text-lo)]">
-          {new Date(row.applied_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+          {new Date(row.applied_at).toLocaleDateString("en-KE", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}
         </span>
       ),
     },
@@ -227,7 +464,10 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
     {
       icon: "solar:letter-broken",
       label: "Send email",
-      onClick: (rows) => setBulkEmailRecipients(rows.map((row) => ({ id: row.id, full_name: row.full_name }))),
+      onClick: (rows) =>
+        setBulkEmailRecipients(
+          rows.map((row) => ({ id: row.id, full_name: row.full_name })),
+        ),
     },
     {
       icon: "solar:calendar-add-broken",
@@ -235,13 +475,19 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
       onClick: (rows) => {
         const eligible = rows.filter((row) => row.stage === "interview");
         if (!eligible.length) {
-          toast.error("Select candidates in the Interview stage to schedule interviews");
+          toast.error(
+            "Select candidates in the Interview stage to schedule interviews",
+          );
           return;
         }
         if (eligible.length < rows.length) {
-          toast(`${rows.length - eligible.length} candidate${rows.length - eligible.length === 1 ? " is" : "s are"} not in the Interview stage and will be skipped`);
+          toast(
+            `${rows.length - eligible.length} candidate${rows.length - eligible.length === 1 ? " is" : "s are"} not in the Interview stage and will be skipped`,
+          );
         }
-        setBulkInterviewRecipients(eligible.map((row) => ({ id: row.id, full_name: row.full_name })));
+        setBulkInterviewRecipients(
+          eligible.map((row) => ({ id: row.id, full_name: row.full_name })),
+        );
       },
     },
   ];
@@ -249,34 +495,56 @@ export default function CandidatesClientView({ candidates, unscreenedIds, initia
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map((stat) => <StatCard key={stat.label} title={stat.label} value={stat.value} icon={stat.icon} color={stat.color} compact onClick={() => setFilters(stat.filter)} />)}
+        {stats.map((stat) => (
+          <StatCard
+            key={stat.label}
+            title={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            compact
+            onClick={() => setFilters(stat.filter)}
+          />
+        ))}
       </div>
       {bulkEmailRecipients && (
-        <BulkEmailModal recipients={bulkEmailRecipients} open onClose={() => setBulkEmailRecipients(null)} />
+        <BulkEmailModal
+          recipients={bulkEmailRecipients}
+          open
+          onClose={() => setBulkEmailRecipients(null)}
+        />
       )}
       {bulkInterviewRecipients && (
-        <BulkInterviewModal recipients={bulkInterviewRecipients} interviewers={interviewers} currentUserId={currentUserId} onClose={() => setBulkInterviewRecipients(null)} />
+        <BulkInterviewModal
+          recipients={bulkInterviewRecipients}
+          interviewers={interviewers}
+          currentUserId={currentUserId}
+          onClose={() => setBulkInterviewRecipients(null)}
+        />
       )}
       <GenericTable
-      data={filtered}
-      columns={columns}
-      actions={actions}
-      bulkActions={bulkActions}
-      onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
-      emptyMessage="No candidates match your filters."
-      emptyIcon="solar:users-group-two-rounded-broken"
-      icon="solar:user-speak-broken"
-      unifiedSearchFilter={
-        <UnifiedSearchFilter
-          onSearchChange={setSearch}
-          onFilterChange={setFilters}
-          filterCategories={FILTER_CATEGORIES}
-          categoryOptions={categoryOptions}
-          initialFilters={filters}
-          searchPlaceholder="Search candidates by name, email or role…"
-        />
-      }
-      onRefresh={() => { setSearch(""); setFilters([]); }}
+        data={filtered}
+        columns={columns}
+        actions={actions}
+        bulkActions={bulkActions}
+        onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
+        emptyMessage="No candidates match your filters."
+        emptyIcon="solar:users-group-two-rounded-broken"
+        icon="solar:user-speak-broken"
+        unifiedSearchFilter={
+          <UnifiedSearchFilter
+            onSearchChange={setSearch}
+            onFilterChange={setFilters}
+            filterCategories={FILTER_CATEGORIES}
+            categoryOptions={categoryOptions}
+            initialFilters={filters}
+            searchPlaceholder="Search candidates by name, email or role…"
+          />
+        }
+        onRefresh={() => {
+          setSearch("");
+          setFilters([]);
+        }}
       />
     </div>
   );

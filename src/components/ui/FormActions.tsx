@@ -15,7 +15,10 @@ interface FormActionsProps {
   className?: string;
 }
 
-const LAYOUT_CLASSES: Record<NonNullable<FormActionsProps["layout"]>, string> = {
+const LAYOUT_CLASSES: Record<
+  NonNullable<FormActionsProps["layout"]>,
+  string
+> = {
   horizontal: "grid grid-cols-1 gap-3 sm:grid-cols-2",
   vertical: "flex flex-col gap-3",
   "page-footer": "flex flex-col gap-3 sm:flex-row sm:justify-end",
@@ -48,7 +51,12 @@ export default function FormActions({
 
   return (
     <div className={`${LAYOUT_CLASSES[layout]} ${className}`}>
-      <button type="button" onClick={onCancel} disabled={loading} className={cancelClasses}>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={loading}
+        className={cancelClasses}
+      >
         {cancelIcon && <Icon icon={cancelIcon} className="h-4 w-4" />}
         <span>{cancelText}</span>
       </button>
@@ -61,7 +69,10 @@ export default function FormActions({
         className={saveClasses}
       >
         {loading ? (
-          <Icon icon="solar:wheel-angle-broken" className="h-4 w-4 animate-spin" />
+          <Icon
+            icon="solar:wheel-angle-broken"
+            className="h-4 w-4 animate-spin"
+          />
         ) : (
           saveIcon && <Icon icon={saveIcon} className="h-4 w-4" />
         )}

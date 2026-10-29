@@ -9,7 +9,11 @@ export async function getAISettings() {
     .eq("key", "ai")
     .maybeSingle();
 
-  type Row = { ai_provider?: string; ai_model?: string; ai_api_key?: string } | null;
+  type Row = {
+    ai_provider?: string;
+    ai_model?: string;
+    ai_api_key?: string;
+  } | null;
   const row = data as Row;
   return {
     provider: row?.ai_provider ?? process.env.AI_PROVIDER ?? "groq",

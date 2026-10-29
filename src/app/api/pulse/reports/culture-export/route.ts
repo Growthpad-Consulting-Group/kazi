@@ -19,9 +19,14 @@ function toCsv(rows: Record<string, unknown>[]): string {
   const headers = Object.keys(rows[0]);
   const escape = (v: unknown): string => {
     const s = v === null || v === undefined ? "" : String(v);
-    return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+    return s.includes(",") || s.includes('"') || s.includes("\n")
+      ? `"${s.replace(/"/g, '""')}"`
+      : s;
   };
-  const lines = [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))];
+  const lines = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => escape(r[h])).join(",")),
+  ];
   return lines.join("\n");
 }
 
@@ -29,7 +34,8 @@ function toCsv(rows: Record<string, unknown>[]): string {
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!can(session.user.role, "view_analytics")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -39,8 +45,12 @@ export async function GET(req: Request) {
 
   const now = new Date();
   const nowISO = now.toISOString();
-  const ago30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const ago84 = new Date(now.getTime() - 84 * 24 * 60 * 60 * 1000).toISOString(); // 12 weeks
+  const ago30 = new Date(
+    now.getTime() - 30 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const ago84 = new Date(
+    now.getTime() - 84 * 24 * 60 * 60 * 1000,
+  ).toISOString(); // 12 weeks
 
   // ── 1. Campaign summary ────────────────────────────────────────────────────
   const { data: campaignRows } = await supabaseAdmin
@@ -61,24 +71,41 @@ export async function GET(req: Request) {
 
   // ── 2. Recognition summary ─────────────────────────────────────────────────
   const [recCountRes, topValuesRes, topGiversRes] = await Promise.all([
-    supabaseAdmin.from("feedback").select("id", { count: "exact", head: true }).eq("visibility", "public").gte("created_at", ago30),
+    supabaseAdmin
+      .from("feedback")
+      .select("id", { count: "exact", head: true })
+      .eq("visibility", "public")
+      .gte("created_at", ago30),
 
     // top values by usage
-    supabaseAdmin.from("feedback").select("value_id, recognition_values(name)").eq("visibility", "public").gte("created_at", ago30).not("value_id", "is", null),
+    supabaseAdmin
+      .from("feedback")
+      .select("value_id, recognition_values(name)")
+      .eq("visibility", "public")
+      .gte("created_at", ago30)
+      .not("value_id", "is", null),
 
     // top givers
-    supabaseAdmin.from("feedback").select("from_user_id, users:users!from_user_id(name)").eq("visibility", "public").gte("created_at", ago30),
+    supabaseAdmin
+      .from("feedback")
+      .select("from_user_id, users:users!from_user_id(name)")
+      .eq("visibility", "public")
+      .gte("created_at", ago30),
   ]);
 
   const recognitionTotal = recCountRes.count ?? 0;
 
   // Count by value
-  type ValueRow = { value_id: string | null; recognition_values: { name: string } | null };
+  type ValueRow = {
+    value_id: string | null;
+    recognition_values: { name: string } | null;
+  };
   const valueCounts: Record<string, { name: string; count: number }> = {};
   for (const row of (topValuesRes.data ?? []) as unknown as ValueRow[]) {
     if (!row.value_id) continue;
     const name = row.recognition_values?.name ?? row.value_id;
-    if (!valueCounts[row.value_id]) valueCounts[row.value_id] = { name, count: 0 };
+    if (!valueCounts[row.value_id])
+      valueCounts[row.value_id] = { name, count: 0 };
     valueCounts[row.value_id].count += 1;
   }
   const topValues = Object.values(valueCounts)
@@ -100,7 +127,11 @@ export async function GET(req: Request) {
     .slice(0, 5)
     .map((g) => ({ name: g.name, count: g.count }));
 
-  const recognitionSummary = { total_last_30d: recognitionTotal, top_values: topValues, top_givers: topGivers };
+  const recognitionSummary = {
+    total_last_30d: recognitionTotal,
+    top_values: topValues,
+    top_givers: topGivers,
+  };
 
   // ── 3. Voice Out themes ────────────────────────────────────────────────────
   const { data: voiceRows } = await supabaseAdmin
@@ -112,17 +143,31 @@ export async function GET(req: Request) {
   const voiceThemes: Record<string, Record<string, number>> = {};
   for (const row of (voiceRows ?? []) as VoiceRow[]) {
     if (!voiceThemes[row.topic]) voiceThemes[row.topic] = {};
-    voiceThemes[row.topic][row.status] = (voiceThemes[row.topic][row.status] ?? 0) + 1;
+    voiceThemes[row.topic][row.status] =
+      (voiceThemes[row.topic][row.status] ?? 0) + 1;
   }
-  const voiceOutThemes = Object.entries(voiceThemes).map(([topic, statuses]) => ({ topic, ...statuses }));
+  const voiceOutThemes = Object.entries(voiceThemes).map(
+    ([topic, statuses]) => ({ topic, ...statuses }),
+  );
 
   // ── 4. Survey participation ────────────────────────────────────────────────
   const [surveyRes, responseRes] = await Promise.all([
-    supabaseAdmin.from("surveys").select("id, title, status, opens_at, closes_at"),
-    supabaseAdmin.from("survey_responses").select("survey_id", { count: "exact" }).select("survey_id"),
+    supabaseAdmin
+      .from("surveys")
+      .select("id, title, status, opens_at, closes_at"),
+    supabaseAdmin
+      .from("survey_responses")
+      .select("survey_id", { count: "exact" })
+      .select("survey_id"),
   ]);
 
-  type SurveyRow = { id: string; title: string; status: string; opens_at: string | null; closes_at: string | null };
+  type SurveyRow = {
+    id: string;
+    title: string;
+    status: string;
+    opens_at: string | null;
+    closes_at: string | null;
+  };
   const responseCounts: Record<string, number> = {};
   for (const r of (responseRes.data ?? []) as { survey_id: string }[]) {
     responseCounts[r.survey_id] = (responseCounts[r.survey_id] ?? 0) + 1;
@@ -158,7 +203,10 @@ export async function GET(req: Request) {
   const engagementTrend: { week: string; recognition_count: number }[] = [];
   for (let i = 11; i >= 0; i--) {
     const weekKey = isoWeekStart(i);
-    engagementTrend.push({ week: weekKey, recognition_count: weekBuckets[weekKey] ?? 0 });
+    engagementTrend.push({
+      week: weekKey,
+      recognition_count: weekBuckets[weekKey] ?? 0,
+    });
   }
 
   // ── Assemble ───────────────────────────────────────────────────────────────

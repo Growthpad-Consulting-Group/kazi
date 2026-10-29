@@ -5,7 +5,10 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { createCalendarEvent } from "@/lib/google-calendar";
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const session = await getServerSession(authOptions);
   if (!session || !can(session.user.role, "manage_hiring")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -15,11 +18,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { scheduledAt, durationMinutes, interviewerIds } = await req.json();
   const start = new Date(scheduledAt);
   const duration = Number(durationMinutes);
-  if (Number.isNaN(start.getTime()) || !Number.isInteger(duration) || duration <= 0) {
-    return NextResponse.json({ error: "A valid date, time and duration are required" }, { status: 400 });
+  if (
+    Number.isNaN(start.getTime()) ||
+    !Number.isInteger(duration) ||
+    duration <= 0
+  ) {
+    return NextResponse.json(
+      { error: "A valid date, time and duration are required" },
+      { status: 400 },
+    );
   }
-  const interviewers = Array.isArray(interviewerIds) ? interviewerIds.filter((v): v is string => typeof v === "string") : [];
-  if (!interviewers.includes(session.user.id)) interviewers.unshift(session.user.id);
+  const interviewers = Array.isArray(interviewerIds)
+    ? interviewerIds.filter((v): v is string => typeof v === "string")
+    : [];
+  if (!interviewers.includes(session.user.id))
+    interviewers.unshift(session.user.id);
 
   const { data: candidate } = await supabaseAdmin
     .from("candidates")
@@ -27,11 +40,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .eq("id", id)
     .maybeSingle();
   const row = candidate as unknown as {
-    id: string; full_name: string; email: string; stage: string; jobs: { title: string } | null;
+    id: string;
+    full_name: string;
+    email: string;
+    stage: string;
+    jobs: { title: string } | null;
   } | null;
-  if (!row) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+  if (!row)
+    return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
   if (row.stage !== "interview") {
-    return NextResponse.json({ error: "Interviews can only be booked when the candidate is in the Interview stage" }, { status: 409 });
+    return NextResponse.json(
+      {
+        error:
+          "Interviews can only be booked when the candidate is in the Interview stage",
+      },
+      { status: 409 },
+    );
   }
 
   const { data: interviewerRows } = await supabaseAdmin
@@ -39,8 +63,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .select("id, email")
     .in("id", interviewers)
     .eq("is_active", true);
-  const interviewerEmails = ((interviewerRows ?? []) as { id: string; email: string }[]).map((u) => u.email);
-  const attendeeEmails = [...new Set([row.email, ...interviewerEmails].filter(Boolean))];
+  const interviewerEmails = (
+    (interviewerRows ?? []) as { id: string; email: string }[]
+  ).map((u) => u.email);
+  const attendeeEmails = [
+    ...new Set([row.email, ...interviewerEmails].filter(Boolean)),
+  ];
   const calendarEvent = await createCalendarEvent(session.user.id, {
     title: `Interview: ${row.full_name}${row.jobs?.title ? ` (${row.jobs.title})` : ""}`,
     description: "Scheduled via Kazi",
@@ -50,8 +78,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
   if (!calendarEvent?.eventId) {
     return NextResponse.json(
-      { error: "Could not create the Google Calendar event. Connect Google Calendar in Settings > Integrations and try again." },
-      { status: 422 }
+      {
+        error:
+          "Could not create the Google Calendar event. Connect Google Calendar in Settings > Integrations and try again.",
+      },
+      { status: 422 },
     );
   }
 
@@ -67,7 +98,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     })
     .select("id, scheduled_at, duration_minutes")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ interview: data }, { status: 201 });
 }

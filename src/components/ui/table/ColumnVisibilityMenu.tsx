@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from "@hello-pangea/dnd";
 import type { Column } from "../GenericTable";
 
 interface Props<T> {
@@ -18,14 +23,20 @@ interface Props<T> {
  * Popover with a draggable row per column: a checkbox to show or hide it, and a handle to reorder it.
  * Locked columns stay in their position and are left out of the list.
  */
-export default function ColumnVisibilityMenu<T>({ columns, hidden, onToggle, onReorder }: Props<T>) {
+export default function ColumnVisibilityMenu<T>({
+  columns,
+  hidden,
+  onToggle,
+  onReorder,
+}: Props<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(event.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -44,7 +55,9 @@ export default function ColumnVisibilityMenu<T>({ columns, hidden, onToggle, onR
     movable.splice(destination.index, 0, moved);
 
     let next = 0;
-    const fullOrder = columns.map((col) => (col.locked ? String(col.accessor) : movable[next++]));
+    const fullOrder = columns.map((col) =>
+      col.locked ? String(col.accessor) : movable[next++],
+    );
     onReorder(fullOrder);
   };
 
@@ -64,13 +77,21 @@ export default function ColumnVisibilityMenu<T>({ columns, hidden, onToggle, onR
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="border-b border-[var(--border)] px-3 py-2.5">
-            <p className="text-xs font-semibold text-[var(--text-hi)]">Show and order columns</p>
-            <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Drag to reorder • {shown} of {columns.length} shown</p>
+            <p className="text-xs font-semibold text-[var(--text-hi)]">
+              Show and order columns
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
+              Drag to reorder • {shown} of {columns.length} shown
+            </p>
           </div>
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="table-columns">
               {(provided) => (
-                <ul {...provided.droppableProps} ref={provided.innerRef} className="max-h-80 space-y-0.5 overflow-y-auto p-1.5">
+                <ul
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="max-h-80 space-y-0.5 overflow-y-auto p-1.5"
+                >
                   {toggleable.map((col, index) => {
                     const id = String(col.accessor);
                     return (
@@ -86,7 +107,10 @@ export default function ColumnVisibilityMenu<T>({ columns, hidden, onToggle, onR
                               aria-label={`Drag to reorder ${col.header}`}
                               className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-[var(--text-lo)] active:cursor-grabbing"
                             >
-                              <Icon icon="solar:menu-dots-bold" className="h-4 w-4" />
+                              <Icon
+                                icon="solar:menu-dots-bold"
+                                className="h-4 w-4"
+                              />
                             </span>
                             <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
                               <input

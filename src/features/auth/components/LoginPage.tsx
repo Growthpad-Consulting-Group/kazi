@@ -37,24 +37,35 @@ export default function LoginPage() {
     let recaptchaToken: string;
     try {
       const token = await recaptchaRef.current?.executeAsync();
-      if (!token) throw new Error("CAPTCHA verification failed. Please try again.");
+      if (!token)
+        throw new Error("CAPTCHA verification failed. Please try again.");
       recaptchaToken = token;
       recaptchaRef.current?.reset();
     } catch {
       setLoading(false);
-      toast.error("CAPTCHA verification failed. Please try again.", { icon: "⚠️" });
+      toast.error("CAPTCHA verification failed. Please try again.", {
+        icon: "⚠️",
+      });
       return;
     }
 
     const loadingToast = toast.loading("Signing in…");
     try {
-      const res = await signIn("credentials", { email, password, recaptchaToken, redirect: false });
+      const res = await signIn("credentials", {
+        email,
+        password,
+        recaptchaToken,
+        redirect: false,
+      });
       if (res?.error) throw new Error("Invalid email or password.");
       if (rememberMe) localStorage.setItem("kazi_remembered_email", email);
       else localStorage.removeItem("kazi_remembered_email");
       const session = await getSession();
       const firstName = session?.user?.name?.split(" ")[0];
-      toast.success(firstName ? `Welcome back, ${firstName}!` : "Welcome back!", { id: loadingToast, icon: "✅" });
+      toast.success(
+        firstName ? `Welcome back, ${firstName}!` : "Welcome back!",
+        { id: loadingToast, icon: "✅" },
+      );
       const role = session?.user?.role;
       router.push(role === "employee" ? "/pulse" : "/dashboard");
     } catch (err: unknown) {
@@ -69,20 +80,38 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#f8f6f2]">
       {/* ── Left — sign-in ──────────────────────────────────────────────── */}
       <div className="w-full lg:w-1/2 flex flex-col px-6 sm:px-12 lg:px-20 py-10">
-        <Image src="/kazi-logo.svg" alt="Kazi" width={460} height={68} priority className="mb-8 h-auto w-full max-w-[460px]" />
+        <Image
+          src="/kazi-logo.svg"
+          alt="Kazi"
+          width={460}
+          height={68}
+          priority
+          className="mb-8 h-auto w-full max-w-[460px]"
+        />
 
         <div className="flex flex-1 items-center">
           <div className="w-full max-w-md">
             <div className="flex items-center gap-3">
               <span className="h-1 w-8 bg-brand-500" aria-hidden />
-              <p className="text-[11px] font-semibold tracking-[0.15em] text-brand-500">YOUR GROWTHPAD WORKSPACE</p>
+              <p className="text-[11px] font-semibold tracking-[0.15em] text-brand-500">
+                YOUR GROWTHPAD WORKSPACE
+              </p>
             </div>
-            <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight text-[#231812]">Welcome back.</h1>
-            <p className="mt-3 text-gray-500">Sign in to continue to your Kazi workspace.</p>
+            <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight text-[#231812]">
+              Welcome back.
+            </h1>
+            <p className="mt-3 text-gray-500">
+              Sign in to continue to your Kazi workspace.
+            </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <div>
-                <label htmlFor="work-email" className="block text-sm font-medium text-[#231812] mb-1.5">Work email</label>
+                <label
+                  htmlFor="work-email"
+                  className="block text-sm font-medium text-[#231812] mb-1.5"
+                >
+                  Work email
+                </label>
                 <input
                   id="work-email"
                   type="email"
@@ -96,7 +125,12 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-[#231812] mb-1.5">Password</label>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-[#231812] mb-1.5"
+                >
+                  Password
+                </label>
                 <div className="relative">
                   <input
                     id="password"
@@ -111,10 +145,19 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-500 transition-colors"
                   >
-                    <Icon icon={showPassword ? "solar:eye-closed-broken" : "solar:eye-broken"} className="h-5 w-5" />
+                    <Icon
+                      icon={
+                        showPassword
+                          ? "solar:eye-closed-broken"
+                          : "solar:eye-broken"
+                      }
+                      className="h-5 w-5"
+                    />
                   </button>
                 </div>
               </div>
@@ -151,22 +194,38 @@ export default function LoginPage() {
                 className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl shadow-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500/50"
               >
                 {loading ? (
-                  <><Icon icon="solar:wheel-angle-broken" className="h-5 w-5 animate-spin" />Signing in…</>
+                  <>
+                    <Icon
+                      icon="solar:wheel-angle-broken"
+                      className="h-5 w-5 animate-spin"
+                    />
+                    Signing in…
+                  </>
                 ) : (
-                  <>Sign in to Kazi<Icon icon="solar:arrow-right-broken" className="h-5 w-5" /></>
+                  <>
+                    Sign in to Kazi
+                    <Icon icon="solar:arrow-right-broken" className="h-5 w-5" />
+                  </>
                 )}
               </button>
             </form>
 
             <div className="mt-6 border-t border-gray-200 pt-5 flex items-center justify-between gap-4 text-sm text-gray-500">
               <p>Access is managed by Growthpad.</p>
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-brand-500 hover:text-brand-600 text-md transition-colors">Contact administrator</a>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="font-medium text-brand-500 hover:text-brand-600 text-md transition-colors"
+              >
+                Contact administrator
+              </a>
             </div>
           </div>
         </div>
 
         <div className="max-w-md w-full">
-          <p className="mt-8 text-xs text-gray-400">© {new Date().getFullYear()} Growthpad Consulting Group</p>
+          <p className="mt-8 text-xs text-gray-400">
+            © {new Date().getFullYear()} Growthpad Consulting Group
+          </p>
         </div>
       </div>
 
@@ -194,13 +253,45 @@ export default function LoginPage() {
             Try these quick checks before contacting your administrator.
           </p>
           <ol className="space-y-3 text-sm text-[var(--text-hi)]">
-            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">1</span><span>Use your Growthpad work email address.</span></li>
-            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">2</span><span>Check that Caps Lock is off and try your password again.</span></li>
-            <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">3</span><span>If you still cannot sign in, ask your administrator to confirm your access or reset your password.</span></li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">
+                1
+              </span>
+              <span>Use your Growthpad work email address.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">
+                2
+              </span>
+              <span>
+                Check that Caps Lock is off and try your password again.
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-xs font-bold text-brand-500">
+                3
+              </span>
+              <span>
+                If you still cannot sign in, ask your administrator to confirm
+                your access or reset your password.
+              </span>
+            </li>
           </ol>
           <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--border)] pt-4">
-            <button type="button" onClick={() => setSignInHelpOpen(false)} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]">Close</button>
-            <a href={`mailto:${SUPPORT_EMAIL}?subject=Kazi%20sign-in%20help`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600"><Icon icon="solar:letter-broken" className="h-3.5 w-3.5" />Contact administrator</a>
+            <button
+              type="button"
+              onClick={() => setSignInHelpOpen(false)}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]"
+            >
+              Close
+            </button>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=Kazi%20sign-in%20help`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600"
+            >
+              <Icon icon="solar:letter-broken" className="h-3.5 w-3.5" />
+              Contact administrator
+            </a>
           </div>
         </div>
       </SimpleModal>

@@ -15,9 +15,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { candidateIds } = await req.json() as { candidateIds: string[] };
+  const { candidateIds } = (await req.json()) as { candidateIds: string[] };
   if (!Array.isArray(candidateIds) || candidateIds.length === 0) {
-    return NextResponse.json({ error: "candidateIds required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "candidateIds required" },
+      { status: 400 },
+    );
   }
   if (candidateIds.length > 100) {
     return NextResponse.json({ error: "Max 100 per batch" }, { status: 400 });
@@ -30,17 +33,23 @@ export async function POST(req: Request) {
     .in("id", candidateIds);
 
   const eligible = (data ?? []).filter(
-    (c) => c.ai_score === null && (c.cv_text || c.cv_parsed)
+    (c) => c.ai_score === null && (c.cv_text || c.cv_parsed),
   );
 
   if (eligible.length === 0) {
-    return NextResponse.json({ queued: 0, message: "No eligible candidates (already screened or no CV)" });
+    return NextResponse.json({
+      queued: 0,
+      message: "No eligible candidates (already screened or no CV)",
+    });
   }
 
   // RPUSH so worker processes in FIFO order
   await redis.rpush(SCREENING_QUEUE, ...eligible.map((c) => c.id));
 
-  return NextResponse.json({ queued: eligible.length, total: candidateIds.length });
+  return NextResponse.json({
+    queued: eligible.length,
+    total: candidateIds.length,
+  });
 }
 
 export async function GET(req: Request) {

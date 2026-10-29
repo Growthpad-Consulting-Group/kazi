@@ -61,13 +61,19 @@ function IntegrationCard({
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-semibold text-sm text-[var(--text-hi)]">{name}</p>
           {status === "connected" && (
-            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">Connected</span>
+            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">
+              Connected
+            </span>
           )}
           {status === "system" && (
-            <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600">System managed</span>
+            <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600">
+              System managed
+            </span>
           )}
           {status === "disconnected" && (
-            <span className="rounded-full bg-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-lo)]">Not connected</span>
+            <span className="rounded-full bg-[var(--border)] px-2 py-0.5 text-xs font-semibold text-[var(--text-lo)]">
+              Not connected
+            </span>
           )}
         </div>
         <p className="mt-1 text-xs text-[var(--text-lo)]">{description}</p>
@@ -82,7 +88,15 @@ function IntegrationCard({
           <button
             type="button"
             disabled={pending}
-            onClick={() => startTransition(async () => { try { await onDisconnect(); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } })}
+            onClick={() =>
+              startTransition(async () => {
+                try {
+                  await onDisconnect();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Failed");
+                }
+              })
+            }
             className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/5 disabled:opacity-50"
           >
             {pending ? "…" : "Disconnect"}
@@ -92,7 +106,15 @@ function IntegrationCard({
           <button
             type="button"
             disabled={pending}
-            onClick={() => startTransition(async () => { try { await onConnect(); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } })}
+            onClick={() =>
+              startTransition(async () => {
+                try {
+                  await onConnect();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Failed");
+                }
+              })
+            }
             className="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
           >
             {pending ? "…" : "Connect"}
@@ -103,12 +125,20 @@ function IntegrationCard({
   );
 }
 
-export default function IntegrationsClient({ asana, googleWorkspaceConnected, slackStatus, googleCalendarStatus, canManageOrg }: Props) {
+export default function IntegrationsClient({
+  asana,
+  googleWorkspaceConnected,
+  slackStatus,
+  googleCalendarStatus,
+  canManageOrg,
+}: Props) {
   const [asanaConnected, setAsanaConnected] = useState(asana.connected);
 
   // Slack state
   const [slackConnected, setSlackConnected] = useState(slackStatus.connected);
-  const [slackChannel, setSlackChannel] = useState(slackStatus.channelName ?? "");
+  const [slackChannel, setSlackChannel] = useState(
+    slackStatus.channelName ?? "",
+  );
   const [showSlackModal, setShowSlackModal] = useState(false);
   const [slackWebhookInput, setSlackWebhookInput] = useState("");
   const [slackChannelInput, setSlackChannelInput] = useState("");
@@ -125,7 +155,9 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
       setAsanaConnected(true);
       toast.success("Asana connected successfully");
     } else if (asanaParam === "error") {
-      toast.error("Asana connection failed. Check that Asana OAuth credentials are configured.");
+      toast.error(
+        "Asana connection failed. Check that Asana OAuth credentials are configured.",
+      );
     }
     if (asanaParam) {
       const url = new URL(window.location.href);
@@ -138,7 +170,9 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
       setGoogleCalendar((prev) => ({ ...prev, connected: true }));
       toast.success("Google Calendar connected successfully");
     } else if (gcalParam === "error") {
-      toast.error("Google Calendar connection failed. Check that OAuth credentials are configured.");
+      toast.error(
+        "Google Calendar connection failed. Check that OAuth credentials are configured.",
+      );
     }
     if (gcalParam) {
       const url = new URL(window.location.href);
@@ -149,13 +183,16 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
 
   function connectAsana() {
     // Return here after OAuth so user doesn't land in check-ins
-    window.location.href = "/api/integrations/asana/connect?returnTo=/settings/integrations";
+    window.location.href =
+      "/api/integrations/asana/connect?returnTo=/settings/integrations";
   }
 
   async function disconnectAsana() {
-    const res = await fetch("/api/integrations/asana/disconnect", { method: "DELETE" });
+    const res = await fetch("/api/integrations/asana/disconnect", {
+      method: "DELETE",
+    });
     if (!res.ok) {
-      const body = await res.json() as { error?: string };
+      const body = (await res.json()) as { error?: string };
       throw new Error(body.error ?? "Could not disconnect");
     }
     setAsanaConnected(false);
@@ -167,12 +204,18 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
   }
 
   async function disconnectGoogleCalendar() {
-    const res = await fetch("/api/integrations/google-calendar/disconnect", { method: "DELETE" });
+    const res = await fetch("/api/integrations/google-calendar/disconnect", {
+      method: "DELETE",
+    });
     if (!res.ok) {
-      const body = await res.json() as { error?: string };
+      const body = (await res.json()) as { error?: string };
       throw new Error(body.error ?? "Could not disconnect");
     }
-    setGoogleCalendar({ connected: false, calendarId: null, calendarName: null });
+    setGoogleCalendar({
+      connected: false,
+      calendarId: null,
+      calendarName: null,
+    });
     toast.success("Google Calendar disconnected");
   }
 
@@ -201,7 +244,7 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
             channel_name: slackChannelInput.trim(),
           }),
         });
-        const data = await res.json() as { ok?: boolean; error?: string };
+        const data = (await res.json()) as { ok?: boolean; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Could not connect Slack");
         setSlackConnected(true);
         setSlackChannel(slackChannelInput.trim());
@@ -214,9 +257,11 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
   }
 
   async function disconnectSlack() {
-    const res = await fetch("/api/integrations/slack/disconnect", { method: "DELETE" });
+    const res = await fetch("/api/integrations/slack/disconnect", {
+      method: "DELETE",
+    });
     if (!res.ok) {
-      const body = await res.json() as { error?: string };
+      const body = (await res.json()) as { error?: string };
       throw new Error(body.error ?? "Could not disconnect Slack");
     }
     setSlackConnected(false);
@@ -240,7 +285,9 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
             meta={
               slackConnected && slackChannel
                 ? `Slack channel: #${slackChannel}`
-                : canManageOrg ? undefined : "Set up by an administrator"
+                : canManageOrg
+                  ? undefined
+                  : "Set up by an administrator"
             }
             onConnect={canManageOrg ? openSlackModal : undefined}
             onDisconnect={canManageOrg ? disconnectSlack : undefined}
@@ -277,7 +324,11 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
             name="Gmail (service account)"
             description="Kazi Signatures uses a Google Workspace service account to deploy email signatures to managed mailboxes. Configured at the infrastructure level."
             status={googleWorkspaceConnected ? "system" : "disconnected"}
-            meta={googleWorkspaceConnected ? "Service account active — managed via Kazi infrastructure settings" : undefined}
+            meta={
+              googleWorkspaceConnected
+                ? "Service account active — managed via Kazi infrastructure settings"
+                : undefined
+            }
           />
         </div>
       </SettingsSection>
@@ -293,7 +344,11 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
             name="Google Calendar"
             description="Sync 1-on-1 meetings to your Google Calendar. Events are created automatically when meetings are scheduled."
             status={googleCalendar.connected ? "connected" : "disconnected"}
-            meta={googleCalendar.connected ? `Calendar: ${googleCalendar.calendarName ?? googleCalendar.calendarId ?? "primary"}` : undefined}
+            meta={
+              googleCalendar.connected
+                ? `Calendar: ${googleCalendar.calendarName ?? googleCalendar.calendarId ?? "primary"}`
+                : undefined
+            }
             onConnect={connectGoogleCalendar}
             onDisconnect={disconnectGoogleCalendar}
           />
@@ -309,7 +364,9 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
       >
         <div className="space-y-4">
           <p className="text-xs text-[var(--text-lo)]">
-            Create an incoming webhook in your Slack workspace and paste the URL below. Kazi will use it to post milestone and recognition notifications.
+            Create an incoming webhook in your Slack workspace and paste the URL
+            below. Kazi will use it to post milestone and recognition
+            notifications.
           </p>
 
           <div className="space-y-1.5">
@@ -336,11 +393,17 @@ export default function IntegrationsClient({ asana, googleWorkspaceConnected, sl
               onChange={(e) => setSlackChannelInput(e.target.value)}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text-hi)] placeholder:text-[var(--text-lo)] focus:outline-none focus:ring-2 focus:ring-brand-500/50"
             />
-            <p className="text-xs text-[var(--text-lo)]">The channel where notifications will be posted (without #).</p>
+            <p className="text-xs text-[var(--text-lo)]">
+              The channel where notifications will be posted (without #).
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="secondary" size="sm" onClick={() => setShowSlackModal(false)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowSlackModal(false)}
+            >
               Cancel
             </Button>
             <Button

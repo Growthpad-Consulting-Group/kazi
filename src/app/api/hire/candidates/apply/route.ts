@@ -7,28 +7,69 @@ import { checkRateLimit, rateLimitHeaders, requestIp } from "@/lib/rate-limit";
 
 // Public endpoint: creates the application without a CV. Prefer apply-with-cv, which reads the CV first.
 export async function POST(req: Request) {
-  const limit = await checkRateLimit({ scope: "application", identifier: requestIp(req.headers), limit: 8, windowSeconds: 60 * 60 });
-  if (!limit.allowed) return NextResponse.json({ error: "Too many application attempts. Please try again later." }, { status: 429, headers: rateLimitHeaders(limit) });
+  const limit = await checkRateLimit({
+    scope: "application",
+    identifier: requestIp(req.headers),
+    limit: 8,
+    windowSeconds: 60 * 60,
+  });
+  if (!limit.allowed)
+    return NextResponse.json(
+      { error: "Too many application attempts. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(limit) },
+    );
   const body = await req.json();
-  const { job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, source, consented } = body;
+  const {
+    job_id,
+    full_name,
+    email,
+    phone,
+    location,
+    linkedin_url,
+    portfolio_url,
+    cover_message,
+    source,
+    consented,
+  } = body;
 
   if (!job_id || !full_name || !email || !consented) {
-    return NextResponse.json({ error: "job_id, full_name, email and consent are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "job_id, full_name, email and consent are required" },
+      { status: 400 },
+    );
   }
 
   try {
     const job = await assertCanApply(job_id, email);
     const candidateId = await insertApplicant(
-      { job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, source },
+      {
+        job_id,
+        full_name,
+        email,
+        phone,
+        location,
+        linkedin_url,
+        portfolio_url,
+        cover_message,
+        source,
+      },
       job,
     );
-    await sendApplicationConfirmation({ email, fullName: full_name, jobTitle: job.title });
+    await sendApplicationConfirmation({
+      email,
+      fullName: full_name,
+      jobTitle: job.title,
+    });
     return NextResponse.json({
       candidateId,
       uploadToken: createCandidateUploadToken(candidateId, job_id),
     });
   } catch (error) {
-    if (error instanceof ApplicationError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof ApplicationError)
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     throw error;
   }
 }

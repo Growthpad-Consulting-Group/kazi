@@ -45,8 +45,19 @@ export type RecentCandidate = {
 export interface PersonalDashboardData {
   recognitionsGiven: number;
   recognitionsReceived: number;
-  goals: { onTrack: number; atRisk: number; completed: number; notStarted: number; total: number };
-  upcomingOneOnOnes: { id: string; scheduled_at: string; with: string; withAvatar: string | null }[];
+  goals: {
+    onTrack: number;
+    atRisk: number;
+    completed: number;
+    notStarted: number;
+    total: number;
+  };
+  upcomingOneOnOnes: {
+    id: string;
+    scheduled_at: string;
+    with: string;
+    withAvatar: string | null;
+  }[];
   pendingCheckin: boolean;
   points: number;
 }
@@ -56,20 +67,66 @@ export interface DashboardData {
   stats: DashboardStats;
   pipeline: PipelineStage[];
   trend: { day: string; count: number }[];
-  rolePipeline: { role: string; applied: number; screened: number; interview: number; offer: number }[];
+  rolePipeline: {
+    role: string;
+    applied: number;
+    screened: number;
+    interview: number;
+    offer: number;
+  }[];
   stageAging: { stage: string; count: number; averageDays: number }[];
   teamPulseTrend: { week: string; checkins: number; mood: number | null }[];
   recent: RecentCandidate[];
   personal?: PersonalDashboardData;
   operations: {
     interviewQueue: RecentCandidate[];
-    upcomingOneOnOnes: { id: string; scheduled_at: string; manager: string; managerAvatar: string | null; report: string; reportAvatar: string | null }[];
-    actionItems: { label: string; count: number; href: string; tone: "amber" | "red" | "blue" }[];
-    health: { averageDaysToHire: number | null; stalledCandidates: number; offerPending: number; offerAccepted: number; offerDeclined: number };
-    pulse: { pendingCheckins: number; lowMood: number; blockers: number; atRiskGoals: number };
-    scheduledJobs: { id: string; title: string; published_at: string | null; closes_at: string | null; kind: "publishes" | "closes" }[];
-    goals: { onTrack: number; atRisk: number; completed: number; notStarted: number };
-    newHires: { id: string; name: string; job_title: string | null; department: string | null; start_date: string }[];
+    upcomingOneOnOnes: {
+      id: string;
+      scheduled_at: string;
+      manager: string;
+      managerAvatar: string | null;
+      report: string;
+      reportAvatar: string | null;
+    }[];
+    actionItems: {
+      label: string;
+      count: number;
+      href: string;
+      tone: "amber" | "red" | "blue";
+    }[];
+    health: {
+      averageDaysToHire: number | null;
+      stalledCandidates: number;
+      offerPending: number;
+      offerAccepted: number;
+      offerDeclined: number;
+    };
+    pulse: {
+      pendingCheckins: number;
+      lowMood: number;
+      blockers: number;
+      atRiskGoals: number;
+    };
+    scheduledJobs: {
+      id: string;
+      title: string;
+      published_at: string | null;
+      closes_at: string | null;
+      kind: "publishes" | "closes";
+    }[];
+    goals: {
+      onTrack: number;
+      atRisk: number;
+      completed: number;
+      notStarted: number;
+    };
+    newHires: {
+      id: string;
+      name: string;
+      job_title: string | null;
+      department: string | null;
+      start_date: string;
+    }[];
     activeSurveys: { id: string; title: string; response_count: number }[];
   };
 }
@@ -82,7 +139,14 @@ export interface DashboardContext {
   viewAllScreens?: boolean;
 }
 
-const STAGES = ["applied", "screened", "interview", "offer", "hired", "rejected"] as const;
+const STAGES = [
+  "applied",
+  "screened",
+  "interview",
+  "offer",
+  "hired",
+  "rejected",
+] as const;
 
 /** A stable, sortable identifier for a range, so the cache key matches. */
 function rangeKey(range: DashboardRange): string {
@@ -98,13 +162,22 @@ const EMPTY_STATS: DashboardStats = {
   hired: 0,
 };
 
-const EMPTY_PIPELINE: PipelineStage[] = STAGES.map((stage) => ({ stage, count: 0 }));
+const EMPTY_PIPELINE: PipelineStage[] = STAGES.map((stage) => ({
+  stage,
+  count: 0,
+}));
 
 const EMPTY_OPERATIONS: DashboardData["operations"] = {
   interviewQueue: [],
   upcomingOneOnOnes: [],
   actionItems: [],
-  health: { averageDaysToHire: null, stalledCandidates: 0, offerPending: 0, offerAccepted: 0, offerDeclined: 0 },
+  health: {
+    averageDaysToHire: null,
+    stalledCandidates: 0,
+    offerPending: 0,
+    offerAccepted: 0,
+    offerDeclined: 0,
+  },
   pulse: { pendingCheckins: 0, lowMood: 0, blockers: 0, atRiskGoals: 0 },
   scheduledJobs: [],
   goals: { onTrack: 0, atRisk: 0, completed: 0, notStarted: 0 },
@@ -117,29 +190,39 @@ const EMPTY_OPERATIONS: DashboardData["operations"] = {
  */
 // Profile photo first, then the signature photo, like the rest of the app.
 function avatarFor(person: unknown, signature: Map<string, string>) {
-  const { id, avatar_url } = (person ?? {}) as { id?: string; avatar_url?: string | null };
-  return avatar_url ?? (id ? signature.get(id) ?? null : null);
+  const { id, avatar_url } = (person ?? {}) as {
+    id?: string;
+    avatar_url?: string | null;
+  };
+  return avatar_url ?? (id ? (signature.get(id) ?? null) : null);
 }
 
 async function signaturePhotos(): Promise<Map<string, string>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped signature table
-  const { data } = await (supabaseAdmin as any).from("signature_staff_profiles").select("user_id, photo_url").not("photo_url", "is", null);
-  return new Map(((data ?? []) as { user_id: string | null; photo_url: string | null }[]).filter((p) => p.user_id && p.photo_url).map((p) => [p.user_id as string, p.photo_url as string]));
+  const { data } = await (supabaseAdmin as any)
+    .from("signature_staff_profiles")
+    .select("user_id, photo_url")
+    .not("photo_url", "is", null);
+  return new Map(
+    ((data ?? []) as { user_id: string | null; photo_url: string | null }[])
+      .filter((p) => p.user_id && p.photo_url)
+      .map((p) => [p.user_id as string, p.photo_url as string]),
+  );
 }
 
 export async function getDashboardData(
   range: DashboardRange,
-  ctx?: DashboardContext
+  ctx?: DashboardContext,
 ): Promise<DashboardData> {
   // Determine view tier
   const role = ctx?.role;
   const view: "org" | "team" | "personal" = !role
     ? "org"
     : can(role, "manage_system") || ctx?.viewAllScreens
-    ? "org"
-    : can(role, "manage_one_on_ones")
-    ? "team"
-    : "personal";
+      ? "org"
+      : can(role, "manage_one_on_ones")
+        ? "team"
+        : "personal";
 
   const cacheUserSuffix = ctx ? `${view}_${ctx.userId}` : "org_anon";
   // Bump when the dashboard payload shape or navigation targets change so
@@ -156,7 +239,10 @@ export async function getDashboardData(
 
 // ── Personal view ─────────────────────────────────────────────────────────────
 
-async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): Promise<DashboardData> {
+async function buildPersonalData(
+  range: DashboardRange,
+  ctx: DashboardContext,
+): Promise<DashboardData> {
   const now = new Date();
   const weekStart = new Date();
   weekStart.setHours(0, 0, 0, 0);
@@ -165,7 +251,14 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
 
   // Start the photo lookup now so it runs alongside the other queries, not after them.
   const signaturePromise = signaturePhotos();
-  const [givenRes, receivedRes, goalsRes, oneOnOnesRes, checkinRes, employeesRes] = await Promise.all([
+  const [
+    givenRes,
+    receivedRes,
+    goalsRes,
+    oneOnOnesRes,
+    checkinRes,
+    employeesRes,
+  ] = await Promise.all([
     supabaseAdmin
       .from("feedback")
       .select("id", { count: "exact", head: true })
@@ -174,13 +267,12 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
       .from("feedback_recipients")
       .select("feedback_id", { count: "exact", head: true })
       .eq("user_id", ctx.userId),
-    supabaseAdmin
-      .from("goals")
-      .select("id, status")
-      .eq("owner_id", ctx.userId),
+    supabaseAdmin.from("goals").select("id, status").eq("owner_id", ctx.userId),
     supabaseAdmin
       .from("one_on_ones")
-      .select("id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(id, name, avatar_url), report:users!one_on_ones_report_id_fkey(id, name, avatar_url)")
+      .select(
+        "id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(id, name, avatar_url), report:users!one_on_ones_report_id_fkey(id, name, avatar_url)",
+      )
       .eq("report_id", ctx.userId)
       .gte("scheduled_at", now.toISOString())
       .order("scheduled_at")
@@ -191,7 +283,10 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
       .eq("user_id", ctx.userId)
       .eq("week_start", weekStartStr)
       .maybeSingle(),
-    supabaseAdmin.from("users").select("id", { count: "exact" }).eq("is_active", true),
+    supabaseAdmin
+      .from("users")
+      .select("id", { count: "exact" })
+      .eq("is_active", true),
   ]);
 
   const goals = goalsRes.data ?? [];
@@ -211,8 +306,10 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
     withAvatar: avatarFor(m.manager, signature),
   }));
 
-  const pendingCheckin = !checkinRes.data ||
-    (checkinRes.data.status !== "submitted" && checkinRes.data.status !== "reviewed");
+  const pendingCheckin =
+    !checkinRes.data ||
+    (checkinRes.data.status !== "submitted" &&
+      checkinRes.data.status !== "reviewed");
 
   const { data: walletRow } = await supabaseAdmin
     .from("reward_wallets")
@@ -231,10 +328,20 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
 
   const actionItems: DashboardData["operations"]["actionItems"] = [];
   if (pendingCheckin) {
-    actionItems.push({ label: "Weekly check-in pending", count: 1, href: "/pulse/checkins", tone: "amber" });
+    actionItems.push({
+      label: "Weekly check-in pending",
+      count: 1,
+      href: "/pulse/checkins",
+      tone: "amber",
+    });
   }
   if (goalsBreakdown.atRisk > 0) {
-    actionItems.push({ label: "Goals at risk", count: goalsBreakdown.atRisk, href: "/pulse/goals", tone: "red" });
+    actionItems.push({
+      label: "Goals at risk",
+      count: goalsBreakdown.atRisk,
+      href: "/pulse/goals",
+      tone: "red",
+    });
   }
 
   return {
@@ -261,7 +368,7 @@ async function buildPersonalData(range: DashboardRange, ctx: DashboardContext): 
 async function buildOrgOrTeamData(
   range: DashboardRange,
   view: "org" | "team",
-  ctx: DashboardContext | undefined
+  ctx: DashboardContext | undefined,
 ): Promise<DashboardData> {
   const start = range.startDate.toISOString();
   const end = range.endDate.toISOString();
@@ -270,19 +377,26 @@ async function buildOrgOrTeamData(
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
   const now = new Date();
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  const fourteenDaysAgo = new Date(
+    now.getTime() - 14 * 24 * 60 * 60 * 1000,
+  ).toISOString();
   const sixWeeksAgo = new Date(now);
   sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 
   // ── Determine team scope filters ──────────────────────────────────────────
-  let jobIds: string[] | null = null;  // null = no filter (org)
+  let jobIds: string[] | null = null; // null = no filter (org)
   let directReportIds: string[] | null = null;
 
   if (view === "team" && ctx) {
     // Fetch job ids in the manager's department
     const { data: deptJobs } = ctx.department
-      ? await supabaseAdmin.from("jobs").select("id").eq("department", ctx.department)
+      ? await supabaseAdmin
+          .from("jobs")
+          .select("id")
+          .eq("department", ctx.department)
       : { data: [] };
     jobIds = (deptJobs ?? []).map((j) => j.id);
 
@@ -298,7 +412,9 @@ async function buildOrgOrTeamData(
   // Build candidate query
   let candidatesQ = supabaseAdmin
     .from("candidates")
-    .select("id, full_name, stage, applied_at, ai_score, shortlisted, hired_user_id, jobs(title)");
+    .select(
+      "id, full_name, stage, applied_at, ai_score, shortlisted, hired_user_id, jobs(title)",
+    );
   if (jobIds !== null && jobIds.length > 0) {
     candidatesQ = candidatesQ.in("job_id", jobIds);
   } else if (jobIds !== null && jobIds.length === 0) {
@@ -318,15 +434,24 @@ async function buildOrgOrTeamData(
     .from("jobs")
     .select("id, title, published_at, closes_at")
     .eq("status", "open")
-    .or(`published_at.gte.${now.toISOString()},closes_at.gte.${now.toISOString()}`);
+    .or(
+      `published_at.gte.${now.toISOString()},closes_at.gte.${now.toISOString()}`,
+    );
   if (jobIds !== null && jobIds.length > 0) {
     scheduledJobsQ = scheduledJobsQ.in("id", jobIds);
   }
 
   // Build employees query — scoped by manager for team view
-  let employeesQ = supabaseAdmin.from("users").select("id", { count: "exact" }).eq("is_active", true);
+  let employeesQ = supabaseAdmin
+    .from("users")
+    .select("id", { count: "exact" })
+    .eq("is_active", true);
   if (view === "team" && ctx) {
-    employeesQ = supabaseAdmin.from("users").select("id", { count: "exact" }).eq("is_active", true).eq("manager_id", ctx.userId);
+    employeesQ = supabaseAdmin
+      .from("users")
+      .select("id", { count: "exact" })
+      .eq("is_active", true)
+      .eq("manager_id", ctx.userId);
   }
 
   let newHiresQ = supabaseAdmin
@@ -358,9 +483,16 @@ async function buildOrgOrTeamData(
   }
 
   // Build goals query — scoped by direct reports for team view
-  let atRiskGoalsQ = supabaseAdmin.from("goals").select("id").eq("status", "at_risk");
+  let atRiskGoalsQ = supabaseAdmin
+    .from("goals")
+    .select("id")
+    .eq("status", "at_risk");
   let allGoalsQ = supabaseAdmin.from("goals").select("id, status");
-  if (view === "team" && directReportIds !== null && directReportIds.length > 0) {
+  if (
+    view === "team" &&
+    directReportIds !== null &&
+    directReportIds.length > 0
+  ) {
     atRiskGoalsQ = atRiskGoalsQ.in("owner_id", directReportIds);
     allGoalsQ = allGoalsQ.in("owner_id", directReportIds);
   }
@@ -368,7 +500,9 @@ async function buildOrgOrTeamData(
   // Build 1-on-1 query
   let conversationsQ = supabaseAdmin
     .from("one_on_ones")
-    .select("id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(id, name, avatar_url), report:users!one_on_ones_report_id_fkey(id, name, avatar_url)")
+    .select(
+      "id, scheduled_at, manager:users!one_on_ones_manager_id_fkey(id, name, avatar_url), report:users!one_on_ones_report_id_fkey(id, name, avatar_url)",
+    )
     .gte("scheduled_at", now.toISOString())
     .order("scheduled_at")
     .limit(5);
@@ -408,7 +542,9 @@ async function buildOrgOrTeamData(
       .select("id", { count: "exact" })
       .gte("created_at", start)
       .lte("created_at", end),
-    supabaseAdmin.from("interview_scorecards").select("candidate_id, submitted_at"),
+    supabaseAdmin
+      .from("interview_scorecards")
+      .select("candidate_id, submitted_at"),
     checkinsQ,
     pulseHistoryQ,
     atRiskGoalsQ,
@@ -416,11 +552,16 @@ async function buildOrgOrTeamData(
     scheduledJobsRes_placeholder(scheduledJobsQ),
     allGoalsQ,
     newHiresQ,
-    supabaseAdmin.from("surveys").select("id, title, survey_responses(id)").eq("status", "active").limit(5),
+    supabaseAdmin
+      .from("surveys")
+      .select("id, title, survey_responses(id)")
+      .eq("status", "active")
+      .limit(5),
   ]);
 
   const jobs = currentJobsRes.data ?? [];
-  const candidates = (currentCandidatesRes.data ?? []) as unknown as (RecentCandidate & {
+  const candidates = (currentCandidatesRes.data ??
+    []) as unknown as (RecentCandidate & {
     shortlisted?: boolean;
     hired_user_id?: string | null;
   })[];
@@ -449,8 +590,11 @@ async function buildOrgOrTeamData(
   // ── Applications trend ────────────────────────────────────────────────
   const DAY = 24 * 60 * 60 * 1000;
   const totalDays = Math.min(
-    Math.max(Math.ceil((range.endDate.getTime() - range.startDate.getTime()) / DAY), 1),
-    90
+    Math.max(
+      Math.ceil((range.endDate.getTime() - range.startDate.getTime()) / DAY),
+      1,
+    ),
+    90,
   );
   const counts = new Map<string, number>();
   for (const c of rangeCandidates) {
@@ -464,51 +608,111 @@ async function buildOrgOrTeamData(
   for (let i = totalDays - 1; i >= 0; i--) {
     const d = new Date(range.endDate);
     d.setDate(d.getDate() - i);
-    const label = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+    const label = d.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+    });
     trend.push({ day: label, count: counts.get(label) ?? 0 });
   }
 
   // ── Chart series ───────────────────────────────────────────────────────────
-  const roles = new Map<string, { role: string; applied: number; screened: number; interview: number; offer: number }>();
+  const roles = new Map<
+    string,
+    {
+      role: string;
+      applied: number;
+      screened: number;
+      interview: number;
+      offer: number;
+    }
+  >();
   for (const candidate of candidates) {
-    if (!(["applied", "screened", "interview", "offer"] as const).includes(candidate.stage as "applied" | "screened" | "interview" | "offer")) continue;
+    if (
+      !(["applied", "screened", "interview", "offer"] as const).includes(
+        candidate.stage as "applied" | "screened" | "interview" | "offer",
+      )
+    )
+      continue;
     const role = candidate.jobs?.title ?? "Unassigned";
-    const entry = roles.get(role) ?? { role, applied: 0, screened: 0, interview: 0, offer: 0 };
-    entry[candidate.stage as "applied" | "screened" | "interview" | "offer"] += 1;
+    const entry = roles.get(role) ?? {
+      role,
+      applied: 0,
+      screened: 0,
+      interview: 0,
+      offer: 0,
+    };
+    entry[candidate.stage as "applied" | "screened" | "interview" | "offer"] +=
+      1;
     roles.set(role, entry);
   }
   const rolePipeline = [...roles.values()]
-    .sort((a, b) => (b.applied + b.screened + b.interview + b.offer) - (a.applied + a.screened + a.interview + a.offer))
+    .sort(
+      (a, b) =>
+        b.applied +
+        b.screened +
+        b.interview +
+        b.offer -
+        (a.applied + a.screened + a.interview + a.offer),
+    )
     .slice(0, 5);
 
-  const stageAging = (["applied", "screened", "interview", "offer"] as const).map((stage) => {
+  const stageAging = (
+    ["applied", "screened", "interview", "offer"] as const
+  ).map((stage) => {
     const inStage = candidates.filter((candidate) => candidate.stage === stage);
     return {
       stage,
       count: inStage.length,
       averageDays: inStage.length
-        ? Math.round(inStage.reduce((sum, candidate) => sum + (now.getTime() - new Date(candidate.applied_at).getTime()) / (24 * 60 * 60 * 1000), 0) / inStage.length)
+        ? Math.round(
+            inStage.reduce(
+              (sum, candidate) =>
+                sum +
+                (now.getTime() - new Date(candidate.applied_at).getTime()) /
+                  (24 * 60 * 60 * 1000),
+              0,
+            ) / inStage.length,
+          )
         : 0,
     };
   });
 
-  const weeklyPulse = new Map<string, { checkins: number; moodTotal: number; moodCount: number }>();
+  const weeklyPulse = new Map<
+    string,
+    { checkins: number; moodTotal: number; moodCount: number }
+  >();
   for (const checkin of pulseHistoryRes.data ?? []) {
     const k = checkin.week_start;
-    const entry = weeklyPulse.get(k) ?? { checkins: 0, moodTotal: 0, moodCount: 0 };
-    if (checkin.status === "submitted" || checkin.status === "reviewed") entry.checkins += 1;
-    if (checkin.mood !== null) { entry.moodTotal += checkin.mood; entry.moodCount += 1; }
+    const entry = weeklyPulse.get(k) ?? {
+      checkins: 0,
+      moodTotal: 0,
+      moodCount: 0,
+    };
+    if (checkin.status === "submitted" || checkin.status === "reviewed")
+      entry.checkins += 1;
+    if (checkin.mood !== null) {
+      entry.moodTotal += checkin.mood;
+      entry.moodCount += 1;
+    }
     weeklyPulse.set(k, entry);
   }
   const teamPulseTrend = [...weeklyPulse.entries()].map(([week, value]) => ({
-    week: new Date(`${week}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+    week: new Date(`${week}T00:00:00`).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+    }),
     checkins: value.checkins,
-    mood: value.moodCount ? Number((value.moodTotal / value.moodCount).toFixed(1)) : null,
+    mood: value.moodCount
+      ? Number((value.moodTotal / value.moodCount).toFixed(1))
+      : null,
   }));
 
   // ── Recent candidates ─────────────────────────────────────────────────
   const recent = [...candidates]
-    .sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime(),
+    )
     .slice(0, 8)
     .map((c) => ({
       id: c.id,
@@ -520,27 +724,102 @@ async function buildOrgOrTeamData(
     }));
 
   const submittedScorecards = new Set(
-    (scorecardsRes.data ?? []).filter((sc) => sc.submitted_at).map((sc) => sc.candidate_id)
+    (scorecardsRes.data ?? [])
+      .filter((sc) => sc.submitted_at)
+      .map((sc) => sc.candidate_id),
   );
   const interviewQueue = candidates
-    .filter((candidate) => candidate.stage === "interview" && !submittedScorecards.has(candidate.id))
-    .sort((a, b) => new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime())
+    .filter(
+      (candidate) =>
+        candidate.stage === "interview" &&
+        !submittedScorecards.has(candidate.id),
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime(),
+    )
     .slice(0, 5)
-    .map((candidate) => ({ id: candidate.id, full_name: candidate.full_name, stage: candidate.stage, applied_at: candidate.applied_at, ai_score: candidate.ai_score, jobs: candidate.jobs }));
-  const hiredCandidates = candidates.filter((candidate) => candidate.stage === "hired");
+    .map((candidate) => ({
+      id: candidate.id,
+      full_name: candidate.full_name,
+      stage: candidate.stage,
+      applied_at: candidate.applied_at,
+      ai_score: candidate.ai_score,
+      jobs: candidate.jobs,
+    }));
+  const hiredCandidates = candidates.filter(
+    (candidate) => candidate.stage === "hired",
+  );
   const averageDaysToHire = hiredCandidates.length
-    ? Math.round(hiredCandidates.reduce((sum, candidate) => sum + (now.getTime() - new Date(candidate.applied_at).getTime()) / (24 * 60 * 60 * 1000), 0) / hiredCandidates.length)
+    ? Math.round(
+        hiredCandidates.reduce(
+          (sum, candidate) =>
+            sum +
+            (now.getTime() - new Date(candidate.applied_at).getTime()) /
+              (24 * 60 * 60 * 1000),
+          0,
+        ) / hiredCandidates.length,
+      )
     : null;
-  const stalledCandidates = candidates.filter((candidate) =>
-    !["hired", "rejected"].includes(candidate.stage) && candidate.applied_at < fourteenDaysAgo
+  const stalledCandidates = candidates.filter(
+    (candidate) =>
+      !["hired", "rejected"].includes(candidate.stage) &&
+      candidate.applied_at < fourteenDaysAgo,
   ).length;
-  const hiresAwaitingStaffRecord = candidates.filter((candidate) => candidate.stage === "hired" && !candidate.hired_user_id).length;
+  const hiresAwaitingStaffRecord = candidates.filter(
+    (candidate) => candidate.stage === "hired" && !candidate.hired_user_id,
+  ).length;
   const checkins = checkinsRes.data ?? [];
-  const submittedCheckins = checkins.filter((checkin) => checkin.status === "submitted" || checkin.status === "reviewed").length;
-  const scheduledJobs = ((scheduledJobsRes as { data: Array<{ id: string; title: string; published_at: string | null; closes_at: string | null }> | null }).data ?? []).flatMap((job) => [
-    ...(job.published_at && new Date(job.published_at) >= now ? [{ id: job.id, title: job.title, published_at: job.published_at, closes_at: job.closes_at, kind: "publishes" as const }] : []),
-    ...(job.closes_at && new Date(job.closes_at) >= now ? [{ id: job.id, title: job.title, published_at: job.published_at, closes_at: job.closes_at, kind: "closes" as const }] : []),
-  ]).sort((a, b) => new Date(a.kind === "publishes" ? a.published_at! : a.closes_at!).getTime() - new Date(b.kind === "publishes" ? b.published_at! : b.closes_at!).getTime()).slice(0, 5);
+  const submittedCheckins = checkins.filter(
+    (checkin) =>
+      checkin.status === "submitted" || checkin.status === "reviewed",
+  ).length;
+  const scheduledJobs = (
+    (
+      scheduledJobsRes as {
+        data: Array<{
+          id: string;
+          title: string;
+          published_at: string | null;
+          closes_at: string | null;
+        }> | null;
+      }
+    ).data ?? []
+  )
+    .flatMap((job) => [
+      ...(job.published_at && new Date(job.published_at) >= now
+        ? [
+            {
+              id: job.id,
+              title: job.title,
+              published_at: job.published_at,
+              closes_at: job.closes_at,
+              kind: "publishes" as const,
+            },
+          ]
+        : []),
+      ...(job.closes_at && new Date(job.closes_at) >= now
+        ? [
+            {
+              id: job.id,
+              title: job.title,
+              published_at: job.published_at,
+              closes_at: job.closes_at,
+              kind: "closes" as const,
+            },
+          ]
+        : []),
+    ])
+    .sort(
+      (a, b) =>
+        new Date(
+          a.kind === "publishes" ? a.published_at! : a.closes_at!,
+        ).getTime() -
+        new Date(
+          b.kind === "publishes" ? b.published_at! : b.closes_at!,
+        ).getTime(),
+    )
+    .slice(0, 5);
   const allGoals = allGoalsRes.data ?? [];
   const goalsBreakdown = {
     onTrack: allGoals.filter((g) => g.status === "in_progress").length,
@@ -560,15 +839,21 @@ async function buildOrgOrTeamData(
   const activeSurveys = (activeSurveysRes.data ?? []).map((s) => ({
     id: s.id,
     title: s.title,
-    response_count: Array.isArray(s.survey_responses) ? s.survey_responses.length : 0,
+    response_count: Array.isArray(s.survey_responses)
+      ? s.survey_responses.length
+      : 0,
   }));
 
   const signature = await signaturePromise;
   const upcomingOneOnOnes = (conversationsRes.data ?? []).map((meeting) => ({
     id: meeting.id,
     scheduled_at: meeting.scheduled_at!,
-    manager: (meeting.manager as unknown as { name: string } | null)?.name ?? "Manager",
-    report: (meeting.report as unknown as { name: string } | null)?.name ?? "Team member",
+    manager:
+      (meeting.manager as unknown as { name: string } | null)?.name ??
+      "Manager",
+    report:
+      (meeting.report as unknown as { name: string } | null)?.name ??
+      "Team member",
     managerAvatar: avatarFor(meeting.manager, signature),
     reportAvatar: avatarFor(meeting.report, signature),
   }));
@@ -595,12 +880,41 @@ async function buildOrgOrTeamData(
       interviewQueue,
       upcomingOneOnOnes,
       actionItems: [
-        { label: "Awaiting AI screen", count: pendingScreen, href: "/hire/candidates?attention=needs_screening", tone: "amber" },
-        { label: "New hires to add to staff", count: hiresAwaitingStaffRecord, href: "/hire/candidates?stage=hired", tone: "amber" },
-        { label: "Stalled candidates", count: stalledCandidates, href: "/hire/candidates?attention=stalled", tone: "red" },
-      ].filter((item) => item.count > 0) as DashboardData["operations"]["actionItems"],
-      health: { averageDaysToHire, stalledCandidates, offerPending: stageCounts.get("offer") ?? 0, offerAccepted: hired, offerDeclined: stageCounts.get("rejected") ?? 0 },
-      pulse: { pendingCheckins: Math.max(employeeCount - submittedCheckins, 0), lowMood: checkins.filter((checkin) => (checkin.mood ?? 5) <= 2).length, blockers: checkins.filter((checkin) => !!checkin.blockers?.trim()).length, atRiskGoals: goalsRes.data?.length ?? 0 },
+        {
+          label: "Awaiting AI screen",
+          count: pendingScreen,
+          href: "/hire/candidates?attention=needs_screening",
+          tone: "amber",
+        },
+        {
+          label: "New hires to add to staff",
+          count: hiresAwaitingStaffRecord,
+          href: "/hire/candidates?stage=hired",
+          tone: "amber",
+        },
+        {
+          label: "Stalled candidates",
+          count: stalledCandidates,
+          href: "/hire/candidates?attention=stalled",
+          tone: "red",
+        },
+      ].filter(
+        (item) => item.count > 0,
+      ) as DashboardData["operations"]["actionItems"],
+      health: {
+        averageDaysToHire,
+        stalledCandidates,
+        offerPending: stageCounts.get("offer") ?? 0,
+        offerAccepted: hired,
+        offerDeclined: stageCounts.get("rejected") ?? 0,
+      },
+      pulse: {
+        pendingCheckins: Math.max(employeeCount - submittedCheckins, 0),
+        lowMood: checkins.filter((checkin) => (checkin.mood ?? 5) <= 2).length,
+        blockers: checkins.filter((checkin) => !!checkin.blockers?.trim())
+          .length,
+        atRiskGoals: goalsRes.data?.length ?? 0,
+      },
       scheduledJobs,
       goals: goalsBreakdown,
       newHires,

@@ -5,7 +5,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data } = await supabaseAdmin
     .from("slack_connections")

@@ -12,7 +12,11 @@ type CandidateWithJobData = Candidate & {
   jobs: {
     title: string;
     requirements: { must_haves: string[]; nice_to_haves: string[] };
-    scoring_rubric: { criterion: string; weight: number; description: string }[];
+    scoring_rubric: {
+      criterion: string;
+      weight: number;
+      description: string;
+    }[];
   } | null;
 };
 
@@ -23,7 +27,11 @@ export async function POST(req: Request) {
   }
 
   const { candidateId } = await req.json();
-  if (!candidateId) return NextResponse.json({ error: "candidateId required" }, { status: 400 });
+  if (!candidateId)
+    return NextResponse.json(
+      { error: "candidateId required" },
+      { status: 400 },
+    );
 
   const { data, error: cErr } = await supabaseAdmin
     .from("candidates")
@@ -31,15 +39,20 @@ export async function POST(req: Request) {
     .eq("id", candidateId)
     .single();
 
-  if (cErr || !data) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+  if (cErr || !data)
+    return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
 
   const candidate = data as unknown as CandidateWithJobData;
   const job = candidate.jobs;
 
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  if (!job)
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
   if (!candidate.cv_text && !candidate.cv_parsed) {
-    return NextResponse.json({ error: "No CV data to screen" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No CV data to screen" },
+      { status: 400 },
+    );
   }
 
   // Anonymise before sending to AI
@@ -48,7 +61,9 @@ export async function POST(req: Request) {
     : (candidate.cv_text?.slice(0, 6000) ?? "");
 
   const rubricText = job.scoring_rubric.length
-    ? job.scoring_rubric.map((r) => `- ${r.criterion} (${r.weight}%): ${r.description}`).join("\n")
+    ? job.scoring_rubric
+        .map((r) => `- ${r.criterion} (${r.weight}%): ${r.description}`)
+        .join("\n")
     : "General fit for the role";
 
   const prompt = `You are a fair, unbiased recruitment assistant. You are screening a candidate for a role. You have been given anonymised CV data (no name, photo, age, gender or personal identifiers).
@@ -87,7 +102,10 @@ Shortlist if score >= 65.`;
   try {
     result = JSON.parse(raw);
   } catch {
-    return NextResponse.json({ error: "AI returned invalid JSON" }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI returned invalid JSON" },
+      { status: 500 },
+    );
   }
 
   await supabaseAdmin

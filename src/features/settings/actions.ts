@@ -10,7 +10,12 @@ import { invalidateTables } from "@/lib/cache/invalidate";
 import { can } from "@/lib/rbac";
 
 /** Updates the signed-in user's own profile fields. */
-export async function updateProfile(values: { name: string; job_title?: string | null; location?: string | null; avatar_url?: string | null }) {
+export async function updateProfile(values: {
+  name: string;
+  job_title?: string | null;
+  location?: string | null;
+  avatar_url?: string | null;
+}) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
@@ -21,9 +26,15 @@ export async function updateProfile(values: { name: string; job_title?: string |
     .from("users")
     .update({
       name,
-      ...(values.job_title !== undefined && { job_title: values.job_title?.trim() || null }),
-      ...(values.location !== undefined && { location: values.location?.trim() || null }),
-      ...(values.avatar_url !== undefined && { avatar_url: values.avatar_url?.trim() || null }),
+      ...(values.job_title !== undefined && {
+        job_title: values.job_title?.trim() || null,
+      }),
+      ...(values.location !== undefined && {
+        location: values.location?.trim() || null,
+      }),
+      ...(values.avatar_url !== undefined && {
+        avatar_url: values.avatar_url?.trim() || null,
+      }),
     })
     .eq("id", session.user.id);
   if (error) throw new Error(error.message);
@@ -34,12 +45,17 @@ export async function updateProfile(values: { name: string; job_title?: string |
 }
 
 /** Changes the signed-in user's own password. */
-export async function changePassword(values: { current: string; next: string }) {
+export async function changePassword(values: {
+  current: string;
+  next: string;
+}) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  if (values.next.length < 8) throw new Error("New password must be at least 8 characters");
-  if (values.next === values.current) throw new Error("New password must differ from the current one");
+  if (values.next.length < 8)
+    throw new Error("New password must be at least 8 characters");
+  if (values.next === values.current)
+    throw new Error("New password must differ from the current one");
 
   const { data: user, error: findErr } = await supabaseAdmin
     .from("users")
@@ -94,15 +110,23 @@ export async function saveNotificationPrefs(prefs: NotifPrefs) {
 
 // ─── AI provider settings ─────────────────────────────────────────────────────
 
-export async function saveAISettings(values: { provider: string; model: string; apiKey?: string }) {
+export async function saveAISettings(values: {
+  provider: string;
+  model: string;
+  apiKey?: string;
+}) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
-  if (!can(session.user.role, "manage_system")) throw new Error("Admin access required");
+  if (!can(session.user.role, "manage_system"))
+    throw new Error("Admin access required");
 
   if (!values.provider.trim()) throw new Error("Provider is required");
   if (!values.model.trim()) throw new Error("Model is required");
 
-  const patch: Record<string, string> = { ai_provider: values.provider, ai_model: values.model };
+  const patch: Record<string, string> = {
+    ai_provider: values.provider,
+    ai_model: values.model,
+  };
   if (values.apiKey?.trim()) {
     patch.ai_api_key = values.apiKey.trim();
   }
@@ -133,7 +157,8 @@ export interface CompanySettings {
 export async function saveCompanySettings(values: CompanySettings) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
-  if (!can(session.user.role, "manage_system")) throw new Error("Admin access required");
+  if (!can(session.user.role, "manage_system"))
+    throw new Error("Admin access required");
 
   const str = (v: string | null) => v?.trim() || null;
 
@@ -158,4 +183,3 @@ export async function saveCompanySettings(values: CompanySettings) {
   revalidatePath("/settings/overview");
   return { ok: true };
 }
-

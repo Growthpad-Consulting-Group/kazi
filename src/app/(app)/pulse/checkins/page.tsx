@@ -14,7 +14,12 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; user?: string; report?: string; view?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    user?: string;
+    report?: string;
+    view?: string;
+  }>;
 }) {
   const session = await getServerSession(authOptions);
   const isManager = session ? can(session.user.role, "manage_checkins") : false;
@@ -23,11 +28,31 @@ export default async function Page({
   const activeTab = tab ?? (user ? "checkins" : isManager ? "team" : "daily");
 
   const TABS = [
-    { id: "daily",       label: "Daily log",  icon: "solar:notebook-broken" },
-    ...(isManager ? [{ id: "team", label: "Weekly check-ins", icon: "solar:users-group-two-rounded-broken" }] : []),
-    ...(isManager ? [] : [{ id: "checkins", label: "Weekly check-in", icon: "solar:checklist-minimalistic-broken" }]),
-    { id: "goals",       label: "Goals",      icon: "solar:target-broken" },
-    { id: "one-on-ones", label: "1-on-1s",    icon: "solar:chat-round-dots-broken" },
+    { id: "daily", label: "Daily log", icon: "solar:notebook-broken" },
+    ...(isManager
+      ? [
+          {
+            id: "team",
+            label: "Weekly check-ins",
+            icon: "solar:users-group-two-rounded-broken",
+          },
+        ]
+      : []),
+    ...(isManager
+      ? []
+      : [
+          {
+            id: "checkins",
+            label: "Weekly check-in",
+            icon: "solar:checklist-minimalistic-broken",
+          },
+        ]),
+    { id: "goals", label: "Goals", icon: "solar:target-broken" },
+    {
+      id: "one-on-ones",
+      label: "1-on-1s",
+      icon: "solar:chat-round-dots-broken",
+    },
   ];
 
   return (
@@ -36,11 +61,18 @@ export default async function Page({
         <TabBar tabs={TABS} />
       </Suspense>
 
-      {activeTab === "goals"       && (user ? <StaffGoalsPage userId={user} /> : <GoalsPage />)}
-      {activeTab === "one-on-ones" && <OneOnOnesPage reportId={report} view={view === "upcoming" ? "upcoming" : undefined} />}
-      {activeTab === "team"        && <CheckinsPage userId={user} teamOnly />}
-      {activeTab === "daily"       && <DailyLogPage isReviewer={isManager} />}
-      {(activeTab === "checkins" || !["goals", "one-on-ones", "team", "daily"].includes(activeTab)) && (
+      {activeTab === "goals" &&
+        (user ? <StaffGoalsPage userId={user} /> : <GoalsPage />)}
+      {activeTab === "one-on-ones" && (
+        <OneOnOnesPage
+          reportId={report}
+          view={view === "upcoming" ? "upcoming" : undefined}
+        />
+      )}
+      {activeTab === "team" && <CheckinsPage userId={user} teamOnly />}
+      {activeTab === "daily" && <DailyLogPage isReviewer={isManager} />}
+      {(activeTab === "checkins" ||
+        !["goals", "one-on-ones", "team", "daily"].includes(activeTab)) && (
         <CheckinsPage userId={user} />
       )}
     </div>

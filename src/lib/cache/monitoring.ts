@@ -25,7 +25,15 @@ const stats = new Map<string, CacheGroupStats>();
 function bucket(group: string): CacheGroupStats {
   let entry = stats.get(group);
   if (!entry) {
-    entry = { group, hits: 0, misses: 0, errors: 0, totalLatencyMs: 0, hitRate: 0, avgLatencyMs: 0 };
+    entry = {
+      group,
+      hits: 0,
+      misses: 0,
+      errors: 0,
+      totalLatencyMs: 0,
+      hitRate: 0,
+      avgLatencyMs: 0,
+    };
     stats.set(group, entry);
   }
   return entry;
@@ -49,7 +57,10 @@ export function recordError(group: string, error: unknown): void {
   const entry = bucket(group);
   entry.errors += 1;
   if (CACHE_VERBOSE) {
-    console.warn(`[cache] ERROR in group=${group}:`, (error as Error)?.message ?? error);
+    console.warn(
+      `[cache] ERROR in group=${group}:`,
+      (error as Error)?.message ?? error,
+    );
   }
 }
 

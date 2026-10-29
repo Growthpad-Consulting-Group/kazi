@@ -10,7 +10,9 @@ import PageWithSidebar from "@/components/ui/PageWithSidebar";
 import SidebarWidget from "@/components/ui/SidebarWidget";
 import FormActions from "@/components/ui/FormActions";
 import DepartmentSelect from "@/components/ui/DepartmentSelect";
-import DateRangePicker, { type DateRangeValue } from "@/components/ui/DateRangePicker";
+import DateRangePicker, {
+  type DateRangeValue,
+} from "@/components/ui/DateRangePicker";
 
 interface Props {
   job?: Job;
@@ -47,7 +49,9 @@ function SectionHeader({
   return (
     <div className="mb-5">
       <div className="flex items-center gap-2.5">
-        <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${iconBg}`}>
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-xl ${iconBg}`}
+        >
           <Icon icon={icon} className={`h-3.5 w-3.5 ${iconColor}`} />
         </div>
         <h2 className="text-md font-semibold text-[var(--text-hi)]">{title}</h2>
@@ -57,7 +61,13 @@ function SectionHeader({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="block text-sm font-semibold text-[var(--text-lo)]">
@@ -68,7 +78,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function AddRowButton({ label, onClick }: { label: string; onClick: () => void }) {
+function AddRowButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -81,7 +97,13 @@ function AddRowButton({ label, onClick }: { label: string; onClick: () => void }
   );
 }
 
-function RemoveButton({ onClick, label }: { onClick: () => void; label: string }) {
+function RemoveButton({
+  onClick,
+  label,
+}: {
+  onClick: () => void;
+  label: string;
+}) {
   return (
     <button
       type="button"
@@ -103,27 +125,38 @@ export function JobForm({ job, departments = [] }: Props) {
   const [department, setDepartment] = useState(job?.department ?? "");
   const [location, setLocation] = useState(job?.location ?? "");
   const [description, setDescription] = useState(job?.description ?? "");
-  const [mustHaves, setMustHaves] = useState<string[]>(job?.requirements?.must_haves ?? [""]);
-  const [niceToHaves, setNiceToHaves] = useState<string[]>(job?.requirements?.nice_to_haves ?? [""]);
+  const [mustHaves, setMustHaves] = useState<string[]>(
+    job?.requirements?.must_haves ?? [""],
+  );
+  const [niceToHaves, setNiceToHaves] = useState<string[]>(
+    job?.requirements?.nice_to_haves ?? [""],
+  );
   const [rubric, setRubric] = useState<RubricItem[]>(
-    job?.scoring_rubric?.length ? job.scoring_rubric : [{ ...EMPTY_RUBRIC }]
+    job?.scoring_rubric?.length ? job.scoring_rubric : [{ ...EMPTY_RUBRIC }],
   );
   const [status, setStatus] = useState<"draft" | "open">(
-    job?.status === "open" ? "open" : "draft"
+    job?.status === "open" ? "open" : "draft",
   );
-  const [schedule, setSchedule] = useState<DateRangeValue | undefined>(() => toScheduleRange(job));
+  const [schedule, setSchedule] = useState<DateRangeValue | undefined>(() =>
+    toScheduleRange(job),
+  );
 
   // AI JD drafter
   const [brief, setBrief] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState("");
 
-  const rubricTotal = rubric.reduce((sum, r) => sum + (Number(r.weight) || 0), 0);
+  const rubricTotal = rubric.reduce(
+    (sum, r) => sum + (Number(r.weight) || 0),
+    0,
+  );
   const mustCount = mustHaves.filter(Boolean).length;
   const niceCount = niceToHaves.filter(Boolean).length;
   const criteriaCount = rubric.filter((r) => r.criterion).length;
   const isScheduledForLater =
-    status === "open" && !!schedule?.startDate && schedule.startDate > new Date();
+    status === "open" &&
+    !!schedule?.startDate &&
+    schedule.startDate > new Date();
 
   async function draftDescription() {
     if (!title || !brief) return;
@@ -149,7 +182,7 @@ export function JobForm({ job, departments = [] }: Props) {
     list: string[],
     setter: (v: string[]) => void,
     idx: number,
-    val: string
+    val: string,
   ) {
     const next = [...list];
     next[idx] = val;
@@ -160,11 +193,19 @@ export function JobForm({ job, departments = [] }: Props) {
     setter([...list, ""]);
   }
 
-  function removeListItem(list: string[], setter: (v: string[]) => void, idx: number) {
+  function removeListItem(
+    list: string[],
+    setter: (v: string[]) => void,
+    idx: number,
+  ) {
     setter(list.filter((_, i) => i !== idx));
   }
 
-  function handleRubricChange(idx: number, field: keyof RubricItem, val: string | number) {
+  function handleRubricChange(
+    idx: number,
+    field: keyof RubricItem,
+    val: string | number,
+  ) {
     const next = [...rubric];
     next[idx] = { ...next[idx], [field]: val };
     setRubric(next);
@@ -185,7 +226,15 @@ export function JobForm({ job, departments = [] }: Props) {
       // A date range represents inclusive calendar dates, so a job remains
       // live through the end of its selected closing date.
       closes_at: schedule?.endDate
-        ? new Date(schedule.endDate.getFullYear(), schedule.endDate.getMonth(), schedule.endDate.getDate(), 23, 59, 59, 999).toISOString()
+        ? new Date(
+            schedule.endDate.getFullYear(),
+            schedule.endDate.getMonth(),
+            schedule.endDate.getDate(),
+            23,
+            59,
+            59,
+            999,
+          ).toISOString()
         : null,
     };
 
@@ -202,7 +251,9 @@ export function JobForm({ job, departments = [] }: Props) {
           router.push(`/hire/jobs/${created.id}`);
         }
       } catch (e) {
-        toast.error((e as Error).message || "Something went wrong", { id: saving });
+        toast.error((e as Error).message || "Something went wrong", {
+          id: saving,
+        });
       }
     });
   }
@@ -229,7 +280,10 @@ export function JobForm({ job, departments = [] }: Props) {
         <div className="space-y-4">
           <Field label="Job Title *">
             <div className="relative flex items-center">
-              <Icon icon="solar:case-minimalistic-broken" className="pointer-events-none absolute left-3.5 h-4.5 w-4.5 text-[var(--text-lo)]" />
+              <Icon
+                icon="solar:case-minimalistic-broken"
+                className="pointer-events-none absolute left-3.5 h-4.5 w-4.5 text-[var(--text-lo)]"
+              />
               <input
                 required
                 value={title}
@@ -242,11 +296,18 @@ export function JobForm({ job, departments = [] }: Props) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Department">
-              <DepartmentSelect value={department} onChange={setDepartment} departments={departments} />
+              <DepartmentSelect
+                value={department}
+                onChange={setDepartment}
+                departments={departments}
+              />
             </Field>
             <Field label="Location">
               <div className="relative flex items-center">
-                <Icon icon="solar:point-on-map-broken" className="pointer-events-none absolute left-3.5 h-4.5 w-4.5 text-[var(--text-lo)]" />
+                <Icon
+                  icon="solar:point-on-map-broken"
+                  className="pointer-events-none absolute left-3.5 h-4.5 w-4.5 text-[var(--text-lo)]"
+                />
                 <input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
@@ -271,14 +332,20 @@ export function JobForm({ job, departments = [] }: Props) {
         {/* AI brief panel */}
         <div className="mb-4 rounded-xl border border-brand-500/20 bg-brand-500/5 p-4">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:cpu-bolt-broken" className="h-4 w-4 text-brand-500" />
-            <p className="text-md font-semibold text-[var(--text-hi)]">AI Draft</p>
+            <Icon
+              icon="solar:cpu-bolt-broken"
+              className="h-4 w-4 text-brand-500"
+            />
+            <p className="text-md font-semibold text-[var(--text-hi)]">
+              AI Draft
+            </p>
             <span className="ml-auto rounded-full bg-brand-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-brand-500">
               Groq
             </span>
           </div>
           <p className="mt-1 text-xs text-[var(--text-lo)]">
-            Write a short brief and AI will draft the full description for you to edit.
+            Write a short brief and AI will draft the full description for you
+            to edit.
           </p>
           <textarea
             value={brief}
@@ -287,7 +354,9 @@ export function JobForm({ job, departments = [] }: Props) {
             className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
             placeholder="e.g. We need someone to own our social media and paid campaigns across Kenya and Ghana, with 3+ years experience…"
           />
-          {draftError && <p className="mt-2 text-xs text-red-500">{draftError}</p>}
+          {draftError && (
+            <p className="mt-2 text-xs text-red-500">{draftError}</p>
+          )}
           <button
             type="button"
             disabled={drafting || !title || !brief}
@@ -296,7 +365,10 @@ export function JobForm({ job, departments = [] }: Props) {
           >
             {drafting ? (
               <>
-                <Icon icon="solar:wheel-angle-broken" className="h-3.5 w-3.5 animate-spin" />
+                <Icon
+                  icon="solar:wheel-angle-broken"
+                  className="h-3.5 w-3.5 animate-spin"
+                />
                 Drafting…
               </>
             ) : (
@@ -334,14 +406,19 @@ export function JobForm({ job, departments = [] }: Props) {
           {/* Must-haves */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-hi)]">
-              <Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5 text-green-500" />
+              <Icon
+                icon="solar:check-circle-broken"
+                className="h-3.5 w-3.5 text-green-500"
+              />
               Must-haves
             </div>
             {mustHaves.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
                 <input
                   value={item}
-                  onChange={(e) => handleListChange(mustHaves, setMustHaves, i, e.target.value)}
+                  onChange={(e) =>
+                    handleListChange(mustHaves, setMustHaves, i, e.target.value)
+                  }
                   className={inputCls}
                   placeholder={`Requirement ${i + 1}`}
                 />
@@ -362,21 +439,33 @@ export function JobForm({ job, departments = [] }: Props) {
           {/* Nice-to-haves */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-hi)]">
-              <Icon icon="solar:star-broken" className="h-3.5 w-3.5 text-blue-400" />
+              <Icon
+                icon="solar:star-broken"
+                className="h-3.5 w-3.5 text-blue-400"
+              />
               Nice-to-haves
             </div>
             {niceToHaves.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
                 <input
                   value={item}
-                  onChange={(e) => handleListChange(niceToHaves, setNiceToHaves, i, e.target.value)}
+                  onChange={(e) =>
+                    handleListChange(
+                      niceToHaves,
+                      setNiceToHaves,
+                      i,
+                      e.target.value,
+                    )
+                  }
                   className={inputCls}
                   placeholder={`Bonus point ${i + 1}`}
                 />
                 {niceToHaves.length > 1 && (
                   <RemoveButton
                     label="Remove nice-to-have"
-                    onClick={() => removeListItem(niceToHaves, setNiceToHaves, i)}
+                    onClick={() =>
+                      removeListItem(niceToHaves, setNiceToHaves, i)
+                    }
                   />
                 )}
               </div>
@@ -417,7 +506,9 @@ export function JobForm({ job, departments = [] }: Props) {
               <div className="col-span-12 sm:col-span-4">
                 <input
                   value={item.criterion}
-                  onChange={(e) => handleRubricChange(i, "criterion", e.target.value)}
+                  onChange={(e) =>
+                    handleRubricChange(i, "criterion", e.target.value)
+                  }
                   className={inputCls}
                   placeholder="Criterion"
                 />
@@ -429,17 +520,23 @@ export function JobForm({ job, departments = [] }: Props) {
                     min={0}
                     max={100}
                     value={item.weight}
-                    onChange={(e) => handleRubricChange(i, "weight", Number(e.target.value))}
+                    onChange={(e) =>
+                      handleRubricChange(i, "weight", Number(e.target.value))
+                    }
                     className={`${inputCls} pr-6 font-mono`}
                     placeholder="Weight"
                   />
-                  <span className="pointer-events-none absolute right-3 text-[10px] text-[var(--text-lo)]">%</span>
+                  <span className="pointer-events-none absolute right-3 text-[10px] text-[var(--text-lo)]">
+                    %
+                  </span>
                 </div>
               </div>
               <div className="col-span-7 sm:col-span-5">
                 <input
                   value={item.description}
-                  onChange={(e) => handleRubricChange(i, "description", e.target.value)}
+                  onChange={(e) =>
+                    handleRubricChange(i, "description", e.target.value)
+                  }
                   className={inputCls}
                   placeholder="What good looks like"
                 />
@@ -466,7 +563,11 @@ export function JobForm({ job, departments = [] }: Props) {
   const sidebar = (
     <>
       {/* ── Status ── */}
-      <SidebarWidget title="Status" icon="solar:eye-broken" iconClass="bg-brand-500/15 text-brand-500">
+      <SidebarWidget
+        title="Status"
+        icon="solar:eye-broken"
+        iconClass="bg-brand-500/15 text-brand-500"
+      >
         <div className="flex rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1">
           {(["draft", "open"] as const).map((s) => (
             <button
@@ -480,7 +581,9 @@ export function JobForm({ job, departments = [] }: Props) {
               }`}
             >
               <Icon
-                icon={s === "open" ? "solar:eye-broken" : "solar:eye-closed-broken"}
+                icon={
+                  s === "open" ? "solar:eye-broken" : "solar:eye-closed-broken"
+                }
                 className="h-3.5 w-3.5"
               />
               {s}
@@ -496,7 +599,11 @@ export function JobForm({ job, departments = [] }: Props) {
         </p>
       </SidebarWidget>
 
-      <SidebarWidget title="Publishing schedule" icon="solar:calendar-broken" iconClass="bg-brand-500/15 text-brand-500">
+      <SidebarWidget
+        title="Publishing schedule"
+        icon="solar:calendar-broken"
+        iconClass="bg-brand-500/15 text-brand-500"
+      >
         <div className="space-y-3">
           <Field label="Live dates">
             <DateRangePicker
@@ -521,25 +628,37 @@ export function JobForm({ job, departments = [] }: Props) {
             </button>
           )}
           <p className="text-xs leading-relaxed text-[var(--text-lo)]">
-            Select the first and last dates the role should accept applications. Leave this blank to publish immediately when set to Open and keep it live until you close it.
+            Select the first and last dates the role should accept applications.
+            Leave this blank to publish immediately when set to Open and keep it
+            live until you close it.
           </p>
         </div>
       </SidebarWidget>
 
       {/* ── Live summary ── */}
-      <SidebarWidget title="Summary" icon="solar:chart-square-broken" iconClass="bg-brand-500/15 text-brand-500">
+      <SidebarWidget
+        title="Summary"
+        icon="solar:chart-square-broken"
+        iconClass="bg-brand-500/15 text-brand-500"
+      >
         <dl className="space-y-2.5">
           <div className="flex items-center justify-between">
             <dt className="text-sm text-[var(--text-lo)]">Must-haves</dt>
-            <dd className="font-mono text-sm font-semibold text-[var(--text-hi)]">{mustCount}</dd>
+            <dd className="font-mono text-sm font-semibold text-[var(--text-hi)]">
+              {mustCount}
+            </dd>
           </div>
           <div className="flex items-center justify-between">
             <dt className="text-sm text-[var(--text-lo)]">Nice-to-haves</dt>
-            <dd className="font-mono text-sm font-semibold text-[var(--text-hi)]">{niceCount}</dd>
+            <dd className="font-mono text-sm font-semibold text-[var(--text-hi)]">
+              {niceCount}
+            </dd>
           </div>
           <div className="flex items-center justify-between">
             <dt className="text-sm   text-[var(--text-lo)]">Rubric criteria</dt>
-            <dd className="font-mono text-sm font-semibold text-[var(--text-hi)]">{criteriaCount}</dd>
+            <dd className="font-mono text-sm font-semibold text-[var(--text-hi)]">
+              {criteriaCount}
+            </dd>
           </div>
           <div className="flex items-center justify-between border-t border-[var(--border)] pt-2.5">
             <dt className="text-sm text-[var(--text-lo)]">Rubric weight</dt>
@@ -562,7 +681,11 @@ export function JobForm({ job, departments = [] }: Props) {
 
       {/* ── Meta (edit mode) ── */}
       {job && (
-        <SidebarWidget title="Meta" icon="solar:calendar-broken" iconClass="bg-brand-500/15 text-brand-500">
+        <SidebarWidget
+          title="Meta"
+          icon="solar:calendar-broken"
+          iconClass="bg-brand-500/15 text-brand-500"
+        >
           <dl className="space-y-2.5">
             <div className="flex items-center justify-between">
               <dt className="text-sm text-[var(--text-lo)]">Created</dt>
@@ -578,7 +701,11 @@ export function JobForm({ job, departments = [] }: Props) {
               <dt className="text-xs text-[var(--text-lo)]">Publishes</dt>
               <dd className="text-xs font-medium text-[var(--text-hi)]">
                 {job.published_at
-                  ? new Date(job.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                  ? new Date(job.published_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
                   : "Not scheduled"}
               </dd>
             </div>
@@ -586,7 +713,11 @@ export function JobForm({ job, departments = [] }: Props) {
               <dt className="text-xs text-[var(--text-lo)]">Closes</dt>
               <dd className="text-xs font-medium text-[var(--text-hi)]">
                 {job.closes_at
-                  ? new Date(job.closes_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                  ? new Date(job.closes_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
                   : "No end date"}
               </dd>
             </div>
@@ -605,7 +736,11 @@ export function JobForm({ job, departments = [] }: Props) {
       )}
 
       {/* ── Actions ── */}
-      <SidebarWidget title="Actions" icon="solar:settings-broken" iconClass="bg-brand-500/15 text-brand-500">
+      <SidebarWidget
+        title="Actions"
+        icon="solar:settings-broken"
+        iconClass="bg-brand-500/15 text-brand-500"
+      >
         <FormActions layout="vertical" {...actionsProps} />
       </SidebarWidget>
     </>

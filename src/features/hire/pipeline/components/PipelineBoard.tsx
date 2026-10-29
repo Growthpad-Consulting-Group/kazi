@@ -32,11 +32,13 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   const activeCandidate = activeId
-    ? Object.values(columns).flat().find((c) => c.id === activeId)
+    ? Object.values(columns)
+        .flat()
+        .find((c) => c.id === activeId)
     : null;
 
   function onDragStart({ active }: DragStartEvent) {
@@ -71,34 +73,44 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
     });
 
     // Persist
-    updateCandidateStage(candidateId, toStage).then(() => {
-      toast.success(`Moved to ${STAGE_LABELS[toStage]}`);
-      requestStageEmail(candidateId, toStage);
-      router.refresh();
-    }).catch((error) => {
-      setColumns(initial);
-      toast.error(error instanceof Error ? error.message : "Could not move candidate");
-    });
+    updateCandidateStage(candidateId, toStage)
+      .then(() => {
+        toast.success(`Moved to ${STAGE_LABELS[toStage]}`);
+        requestStageEmail(candidateId, toStage);
+        router.refresh();
+      })
+      .catch((error) => {
+        setColumns(initial);
+        toast.error(
+          error instanceof Error ? error.message : "Could not move candidate",
+        );
+      });
   }
 
   return (
     <>
-    {stageEmailDialog}
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 md:mx-0 md:px-0">
-        {stages.map((stage) => (
-          <PipelineColumn
-            key={stage}
-            stage={stage}
-            label={STAGE_LABELS[stage]}
-            candidates={columns[stage]}
-          />
-        ))}
-      </div>
-      <DragOverlay>
-        {activeCandidate && <CandidateCard candidate={activeCandidate} isDragging />}
-      </DragOverlay>
-    </DndContext>
+      {stageEmailDialog}
+      <DndContext
+        sensors={sensors}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
+        <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 md:mx-0 md:px-0">
+          {stages.map((stage) => (
+            <PipelineColumn
+              key={stage}
+              stage={stage}
+              label={STAGE_LABELS[stage]}
+              candidates={columns[stage]}
+            />
+          ))}
+        </div>
+        <DragOverlay>
+          {activeCandidate && (
+            <CandidateCard candidate={activeCandidate} isDragging />
+          )}
+        </DragOverlay>
+      </DndContext>
     </>
   );
 }

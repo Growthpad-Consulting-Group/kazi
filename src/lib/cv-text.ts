@@ -36,7 +36,11 @@ export async function extractCvText(file: File, bytes: Uint8Array) {
     return await ocrPdf(bytes);
   }
 
-  if (extension === "docx" || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+  if (
+    extension === "docx" ||
+    file.type ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
     const result = await mammoth.extractRawText({ buffer: Buffer.from(bytes) });
     return result.value.trim();
   }

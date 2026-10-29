@@ -11,8 +11,21 @@ export function SendRecognitionButton(props: Props) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button size="sm" icon="solar:star-fall-broken" onClick={() => setOpen(true)}>Send recognition</Button>
-      <SimpleModal open={open} onClose={() => setOpen(false)} title="Share feedback" subtitle="Make it specific, timely, and useful." icon="solar:heart-broken" maxWidth="max-w-xl">
+      <Button
+        size="sm"
+        icon="solar:star-fall-broken"
+        onClick={() => setOpen(true)}
+      >
+        Send recognition
+      </Button>
+      <SimpleModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Share feedback"
+        subtitle="Make it specific, timely, and useful."
+        icon="solar:heart-broken"
+        maxWidth="max-w-xl"
+      >
         {open && <SendFeedbackForm {...props} onSent={() => setOpen(false)} />}
       </SimpleModal>
     </>

@@ -1,21 +1,37 @@
-export type UserRole = "admin" | "hr" | "hiring_manager" | "interviewer" | "manager" | "employee";
+export type UserRole =
+  "admin" | "hr" | "hiring_manager" | "interviewer" | "manager" | "employee";
 export type JobStatus = "draft" | "open" | "closed";
-export type CandidateStage = "applied" | "screened" | "interview" | "offer" | "hired" | "rejected";
-export type GoalStatus = "not_started" | "in_progress" | "at_risk" | "completed" | "cancelled";
+export type CandidateStage =
+  "applied" | "screened" | "interview" | "offer" | "hired" | "rejected";
+export type GoalStatus =
+  "not_started" | "in_progress" | "at_risk" | "completed" | "cancelled";
 export type GoalLevel = "company" | "team" | "individual";
 export type CheckinStatus = "draft" | "submitted" | "reviewed";
 export type FeedbackVisibility = "public" | "private";
 export type VoiceOutStatus = "new" | "in_review" | "resolved" | "archived";
 export type VoiceOutPriority = "low" | "normal" | "high" | "urgent";
 export type ReviewCycle = "quarterly" | "biannual" | "annual";
-export type ReviewStatus = "pending" | "self_review" | "manager_review" | "peer_review" | "completed";
+export type ReviewStatus =
+  "pending" | "self_review" | "manager_review" | "peer_review" | "completed";
 export type ReviewType = "self" | "manager" | "peer";
 export type SurveyStatus = "draft" | "active" | "closed";
-export type SurveyAudienceType = "staff" | "staff_group" | "department" | "manager_group";
+export type SurveyAudienceType =
+  "staff" | "staff_group" | "department" | "manager_group";
 export type IdpStatus = "active" | "completed" | "cancelled";
-export type RedemptionStatus = "pending" | "approved" | "fulfilled" | "rejected";
-export type MilestoneType = "work_anniversary" | "birthday" | "onboarding_complete" | "service_achievement";
-export type AutomationTrigger = "milestone_anniversary" | "campaign_start" | "quest_ends_soon" | "recognition_received" | "daily_log_logged" | "daily_log_streak";
+export type RedemptionStatus =
+  "pending" | "approved" | "fulfilled" | "rejected";
+export type MilestoneType =
+  | "work_anniversary"
+  | "birthday"
+  | "onboarding_complete"
+  | "service_achievement";
+export type AutomationTrigger =
+  | "milestone_anniversary"
+  | "campaign_start"
+  | "quest_ends_soon"
+  | "recognition_received"
+  | "daily_log_logged"
+  | "daily_log_streak";
 export type AutomationAction = "send_notification" | "award_points";
 
 export interface Database {
@@ -39,7 +55,20 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at" | "updated_at" | "department" | "avatar_url" | "is_active" | "manager_id" | "job_title" | "location" | "start_date" | "date_of_birth"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["users"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "department"
+          | "avatar_url"
+          | "is_active"
+          | "manager_id"
+          | "job_title"
+          | "location"
+          | "start_date"
+          | "date_of_birth"
+        > & {
           department?: string | null;
           avatar_url?: string | null;
           is_active?: boolean;
@@ -60,7 +89,10 @@ export interface Database {
           expires: string;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["sessions"]["Row"], "id" | "created_at">;
+        Insert: Omit<
+          Database["public"]["Tables"]["sessions"]["Row"],
+          "id" | "created_at"
+        >;
         Update: Partial<Database["public"]["Tables"]["sessions"]["Insert"]>;
         Relationships: [];
       };
@@ -73,7 +105,11 @@ export interface Database {
           location: string | null;
           description: string | null;
           requirements: { must_haves: string[]; nice_to_haves: string[] };
-          scoring_rubric: { criterion: string; weight: number; description: string }[];
+          scoring_rubric: {
+            criterion: string;
+            weight: number;
+            description: string;
+          }[];
           status: JobStatus;
           published_at: string | null;
           closes_at: string | null;
@@ -81,7 +117,10 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["jobs"]["Row"], "id" | "created_at" | "updated_at" | "published_at" | "closes_at"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["jobs"]["Row"],
+          "id" | "created_at" | "updated_at" | "published_at" | "closes_at"
+        > & {
           published_at?: string | null;
           closes_at?: string | null;
         };
@@ -120,7 +159,25 @@ export interface Database {
         };
         Insert: Omit<
           Database["public"]["Tables"]["candidates"]["Row"],
-          "id" | "created_at" | "updated_at" | "phone" | "location" | "linkedin_url" | "portfolio_url" | "cover_message" | "cv_url" | "cv_text" | "cv_parsed" | "assigned_to" | "source" | "ai_score" | "ai_justification" | "consented_at" | "hired_user_id" | "stage" | "shortlisted"
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "phone"
+          | "location"
+          | "linkedin_url"
+          | "portfolio_url"
+          | "cover_message"
+          | "cv_url"
+          | "cv_text"
+          | "cv_parsed"
+          | "assigned_to"
+          | "source"
+          | "ai_score"
+          | "ai_justification"
+          | "consented_at"
+          | "hired_user_id"
+          | "stage"
+          | "shortlisted"
         > & {
           phone?: string | null;
           location?: string | null;
@@ -150,8 +207,13 @@ export interface Database {
           note: string;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["candidate_notes"]["Row"], "id" | "created_at">;
-        Update: Partial<Database["public"]["Tables"]["candidate_notes"]["Insert"]>;
+        Insert: Omit<
+          Database["public"]["Tables"]["candidate_notes"]["Row"],
+          "id" | "created_at"
+        >;
+        Update: Partial<
+          Database["public"]["Tables"]["candidate_notes"]["Insert"]
+        >;
         Relationships: [];
       };
       candidate_interviews: {
@@ -165,8 +227,13 @@ export interface Database {
           google_event_id: string;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["candidate_interviews"]["Row"], "id" | "created_at">;
-        Update: Partial<Database["public"]["Tables"]["candidate_interviews"]["Insert"]>;
+        Insert: Omit<
+          Database["public"]["Tables"]["candidate_interviews"]["Row"],
+          "id" | "created_at"
+        >;
+        Update: Partial<
+          Database["public"]["Tables"]["candidate_interviews"]["Insert"]
+        >;
         Relationships: [];
       };
       interview_scorecards: {
@@ -181,13 +248,23 @@ export interface Database {
           submitted_at: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["interview_scorecards"]["Row"], "id" | "created_at" | "overall_score" | "recommendation" | "ai_summary" | "submitted_at"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["interview_scorecards"]["Row"],
+          | "id"
+          | "created_at"
+          | "overall_score"
+          | "recommendation"
+          | "ai_summary"
+          | "submitted_at"
+        > & {
           overall_score?: number | null;
           recommendation?: "hire" | "no_hire" | "maybe" | null;
           ai_summary?: string | null;
           submitted_at?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["interview_scorecards"]["Insert"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["interview_scorecards"]["Insert"]
+        >;
         Relationships: [];
       };
       ai_logs: {
@@ -202,7 +279,10 @@ export interface Database {
           tokens_used: number | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["ai_logs"]["Row"], "id" | "created_at">;
+        Insert: Omit<
+          Database["public"]["Tables"]["ai_logs"]["Row"],
+          "id" | "created_at"
+        >;
         Update: never;
         Relationships: [];
       };
@@ -224,7 +304,21 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["checkins"]["Row"], "id" | "created_at" | "updated_at" | "status" | "manager_comment" | "reviewed_by" | "reviewed_at" | "ai_summary" | "wins" | "priorities" | "blockers" | "mood"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["checkins"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "status"
+          | "manager_comment"
+          | "reviewed_by"
+          | "reviewed_at"
+          | "ai_summary"
+          | "wins"
+          | "priorities"
+          | "blockers"
+          | "mood"
+        > & {
           wins?: string | null;
           priorities?: string | null;
           blockers?: string | null;
@@ -253,7 +347,18 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["goals"]["Row"], "id" | "created_at" | "updated_at" | "status" | "progress" | "description" | "owner_id" | "parent_id" | "due_date"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["goals"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "status"
+          | "progress"
+          | "description"
+          | "owner_id"
+          | "parent_id"
+          | "due_date"
+        > & {
           description?: string | null;
           owner_id?: string | null;
           parent_id?: string | null;
@@ -272,17 +377,36 @@ export interface Database {
           scheduled_at: string | null;
           agenda: string | null;
           notes: string | null;
-          action_items: { text: string; done: boolean; carried_from?: string }[];
+          action_items: {
+            text: string;
+            done: boolean;
+            carried_from?: string;
+          }[];
           ai_talking_points: string | null;
           google_event_id: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["one_on_ones"]["Row"], "id" | "created_at" | "updated_at" | "scheduled_at" | "agenda" | "notes" | "action_items" | "ai_talking_points" | "google_event_id"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["one_on_ones"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "scheduled_at"
+          | "agenda"
+          | "notes"
+          | "action_items"
+          | "ai_talking_points"
+          | "google_event_id"
+        > & {
           scheduled_at?: string | null;
           agenda?: string | null;
           notes?: string | null;
-          action_items?: { text: string; done: boolean; carried_from?: string }[];
+          action_items?: {
+            text: string;
+            done: boolean;
+            carried_from?: string;
+          }[];
           ai_talking_points?: string | null;
           google_event_id?: string | null;
         };
@@ -302,7 +426,16 @@ export interface Database {
           media_url: string | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["feedback"]["Row"], "id" | "created_at" | "visibility" | "emoji" | "value_id" | "campaign_id" | "media_url"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["feedback"]["Row"],
+          | "id"
+          | "created_at"
+          | "visibility"
+          | "emoji"
+          | "value_id"
+          | "campaign_id"
+          | "media_url"
+        > & {
           visibility?: FeedbackVisibility;
           emoji?: string | null;
           value_id?: string | null;
@@ -314,38 +447,131 @@ export interface Database {
       };
       feedback_recipients: {
         Row: { feedback_id: string; user_id: string; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["feedback_recipients"]["Row"], "created_at">;
+        Insert: Omit<
+          Database["public"]["Tables"]["feedback_recipients"]["Row"],
+          "created_at"
+        >;
         Update: never;
         Relationships: [];
       };
       recognition_values: {
-        Row: { id: string; name: string; description: string | null; color: string; is_active: boolean; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["recognition_values"]["Row"], "id" | "created_at" | "description" | "color" | "is_active"> & { description?: string | null; color?: string; is_active?: boolean };
-        Update: Partial<Database["public"]["Tables"]["recognition_values"]["Insert"]>;
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          color: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["recognition_values"]["Row"],
+          "id" | "created_at" | "description" | "color" | "is_active"
+        > & {
+          description?: string | null;
+          color?: string;
+          is_active?: boolean;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["recognition_values"]["Insert"]
+        >;
         Relationships: [];
       };
       recognition_campaigns: {
-        Row: { id: string; name: string; goal: string | null; audience_type: "company" | "department" | "location" | "manager_group" | "staff"; audience_filters: string[]; value_ids: string[]; starts_at: string | null; ends_at: string | null; status: "draft" | "upcoming" | "live" | "paused" | "completed" | "archived"; visual_color: string; created_by: string; created_at: string; updated_at: string };
-        Insert: Omit<Database["public"]["Tables"]["recognition_campaigns"]["Row"], "id" | "created_at" | "updated_at" | "goal" | "audience_filters" | "value_ids" | "starts_at" | "ends_at" | "status" | "visual_color"> & { goal?: string | null; audience_filters?: string[]; value_ids?: string[]; starts_at?: string | null; ends_at?: string | null; status?: "draft" | "upcoming" | "live" | "paused" | "completed" | "archived"; visual_color?: string };
-        Update: Partial<Database["public"]["Tables"]["recognition_campaigns"]["Insert"]>;
+        Row: {
+          id: string;
+          name: string;
+          goal: string | null;
+          audience_type:
+            "company" | "department" | "location" | "manager_group" | "staff";
+          audience_filters: string[];
+          value_ids: string[];
+          starts_at: string | null;
+          ends_at: string | null;
+          status:
+            "draft" | "upcoming" | "live" | "paused" | "completed" | "archived";
+          visual_color: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["recognition_campaigns"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "goal"
+          | "audience_filters"
+          | "value_ids"
+          | "starts_at"
+          | "ends_at"
+          | "status"
+          | "visual_color"
+        > & {
+          goal?: string | null;
+          audience_filters?: string[];
+          value_ids?: string[];
+          starts_at?: string | null;
+          ends_at?: string | null;
+          status?:
+            "draft" | "upcoming" | "live" | "paused" | "completed" | "archived";
+          visual_color?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["recognition_campaigns"]["Insert"]
+        >;
         Relationships: [];
       };
       side_quests: {
-        Row: { id: string; title: string; brief: string; completion_criteria: string; audience_type: "company" | "department" | "location" | "manager_group" | "staff"; audience_filters: string[]; starts_at: string | null; ends_at: string | null; status: "draft" | "upcoming" | "live" | "closed" | "archived"; created_by: string; created_at: string; updated_at: string; points: number };
-        Insert: Omit<Database["public"]["Tables"]["side_quests"]["Row"], "id" | "created_at" | "updated_at" | "audience_filters" | "starts_at" | "ends_at" | "status" | "points"> & { audience_filters?: string[]; starts_at?: string | null; ends_at?: string | null; status?: "draft" | "upcoming" | "live" | "closed" | "archived"; points?: number };
+        Row: {
+          id: string;
+          title: string;
+          brief: string;
+          completion_criteria: string;
+          audience_type:
+            "company" | "department" | "location" | "manager_group" | "staff";
+          audience_filters: string[];
+          starts_at: string | null;
+          ends_at: string | null;
+          status: "draft" | "upcoming" | "live" | "closed" | "archived";
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+          points: number;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["side_quests"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "audience_filters"
+          | "starts_at"
+          | "ends_at"
+          | "status"
+          | "points"
+        > & {
+          audience_filters?: string[];
+          starts_at?: string | null;
+          ends_at?: string | null;
+          status?: "draft" | "upcoming" | "live" | "closed" | "archived";
+          points?: number;
+        };
         Update: Partial<Database["public"]["Tables"]["side_quests"]["Insert"]>;
         Relationships: [];
       };
       side_quest_completions: {
         Row: { side_quest_id: string; user_id: string; completed_at: string };
-        Insert: Omit<Database["public"]["Tables"]["side_quest_completions"]["Row"], "completed_at">;
+        Insert: Omit<
+          Database["public"]["Tables"]["side_quest_completions"]["Row"],
+          "completed_at"
+        >;
         Update: never;
         Relationships: [];
       };
       voice_out_reports: {
         Row: {
           id: string;
-          topic: "workplace" | "wellbeing" | "inclusion" | "leadership" | "other";
+          topic:
+            "workplace" | "wellbeing" | "inclusion" | "leadership" | "other";
           message: string;
           status: VoiceOutStatus;
           priority: VoiceOutPriority;
@@ -359,7 +585,21 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["voice_out_reports"]["Row"], "id" | "created_at" | "updated_at" | "status" | "priority" | "owner_id" | "internal_notes" | "resolved_at" | "attachments" | "allows_follow_up" | "reply_access_hash" | "sentiment"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["voice_out_reports"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "status"
+          | "priority"
+          | "owner_id"
+          | "internal_notes"
+          | "resolved_at"
+          | "attachments"
+          | "allows_follow_up"
+          | "reply_access_hash"
+          | "sentiment"
+        > & {
           status?: VoiceOutStatus;
           priority?: VoiceOutPriority;
           owner_id?: string | null;
@@ -370,12 +610,23 @@ export interface Database {
           reply_access_hash?: string | null;
           sentiment?: "negative" | "neutral" | "positive";
         };
-        Update: Partial<Database["public"]["Tables"]["voice_out_reports"]["Insert"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["voice_out_reports"]["Insert"]
+        >;
         Relationships: [];
       };
       voice_out_messages: {
-        Row: { id: string; report_id: string; author_role: "staff" | "hr"; message: string; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["voice_out_messages"]["Row"], "id" | "created_at">;
+        Row: {
+          id: string;
+          report_id: string;
+          author_role: "staff" | "hr";
+          message: string;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["voice_out_messages"]["Row"],
+          "id" | "created_at"
+        >;
         Update: never;
         Relationships: [];
       };
@@ -393,12 +644,22 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["asana_connections"]["Row"], "id" | "created_at" | "updated_at" | "asana_email" | "workspace_name" | "token_expires_at"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["asana_connections"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "asana_email"
+          | "workspace_name"
+          | "token_expires_at"
+        > & {
           asana_email?: string | null;
           workspace_name?: string | null;
           token_expires_at?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["asana_connections"]["Row"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["asana_connections"]["Row"]
+        >;
         Relationships: [];
       };
       // ── Phase 3: Reviews, Surveys, IDPs, PIPs ───────────────
@@ -414,7 +675,10 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["review_cycles"]["Row"], "id" | "created_at" | "updated_at" | "status"> & { status?: ReviewStatus };
+        Insert: Omit<
+          Database["public"]["Tables"]["review_cycles"]["Row"],
+          "id" | "created_at" | "updated_at" | "status"
+        > & { status?: ReviewStatus };
         Update: Partial<Database["public"]["Tables"]["review_cycles"]["Row"]>;
         Relationships: [];
       };
@@ -425,7 +689,11 @@ export interface Database {
           reviewee_id: string;
           reviewer_id: string;
           review_type: ReviewType;
-          competency_ratings: { criterion: string; rating: number; comment: string }[];
+          competency_ratings: {
+            criterion: string;
+            rating: number;
+            comment: string;
+          }[];
           overall_rating: number | null;
           strengths: string | null;
           development_areas: string | null;
@@ -434,15 +702,32 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["performance_reviews"]["Row"], "id" | "created_at" | "updated_at" | "competency_ratings" | "overall_rating" | "strengths" | "development_areas" | "ai_draft" | "submitted_at"> & {
-          competency_ratings?: { criterion: string; rating: number; comment: string }[];
+        Insert: Omit<
+          Database["public"]["Tables"]["performance_reviews"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "competency_ratings"
+          | "overall_rating"
+          | "strengths"
+          | "development_areas"
+          | "ai_draft"
+          | "submitted_at"
+        > & {
+          competency_ratings?: {
+            criterion: string;
+            rating: number;
+            comment: string;
+          }[];
           overall_rating?: number | null;
           strengths?: string | null;
           development_areas?: string | null;
           ai_draft?: string | null;
           submitted_at?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["performance_reviews"]["Row"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["performance_reviews"]["Row"]
+        >;
         Relationships: [];
       };
       surveys: {
@@ -450,7 +735,14 @@ export interface Database {
           id: string;
           title: string;
           description: string | null;
-          questions: { id: string; text: string; type: "scale" | "text" | "choice" | "quiz"; options?: string[]; correct_answer?: string; time_limit_seconds?: number }[];
+          questions: {
+            id: string;
+            text: string;
+            type: "scale" | "text" | "choice" | "quiz";
+            options?: string[];
+            correct_answer?: string;
+            time_limit_seconds?: number;
+          }[];
           status: SurveyStatus;
           anonymous: boolean;
           created_by: string;
@@ -459,7 +751,17 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["surveys"]["Row"], "id" | "created_at" | "updated_at" | "status" | "anonymous" | "description" | "opens_at" | "closes_at"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["surveys"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "status"
+          | "anonymous"
+          | "description"
+          | "opens_at"
+          | "closes_at"
+        > & {
           description?: string | null;
           status?: SurveyStatus;
           anonymous?: boolean;
@@ -477,7 +779,10 @@ export interface Database {
           answers: Record<string, string | number>;
           submitted_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["survey_responses"]["Row"], "id" | "submitted_at" | "respondent_id"> & { respondent_id?: string | null };
+        Insert: Omit<
+          Database["public"]["Tables"]["survey_responses"]["Row"],
+          "id" | "submitted_at" | "respondent_id"
+        > & { respondent_id?: string | null };
         Update: never;
         Relationships: [];
       };
@@ -487,7 +792,10 @@ export interface Database {
           user_id: string;
           responded_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["survey_participants"]["Row"], "responded_at"> & { responded_at?: string };
+        Insert: Omit<
+          Database["public"]["Tables"]["survey_participants"]["Row"],
+          "responded_at"
+        > & { responded_at?: string };
         Update: never;
         Relationships: [];
       };
@@ -501,7 +809,10 @@ export interface Database {
           department: string | null;
           manager_id: string | null;
         };
-        Insert: Omit<Database["public"]["Tables"]["survey_audiences"]["Row"], "id">;
+        Insert: Omit<
+          Database["public"]["Tables"]["survey_audiences"]["Row"],
+          "id"
+        >;
         Update: never;
         Relationships: [];
       };
@@ -519,7 +830,18 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["idps"]["Row"], "id" | "created_at" | "updated_at" | "manager_id" | "goals" | "actions" | "status" | "start_date" | "due_date"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["idps"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "manager_id"
+          | "goals"
+          | "actions"
+          | "status"
+          | "start_date"
+          | "due_date"
+        > & {
           start_date?: string | null;
           manager_id?: string | null;
           goals?: string | null;
@@ -549,7 +871,20 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["pips"]["Row"], "id" | "created_at" | "updated_at" | "hr_id" | "support_provided" | "check_in_frequency" | "actions" | "review_date" | "resolved_at" | "outcome" | "resolution_notes"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["pips"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "hr_id"
+          | "support_provided"
+          | "check_in_frequency"
+          | "actions"
+          | "review_date"
+          | "resolved_at"
+          | "outcome"
+          | "resolution_notes"
+        > & {
           outcome?: "successful" | "unsuccessful" | null;
           resolution_notes?: string | null;
           hr_id?: string | null;
@@ -571,11 +906,16 @@ export interface Database {
           read: boolean;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["notifications"]["Row"], "id" | "created_at" | "read" | "link"> & {
+        Insert: Omit<
+          Database["public"]["Tables"]["notifications"]["Row"],
+          "id" | "created_at" | "read" | "link"
+        > & {
           read?: boolean;
           link?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["notifications"]["Insert"]
+        >;
         Relationships: [];
       };
       departments: {
@@ -590,15 +930,38 @@ export interface Database {
       };
       // ── New tables (FEAT-001) ─────────────────────────────────
       staff_groups: {
-        Row: { id: string; name: string; member_ids: string[]; created_by: string; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["staff_groups"]["Row"], "id" | "created_at">;
+        Row: {
+          id: string;
+          name: string;
+          member_ids: string[];
+          created_by: string;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["staff_groups"]["Row"],
+          "id" | "created_at"
+        >;
         Update: Partial<{ name: string; member_ids: string[] }>;
         Relationships: [];
       };
       engagement_notification_preferences: {
-        Row: { user_id: string; show_on_leaderboard: boolean; campaign_updates: boolean; side_quest_updates: boolean; created_at: string; updated_at: string };
-        Insert: { user_id: string; show_on_leaderboard?: boolean; campaign_updates?: boolean; side_quest_updates?: boolean };
-        Update: Partial<Database["public"]["Tables"]["engagement_notification_preferences"]["Insert"]>;
+        Row: {
+          user_id: string;
+          show_on_leaderboard: boolean;
+          campaign_updates: boolean;
+          side_quest_updates: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          show_on_leaderboard?: boolean;
+          campaign_updates?: boolean;
+          side_quest_updates?: boolean;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["engagement_notification_preferences"]["Insert"]
+        >;
         Relationships: [];
       };
       reward_wallets: {
@@ -608,38 +971,150 @@ export interface Database {
         Relationships: [];
       };
       reward_ledger: {
-        Row: { id: string; user_id: string; amount: number; reason: string; reference_type: string | null; reference_id: string | null; created_by: string | null; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["reward_ledger"]["Row"], "id" | "created_at"> & { reference_type?: string | null; reference_id?: string | null; created_by?: string | null };
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          reason: string;
+          reference_type: string | null;
+          reference_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["reward_ledger"]["Row"],
+          "id" | "created_at"
+        > & {
+          reference_type?: string | null;
+          reference_id?: string | null;
+          created_by?: string | null;
+        };
         Update: never;
         Relationships: [];
       };
       reward_catalogue: {
-        Row: { id: string; name: string; description: string | null; points_cost: number; image_url: string | null; is_active: boolean; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["reward_catalogue"]["Row"], "id" | "created_at" | "description" | "image_url" | "is_active"> & { description?: string | null; image_url?: string | null; is_active?: boolean };
-        Update: Partial<Database["public"]["Tables"]["reward_catalogue"]["Insert"]>;
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          points_cost: number;
+          image_url: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["reward_catalogue"]["Row"],
+          "id" | "created_at" | "description" | "image_url" | "is_active"
+        > & {
+          description?: string | null;
+          image_url?: string | null;
+          is_active?: boolean;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["reward_catalogue"]["Insert"]
+        >;
         Relationships: [];
       };
       reward_redemptions: {
-        Row: { id: string; user_id: string; catalogue_item_id: string; points_spent: number; status: RedemptionStatus; approved_by: string | null; fulfilled_at: string | null; notes: string | null; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["reward_redemptions"]["Row"], "id" | "created_at" | "status" | "approved_by" | "fulfilled_at" | "notes"> & { status?: RedemptionStatus; approved_by?: string | null; fulfilled_at?: string | null; notes?: string | null };
-        Update: Partial<{ status: RedemptionStatus; approved_by: string | null; fulfilled_at: string | null; notes: string | null }>;
+        Row: {
+          id: string;
+          user_id: string;
+          catalogue_item_id: string;
+          points_spent: number;
+          status: RedemptionStatus;
+          approved_by: string | null;
+          fulfilled_at: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["reward_redemptions"]["Row"],
+          | "id"
+          | "created_at"
+          | "status"
+          | "approved_by"
+          | "fulfilled_at"
+          | "notes"
+        > & {
+          status?: RedemptionStatus;
+          approved_by?: string | null;
+          fulfilled_at?: string | null;
+          notes?: string | null;
+        };
+        Update: Partial<{
+          status: RedemptionStatus;
+          approved_by: string | null;
+          fulfilled_at: string | null;
+          notes: string | null;
+        }>;
         Relationships: [];
       };
       milestones: {
-        Row: { id: string; user_id: string; type: MilestoneType; milestone_date: string; years_count: number | null; acknowledged: boolean; acknowledged_by: string | null; acknowledged_at: string | null; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["milestones"]["Row"], "id" | "created_at" | "acknowledged" | "acknowledged_by" | "acknowledged_at" | "years_count"> & { acknowledged?: boolean; acknowledged_by?: string | null; acknowledged_at?: string | null; years_count?: number | null };
-        Update: Partial<{ acknowledged: boolean; acknowledged_by: string | null; acknowledged_at: string | null }>;
+        Row: {
+          id: string;
+          user_id: string;
+          type: MilestoneType;
+          milestone_date: string;
+          years_count: number | null;
+          acknowledged: boolean;
+          acknowledged_by: string | null;
+          acknowledged_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["milestones"]["Row"],
+          | "id"
+          | "created_at"
+          | "acknowledged"
+          | "acknowledged_by"
+          | "acknowledged_at"
+          | "years_count"
+        > & {
+          acknowledged?: boolean;
+          acknowledged_by?: string | null;
+          acknowledged_at?: string | null;
+          years_count?: number | null;
+        };
+        Update: Partial<{
+          acknowledged: boolean;
+          acknowledged_by: string | null;
+          acknowledged_at: string | null;
+        }>;
         Relationships: [];
       };
       automation_rules: {
-        Row: { id: string; trigger_type: AutomationTrigger; action_type: AutomationAction; config: Record<string, unknown>; is_active: boolean; created_by: string; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["automation_rules"]["Row"], "id" | "created_at" | "config" | "is_active"> & { config?: Record<string, unknown>; is_active?: boolean };
-        Update: Partial<{ config: Record<string, unknown>; is_active: boolean }>;
+        Row: {
+          id: string;
+          trigger_type: AutomationTrigger;
+          action_type: AutomationAction;
+          config: Record<string, unknown>;
+          is_active: boolean;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["automation_rules"]["Row"],
+          "id" | "created_at" | "config" | "is_active"
+        > & { config?: Record<string, unknown>; is_active?: boolean };
+        Update: Partial<{
+          config: Record<string, unknown>;
+          is_active: boolean;
+        }>;
         Relationships: [];
       };
       automation_rule_executions: {
-        Row: { id: string; rule_id: string; event_key: string; user_id: string; action_type: AutomationAction; created_at: string };
-        Insert: Omit<Database["public"]["Tables"]["automation_rule_executions"]["Row"], "id" | "created_at">;
+        Row: {
+          id: string;
+          rule_id: string;
+          event_key: string;
+          user_id: string;
+          action_type: AutomationAction;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["automation_rule_executions"]["Row"],
+          "id" | "created_at"
+        >;
         Update: never;
         Relationships: [];
       };
@@ -653,7 +1128,10 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["slack_connections"]["Row"], "id" | "created_at" | "updated_at">;
+        Insert: Omit<
+          Database["public"]["Tables"]["slack_connections"]["Row"],
+          "id" | "created_at" | "updated_at"
+        >;
         Update: Partial<{ webhook_url: string; channel_name: string }>;
         Relationships: [];
       };
@@ -720,40 +1198,56 @@ export interface Database {
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export type Candidate = Database["public"]["Tables"]["candidates"]["Row"];
-export type CandidateNote = Database["public"]["Tables"]["candidate_notes"]["Row"];
-export type InterviewScorecard = Database["public"]["Tables"]["interview_scorecards"]["Row"];
+export type CandidateNote =
+  Database["public"]["Tables"]["candidate_notes"]["Row"];
+export type InterviewScorecard =
+  Database["public"]["Tables"]["interview_scorecards"]["Row"];
 export type AiLog = Database["public"]["Tables"]["ai_logs"]["Row"];
-export type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
+export type NotificationRow =
+  Database["public"]["Tables"]["notifications"]["Row"];
 
 // Pulse types
 export type Checkin = Database["public"]["Tables"]["checkins"]["Row"];
 export type Goal = Database["public"]["Tables"]["goals"]["Row"];
 export type OneOnOne = Database["public"]["Tables"]["one_on_ones"]["Row"];
 export type Feedback = Database["public"]["Tables"]["feedback"]["Row"];
-export type RecognitionValue = Database["public"]["Tables"]["recognition_values"]["Row"];
-export type VoiceOutReport = Database["public"]["Tables"]["voice_out_reports"]["Row"];
-export type VoiceOutMessage = Database["public"]["Tables"]["voice_out_messages"]["Row"];
+export type RecognitionValue =
+  Database["public"]["Tables"]["recognition_values"]["Row"];
+export type VoiceOutReport =
+  Database["public"]["Tables"]["voice_out_reports"]["Row"];
+export type VoiceOutMessage =
+  Database["public"]["Tables"]["voice_out_messages"]["Row"];
 
 // Reviews & Development types
-export type ReviewCycleRow = Database["public"]["Tables"]["review_cycles"]["Row"];
-export type PerformanceReview = Database["public"]["Tables"]["performance_reviews"]["Row"];
+export type ReviewCycleRow =
+  Database["public"]["Tables"]["review_cycles"]["Row"];
+export type PerformanceReview =
+  Database["public"]["Tables"]["performance_reviews"]["Row"];
 export type Survey = Database["public"]["Tables"]["surveys"]["Row"];
-export type SurveyResponse = Database["public"]["Tables"]["survey_responses"]["Row"];
+export type SurveyResponse =
+  Database["public"]["Tables"]["survey_responses"]["Row"];
 export type Idp = Database["public"]["Tables"]["idps"]["Row"];
 export type Pip = Database["public"]["Tables"]["pips"]["Row"];
 
 // New types (FEAT-001)
 export type StaffGroup = Database["public"]["Tables"]["staff_groups"]["Row"];
-export type RewardWallet = Database["public"]["Tables"]["reward_wallets"]["Row"];
+export type RewardWallet =
+  Database["public"]["Tables"]["reward_wallets"]["Row"];
 export type RewardLedger = Database["public"]["Tables"]["reward_ledger"]["Row"];
-export type RewardCatalogue = Database["public"]["Tables"]["reward_catalogue"]["Row"];
-export type RewardRedemption = Database["public"]["Tables"]["reward_redemptions"]["Row"];
+export type RewardCatalogue =
+  Database["public"]["Tables"]["reward_catalogue"]["Row"];
+export type RewardRedemption =
+  Database["public"]["Tables"]["reward_redemptions"]["Row"];
 export type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
-export type AutomationRule = Database["public"]["Tables"]["automation_rules"]["Row"];
-export type EngagementNotificationPreferences = Database["public"]["Tables"]["engagement_notification_preferences"]["Row"];
+export type AutomationRule =
+  Database["public"]["Tables"]["automation_rules"]["Row"];
+export type EngagementNotificationPreferences =
+  Database["public"]["Tables"]["engagement_notification_preferences"]["Row"];
 
 // FEAT-001: Slack
-export type SlackConnection = Database["public"]["Tables"]["slack_connections"]["Row"];
+export type SlackConnection =
+  Database["public"]["Tables"]["slack_connections"]["Row"];
 
 // Google Calendar integration
-export type GoogleCalendarConnection = Database["public"]["Tables"]["google_calendar_connections"]["Row"];
+export type GoogleCalendarConnection =
+  Database["public"]["Tables"]["google_calendar_connections"]["Row"];

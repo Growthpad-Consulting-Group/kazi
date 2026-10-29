@@ -27,7 +27,9 @@ export async function POST(req: Request): Promise<Response> {
   for (const user of activeUsers ?? []) {
     if (!user.start_date) continue;
 
-    const [startYear, startMonth, startDay] = user.start_date.split("-").map(Number);
+    const [startYear, startMonth, startDay] = user.start_date
+      .split("-")
+      .map(Number);
     // Anniversary this year
     const anniversaryThisYear = new Date(currentYear, startMonth - 1, startDay);
     const anniversaryStr = anniversaryThisYear.toISOString().slice(0, 10);
@@ -43,7 +45,7 @@ export async function POST(req: Request): Promise<Response> {
             milestone_date: anniversaryStr,
             years_count: yearsCount,
           },
-          { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true }
+          { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true },
         );
         if (!error) created++;
       }
@@ -73,7 +75,7 @@ export async function POST(req: Request): Promise<Response> {
           type: "onboarding_complete",
           milestone_date: todayStr,
         },
-        { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true }
+        { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true },
       );
       if (!error) created++;
     }
@@ -92,10 +94,12 @@ export async function POST(req: Request): Promise<Response> {
     const birthdayThisYear = new Date(currentYear, dobMonth - 1, dobDay);
     const birthdayStr = birthdayThisYear.toISOString().slice(0, 10);
     if (birthdayThisYear >= today && birthdayThisYear <= windowEnd) {
-      const { error } = await supabaseAdmin.from("milestones").upsert(
-        { user_id: user.id, type: "birthday", milestone_date: birthdayStr },
-        { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true }
-      );
+      const { error } = await supabaseAdmin
+        .from("milestones")
+        .upsert(
+          { user_id: user.id, type: "birthday", milestone_date: birthdayStr },
+          { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true },
+        );
       if (!error) created++;
     }
   }
@@ -104,15 +108,25 @@ export async function POST(req: Request): Promise<Response> {
   const SERVICE_MILESTONES = [1, 3, 5, 10];
   for (const user of activeUsers ?? []) {
     if (!user.start_date) continue;
-    const [startYear, startMonth, startDay] = user.start_date.split("-").map(Number);
+    const [startYear, startMonth, startDay] = user.start_date
+      .split("-")
+      .map(Number);
     for (const years of SERVICE_MILESTONES) {
       if (currentYear - startYear !== years) continue;
       const achievementDate = new Date(currentYear, startMonth - 1, startDay);
       const achievementStr = achievementDate.toISOString().slice(0, 10);
       if (achievementDate >= today && achievementDate <= windowEnd) {
         const { error } = await supabaseAdmin.from("milestones").upsert(
-          { user_id: user.id, type: "service_achievement", milestone_date: achievementStr, years_count: years },
-          { onConflict: "user_id,type,milestone_date", ignoreDuplicates: true }
+          {
+            user_id: user.id,
+            type: "service_achievement",
+            milestone_date: achievementStr,
+            years_count: years,
+          },
+          {
+            onConflict: "user_id,type,milestone_date",
+            ignoreDuplicates: true,
+          },
         );
         if (!error) created++;
       }

@@ -34,10 +34,7 @@ export async function PATCH(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabaseAdmin as any)
     .from("engagement_notification_preferences")
-    .upsert(
-      { user_id: session.user.id, ...patch },
-      { onConflict: "user_id" }
-    )
+    .upsert({ user_id: session.user.id, ...patch }, { onConflict: "user_id" })
     .select()
     .single();
 

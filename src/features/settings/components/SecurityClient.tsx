@@ -31,17 +31,25 @@ export default function SecurityClient() {
         setConfirm("");
         toast.success("Password updated");
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not change password");
+        toast.error(
+          e instanceof Error ? e.message : "Could not change password",
+        );
       }
     });
   }
 
   return (
     <div className="space-y-6">
-      <SettingsSection title="Change password" description="At least 8 characters" icon="solar:key-broken">
+      <SettingsSection
+        title="Change password"
+        description="At least 8 characters"
+        icon="solar:key-broken"
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Current password</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Current password
+            </span>
             <PasswordInput
               value={current}
               onChange={(e) => setCurrent(e.target.value)}
@@ -50,7 +58,9 @@ export default function SecurityClient() {
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">New password</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              New password
+            </span>
             <PasswordInput
               value={next}
               onChange={(e) => setNext(e.target.value)}
@@ -59,7 +69,9 @@ export default function SecurityClient() {
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Confirm new password</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Confirm new password
+            </span>
             <PasswordInput
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
@@ -69,7 +81,14 @@ export default function SecurityClient() {
           </label>
         </div>
         <div className="mt-5 flex justify-end">
-          <Button icon="solar:key-broken" loading={isPending} disabled={!current || !next || !confirm} onClick={save}>{isPending ? "Updating" : "Update password"}</Button>
+          <Button
+            icon="solar:key-broken"
+            loading={isPending}
+            disabled={!current || !next || !confirm}
+            onClick={save}
+          >
+            {isPending ? "Updating" : "Update password"}
+          </Button>
         </div>
       </SettingsSection>
 
@@ -81,9 +100,17 @@ export default function SecurityClient() {
       >
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-[var(--text-lo)]">
-            You are signed in on this device. Signing out ends your session immediately.
+            You are signed in on this device. Signing out ends your session
+            immediately.
           </p>
-          <Button variant="danger" icon="solar:logout-2-broken" className="shrink-0" onClick={() => signOut({ callbackUrl: "/login" })}>Sign out</Button>
+          <Button
+            variant="danger"
+            icon="solar:logout-2-broken"
+            className="shrink-0"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+          >
+            Sign out
+          </Button>
         </div>
       </SettingsSection>
     </div>

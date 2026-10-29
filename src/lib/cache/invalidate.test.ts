@@ -263,7 +263,7 @@ describe("Redis failure fallback", () => {
     await expect(invalidatePublicFeedback()).resolves.toBeUndefined();
     await expect(invalidateOwnerGoals("u1")).resolves.toBeUndefined();
     await expect(
-      invalidateOneOnOneParticipants({ managerId: "m1", reportId: "r1" })
+      invalidateOneOnOneParticipants({ managerId: "m1", reportId: "r1" }),
     ).resolves.toBeUndefined();
   });
 

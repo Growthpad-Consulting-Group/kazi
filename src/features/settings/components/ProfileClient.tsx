@@ -29,7 +29,10 @@ interface Props {
   passwordRequired?: boolean;
 }
 
-export default function ProfileClient({ initial, passwordRequired = false }: Props) {
+export default function ProfileClient({
+  initial,
+  passwordRequired = false,
+}: Props) {
   const router = useRouter();
   const { update: updateSession } = useSession();
 
@@ -55,7 +58,12 @@ export default function ProfileClient({ initial, passwordRequired = false }: Pro
   function saveProfile() {
     startTransition(async () => {
       try {
-        const saved = await updateProfile({ name, job_title: jobTitle || null, location: location || null, avatar_url: avatarUrl || null });
+        const saved = await updateProfile({
+          name,
+          job_title: jobTitle || null,
+          location: location || null,
+          avatar_url: avatarUrl || null,
+        });
         await updateSession({ name: saved.name });
         toast.success("Profile updated");
         router.refresh();
@@ -66,19 +74,26 @@ export default function ProfileClient({ initial, passwordRequired = false }: Pro
   }
 
   function savePassword() {
-    if (newPw !== confirmPw) { toast.error("Passwords do not match"); return; }
+    if (newPw !== confirmPw) {
+      toast.error("Passwords do not match");
+      return;
+    }
     startPwTransition(async () => {
       try {
         await changePassword({ current: currentPw, next: newPw });
         toast.success("Password changed");
-        setCurrentPw(""); setNewPw(""); setConfirmPw("");
+        setCurrentPw("");
+        setNewPw("");
+        setConfirmPw("");
         if (passwordRequired) {
           // The temporary password is replaced, so take them into the app.
           router.replace("/dashboard");
           router.refresh();
         }
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not change password");
+        toast.error(
+          e instanceof Error ? e.message : "Could not change password",
+        );
       }
     });
   }
@@ -86,89 +101,178 @@ export default function ProfileClient({ initial, passwordRequired = false }: Pro
   return (
     <div className="space-y-6">
       {/* Avatar + identity */}
-      <SettingsSection title="Your details" description="How you appear across Kazi" icon="solar:user-id-broken">
+      <SettingsSection
+        title="Your details"
+        description="How you appear across Kazi"
+        icon="solar:user-id-broken"
+      >
         <div className="pb-5 border-b border-[var(--border)]">
           <AvatarUpload
             value={avatarUrl}
             name={name || "U"}
             uploadEndpoint="/api/users/avatar"
-            onChange={(url) => { setAvatarUrl(url); }}
+            onChange={(url) => {
+              setAvatarUrl(url);
+            }}
             size="lg"
           />
-          <p className="mt-2 text-xs text-[var(--text-lo)]">Or paste a URL below. Shown in the top bar and your profile.</p>
+          <p className="mt-2 text-xs text-[var(--text-lo)]">
+            Or paste a URL below. Shown in the top bar and your profile.
+          </p>
         </div>
 
         <div className="pt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Full name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Full name
+            </span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={inputCls}
+            />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Email</span>
-            <input type="email" value={initial.email} readOnly aria-readonly="true" className={inputCls + " cursor-not-allowed opacity-70"} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Email
+            </span>
+            <input
+              type="email"
+              value={initial.email}
+              readOnly
+              aria-readonly="true"
+              className={inputCls + " cursor-not-allowed opacity-70"}
+            />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Job title</span>
-            <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="e.g. Product Designer" className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Job title
+            </span>
+            <input
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="e.g. Product Designer"
+              className={inputCls}
+            />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Location</span>
-            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Nairobi, Kenya" className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Location
+            </span>
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g. Nairobi, Kenya"
+              className={inputCls}
+            />
           </label>
           <label className="block sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Avatar URL</span>
-            <input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://…" className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Avatar URL
+            </span>
+            <input
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder="https://…"
+              className={inputCls}
+            />
           </label>
         </div>
         <p className="mt-3 text-xs text-[var(--text-lo)]">
-          Your email is your fixed sign-in address. Contact an administrator if it needs to change.
+          Your email is your fixed sign-in address. Contact an administrator if
+          it needs to change.
         </p>
 
         <div className="mt-5 flex justify-end border-t border-[var(--border)] pt-4">
-          <Button icon="solar:diskette-broken" loading={isPending} disabled={!profileDirty} onClick={saveProfile}>
+          <Button
+            icon="solar:diskette-broken"
+            loading={isPending}
+            disabled={!profileDirty}
+            onClick={saveProfile}
+          >
             {isPending ? "Saving…" : "Save changes"}
           </Button>
         </div>
       </SettingsSection>
 
       {/* Read-only access info */}
-      <SettingsSection title="Access" description="Managed by your administrator" icon="solar:shield-check-broken">
+      <SettingsSection
+        title="Access"
+        description="Managed by your administrator"
+        icon="solar:shield-check-broken"
+      >
         <div className="divide-y divide-[var(--border)]">
           {[
             { label: "Role", value: initial.role.replace("_", " ") },
             { label: "Department", value: initial.department ?? "—" },
           ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            <div
+              key={label}
+              className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+            >
               <span className="text-xs text-[var(--text-lo)]">{label}</span>
-              <span className="text-sm font-medium capitalize text-[var(--text-hi)]">{value}</span>
+              <span className="text-sm font-medium capitalize text-[var(--text-hi)]">
+                {value}
+              </span>
             </div>
           ))}
         </div>
       </SettingsSection>
 
       {/* Password change */}
-      <SettingsSection title="Password" description="Change your sign-in password" icon="solar:lock-password-broken">
+      <SettingsSection
+        title="Password"
+        description="Change your sign-in password"
+        icon="solar:lock-password-broken"
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Current password</span>
-            <PasswordInput value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} autoComplete="current-password" className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Current password
+            </span>
+            <PasswordInput
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
+              autoComplete="current-password"
+              className={inputCls}
+            />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">New password</span>
-            <PasswordInput value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              New password
+            </span>
+            <PasswordInput
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              autoComplete="new-password"
+              className={inputCls}
+            />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Confirm new password</span>
-            <PasswordInput value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" className={inputCls} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Confirm new password
+            </span>
+            <PasswordInput
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              autoComplete="new-password"
+              className={inputCls}
+            />
           </label>
         </div>
         {newPw && confirmPw && newPw !== confirmPw && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-red-500">
-            <Icon icon="solar:danger-triangle-broken" className="h-3.5 w-3.5" /> Passwords do not match
+            <Icon icon="solar:danger-triangle-broken" className="h-3.5 w-3.5" />{" "}
+            Passwords do not match
           </p>
         )}
         <div className="mt-5 flex justify-end border-t border-[var(--border)] pt-4">
-          <Button icon="solar:lock-password-broken" loading={pwPending} disabled={!currentPw || !newPw || !confirmPw || newPw !== confirmPw} onClick={savePassword}>
+          <Button
+            icon="solar:lock-password-broken"
+            loading={pwPending}
+            disabled={!currentPw || !newPw || !confirmPw || newPw !== confirmPw}
+            onClick={savePassword}
+          >
             {pwPending ? "Changing…" : "Change password"}
           </Button>
         </div>

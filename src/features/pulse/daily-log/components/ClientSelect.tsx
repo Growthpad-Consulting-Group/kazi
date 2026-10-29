@@ -3,7 +3,10 @@
 import { useState } from "react";
 import CreatableSelect from "react-select/creatable";
 import toast from "react-hot-toast";
-import { getSelectStyles, type SelectOption } from "@/components/ui/export/selectStyles";
+import {
+  getSelectStyles,
+  type SelectOption,
+} from "@/components/ui/export/selectStyles";
 import { useTheme } from "@/shared/contexts/ThemeContext";
 
 const toOption = (name: string): SelectOption => ({ value: name, label: name });
@@ -30,8 +33,12 @@ export function ClientSelect({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: input }),
       });
-      const json = await res.json().catch(() => null) as { name?: string; error?: string } | null;
-      if (!res.ok || !json?.name) throw new Error(json?.error ?? "Could not add client");
+      const json = (await res.json().catch(() => null)) as {
+        name?: string;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.name)
+        throw new Error(json?.error ?? "Could not add client");
       onClientCreated(json.name);
       onChange(json.name);
     } catch (err) {
@@ -59,7 +66,9 @@ export function ClientSelect({
         ...getSelectStyles<SelectOption>(resolvedMode),
         menuPortal: (b) => ({ ...b, zIndex: 99999 }),
       }}
-      menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+      menuPortalTarget={
+        typeof document !== "undefined" ? document.body : undefined
+      }
       menuPosition="fixed"
     />
   );

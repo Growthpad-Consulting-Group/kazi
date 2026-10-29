@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import {
   Area,
@@ -23,14 +23,21 @@ const tooltipStyle = {
 export function RecognitionTrendChart({ data }: { data: TrendPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={data} margin={{ top: 14, right: 8, left: -22, bottom: 0 }}>
+      <AreaChart
+        data={data}
+        margin={{ top: 14, right: 8, left: -22, bottom: 0 }}
+      >
         <defs>
           <linearGradient id="recogTrend" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#f05d23" stopOpacity={0.35} />
             <stop offset="100%" stopColor="#f05d23" stopOpacity={0.02} />
           </linearGradient>
         </defs>
-        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+        <CartesianGrid
+          vertical={false}
+          stroke="var(--border)"
+          strokeDasharray="3 3"
+        />
         <XAxis
           dataKey="label"
           axisLine={false}

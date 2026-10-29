@@ -20,7 +20,10 @@ export async function awardPoints({
   // Ensure wallet exists
   await supabaseAdmin
     .from("reward_wallets")
-    .upsert({ user_id: userId, balance: 0 }, { onConflict: "user_id", ignoreDuplicates: true });
+    .upsert(
+      { user_id: userId, balance: 0 },
+      { onConflict: "user_id", ignoreDuplicates: true },
+    );
 
   // Fetch current balance and increment
   const { data: wallet } = await supabaseAdmin

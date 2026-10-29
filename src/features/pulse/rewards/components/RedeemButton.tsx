@@ -11,7 +11,11 @@ interface RedeemButtonProps {
   userBalance: number;
 }
 
-export default function RedeemButton({ catalogueItemId, pointsCost, userBalance }: RedeemButtonProps) {
+export default function RedeemButton({
+  catalogueItemId,
+  pointsCost,
+  userBalance,
+}: RedeemButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +24,9 @@ export default function RedeemButton({ catalogueItemId, pointsCost, userBalance 
   async function handleRedeem() {
     if (disabled) {
       const short = pointsCost - userBalance;
-      toast.error(`You need ${short} more point${short === 1 ? "" : "s"} to redeem this.`);
+      toast.error(
+        `You need ${short} more point${short === 1 ? "" : "s"} to redeem this.`,
+      );
       return;
     }
     setLoading(true);
@@ -31,7 +37,7 @@ export default function RedeemButton({ catalogueItemId, pointsCost, userBalance 
         body: JSON.stringify({ catalogue_item_id: catalogueItemId }),
       });
       if (!res.ok) {
-        const data = await res.json() as { error?: string };
+        const data = (await res.json()) as { error?: string };
         toast.error(data.error ?? "Redemption failed.");
         return;
       }

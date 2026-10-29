@@ -1,4 +1,3 @@
-
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
@@ -12,9 +11,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Kazi — Codex Working Guidelines
 
 ## Project context
+
 Kazi is a Next.js 16, React, TypeScript and Supabase application with staff management, authentication, permissions, integrations and other business workflows.
 
 ## Working approach
+
 - Understand the requested change before editing.
 - Inspect relevant files and their dependencies, not the entire repository by default.
 - Reuse existing components, utilities, design tokens and patterns.
@@ -24,12 +25,14 @@ Kazi is a Next.js 16, React, TypeScript and Supabase application with staff mana
 - Ask for clarification when requirements are materially ambiguous.
 
 ## UI and design
+
 - Follow existing visual conventions and component patterns.
 - Maintain consistent spacing, typography, colours and responsive behaviour.
 - Use existing shared UI components before creating new ones.
 - Avoid unrelated visual changes.
 
 ## Backend and security
+
 - Preserve authentication and role-based permissions.
 - Validate inputs and handle errors appropriately.
 - Never expose secrets or privileged credentials.
@@ -38,6 +41,7 @@ Kazi is a Next.js 16, React, TypeScript and Supabase application with staff mana
 - Follow existing integration and API patterns.
 
 ## Validation
+
 - Run focused checks appropriate to the changed files.
 - Use relevant lint and tests; run broader checks for cross-cutting changes.
 - Fix errors introduced by the change.
@@ -45,6 +49,7 @@ Kazi is a Next.js 16, React, TypeScript and Supabase application with staff mana
 - Do not claim tests passed unless they were executed.
 
 ## Communication
+
 - Keep explanations concise.
 - Summarize what changed, what was tested and any remaining issues.
 - Avoid lengthy progress reports unless the task requires them.

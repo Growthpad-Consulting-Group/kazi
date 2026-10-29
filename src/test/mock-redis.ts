@@ -25,7 +25,9 @@ interface MockRedisState {
   failing: boolean;
 }
 
-const globalRef = globalThis as typeof globalThis & { [GLOBAL_KEY]?: MockRedisState };
+const globalRef = globalThis as typeof globalThis & {
+  [GLOBAL_KEY]?: MockRedisState;
+};
 
 const state: MockRedisState = (globalRef[GLOBAL_KEY] ??= {
   store: new Map(),
@@ -57,9 +59,18 @@ export const mockRedis = {
   pipeline() {
     const queued: Array<() => Promise<unknown>> = [];
     const pipe = {
-      set: (key: string, value: unknown, opts?: { ex?: number }) => { queued.push(() => mockRedis.set(key, value, opts)); return pipe; },
-      sadd: (key: string, ...members: string[]) => { queued.push(() => mockRedis.sadd(key, ...members)); return pipe; },
-      expire: (key: string, seconds: number) => { queued.push(() => mockRedis.expire(key, seconds)); return pipe; },
+      set: (key: string, value: unknown, opts?: { ex?: number }) => {
+        queued.push(() => mockRedis.set(key, value, opts));
+        return pipe;
+      },
+      sadd: (key: string, ...members: string[]) => {
+        queued.push(() => mockRedis.sadd(key, ...members));
+        return pipe;
+      },
+      expire: (key: string, seconds: number) => {
+        queued.push(() => mockRedis.expire(key, seconds));
+        return pipe;
+      },
       async exec() {
         const results: unknown[] = [];
         for (const run of queued) results.push(await run());
@@ -81,7 +92,11 @@ export const mockRedis = {
     return JSON.parse(entry.value) as T;
   },
 
-  async set(key: string, value: unknown, opts?: { ex?: number }): Promise<"OK"> {
+  async set(
+    key: string,
+    value: unknown,
+    opts?: { ex?: number },
+  ): Promise<"OK"> {
     assertOk();
     const ex = opts?.ex;
     state.store.set(key, {
@@ -95,9 +110,13 @@ export const mockRedis = {
   async incr(key: string): Promise<number> {
     assertOk();
     const entry = state.store.get(key);
-    const current = entry && !isExpired(entry) ? Number(JSON.parse(entry.value)) || 0 : 0;
+    const current =
+      entry && !isExpired(entry) ? Number(JSON.parse(entry.value)) || 0 : 0;
     const next = current + 1;
-    state.store.set(key, { value: JSON.stringify(next), expiresAt: entry?.expiresAt ?? null });
+    state.store.set(key, {
+      value: JSON.stringify(next),
+      expiresAt: entry?.expiresAt ?? null,
+    });
     return next;
   },
 
@@ -155,10 +174,12 @@ export const mockRedis = {
 
   async scan(
     cursor: string,
-    opts?: { match?: string; count?: number }
+    opts?: { match?: string; count?: number },
   ): Promise<[string, string[]]> {
     assertOk();
-    const pattern = opts?.match ? new RegExp(`^${opts.match.replace(/\*/g, ".*")}$`) : /.*/;
+    const pattern = opts?.match
+      ? new RegExp(`^${opts.match.replace(/\*/g, ".*")}$`)
+      : /.*/;
     const found: string[] = [];
     for (const key of state.store.keys()) {
       if (pattern.test(key)) found.push(key);

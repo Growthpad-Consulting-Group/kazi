@@ -20,14 +20,26 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role_title: value }),
       });
-      const data = (await res.json().catch(() => null)) as { error?: string; gmail?: string; gmailError?: string } | null;
-      if (!res.ok) throw new Error(data?.error ?? "Could not save your role title.");
-      if (data?.gmail === "error") toast.error(`Saved, but your email signature did not update: ${data.gmailError ?? "Gmail sync failed."}`);
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        gmail?: string;
+        gmailError?: string;
+      } | null;
+      if (!res.ok)
+        throw new Error(data?.error ?? "Could not save your role title.");
+      if (data?.gmail === "error")
+        toast.error(
+          `Saved, but your email signature did not update: ${data.gmailError ?? "Gmail sync failed."}`,
+        );
       else toast.success("Role title updated");
       setEditing(false);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save your role title.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not save your role title.",
+      );
     } finally {
       setSaving(false);
     }
@@ -36,7 +48,9 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
   if (!editing) {
     return (
       <div className="mt-1 flex items-center gap-2">
-        <p className="text-sm text-[var(--text-lo)]">{initial ?? "No role title set"}</p>
+        <p className="text-sm text-[var(--text-lo)]">
+          {initial ?? "No role title set"}
+        </p>
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -58,8 +72,19 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
         placeholder="e.g. Full Stack Developer"
         className="w-full max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] outline-none focus:ring-2 focus:ring-brand-500/40"
       />
-      <Button size="sm" loading={saving} onClick={save}>Save</Button>
-      <Button size="sm" variant="ghost" onClick={() => { setValue(initial ?? ""); setEditing(false); }}>Cancel</Button>
+      <Button size="sm" loading={saving} onClick={save}>
+        Save
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => {
+          setValue(initial ?? "");
+          setEditing(false);
+        }}
+      >
+        Cancel
+      </Button>
     </div>
   );
 }

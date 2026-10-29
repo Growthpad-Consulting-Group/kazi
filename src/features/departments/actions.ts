@@ -18,7 +18,8 @@ export async function getDepartments(): Promise<string[]> {
 /** Creates a department, or returns the existing one (case-insensitive match). */
 export async function createDepartment(rawName: string): Promise<string> {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments"))
+    throw new Error("Forbidden");
 
   const name = rawName.trim().replace(/\s+/g, " ");
   if (!name) throw new Error("Department name is required");
@@ -50,13 +51,18 @@ export interface DepartmentRow {
 
 export async function getDepartmentsWithUsage(): Promise<DepartmentRow[]> {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments"))
+    throw new Error("Forbidden");
 
-  const [{ data: depts, error }, { data: jobs }, { data: users }] = await Promise.all([
-    supabaseAdmin.from("departments").select("id, name").order("name", { ascending: true }),
-    supabaseAdmin.from("jobs").select("department"),
-    supabaseAdmin.from("users").select("department"),
-  ]);
+  const [{ data: depts, error }, { data: jobs }, { data: users }] =
+    await Promise.all([
+      supabaseAdmin
+        .from("departments")
+        .select("id, name")
+        .order("name", { ascending: true }),
+      supabaseAdmin.from("jobs").select("department"),
+      supabaseAdmin.from("users").select("department"),
+    ]);
   if (error) throw new Error(error.message);
 
   const count = (rows: { department: string | null }[] | null) => {
@@ -80,9 +86,13 @@ export async function getDepartmentsWithUsage(): Promise<DepartmentRow[]> {
 }
 
 /** Renames a department and updates every job/user that uses the old name. */
-export async function renameDepartment(id: string, rawName: string): Promise<string> {
+export async function renameDepartment(
+  id: string,
+  rawName: string,
+): Promise<string> {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments"))
+    throw new Error("Forbidden");
 
   const name = rawName.trim().replace(/\s+/g, " ");
   if (!name) throw new Error("Department name is required");
@@ -104,7 +114,8 @@ export async function renameDepartment(id: string, rawName: string): Promise<str
 /** Deletes a department only when no job or person uses it. */
 export async function deleteDepartment(id: string): Promise<void> {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_departments")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_departments"))
+    throw new Error("Forbidden");
 
   const { data: current } = await supabaseAdmin
     .from("departments")
@@ -114,16 +125,26 @@ export async function deleteDepartment(id: string): Promise<void> {
   if (!current) throw new Error("Department not found");
 
   const [{ count: jobs }, { count: people }] = await Promise.all([
-    supabaseAdmin.from("jobs").select("id", { count: "exact", head: true }).eq("department", current.name),
-    supabaseAdmin.from("users").select("id", { count: "exact", head: true }).eq("department", current.name),
+    supabaseAdmin
+      .from("jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("department", current.name),
+    supabaseAdmin
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("department", current.name),
   ]);
   if ((jobs ?? 0) + (people ?? 0) > 0) {
-    throw new Error(`In use by ${jobs ?? 0} job(s) and ${people ?? 0} person(s) — rename it or reassign them first`);
+    throw new Error(
+      `In use by ${jobs ?? 0} job(s) and ${people ?? 0} person(s) — rename it or reassign them first`,
+    );
   }
 
-  const { error } = await supabaseAdmin.from("departments").delete().eq("id", id);
+  const { error } = await supabaseAdmin
+    .from("departments")
+    .delete()
+    .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/settings/departments");
   await invalidateTables("departments");
 }
-

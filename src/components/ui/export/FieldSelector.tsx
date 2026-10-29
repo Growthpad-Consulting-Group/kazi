@@ -1,10 +1,14 @@
-'use client';
+"use client";
 import { Icon } from "@iconify/react";
 import { Draggable, Droppable } from "@hello-pangea/dnd";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 
-interface Field { key: string; label: string; icon: string; }
+interface Field {
+  key: string;
+  label: string;
+  icon: string;
+}
 interface Props {
   fieldsOrder: Field[];
   selectedFields: Record<string, boolean>;
@@ -12,9 +16,18 @@ interface Props {
   mode: "light" | "dark";
 }
 
-export default function FieldSelector({ fieldsOrder, selectedFields, handleFieldToggle, mode }: Props) {
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
-  useEffect(() => { setPortalContainer(document.body); }, []);
+export default function FieldSelector({
+  fieldsOrder,
+  selectedFields,
+  handleFieldToggle,
+  mode,
+}: Props) {
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+    null,
+  );
+  useEffect(() => {
+    setPortalContainer(document.body);
+  }, []);
 
   return (
     <Droppable droppableId="fieldSelector">
@@ -38,8 +51,14 @@ export default function FieldSelector({ fieldsOrder, selectedFields, handleField
                     } ${snapshot.isDragging ? "shadow-xl border-brand-500 opacity-90" : "shadow-sm"}`}
                     style={provided.draggableProps.style}
                   >
-                    <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing shrink-0">
-                      <Icon icon="solar:hamburger-menu-broken" className={`w-4 h-4 ${mode === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                    <div
+                      {...provided.dragHandleProps}
+                      className="cursor-grab active:cursor-grabbing shrink-0"
+                    >
+                      <Icon
+                        icon="solar:hamburger-menu-broken"
+                        className={`w-4 h-4 ${mode === "dark" ? "text-gray-500" : "text-gray-400"}`}
+                      />
                     </div>
                     <label className="flex items-center gap-2 flex-1 cursor-pointer min-w-0">
                       <input
@@ -48,12 +67,17 @@ export default function FieldSelector({ fieldsOrder, selectedFields, handleField
                         onChange={() => handleFieldToggle(field.key)}
                         className="h-4 w-4 shrink-0 rounded accent-brand-500 cursor-pointer"
                       />
-                      <Icon icon={field.icon} className="w-4 h-4 shrink-0 text-brand-500" />
+                      <Icon
+                        icon={field.icon}
+                        className="w-4 h-4 shrink-0 text-brand-500"
+                      />
                       <span className="text-xs truncate">{field.label}</span>
                     </label>
                   </div>
                 );
-                return snapshot.isDragging && portalContainer ? createPortal(el, portalContainer) : el;
+                return snapshot.isDragging && portalContainer
+                  ? createPortal(el, portalContainer)
+                  : el;
               }}
             </Draggable>
           ))}

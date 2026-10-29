@@ -21,10 +21,21 @@ interface Props {
   onSent?: () => void;
 }
 
-export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups = [], onSent }: Props) {
+export function SendFeedbackForm({
+  fromUserId,
+  users,
+  values,
+  campaigns,
+  groups = [],
+  onSent,
+}: Props) {
   const router = useRouter();
-  const [recipientIds, setRecipientIds] = useState<string[]>(users[0] ? [users[0].id] : []);
-  const [recipientMode, setRecipientMode] = useState<"individual" | "group">("individual");
+  const [recipientIds, setRecipientIds] = useState<string[]>(
+    users[0] ? [users[0].id] : [],
+  );
+  const [recipientMode, setRecipientMode] = useState<"individual" | "group">(
+    "individual",
+  );
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [message, setMessage] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
@@ -60,8 +71,10 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
     if (!giphyQuery.trim()) return;
     setGiphyLoading(true);
     try {
-      const res = await fetch(`/api/pulse/giphy/search?q=${encodeURIComponent(giphyQuery.trim())}`);
-      const data = await res.json() as { data?: GiphyGif[]; error?: string };
+      const res = await fetch(
+        `/api/pulse/giphy/search?q=${encodeURIComponent(giphyQuery.trim())}`,
+      );
+      const data = (await res.json()) as { data?: GiphyGif[]; error?: string };
       if (!res.ok) throw new Error(data.error ?? "GIF search failed.");
       setGiphyResults(data.data ?? []);
     } catch (reason) {
@@ -74,7 +87,8 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
 
   async function submit() {
     if (!message.trim() || !recipientIds.length) return;
-    setSaving(true); setError("");
+    setSaving(true);
+    setError("");
     try {
       const response = await fetch("/api/pulse/feedback", {
         method: "POST",
@@ -90,14 +104,23 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
           media_url: visibility === "public" ? mediaUrl || null : null,
         }),
       });
-      const data = await response.json().catch(() => null) as { error?: string } | null;
-      if (!response.ok) throw new Error(data?.error ?? "Could not send feedback.");
-      setSent(true); setMessage(""); setMediaUrl(""); setGiphyResults([]); setGiphyQuery("");
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(data?.error ?? "Could not send feedback.");
+      setSent(true);
+      setMessage("");
+      setMediaUrl("");
+      setGiphyResults([]);
+      setGiphyQuery("");
       router.refresh();
       onSent?.();
       window.setTimeout(() => setSent(false), 3000);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not send feedback.");
+      setError(
+        reason instanceof Error ? reason.message : "Could not send feedback.",
+      );
     } finally {
       setSaving(false);
     }
@@ -113,8 +136,12 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
             type="button"
             onClick={() => {
               setVisibility(value);
-              if (value === "private" && recipientIds.length > 1) setRecipientIds(recipientIds.slice(0, 1));
-              if (value === "private") { setRecipientMode("individual"); setSelectedGroupId(""); }
+              if (value === "private" && recipientIds.length > 1)
+                setRecipientIds(recipientIds.slice(0, 1));
+              if (value === "private") {
+                setRecipientMode("individual");
+                setSelectedGroupId("");
+              }
             }}
             className={`rounded-xl border p-3 text-left transition-colors ${
               visibility === value
@@ -125,14 +152,20 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
             }`}
           >
             <Icon
-              icon={value === "public" ? "solar:star-fall-broken" : "solar:lock-keyhole-minimalistic-broken"}
-              className={`h-4 w-4 ${visibility === value ? value === "public" ? "text-brand-500" : "text-blue-600" : "text-[var(--text-lo)]"}`}
+              icon={
+                value === "public"
+                  ? "solar:star-fall-broken"
+                  : "solar:lock-keyhole-minimalistic-broken"
+              }
+              className={`h-4 w-4 ${visibility === value ? (value === "public" ? "text-brand-500" : "text-blue-600") : "text-[var(--text-lo)]"}`}
             />
             <span className="mt-2 block text-xs font-semibold text-[var(--text-hi)]">
               {value === "public" ? "Shout-out" : "Private note"}
             </span>
             <span className="mt-0.5 block text-[10px] leading-relaxed text-[var(--text-lo)]">
-              {value === "public" ? "Celebrate work with the team." : "Share feedback just with them."}
+              {value === "public"
+                ? "Celebrate work with the team."
+                : "Share feedback just with them."}
             </span>
           </button>
         ))}
@@ -161,9 +194,13 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
         )}
 
         <div className="mb-1.5 flex items-center justify-between gap-2">
-          <label className="text-xs font-semibold text-[var(--text-hi)]">To</label>
+          <label className="text-xs font-semibold text-[var(--text-hi)]">
+            To
+          </label>
           {visibility === "public" && recipientMode === "individual" && (
-            <span className="text-[10px] text-[var(--text-lo)]">Choose one or more staff</span>
+            <span className="text-[10px] text-[var(--text-lo)]">
+              Choose one or more staff
+            </span>
           )}
         </div>
 
@@ -183,14 +220,18 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
         ) : (
           <select
             multiple={visibility === "public"}
-            size={visibility === "public" ? Math.min(Math.max(users.length, 3), 5) : 1}
+            size={
+              visibility === "public"
+                ? Math.min(Math.max(users.length, 3), 5)
+                : 1
+            }
             value={recipientIds}
             onChange={(event) =>
               setRecipientIds(
-                Array.from(event.target.selectedOptions, (option) => option.value).slice(
-                  0,
-                  visibility === "public" ? undefined : 1
-                )
+                Array.from(
+                  event.target.selectedOptions,
+                  (option) => option.value,
+                ).slice(0, visibility === "public" ? undefined : 1),
               )
             }
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10"
@@ -212,7 +253,8 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
         )}
         {recipientMode === "group" && selectedGroupId && (
           <p className="mt-1.5 text-[10px] text-[var(--text-lo)]">
-            {recipientIds.length} member{recipientIds.length !== 1 ? "s" : ""} will receive this shout-out
+            {recipientIds.length} member{recipientIds.length !== 1 ? "s" : ""}{" "}
+            will receive this shout-out
           </p>
         )}
       </div>
@@ -221,7 +263,9 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
       {visibility === "public" && (
         <>
           <div className="mt-4">
-            <p className="mb-1.5 text-xs font-semibold text-[var(--text-hi)]">Value demonstrated</p>
+            <p className="mb-1.5 text-xs font-semibold text-[var(--text-hi)]">
+              Value demonstrated
+            </p>
             {values.length ? (
               <select
                 value={valueId}
@@ -230,7 +274,9 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
               >
                 <option value="">Choose a value</option>
                 {values.map((value) => (
-                  <option key={value.id} value={value.id}>{value.name}</option>
+                  <option key={value.id} value={value.id}>
+                    {value.name}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -243,7 +289,10 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
           {campaigns.length > 0 && (
             <div className="mt-4">
               <p className="mb-1.5 text-xs font-semibold text-[var(--text-hi)]">
-                Campaign <span className="font-normal text-[var(--text-lo)]">Optional</span>
+                Campaign{" "}
+                <span className="font-normal text-[var(--text-lo)]">
+                  Optional
+                </span>
               </p>
               <select
                 value={campaignId}
@@ -252,14 +301,18 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
               >
                 <option value="">Not linked to a campaign</option>
                 {campaigns.map((campaign) => (
-                  <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
+                  <option key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </option>
                 ))}
               </select>
             </div>
           )}
 
           <div className="mt-4">
-            <p className="mb-1.5 text-xs font-semibold text-[var(--text-hi)]">Pick a moment</p>
+            <p className="mb-1.5 text-xs font-semibold text-[var(--text-hi)]">
+              Pick a moment
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {KUDOS_EMOJIS.map((item) => (
                 <button
@@ -268,7 +321,9 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
                   onClick={() => setEmoji(item)}
                   aria-label={`Use ${item}`}
                   className={`flex h-8 w-8 items-center justify-center rounded-lg text-base transition-colors ${
-                    emoji === item ? "bg-brand-500/15 ring-1 ring-brand-500/35" : "bg-[var(--surface-2)] hover:bg-brand-500/10"
+                    emoji === item
+                      ? "bg-brand-500/15 ring-1 ring-brand-500/35"
+                      : "bg-[var(--surface-2)] hover:bg-brand-500/10"
                   }`}
                 >
                   {item}
@@ -281,12 +336,18 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
 
       {/* Message textarea */}
       <div className="mt-4">
-        <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Your message</label>
+        <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+          Your message
+        </label>
         <textarea
           rows={4}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder={visibility === "public" ? "What did they do that deserves recognition?" : "Share constructive, specific feedback…"}
+          placeholder={
+            visibility === "public"
+              ? "What did they do that deserves recognition?"
+              : "Share constructive, specific feedback…"
+          }
           className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10"
         />
       </div>
@@ -296,7 +357,10 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
         <div className="mt-4 space-y-3">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
-              Image / GIF URL <span className="font-normal text-[var(--text-lo)]">Optional</span>
+              Image / GIF URL{" "}
+              <span className="font-normal text-[var(--text-lo)]">
+                Optional
+              </span>
             </label>
             <input
               type="url"
@@ -309,7 +373,9 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
 
           {/* Giphy search */}
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-[var(--text-hi)]">Search GIFs</p>
+            <p className="mb-1.5 text-xs font-semibold text-[var(--text-hi)]">
+              Search GIFs
+            </p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -361,7 +427,12 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
           {mediaUrl && (
             <div className="relative overflow-hidden rounded-xl border border-[var(--border)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={mediaUrl} alt="Preview" className="max-h-40 w-full object-cover" loading="lazy" />
+              <img
+                src={mediaUrl}
+                alt="Preview"
+                className="max-h-40 w-full object-cover"
+                loading="lazy"
+              />
               <button
                 type="button"
                 onClick={() => setMediaUrl("")}
@@ -375,16 +446,35 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
         </div>
       )}
 
-      {error && <p className="mt-3 text-xs font-medium text-red-500">{error}</p>}
-      {sent && <p className="mt-3 text-xs font-medium text-emerald-600">Feedback sent.</p>}
+      {error && (
+        <p className="mt-3 text-xs font-medium text-red-500">{error}</p>
+      )}
+      {sent && (
+        <p className="mt-3 text-xs font-medium text-emerald-600">
+          Feedback sent.
+        </p>
+      )}
       <div className="mt-4 flex justify-end">
         <Button
-          icon={visibility === "public" ? "solar:star-fall-broken" : "solar:letter-broken"}
+          icon={
+            visibility === "public"
+              ? "solar:star-fall-broken"
+              : "solar:letter-broken"
+          }
           loading={saving}
-          disabled={saving || !message.trim() || !recipientIds.length || (visibility === "public" && values.length > 0 && !valueId)}
+          disabled={
+            saving ||
+            !message.trim() ||
+            !recipientIds.length ||
+            (visibility === "public" && values.length > 0 && !valueId)
+          }
           onClick={submit}
         >
-          {saving ? "Sending" : visibility === "public" ? "Share shout-out" : "Send privately"}
+          {saving
+            ? "Sending"
+            : visibility === "public"
+              ? "Share shout-out"
+              : "Send privately"}
         </Button>
       </div>
     </div>

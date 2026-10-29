@@ -25,20 +25,32 @@ import {
   publicFeedbackCacheKey,
 } from "./groups";
 import type { CacheGroup } from "./groups";
-import type { Job, Candidate, Checkin, Feedback, Goal, OneOnOne } from "@/types/database";
+import type {
+  Job,
+  Candidate,
+  Checkin,
+  Feedback,
+  Goal,
+  OneOnOne,
+} from "@/types/database";
 
 /* ── Reference data ───────────────────────────────────────────────────────── */
 
 /** All department names, ordered. Reference data — changes rarely. */
 export async function getCachedDepartments(): Promise<string[]> {
-  return cached("reference", cacheKey("reference", "departments"), "stable", async () => {
-    const { data, error } = await supabaseAdmin
-      .from("departments")
-      .select("name")
-      .order("name", { ascending: true });
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((d) => d.name as string);
-  });
+  return cached(
+    "reference",
+    cacheKey("reference", "departments"),
+    "stable",
+    async () => {
+      const { data, error } = await supabaseAdmin
+        .from("departments")
+        .select("name")
+        .order("name", { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((d) => d.name as string);
+    },
+  );
 }
 
 /* ── People ──────────────────────────────────────────────────────────────── */
@@ -60,7 +72,9 @@ export async function getCachedStaff(): Promise<CachedUserRow[]> {
   return cached("staff", cacheKey("staff", "list"), "dynamic", async () => {
     const { data, error } = await supabaseAdmin
       .from("users")
-      .select("id, name, email, role, department, job_title, location, manager_id, avatar_url")
+      .select(
+        "id, name, email, role, department, job_title, location, manager_id, avatar_url",
+      )
       .eq("is_active", true)
       .order("name");
     if (error) throw new Error(error.message);
@@ -85,7 +99,11 @@ export async function getCachedJobs(): Promise<Job[]> {
 /** A single job posting. */
 export async function getCachedJob(id: string): Promise<Job | null> {
   return cached("jobs", cacheKey("jobs", "detail", id), "dynamic", async () => {
-    const { data, error } = await supabaseAdmin.from("jobs").select("*").eq("id", id).single();
+    const { data, error } = await supabaseAdmin
+      .from("jobs")
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error) throw new Error(error.message);
     return data as unknown as Job | null;
   });
@@ -108,28 +126,36 @@ export interface CachedCandidate extends Omit<Candidate, "cv_text"> {
  */
 export async function getCachedCandidates(
   jobId?: string,
-  activeOnly = false
+  activeOnly = false,
 ): Promise<CachedCandidate[]> {
   const key = cacheKey(
     "candidates",
     "list",
-    filterSuffix({ job: jobId, active: activeOnly ? "1" : undefined })
+    filterSuffix({ job: jobId, active: activeOnly ? "1" : undefined }),
   );
   return cached("candidates", key, "dynamic", async () => {
     let query = supabaseAdmin
       .from("candidates")
-      .select("id, job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, cv_url, cv_parsed, stage, assigned_to, source, ai_score, ai_justification, shortlisted, consented_at, hired_user_id, applied_at, created_at, updated_at, jobs(title, department)")
+      .select(
+        "id, job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, cv_url, cv_parsed, stage, assigned_to, source, ai_score, ai_justification, shortlisted, consented_at, hired_user_id, applied_at, created_at, updated_at, jobs(title, department)",
+      )
       // Highest AI fit first; candidates awaiting analysis remain after scored candidates.
       .order("ai_score", { ascending: false, nullsFirst: false })
       .order("applied_at", { ascending: false });
     if (jobId) query = query.eq("job_id", jobId);
-    if (activeOnly) query = query.in("stage", ["applied", "screened", "interview", "offer", "hired"]);
+    if (activeOnly)
+      query = query.in("stage", [
+        "applied",
+        "screened",
+        "interview",
+        "offer",
+        "hired",
+      ]);
     const { data, error } = await query;
     if (error) throw new Error(error.message);
     return (data ?? []) as unknown as CachedCandidate[];
   });
 }
-
 
 /* ── Notifications (per user) ────────────────────────────────────────────── */
 
@@ -147,7 +173,9 @@ export interface CachedNotification {
  * Scoped by user id — the key is unique per recipient, so one user's
  * notifications can never be served to another.
  */
-export async function getCachedNotifications(userId: string): Promise<CachedNotification[]> {
+export async function getCachedNotifications(
+  userId: string,
+): Promise<CachedNotification[]> {
   return cached(
     "notifications",
     notificationsCacheKey(userId),
@@ -161,11 +189,9 @@ export async function getCachedNotifications(userId: string): Promise<CachedNoti
         .limit(20);
       if (error) throw new Error(error.message);
       return (data ?? []) as unknown as CachedNotification[];
-    }
+    },
   );
 }
-
-
 
 /* ── Pulse (per user where applicable) ───────────────────────────────────── */
 
@@ -189,21 +215,30 @@ export type FeedbackWithUsers = Feedback & {
 };
 
 /** A user's own private feedback. Scoped by user id. */
-export async function getCachedPrivateFeedback(userId: string): Promise<FeedbackWithUsers[]> {
-  return cached("pulse", privateFeedbackCacheKey(userId), "realtime", async () => {
-    const { data, error } = await supabaseAdmin
-      .from("feedback")
-      .select("*, from:from_user_id(name), to:to_user_id(name)")
-      .eq("to_user_id", userId)
-      .eq("visibility", "private")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as FeedbackWithUsers[];
-  });
+export async function getCachedPrivateFeedback(
+  userId: string,
+): Promise<FeedbackWithUsers[]> {
+  return cached(
+    "pulse",
+    privateFeedbackCacheKey(userId),
+    "realtime",
+    async () => {
+      const { data, error } = await supabaseAdmin
+        .from("feedback")
+        .select("*, from:from_user_id(name), to:to_user_id(name)")
+        .eq("to_user_id", userId)
+        .eq("visibility", "private")
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as FeedbackWithUsers[];
+    },
+  );
 }
 
 /** Public feedback wall. Organisation-wide. */
-export async function getCachedPublicFeedback(limit = 20): Promise<FeedbackWithUsers[]> {
+export async function getCachedPublicFeedback(
+  limit = 20,
+): Promise<FeedbackWithUsers[]> {
   return cached("pulse", publicFeedbackCacheKey(limit), "dynamic", async () => {
     const { data, error } = await supabaseAdmin
       .from("feedback")
@@ -239,7 +274,10 @@ export async function getCachedOneOnOnes(params: {
 }): Promise<OneOnOne[]> {
   const key = oneOnOnesCacheKey(params);
   return cached("pulse", key, "dynamic", async () => {
-    let q = supabaseAdmin.from("one_on_ones").select("*").order("scheduled_at", { ascending: false });
+    let q = supabaseAdmin
+      .from("one_on_ones")
+      .select("*")
+      .order("scheduled_at", { ascending: false });
     if (params.managerId) q = q.eq("manager_id", params.managerId);
     if (params.reportId) q = q.eq("report_id", params.reportId);
     const { data, error } = await q;

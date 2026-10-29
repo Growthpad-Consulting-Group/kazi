@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   }
 
   const { oneOnOneId } = await req.json();
-  if (!oneOnOneId) return NextResponse.json({ error: "oneOnOneId required" }, { status: 400 });
+  if (!oneOnOneId)
+    return NextResponse.json({ error: "oneOnOneId required" }, { status: 400 });
 
   const { data: oo } = await supabaseAdmin
     .from("one_on_ones")
@@ -22,7 +23,11 @@ export async function POST(req: Request) {
     .single();
 
   if (!oo) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const ooTyped = oo as unknown as { report_id: string; action_items: { text: string; done: boolean }[]; notes: string | null };
+  const ooTyped = oo as unknown as {
+    report_id: string;
+    action_items: { text: string; done: boolean }[];
+    notes: string | null;
+  };
 
   // Get recent check-ins for the report
   const { data: checkins } = await supabaseAdmin
@@ -35,7 +40,13 @@ export async function POST(req: Request) {
   const openItems = ooTyped.action_items.filter((a) => !a.done);
   const checkinSummary = (checkins ?? [])
     .map((c) => {
-      const cTyped = c as { wins: string | null; priorities: string | null; blockers: string | null; mood: number | null; week_start: string };
+      const cTyped = c as {
+        wins: string | null;
+        priorities: string | null;
+        blockers: string | null;
+        mood: number | null;
+        week_start: string;
+      };
       return `Week of ${cTyped.week_start}: wins="${cTyped.wins ?? "—"}" priorities="${cTyped.priorities ?? "—"}" blockers="${cTyped.blockers ?? "—"}" mood=${cTyped.mood ?? "—"}`;
     })
     .join("\n");
@@ -59,7 +70,10 @@ Return a plain numbered list of talking points. Be specific and practical. Focus
   const points = completion.choices[0]?.message?.content ?? "";
 
   // Save to one_on_one record
-  await supabaseAdmin.from("one_on_ones").update({ ai_talking_points: points }).eq("id", oneOnOneId);
+  await supabaseAdmin
+    .from("one_on_ones")
+    .update({ ai_talking_points: points })
+    .eq("id", oneOnOneId);
 
   // Only the two participants' cached one-on-one lists went stale.
   const { data: existing } = await supabaseAdmin

@@ -10,18 +10,26 @@ const STREAK_LOOKBACK_DAYS = 90;
 const DAY_MS = 86_400_000;
 
 export function qualifiesForReward(entries: DailyLogEntry[]): boolean {
-  return entries.reduce((sum, entry) => sum + entry.minutes, 0) >= REWARD_MIN_MINUTES;
+  return (
+    entries.reduce((sum, entry) => sum + entry.minutes, 0) >= REWARD_MIN_MINUTES
+  );
 }
 
 function shiftDate(date: string, days: number): string {
-  return new Date(new Date(`${date}T00:00:00Z`).getTime() + days * DAY_MS).toISOString().slice(0, 10);
+  return new Date(new Date(`${date}T00:00:00Z`).getTime() + days * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
 }
 
 /**
  * Runs the daily log automations after a save. Each rule runs at most once per person per event key,
  * so a day is only rewarded once even if it is edited.
  */
-export async function awardDailyLogRewards(userId: string, date: string, entries: DailyLogEntry[]): Promise<void> {
+export async function awardDailyLogRewards(
+  userId: string,
+  date: string,
+  entries: DailyLogEntry[],
+): Promise<void> {
   if (!qualifiesForReward(entries)) return;
 
   await runAutomationEvent({
@@ -43,11 +51,16 @@ export async function awardDailyLogRewards(userId: string, date: string, entries
   const qualifyingDays = new Set(
     ((data ?? []) as { log_date: string; entries: DailyLogEntry[] }[])
       .filter((row) => qualifiesForReward(row.entries ?? []))
-      .map((row) => row.log_date)
+      .map((row) => row.log_date),
   );
 
   let streak = 0;
-  for (let offset = 0; qualifyingDays.has(shiftDate(date, -offset)); offset += 1) streak += 1;
+  for (
+    let offset = 0;
+    qualifyingDays.has(shiftDate(date, -offset));
+    offset += 1
+  )
+    streak += 1;
   if (streak >= STREAK_STEP && streak % STREAK_STEP === 0) {
     const paid = await runAutomationEvent({
       trigger: "daily_log_streak",

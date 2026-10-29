@@ -18,7 +18,17 @@ const supabaseState = {
 function makeBuilder(table: string) {
   const filters: Record<string, unknown> = {};
   const builder: Record<string, unknown> = {};
-  const chain = ["select", "order", "limit", "single", "maybeSingle", "in", "gte", "lte", "not"];
+  const chain = [
+    "select",
+    "order",
+    "limit",
+    "single",
+    "maybeSingle",
+    "in",
+    "gte",
+    "lte",
+    "not",
+  ];
   for (const method of chain) {
     builder[method] = () => builder;
   }
@@ -83,7 +93,10 @@ describe("user-scoped queries", () => {
     supabaseState.rows = [];
     await getCachedPrivateFeedback("u9");
 
-    expect(supabaseState.calls[0].filters).toEqual({ to_user_id: "u9", visibility: "private" });
+    expect(supabaseState.calls[0].filters).toEqual({
+      to_user_id: "u9",
+      visibility: "private",
+    });
     expect(mockRedis.__has("kazi:pulse:feedback:private:u9")).toBe(true);
   });
 

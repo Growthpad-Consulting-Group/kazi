@@ -10,7 +10,13 @@ export default async function NewJobPage() {
         title="New Job"
         description="Create a role and set up AI screening"
         icon="solar:case-minimalistic-broken"
-        actions={[{ label: "Back to Jobs", icon: "solar:arrow-left-broken", href: "/hire/jobs" }]}
+        actions={[
+          {
+            label: "Back to Jobs",
+            icon: "solar:arrow-left-broken",
+            href: "/hire/jobs",
+          },
+        ]}
       />
       <JobForm departments={departments} />
     </>

@@ -13,13 +13,15 @@ export async function getAllowedPaths(role: UserRole): Promise<string[]> {
   if (role === "admin") return ["*"];
 
   const cached = cache.get(role);
-  if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) return cached.paths;
+  if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS)
+    return cached.paths;
 
   const { data, error } = await (supabaseAdmin as any)
     .from("role_page_access")
     .select("page_path")
     .eq("role", role);
-  if (error) throw new Error(`Could not load page access for ${role}: ${error.message}`);
+  if (error)
+    throw new Error(`Could not load page access for ${role}: ${error.message}`);
 
   const paths = (data as { page_path: string }[]).map((row) => row.page_path);
   cache.set(role, { paths, loadedAt: Date.now() });
@@ -27,7 +29,9 @@ export async function getAllowedPaths(role: UserRole): Promise<string[]> {
 }
 
 /** Every grant for the grantable roles, for the roles matrix. */
-export async function listPageGrants(): Promise<{ role: string; page_path: string }[]> {
+export async function listPageGrants(): Promise<
+  { role: string; page_path: string }[]
+> {
   const { data, error } = await (supabaseAdmin as any)
     .from("role_page_access")
     .select("role, page_path");
@@ -35,7 +39,9 @@ export async function listPageGrants(): Promise<{ role: string; page_path: strin
   return data as { role: string; page_path: string }[];
 }
 
-export function isGrantableRole(role: string): role is (typeof GRANTABLE_ROLES)[number] {
+export function isGrantableRole(
+  role: string,
+): role is (typeof GRANTABLE_ROLES)[number] {
   return (GRANTABLE_ROLES as readonly string[]).includes(role);
 }
 
@@ -44,10 +50,17 @@ export function isGatedPath(path: string): boolean {
 }
 
 /** Adds or removes one grant, then drops this instance's cache so the change shows up at once. */
-export async function setPageGrant(role: (typeof GRANTABLE_ROLES)[number], path: string, granted: boolean) {
+export async function setPageGrant(
+  role: (typeof GRANTABLE_ROLES)[number],
+  path: string,
+  granted: boolean,
+) {
   const table = (supabaseAdmin as any).from("role_page_access");
   const { error } = granted
-    ? await table.upsert({ role, page_path: path }, { onConflict: "role,page_path" })
+    ? await table.upsert(
+        { role, page_path: path },
+        { onConflict: "role,page_path" },
+      )
     : await table.delete().eq("role", role).eq("page_path", path);
   if (error) throw new Error(`Could not update page access: ${error.message}`);
   cache.delete(role);

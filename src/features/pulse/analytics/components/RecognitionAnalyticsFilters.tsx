@@ -40,8 +40,13 @@ export function RecognitionAnalyticsFilters({
     <div className="flex flex-wrap items-center gap-3">
       {departments.length > 0 && (
         <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-          <Icon icon="solar:buildings-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
-          <label className="text-xs font-semibold text-[var(--text-lo)]">Department</label>
+          <Icon
+            icon="solar:buildings-broken"
+            className="h-4 w-4 shrink-0 text-[var(--text-lo)]"
+          />
+          <label className="text-xs font-semibold text-[var(--text-lo)]">
+            Department
+          </label>
           <select
             value={dept}
             onChange={(e) => update("dept", e.target.value)}
@@ -60,8 +65,13 @@ export function RecognitionAnalyticsFilters({
 
       {campaigns.length > 0 && (
         <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-          <Icon icon="solar:flag-2-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
-          <label className="text-xs font-semibold text-[var(--text-lo)]">Campaign</label>
+          <Icon
+            icon="solar:flag-2-broken"
+            className="h-4 w-4 shrink-0 text-[var(--text-lo)]"
+          />
+          <label className="text-xs font-semibold text-[var(--text-lo)]">
+            Campaign
+          </label>
           <select
             value={campaign}
             onChange={(e) => update("campaign", e.target.value)}

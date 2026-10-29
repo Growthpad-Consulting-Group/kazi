@@ -8,9 +8,16 @@ import { supabaseAdmin } from "@/lib/supabase";
 const STATE_COOKIE = "kazi_gcal_oauth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-function resultRedirect(origin: string, returnTo: string | undefined, status: "connected" | "error") {
+function resultRedirect(
+  origin: string,
+  returnTo: string | undefined,
+  status: "connected" | "error",
+) {
   const destination = new URL(returnTo ?? "/settings/integrations", origin);
-  destination.searchParams.set(returnTo ? "calendar" : "google_calendar", status);
+  destination.searchParams.set(
+    returnTo ? "calendar" : "google_calendar",
+    status,
+  );
   return NextResponse.redirect(destination);
 }
 
@@ -21,11 +28,15 @@ export async function GET(request: Request) {
   const oauthCookie = store.get(STATE_COOKIE)?.value;
   store.delete(STATE_COOKIE);
 
-  if (!session || !oauthCookie) return resultRedirect(url.origin, undefined, "error");
+  if (!session || !oauthCookie)
+    return resultRedirect(url.origin, undefined, "error");
 
   let savedState: { state: string; returnTo?: string };
   try {
-    savedState = JSON.parse(oauthCookie) as { state: string; returnTo?: string };
+    savedState = JSON.parse(oauthCookie) as {
+      state: string;
+      returnTo?: string;
+    };
   } catch {
     return resultRedirect(url.origin, undefined, "error");
   }
@@ -50,7 +61,7 @@ export async function GET(request: Request) {
         grant_type: "authorization_code",
       }),
     });
-    const tokenData = await tokenRes.json().catch(() => null) as {
+    const tokenData = (await tokenRes.json().catch(() => null)) as {
       access_token?: string;
       refresh_token?: string;
       expires_in?: number;
@@ -58,24 +69,41 @@ export async function GET(request: Request) {
     } | null;
 
     if (!tokenRes.ok || !tokenData?.access_token || !tokenData?.refresh_token) {
-      throw new Error(tokenData?.error ?? "Google did not return usable tokens.");
+      throw new Error(
+        tokenData?.error ?? "Google did not return usable tokens.",
+      );
     }
 
     // Fetch user info for logging (email not stored separately)
-    const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    const userInfo = await userInfoRes.json().catch(() => null) as { email?: string } | null;
-    console.log("Google Calendar OAuth completed for", userInfo?.email ?? "unknown");
+    const userInfoRes = await fetch(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      },
+    );
+    const userInfo = (await userInfoRes.json().catch(() => null)) as {
+      email?: string;
+    } | null;
+    console.log(
+      "Google Calendar OAuth completed for",
+      userInfo?.email ?? "unknown",
+    );
 
     // Fetch the primary calendar display name
-    const calendarRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary", {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    const calendarData = await calendarRes.json().catch(() => null) as { summary?: string } | null;
+    const calendarRes = await fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/primary",
+      {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      },
+    );
+    const calendarData = (await calendarRes.json().catch(() => null)) as {
+      summary?: string;
+    } | null;
     const calendarName = calendarData?.summary ?? null;
 
-    const tokenExpiry = new Date(Date.now() + (tokenData.expires_in ?? 3600) * 1000).toISOString();
+    const tokenExpiry = new Date(
+      Date.now() + (tokenData.expires_in ?? 3600) * 1000,
+    ).toISOString();
 
     const { error } = await supabaseAdmin
       .from("google_calendar_connections")
@@ -89,10 +117,11 @@ export async function GET(request: Request) {
           // Show the connected Google account so people can tell which calendar this is.
           calendar_name: userInfo?.email ?? calendarName,
         },
-        { onConflict: "user_id" }
+        { onConflict: "user_id" },
       );
 
-    if (error) throw new Error("Could not save the Google Calendar connection.");
+    if (error)
+      throw new Error("Could not save the Google Calendar connection.");
 
     return resultRedirect(url.origin, savedState.returnTo, "connected");
   } catch (err) {

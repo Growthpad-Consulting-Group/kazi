@@ -16,8 +16,13 @@ type Recommendation = "hire" | "maybe" | "no_hire";
  */
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["admin", "hr", "hiring_manager", "interviewer"].includes(session.user.role)) {
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (
+    !["admin", "hr", "hiring_manager", "interviewer"].includes(
+      session.user.role,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -28,7 +33,10 @@ export async function POST(req: Request) {
   };
 
   if (!candidateId || !Array.isArray(questions) || questions.length === 0) {
-    return NextResponse.json({ error: "candidateId and questions required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "candidateId and questions required" },
+      { status: 400 },
+    );
   }
 
   // Guard against malformed payloads: score must be a number in 0..5.
@@ -38,22 +46,25 @@ export async function POST(req: Request) {
     score: Math.min(5, Math.max(0, Number(q.score) || 0)),
   }));
 
-  const totalScore = filled.reduce((sum, q) => sum + q.score, 0) / filled.length;
+  const totalScore =
+    filled.reduce((sum, q) => sum + q.score, 0) / filled.length;
 
-  const payload: Database["public"]["Tables"]["interview_scorecards"]["Insert"] = {
-    candidate_id: candidateId,
-    interviewer_id: session.user.id,
-    questions: filled,
-    overall_score: Math.round(totalScore * 10) / 10,
-    recommendation: recommendation || null,
-    submitted_at: new Date().toISOString(),
-  };
+  const payload: Database["public"]["Tables"]["interview_scorecards"]["Insert"] =
+    {
+      candidate_id: candidateId,
+      interviewer_id: session.user.id,
+      questions: filled,
+      overall_score: Math.round(totalScore * 10) / 10,
+      recommendation: recommendation || null,
+      submitted_at: new Date().toISOString(),
+    };
 
   const { error } = await supabaseAdmin
     .from("interview_scorecards")
     .upsert(payload, { onConflict: "candidate_id,interviewer_id" });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
   // The scorecard feeds the candidate's cached pipeline entry.
   await invalidateTables("interview_scorecards");

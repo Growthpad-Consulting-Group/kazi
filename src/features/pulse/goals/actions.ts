@@ -30,12 +30,19 @@ export async function createGoal(fields: {
   await invalidateOwnerGoals(fields.owner_id ?? "");
 }
 
-export async function updateGoalProgress(id: string, progress: number, status?: GoalStatus) {
+export async function updateGoalProgress(
+  id: string,
+  progress: number,
+  status?: GoalStatus,
+) {
   const update: Partial<Goal> = { progress };
   if (status) update.status = status;
   // Read the owner before the write so the right cached list is dropped.
   const ownerId = await goalOwnerId(id);
-  const { error } = await supabaseAdmin.from("goals").update(update).eq("id", id);
+  const { error } = await supabaseAdmin
+    .from("goals")
+    .update(update)
+    .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/pulse/goals");
   await invalidateOwnerGoals(ownerId);

@@ -40,7 +40,10 @@ export function groupIndexKey(group: CacheGroup): string {
  * @param group  The group the key belongs to (drives invalidation).
  * @param parts  Key segments, joined with ":".
  */
-export function cacheKey(group: CacheGroup, ...parts: (string | number)[]): string {
+export function cacheKey(
+  group: CacheGroup,
+  ...parts: (string | number)[]
+): string {
   return [CACHE_NAMESPACE, group, ...parts].join(":");
 }
 
@@ -50,7 +53,9 @@ export function cacheKey(group: CacheGroup, ...parts: (string | number)[]): stri
  * Object key order must not affect the result, otherwise two identical
  * queries would produce two different keys and one would never be hit.
  */
-export function filterSuffix(filters?: Record<string, string | number | boolean | null | undefined>): string {
+export function filterSuffix(
+  filters?: Record<string, string | number | boolean | null | undefined>,
+): string {
   if (!filters) return "all";
   const entries = Object.entries(filters)
     .filter(([, v]) => v !== undefined && v !== null && v !== "")
@@ -99,11 +104,14 @@ export function publicFeedbackCacheKey(limit: number): string {
  * The owner filter is part of the key, so goals can be invalidated per owner
  * without disturbing the other users' goal lists.
  */
-export function goalsCacheKey(filters?: { ownerId?: string; level?: string }): string {
+export function goalsCacheKey(filters?: {
+  ownerId?: string;
+  level?: string;
+}): string {
   return cacheKey(
     "pulse",
     "goals",
-    filterSuffix({ owner: filters?.ownerId, level: filters?.level })
+    filterSuffix({ owner: filters?.ownerId, level: filters?.level }),
   );
 }
 
@@ -115,7 +123,7 @@ export function oneOnOnesCacheKey(params: {
   return cacheKey(
     "pulse",
     "one-on-ones",
-    filterSuffix({ manager: params.managerId, report: params.reportId })
+    filterSuffix({ manager: params.managerId, report: params.reportId }),
   );
 }
 

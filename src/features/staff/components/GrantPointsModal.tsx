@@ -42,11 +42,17 @@ export default function GrantPointsModal({ userId, userName }: Props) {
         const res = await fetch("/api/pulse/rewards/grant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, points: pts, reason: reason.trim() }),
+          body: JSON.stringify({
+            user_id: userId,
+            points: pts,
+            reason: reason.trim(),
+          }),
         });
-        const body = await res.json() as { error?: string };
+        const body = (await res.json()) as { error?: string };
         if (!res.ok) throw new Error(body.error ?? "Failed to grant points");
-        toast.success(`${pts} point${pts === 1 ? "" : "s"} granted to ${userName}`);
+        toast.success(
+          `${pts} point${pts === 1 ? "" : "s"} granted to ${userName}`,
+        );
         setOpen(false);
         reset();
         router.refresh();
@@ -58,23 +64,37 @@ export default function GrantPointsModal({ userId, userName }: Props) {
 
   return (
     <>
-      <Button size="sm" icon="solar:star-broken" variant="secondary" onClick={() => setOpen(true)}>
+      <Button
+        size="sm"
+        icon="solar:star-broken"
+        variant="secondary"
+        onClick={() => setOpen(true)}
+      >
         Grant Points
       </Button>
 
       <SimpleModal
         open={open}
-        onClose={() => { setOpen(false); reset(); }}
+        onClose={() => {
+          setOpen(false);
+          reset();
+        }}
         title="Grant Reward Points"
         icon="solar:star-broken"
       >
         <div className="space-y-4">
           <p className="text-sm text-[var(--text-lo)]">
-            Manually award reward points to <span className="font-semibold text-[var(--text-hi)]">{userName}</span>.
+            Manually award reward points to{" "}
+            <span className="font-semibold text-[var(--text-hi)]">
+              {userName}
+            </span>
+            .
           </p>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Points</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Points
+            </span>
             <input
               type="number"
               min={1}
@@ -87,7 +107,9 @@ export default function GrantPointsModal({ userId, userName }: Props) {
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Reason</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Reason
+            </span>
             <input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -100,7 +122,10 @@ export default function GrantPointsModal({ userId, userName }: Props) {
         <div className="mt-6 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
           <button
             type="button"
-            onClick={() => { setOpen(false); reset(); }}
+            onClick={() => {
+              setOpen(false);
+              reset();
+            }}
             className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-lo)] hover:bg-[var(--surface-2)]"
           >
             Cancel

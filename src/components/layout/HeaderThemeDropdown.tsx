@@ -7,9 +7,9 @@ import { useTheme } from "@/shared/contexts/ThemeContext";
 import GlassPanel from "./GlassPanel";
 
 const OPTIONS = [
-  { value: "light",  icon: "solar:sun-2-broken",   label: "Light"  },
-  { value: "system", icon: "solar:monitor-broken",  label: "System" },
-  { value: "dark",   icon: "solar:moon-broken",     label: "Dark"   },
+  { value: "light", icon: "solar:sun-2-broken", label: "Light" },
+  { value: "system", icon: "solar:monitor-broken", label: "System" },
+  { value: "dark", icon: "solar:moon-broken", label: "Dark" },
 ] as const;
 
 export default function HeaderThemeDropdown() {
@@ -22,9 +22,12 @@ export default function HeaderThemeDropdown() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
-        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
-        buttonRef.current && !buttonRef.current.contains(e.target as Node)
-      ) setIsOpen(false);
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      )
+        setIsOpen(false);
     };
     if (isOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -44,23 +47,39 @@ export default function HeaderThemeDropdown() {
         className="group p-2 rounded-full transition-all active:scale-95 hover:bg-black/5 dark:hover:bg-white/10"
       >
         <Icon
-          icon={mode === "light" ? "solar:sun-2-broken" : mode === "dark" ? "solar:moon-broken" : "solar:monitor-broken"}
+          icon={
+            mode === "light"
+              ? "solar:sun-2-broken"
+              : mode === "dark"
+                ? "solar:moon-broken"
+                : "solar:monitor-broken"
+          }
           className={`h-5 w-5 text-gray-700 dark:text-gray-100 transition-all duration-500 ${isOpen ? "rotate-12 scale-110" : "group-hover:scale-110"}`}
         />
       </button>
 
-      {isOpen && rect && typeof document !== "undefined" &&
+      {isOpen &&
+        rect &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
             ref={dropdownRef}
-            style={{ position: "fixed", top: rect.bottom + 8, right: window.innerWidth - rect.right, zIndex: 9999 }}
+            style={{
+              position: "fixed",
+              top: rect.bottom + 8,
+              right: window.innerWidth - rect.right,
+              zIndex: 9999,
+            }}
           >
             <GlassPanel mode={resolvedMode} className="p-2 rounded-2xl">
               <div className="flex gap-1 rounded-xl border border-white/20 bg-white/10 p-1 dark:bg-white/5 backdrop-blur-sm">
                 {OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => { setMode(opt.value); setTimeout(() => setIsOpen(false), 150); }}
+                    onClick={() => {
+                      setMode(opt.value);
+                      setTimeout(() => setIsOpen(false), 150);
+                    }}
                     title={opt.label}
                     className={`flex h-10 w-10 items-center justify-center rounded-lg transition-all ${
                       mode === opt.value
@@ -74,7 +93,7 @@ export default function HeaderThemeDropdown() {
               </div>
             </GlassPanel>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

@@ -6,10 +6,11 @@ import { invalidateUserNotifications } from "@/lib/cache/invalidate";
 
 export async function PATCH(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const { error } = await supabaseAdmin
@@ -18,7 +19,8 @@ export async function PATCH(
     .eq("id", id)
     .eq("user_id", session.user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   await invalidateUserNotifications(session.user.id);
   return NextResponse.json({ ok: true });
 }

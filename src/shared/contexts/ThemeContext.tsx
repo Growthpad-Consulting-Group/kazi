@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedMode = "light" | "dark";
@@ -31,13 +37,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const apply = (m: ThemeMode) => {
       const isDark =
-        m === "dark" || (m === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        m === "dark" ||
+        (m === "system" &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches);
       document.documentElement.classList.toggle("dark", isDark);
       setResolvedMode(isDark ? "dark" : "light");
     };
     apply(mode);
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const listener = () => { if (mode === "system") apply("system"); };
+    const listener = () => {
+      if (mode === "system") apply("system");
+    };
     mq.addEventListener("change", listener);
     return () => mq.removeEventListener("change", listener);
   }, [mode]);
@@ -48,7 +58,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleMode = () => {
-    const next: ThemeMode = mode === "light" ? "dark" : mode === "dark" ? "system" : "light";
+    const next: ThemeMode =
+      mode === "light" ? "dark" : mode === "dark" ? "system" : "light";
     setMode(next);
   };
 

@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
 import toast from "react-hot-toast";
 
 export type Notification = {
@@ -19,7 +26,9 @@ type NotificationsContextValue = {
   clearAllNotifications: () => Promise<void>;
 };
 
-const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
+const NotificationsContext = createContext<
+  NotificationsContextValue | undefined
+>(undefined);
 
 const CACHE_KEY = "kazi_notifications_cache";
 const CACHE_DURATION = 5 * 60 * 1000;
@@ -43,16 +52,22 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/notifications");
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
       const body = await res.json();
-      if (!Array.isArray(body.notifications)) throw new Error("Invalid response format");
-      const formatted: Notification[] = body.notifications.map((n: Record<string, unknown>) => ({
-        id: n.id,
-        message: n.message || "New notification",
-        timestamp: n.created_at || new Date().toISOString(),
-        read: n.read || false,
-        link: n.link ?? null,
-      }));
+      if (!Array.isArray(body.notifications))
+        throw new Error("Invalid response format");
+      const formatted: Notification[] = body.notifications.map(
+        (n: Record<string, unknown>) => ({
+          id: n.id,
+          message: n.message || "New notification",
+          timestamp: n.created_at || new Date().toISOString(),
+          read: n.read || false,
+          link: n.link ?? null,
+        }),
+      );
       setNotifications(formatted);
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ data: formatted, timestamp: Date.now() }));
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ data: formatted, timestamp: Date.now() }),
+      );
     } catch (error: unknown) {
       console.warn("Notifications endpoint error:", (error as Error).message);
       setNotifications([]);
@@ -69,18 +84,26 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const markNotificationAsRead = async (id: string) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
+      const res = await fetch(`/api/notifications/${id}/read`, {
+        method: "PATCH",
+      });
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      );
       localStorage.removeItem(CACHE_KEY);
     } catch (error: unknown) {
-      toast.error("Failed to mark notification as read: " + (error as Error).message);
+      toast.error(
+        "Failed to mark notification as read: " + (error as Error).message,
+      );
     }
   };
 
   const clearAllNotifications = async () => {
     try {
-      const res = await fetch("/api/notifications/read-all", { method: "PATCH" });
+      const res = await fetch("/api/notifications/read-all", {
+        method: "PATCH",
+      });
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       localStorage.removeItem(CACHE_KEY);
@@ -90,7 +113,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <NotificationsContext.Provider value={{ notifications, isLoading, fetchNotifications, markNotificationAsRead, clearAllNotifications }}>
+    <NotificationsContext.Provider
+      value={{
+        notifications,
+        isLoading,
+        fetchNotifications,
+        markNotificationAsRead,
+        clearAllNotifications,
+      }}
+    >
       {children}
     </NotificationsContext.Provider>
   );
@@ -98,6 +129,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
 export const useNotifications = () => {
   const ctx = useContext(NotificationsContext);
-  if (!ctx) throw new Error("useNotifications must be used within a NotificationsProvider");
+  if (!ctx)
+    throw new Error(
+      "useNotifications must be used within a NotificationsProvider",
+    );
   return ctx;
 };

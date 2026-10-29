@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
 interface CommandPaletteContextValue {
   isOpen: boolean;
@@ -8,7 +14,9 @@ interface CommandPaletteContextValue {
   close: () => void;
 }
 
-const CommandPaletteContext = createContext<CommandPaletteContextValue | undefined>(undefined);
+const CommandPaletteContext = createContext<
+  CommandPaletteContextValue | undefined
+>(undefined);
 
 export function CommandPaletteProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +34,13 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <CommandPaletteContext.Provider value={{ isOpen, open: () => setIsOpen(true), close: () => setIsOpen(false) }}>
+    <CommandPaletteContext.Provider
+      value={{
+        isOpen,
+        open: () => setIsOpen(true),
+        close: () => setIsOpen(false),
+      }}
+    >
       {children}
     </CommandPaletteContext.Provider>
   );
@@ -34,6 +48,9 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
 
 export function useCommandPalette() {
   const ctx = useContext(CommandPaletteContext);
-  if (!ctx) throw new Error("useCommandPalette must be used within a CommandPaletteProvider");
+  if (!ctx)
+    throw new Error(
+      "useCommandPalette must be used within a CommandPaletteProvider",
+    );
   return ctx;
 }

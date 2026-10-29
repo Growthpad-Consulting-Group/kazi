@@ -14,7 +14,15 @@ interface SlideOverProps {
   children: ReactNode;
 }
 
-export function SlideOver({ open, onClose, title, subtitle, icon, leading, children }: SlideOverProps) {
+export function SlideOver({
+  open,
+  onClose,
+  title,
+  subtitle,
+  icon,
+  leading,
+  children,
+}: SlideOverProps) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const onCloseRef = useRef(onClose);
@@ -63,14 +71,21 @@ export function SlideOver({ open, onClose, title, subtitle, icon, leading, child
       >
         <header className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div className="flex min-w-0 items-start gap-3">
-            {leading ?? (icon && (
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-                <Icon icon={icon} className="h-4 w-4" />
-              </span>
-            ))}
+            {leading ??
+              (icon && (
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                  <Icon icon={icon} className="h-4 w-4" />
+                </span>
+              ))}
             <div className="min-w-0">
-              <h2 className="truncate text-sm font-semibold text-[var(--text-hi)]">{title}</h2>
-              {subtitle && <p className="mt-0.5 truncate text-[11px] text-[var(--text-lo)]">{subtitle}</p>}
+              <h2 className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                {title}
+              </h2>
+              {subtitle && (
+                <p className="mt-0.5 truncate text-[11px] text-[var(--text-lo)]">
+                  {subtitle}
+                </p>
+              )}
             </div>
           </div>
           <button

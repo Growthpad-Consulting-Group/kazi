@@ -48,8 +48,7 @@ function PodiumCard({ entry, rank }: PodiumPosition) {
       : rank === 2
         ? "bg-slate-400/15"
         : "bg-orange-700/15";
-  const label =
-    rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
+  const label = rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
   const avatarSize = rank === 1 ? "lg" : "md";
 
   return (
@@ -61,7 +60,9 @@ function PodiumCard({ entry, rank }: PodiumPosition) {
         <Avatar name={entry.name} size={avatarSize as "lg" | "md" | "sm"} />
       </span>
       <div className="text-center">
-        <p className="text-sm font-semibold text-[var(--text-hi)]">{entry.name}</p>
+        <p className="text-sm font-semibold text-[var(--text-hi)]">
+          {entry.name}
+        </p>
         {entry.department && (
           <p className="text-xs text-[var(--text-lo)]">{entry.department}</p>
         )}
@@ -98,7 +99,9 @@ export default async function WalkOfFamePage() {
 
       {data.length === 0 ? (
         <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 text-center">
-          <p className="text-sm font-semibold text-[var(--text-hi)]">No recognition data yet</p>
+          <p className="text-sm font-semibold text-[var(--text-hi)]">
+            No recognition data yet
+          </p>
           <p className="mt-1 text-xs text-[var(--text-lo)]">
             Recognition champions will appear here once feedback starts flowing.
           </p>
@@ -134,12 +137,19 @@ export default async function WalkOfFamePage() {
           {rest.length > 0 && (
             <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
               <div className="border-b border-[var(--border)] px-5 py-4">
-                <h2 className="text-sm font-semibold text-[var(--text-hi)]">Rankings</h2>
-                <p className="mt-0.5 text-xs text-[var(--text-lo)]">Positions 4–20, all time</p>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                  Rankings
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                  Positions 4–20, all time
+                </p>
               </div>
               <ol className="divide-y divide-[var(--border)]">
                 {rest.map((entry, index) => (
-                  <li key={entry.id} className="flex items-center gap-4 px-5 py-3">
+                  <li
+                    key={entry.id}
+                    className="flex items-center gap-4 px-5 py-3"
+                  >
                     <span className="w-6 shrink-0 font-mono text-xs font-bold text-[var(--text-lo)]">
                       {index + 4}
                     </span>

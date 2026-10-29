@@ -25,9 +25,9 @@ export async function notifyRoles(
     .in("role", roles)
     .eq("is_active", true);
   if (!users?.length) return;
-  await supabaseAdmin.from("notifications").insert(
-    users.map((u) => ({ user_id: u.id, message, link: link ?? null })),
-  );
+  await supabaseAdmin
+    .from("notifications")
+    .insert(users.map((u) => ({ user_id: u.id, message, link: link ?? null })));
 }
 
 export async function notifyRecognitionReceived(
@@ -36,9 +36,11 @@ export async function notifyRecognitionReceived(
   message: string,
 ): Promise<void> {
   const preview = message.length > 80 ? `${message.slice(0, 80)}…` : message;
-  await supabaseAdmin
-    .from("notifications")
-    .insert({ user_id: userId, message: `${fromName} recognised you: "${preview}"`, link: "/pulse/feedback" });
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `${fromName} recognised you: "${preview}"`,
+    link: "/pulse/feedback",
+  });
 }
 
 export async function notifyOneOnOneScheduled(
@@ -66,10 +68,21 @@ export async function notifyOneOnOneScheduled(
   });
   const link = `/pulse/one-on-ones/${meetingId}`;
   await supabaseAdmin.from("notifications").insert([
-    { user_id: managerId, message: `1-on-1 with ${report.name} scheduled for ${when}`, link },
-    { user_id: reportId, message: `1-on-1 with ${manager.name} scheduled for ${when}`, link },
+    {
+      user_id: managerId,
+      message: `1-on-1 with ${report.name} scheduled for ${when}`,
+      link,
+    },
+    {
+      user_id: reportId,
+      message: `1-on-1 with ${manager.name} scheduled for ${when}`,
+      link,
+    },
   ]);
-  await Promise.all([invalidateUserNotifications(managerId), invalidateUserNotifications(reportId)]);
+  await Promise.all([
+    invalidateUserNotifications(managerId),
+    invalidateUserNotifications(reportId),
+  ]);
 }
 
 export async function notifyMilestone(
@@ -87,18 +100,22 @@ export async function notifyMilestone(
   } else {
     label = "Service achievement";
   }
-  await supabaseAdmin
-    .from("notifications")
-    .insert({ user_id: userId, message: `Milestone: ${label}`, link: "/pulse" });
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `Milestone: ${label}`,
+    link: "/pulse",
+  });
 }
 
 export async function notifyCampaignLive(
   userId: string,
   campaignName: string,
 ): Promise<void> {
-  await supabaseAdmin
-    .from("notifications")
-    .insert({ user_id: userId, message: `Campaign now live: ${campaignName}`, link: "/pulse/campaigns" });
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `Campaign now live: ${campaignName}`,
+    link: "/pulse/campaigns",
+  });
 }
 
 export async function notifyQuestEndingSoon(
@@ -106,10 +123,15 @@ export async function notifyQuestEndingSoon(
   questTitle: string,
   endsAt: string,
 ): Promise<void> {
-  const dt = new Date(endsAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
-  await supabaseAdmin
-    .from("notifications")
-    .insert({ user_id: userId, message: `Side Quest ending soon (${dt}): ${questTitle}`, link: "/pulse/side-quests" });
+  const dt = new Date(endsAt).toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+  });
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `Side Quest ending soon (${dt}): ${questTitle}`,
+    link: "/pulse/side-quests",
+  });
 }
 
 export async function notifySurveyClosingSoon(
@@ -117,10 +139,15 @@ export async function notifySurveyClosingSoon(
   surveyTitle: string,
   closesAt: string,
 ): Promise<void> {
-  const dt = new Date(closesAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
-  await supabaseAdmin
-    .from("notifications")
-    .insert({ user_id: userId, message: `Survey closing soon (${dt}): ${surveyTitle}`, link: "/pulse/surveys" });
+  const dt = new Date(closesAt).toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+  });
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `Survey closing soon (${dt}): ${surveyTitle}`,
+    link: "/pulse/surveys",
+  });
 }
 
 export async function notifySurveyPublished(
@@ -128,9 +155,11 @@ export async function notifySurveyPublished(
   surveyTitle: string,
   surveyId: string,
 ): Promise<void> {
-  await supabaseAdmin
-    .from("notifications")
-    .insert({ user_id: userId, message: `New survey: ${surveyTitle}`, link: `/pulse/surveys/${surveyId}` });
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `New survey: ${surveyTitle}`,
+    link: `/pulse/surveys/${surveyId}`,
+  });
   await invalidateUserNotifications(userId);
 }
 
@@ -140,13 +169,19 @@ export async function notifyWeeklyDigest(
 ): Promise<void> {
   const parts: string[] = [];
   if (summary.recognitionReceived > 0) {
-    parts.push(`${summary.recognitionReceived} recognition${summary.recognitionReceived === 1 ? "" : "s"} received`);
+    parts.push(
+      `${summary.recognitionReceived} recognition${summary.recognitionReceived === 1 ? "" : "s"} received`,
+    );
   }
   if (summary.questsCompleted > 0) {
-    parts.push(`${summary.questsCompleted} Side Quest${summary.questsCompleted === 1 ? "" : "s"} completed`);
+    parts.push(
+      `${summary.questsCompleted} Side Quest${summary.questsCompleted === 1 ? "" : "s"} completed`,
+    );
   }
   if (!parts.length) return;
-  await supabaseAdmin
-    .from("notifications")
-    .insert({ user_id: userId, message: `Your week: ${parts.join(", ")}.`, link: "/pulse" });
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `Your week: ${parts.join(", ")}.`,
+    link: "/pulse",
+  });
 }

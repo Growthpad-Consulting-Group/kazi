@@ -7,11 +7,11 @@ This guide explains how to schedule the Kazi automations endpoint using
 
 ## Endpoint details
 
-| Field   | Value |
-|---------|-------|
-| URL     | `https://<your-kazi-domain>/api/pulse/automations/run` |
-| Method  | `POST` |
-| Auth    | `Authorization: Bearer <your CRON_SECRET>` |
+| Field  | Value                                                  |
+| ------ | ------------------------------------------------------ |
+| URL    | `https://<your-kazi-domain>/api/pulse/automations/run` |
+| Method | `POST`                                                 |
+| Auth   | `Authorization: Bearer <your CRON_SECRET>`             |
 
 Replace `<your-kazi-domain>` with your deployed Kazi URL (e.g. `kazi.example.com`).  
 Your `CRON_SECRET` value is in `.env.local` — paste it when prompted below; never commit it.

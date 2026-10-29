@@ -9,20 +9,38 @@ export default function AppFooter() {
         {/* Left: brand + city credits */}
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1 text-sm text-[var(--text-lo)]">
           <span className="opacity-60">© {year}</span>
-          <span className="font-semibold text-[var(--text-lo)]">Growthpad Consulting Group.</span>
+          <span className="font-semibold text-[var(--text-lo)]">
+            Growthpad Consulting Group.
+          </span>
           <span className="opacity-60 text-xs flex items-center gap-1">
             Made with ♡ in
             <span className="relative inline-block group">
               <span className="cursor-default">Nairobi</span>
               <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 scale-90 transition-all duration-300 ease-out group-hover:-top-7 group-hover:opacity-100 group-hover:scale-100">
-                <Image src="/assets/images/kenya.gif" alt="Kenya" width={20} height={20} style={{ height: "auto" }} className="w-5 rounded-sm shadow" unoptimized />
+                <Image
+                  src="/assets/images/kenya.gif"
+                  alt="Kenya"
+                  width={20}
+                  height={20}
+                  style={{ height: "auto" }}
+                  className="w-5 rounded-sm shadow"
+                  unoptimized
+                />
               </span>
             </span>
             {" x "}
             <span className="relative inline-block group">
               <span className="cursor-default">Accra</span>
               <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 scale-90 transition-all duration-300 ease-out group-hover:-top-7 group-hover:opacity-100 group-hover:scale-100">
-                <Image src="/assets/images/ghana.gif" alt="Ghana" width={20} height={20} style={{ height: "auto" }} className="w-5 rounded-sm shadow" unoptimized />
+                <Image
+                  src="/assets/images/ghana.gif"
+                  alt="Ghana"
+                  width={20}
+                  height={20}
+                  style={{ height: "auto" }}
+                  className="w-5 rounded-sm shadow"
+                  unoptimized
+                />
               </span>
             </span>
           </span>
@@ -30,9 +48,21 @@ export default function AppFooter() {
 
         {/* Right: links */}
         <div className="flex items-center gap-4 text-xs font-semibold">
-          <a href="https://growthpad.africa" target="_blank" rel="noopener noreferrer" className="hover:text-brand-500 transition-colors">Website</a>
+          <a
+            href="https://growthpad.africa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-brand-500 transition-colors"
+          >
+            Website
+          </a>
           <div className="h-3 w-px bg-[var(--border)]" />
-          <a href="mailto:strategic@growthpad.co.ke" className="hover:text-brand-500 transition-colors">Support</a>
+          <a
+            href="mailto:strategic@growthpad.co.ke"
+            className="hover:text-brand-500 transition-colors"
+          >
+            Support
+          </a>
         </div>
       </div>
     </footer>

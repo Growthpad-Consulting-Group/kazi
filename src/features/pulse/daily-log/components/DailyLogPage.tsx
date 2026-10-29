@@ -10,14 +10,39 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
 import { TeamActivity } from "./TeamActivity";
 import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
-import { DAILY_LOG_CATEGORIES, DAILY_LOG_MOOD_COUNT, MOOD_LABELS, isEditableLogDate, clockToMinutes, parseDurationMinutes, type DailyLogCategory, type DailyLogEntry } from "../constants";
+import {
+  DAILY_LOG_CATEGORIES,
+  DAILY_LOG_MOOD_COUNT,
+  MOOD_LABELS,
+  isEditableLogDate,
+  clockToMinutes,
+  parseDurationMinutes,
+  type DailyLogCategory,
+  type DailyLogEntry,
+} from "../constants";
 
-type Row = { task: string; client: string; showRange: boolean; startTime: string; endTime: string; minutes: string; category: DailyLogCategory };
+type Row = {
+  task: string;
+  client: string;
+  showRange: boolean;
+  startTime: string;
+  endTime: string;
+  minutes: string;
+  category: DailyLogCategory;
+};
 type AsanaTask = { id: string; name: string; project: string | null };
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
-const emptyRow = (): Row => ({ task: "", client: "", showRange: false, startTime: "", endTime: "", minutes: "", category: "Projects" });
+const emptyRow = (): Row => ({
+  task: "",
+  client: "",
+  showRange: false,
+  startTime: "",
+  endTime: "",
+  minutes: "",
+  category: "Projects",
+});
 
 function todayLocal() {
   const now = new Date();
@@ -27,10 +52,16 @@ function todayLocal() {
 function formatMinutes(total: number) {
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
-  return hours && minutes ? `${hours}h ${minutes}m` : hours ? `${hours}h` : `${minutes}m`;
+  return hours && minutes
+    ? `${hours}h ${minutes}m`
+    : hours
+      ? `${hours}h`
+      : `${minutes}m`;
 }
 
-function rowMinutes(row: Pick<Row, "showRange" | "startTime" | "endTime" | "minutes">): number | null {
+function rowMinutes(
+  row: Pick<Row, "showRange" | "startTime" | "endTime" | "minutes">,
+): number | null {
   if (row.showRange && row.startTime && row.endTime) {
     const diff = clockToMinutes(row.endTime) - clockToMinutes(row.startTime);
     return diff > 0 ? diff : null;
@@ -39,7 +70,12 @@ function rowMinutes(row: Pick<Row, "showRange" | "startTime" | "endTime" | "minu
 }
 
 function dateHeading(date: string) {
-  return new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function weekDays(date: string) {
@@ -47,8 +83,13 @@ function weekDays(date: string) {
   const offset = (selected.getDay() + 6) % 7;
   selected.setDate(selected.getDate() - offset);
   return Array.from({ length: 5 }, (_, index) => {
-    const day = new Date(selected); day.setDate(selected.getDate() + index);
-    return { key: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`, label: day.toLocaleDateString("en-KE", { weekday: "short" }), number: day.getDate() };
+    const day = new Date(selected);
+    day.setDate(selected.getDate() + index);
+    return {
+      key: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`,
+      label: day.toLocaleDateString("en-KE", { weekday: "short" }),
+      number: day.getDate(),
+    };
   });
 }
 
@@ -65,8 +106,12 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const [edited, setEdited] = useState(false);
   const locked = !isEditableLogDate(date);
   const [savedEntries, setSavedEntries] = useState<DailyLogEntry[]>([]);
-  const [history, setHistory] = useState<{ date: string; entries: DailyLogEntry[]; mood: number | null }[]>([]);
-  const [notes, setNotes] = useState<{ id: string; body: string; authorName: string | null; createdAt: string }[]>([]);
+  const [history, setHistory] = useState<
+    { date: string; entries: DailyLogEntry[]; mood: number | null }[]
+  >([]);
+  const [notes, setNotes] = useState<
+    { id: string; body: string; authorName: string | null; createdAt: string }[]
+  >([]);
 
   // Notes a manager left on the chosen day, shown read-only.
   useEffect(() => {
@@ -82,7 +127,19 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     };
   }, [date]);
   const [clients, setClients] = useState<string[]>([]);
-  const [asana, setAsana] = useState<{ open: boolean; loading: boolean; connected: boolean; tasks: AsanaTask[]; selected: string[] }>({ open: false, loading: false, connected: false, tasks: [], selected: [] });
+  const [asana, setAsana] = useState<{
+    open: boolean;
+    loading: boolean;
+    connected: boolean;
+    tasks: AsanaTask[];
+    selected: string[];
+  }>({
+    open: false,
+    loading: false,
+    connected: false,
+    tasks: [],
+    selected: [],
+  });
 
   useEffect(() => {
     fetch("/api/pulse/daily-log/clients")
@@ -96,33 +153,47 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     setLoading(true);
     fetch(`/api/pulse/daily-log?date=${date}`)
       .then((res) => res.json())
-      .then((json: { entries?: DailyLogEntry[]; updatedAt?: string | null; edited?: boolean; mood?: number | null; blockers?: string | null; wins?: string | null; error?: string }) => {
-        if (cancelled) return;
-        if (json.error) throw new Error(json.error);
-        const loaded = json.entries ?? [];
-        setRows(loaded.length
-          ? loaded.map((entry) => ({
-              task: entry.task,
-              client: entry.client ?? "",
-              showRange: !!(entry.startTime && entry.endTime),
-              startTime: entry.startTime ?? "",
-              endTime: entry.endTime ?? "",
-              minutes: formatMinutes(entry.minutes),
-              category: entry.category,
-            }))
-          : [emptyRow()]);
-        setSavedAt(json.updatedAt ?? null);
-        setSavedEntries(loaded);
-        setEdited(json.edited ?? false);
-        setEditing(false);
-        setMood(json.mood ?? null);
-        setBlockers(json.blockers ?? "");
-        setWins(json.wins ?? "");
-      })
+      .then(
+        (json: {
+          entries?: DailyLogEntry[];
+          updatedAt?: string | null;
+          edited?: boolean;
+          mood?: number | null;
+          blockers?: string | null;
+          wins?: string | null;
+          error?: string;
+        }) => {
+          if (cancelled) return;
+          if (json.error) throw new Error(json.error);
+          const loaded = json.entries ?? [];
+          setRows(
+            loaded.length
+              ? loaded.map((entry) => ({
+                  task: entry.task,
+                  client: entry.client ?? "",
+                  showRange: !!(entry.startTime && entry.endTime),
+                  startTime: entry.startTime ?? "",
+                  endTime: entry.endTime ?? "",
+                  minutes: formatMinutes(entry.minutes),
+                  category: entry.category,
+                }))
+              : [emptyRow()],
+          );
+          setSavedAt(json.updatedAt ?? null);
+          setSavedEntries(loaded);
+          setEdited(json.edited ?? false);
+          setEditing(false);
+          setMood(json.mood ?? null);
+          setBlockers(json.blockers ?? "");
+          setWins(json.wins ?? "");
+        },
+      )
       .catch((err: Error) => !cancelled && toast.error(err.message))
       .finally(() => !cancelled && setLoading(false));
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [date, isReviewer]);
 
   useEffect(() => {
@@ -131,54 +202,107 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     const selected = new Date(`${date}T12:00:00`);
     selected.setDate(selected.getDate() - ((selected.getDay() + 6) % 7));
     const from = selected;
-    const to = new Date(selected); to.setDate(selected.getDate() + 4);
-    const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const to = new Date(selected);
+    to.setDate(selected.getDate() + 4);
+    const key = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     fetch(`/api/pulse/daily-log?scope=history&from=${key(from)}&to=${key(to)}`)
       .then((res) => res.json())
-      .then((json: { logs?: { date: string; entries: DailyLogEntry[]; mood: number | null }[] }) => {
-        if (!cancelled) setHistory(json.logs ?? []);
-      })
+      .then(
+        (json: {
+          logs?: {
+            date: string;
+            entries: DailyLogEntry[];
+            mood: number | null;
+          }[];
+        }) => {
+          if (!cancelled) setHistory(json.logs ?? []);
+        },
+      )
       .catch(() => !cancelled && setHistory([]));
     return () => {
       cancelled = true;
     };
   }, [date, isReviewer, savedAt]);
 
-  const totalMinutes = rows.reduce((sum, row) => sum + (rowMinutes(row) ?? 0), 0);
+  const totalMinutes = rows.reduce(
+    (sum, row) => sum + (rowMinutes(row) ?? 0),
+    0,
+  );
   const activeWeek = weekDays(date);
-  const weeklyLogs = history.filter((log) => activeWeek.some((day) => day.key === log.date));
-  const weeklyMinutes = weeklyLogs.reduce((sum, log) => sum + log.entries.reduce((entryTotal, entry) => entryTotal + entry.minutes, 0), 0);
-  const loggedDays = new Set(weeklyLogs.filter((log) => log.entries.length > 0).map((log) => log.date));
+  const weeklyLogs = history.filter((log) =>
+    activeWeek.some((day) => day.key === log.date),
+  );
+  const weeklyMinutes = weeklyLogs.reduce(
+    (sum, log) =>
+      sum +
+      log.entries.reduce((entryTotal, entry) => entryTotal + entry.minutes, 0),
+    0,
+  );
+  const loggedDays = new Set(
+    weeklyLogs.filter((log) => log.entries.length > 0).map((log) => log.date),
+  );
   const weekComplete = activeWeek.every((day) => loggedDays.has(day.key));
 
   const updateRow = (index: number, patch: Partial<Row>) => {
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    setRows((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
   };
 
   const openAsana = async () => {
     setAsana((prev) => ({ ...prev, open: true, loading: true, selected: [] }));
     try {
       const res = await fetch(`/api/pulse/checkins/asana-tasks?date=${date}`);
-      const json = await res.json() as { connected?: boolean; tasks?: AsanaTask[]; error?: string };
+      const json = (await res.json()) as {
+        connected?: boolean;
+        tasks?: AsanaTask[];
+        error?: string;
+      };
       if (json.error) throw new Error(json.error);
-      setAsana({ open: true, loading: false, connected: !!json.connected, tasks: json.tasks ?? [], selected: [] });
+      setAsana({
+        open: true,
+        loading: false,
+        connected: !!json.connected,
+        tasks: json.tasks ?? [],
+        selected: [],
+      });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not load Asana tasks");
+      toast.error(
+        err instanceof Error ? err.message : "Could not load Asana tasks",
+      );
       setAsana((prev) => ({ ...prev, loading: false }));
     }
   };
 
   const addSelectedFromAsana = () => {
-    const picked = asana.tasks.filter((task) => asana.selected.includes(task.id));
+    const picked = asana.tasks.filter((task) =>
+      asana.selected.includes(task.id),
+    );
     setRows((prev) => {
-      const base = prev.length === 1 && !prev[0].task && !prev[0].minutes && !prev[0].startTime ? [] : prev;
-      return [...base, ...picked.map((task) => ({ ...emptyRow(), task: task.project ? `${task.project}: ${task.name}` : task.name }))];
+      const base =
+        prev.length === 1 &&
+        !prev[0].task &&
+        !prev[0].minutes &&
+        !prev[0].startTime
+          ? []
+          : prev;
+      return [
+        ...base,
+        ...picked.map((task) => ({
+          ...emptyRow(),
+          task: task.project ? `${task.project}: ${task.name}` : task.name,
+        })),
+      ];
     });
     setAsana((prev) => ({ ...prev, open: false }));
   };
 
   const save = async () => {
-    const filled = rows.filter((row) => row.task.trim() || row.minutes.trim() || row.startTime || row.endTime);
+    const filled = rows.filter(
+      (row) =>
+        row.task.trim() || row.minutes.trim() || row.startTime || row.endTime,
+    );
     if (!filled.length) {
       toast.error("Add at least one task");
       return;
@@ -187,7 +311,9 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     for (const row of filled) {
       const minutes = rowMinutes(row);
       if (minutes === null) {
-        toast.error(`Check the time for "${row.task || "a task"}". Use a duration like 45m or 1h 30m, or a range where the end is after the start.`);
+        toast.error(
+          `Check the time for "${row.task || "a task"}". Use a duration like 45m or 1h 30m, or a range where the end is after the start.`,
+        );
         return;
       }
       const hasRange = row.showRange && row.startTime && row.endTime;
@@ -206,9 +332,17 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
       const res = await fetch("/api/pulse/daily-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, entries, mood, blockers: blockers.trim() || null, wins: wins.trim() || null }),
+        body: JSON.stringify({
+          date,
+          entries,
+          mood,
+          blockers: blockers.trim() || null,
+          wins: wins.trim() || null,
+        }),
       });
-      const json = await res.json().catch(() => null) as { error?: string } | null;
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!res.ok) throw new Error(json?.error ?? "Could not save your log");
       setSavedAt(new Date().toISOString());
       setSavedEntries(entries);
@@ -219,21 +353,27 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
       setEditing(false);
       const daysAfterSave = new Set(loggedDays);
       daysAfterSave.add(date);
-      const completedAfterSave = activeWeek.every((day) => daysAfterSave.has(day.key));
+      const completedAfterSave = activeWeek.every((day) =>
+        daysAfterSave.has(day.key),
+      );
       toast.success(
         completedAfterSave
           ? "Week complete. Review your weekly report before submitting."
-          : "Daily log shared with your manager."
+          : "Daily log shared with your manager.",
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not save your log");
+      toast.error(
+        err instanceof Error ? err.message : "Could not save your log",
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const inputClass = "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60";
-  const timeClass = "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text-hi)] outline-none focus:border-brand-500";
+  const inputClass =
+    "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60";
+  const timeClass =
+    "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text-hi)] outline-none focus:border-brand-500";
 
   return (
     <div className="space-y-6">
@@ -247,7 +387,90 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
         icon="solar:notebook-broken"
       />
 
-      {!isReviewer && <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2"><span className={`flex h-8 w-8 items-center justify-center rounded-xl ${weekComplete ? "bg-emerald-500/10 text-emerald-600" : "bg-brand-500/10 text-brand-500"}`}><Icon icon={weekComplete ? "solar:check-circle-broken" : "solar:calendar-mark-broken"} className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">{weekComplete ? "Your week is ready to review" : "This week&apos;s report"}</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">{weekComplete ? "Your daily work is shared. Add your reflection, then submit when you are ready." : "Log work each day, then complete your reflection by Friday."}</p></div></div><p className="mt-3 text-xs text-[var(--text-lo)]"><span className={`font-semibold ${weekComplete ? "text-emerald-600" : "text-brand-500"}`}>{loggedDays.size}/5 days logged</span> · {formatMinutes(weeklyMinutes)} tracked this week</p></div><div className="flex flex-wrap items-center gap-3"><div className="flex items-center gap-1 rounded-xl bg-[var(--surface-2)] p-1">{activeWeek.map((day) => { const selected = day.key === date; const logged = loggedDays.has(day.key); const future = day.key > todayLocal(); return <button key={day.key} type="button" disabled={future} onClick={() => setDate(day.key)} className={`flex min-w-11 flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${selected ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}><span className="font-medium">{day.label}</span><span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">{logged ? <Icon icon="solar:check-circle-bold" className="h-3.5 w-3.5 text-emerald-500" /> : future ? "" : day.number}</span></button>; })}</div><Link href="/pulse/checkins?tab=checkins" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"><Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />{weekComplete ? "Review weekly report" : "Weekly reflection"}</Link></div></div></section>}
+      {!isReviewer && (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-xl ${weekComplete ? "bg-emerald-500/10 text-emerald-600" : "bg-brand-500/10 text-brand-500"}`}
+                >
+                  <Icon
+                    icon={
+                      weekComplete
+                        ? "solar:check-circle-broken"
+                        : "solar:calendar-mark-broken"
+                    }
+                    className="h-4 w-4"
+                  />
+                </span>
+                <div>
+                  <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                    {weekComplete
+                      ? "Your week is ready to review"
+                      : "This week's report"}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                    {weekComplete
+                      ? "Your daily work is shared. Add your reflection, then submit when you are ready."
+                      : "Log work each day, then complete your reflection by Friday."}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-[var(--text-lo)]">
+                <span
+                  className={`font-semibold ${weekComplete ? "text-emerald-600" : "text-brand-500"}`}
+                >
+                  {loggedDays.size}/5 days logged
+                </span>{" "}
+                · {formatMinutes(weeklyMinutes)} tracked this week
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1 rounded-xl bg-[var(--surface-2)] p-1">
+                {activeWeek.map((day) => {
+                  const selected = day.key === date;
+                  const logged = loggedDays.has(day.key);
+                  const future = day.key > todayLocal();
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      disabled={future}
+                      onClick={() => setDate(day.key)}
+                      className={`flex min-w-11 flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${selected ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}
+                    >
+                      <span className="font-medium">{day.label}</span>
+                      <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">
+                        {logged ? (
+                          <Icon
+                            icon="solar:check-circle-bold"
+                            className="h-3.5 w-3.5 text-emerald-500"
+                          />
+                        ) : future ? (
+                          ""
+                        ) : (
+                          day.number
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <Link
+                href="/pulse/checkins?tab=checkins"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"
+              >
+                <Icon
+                  icon="solar:check-circle-broken"
+                  className="h-3.5 w-3.5"
+                />
+                {weekComplete ? "Review weekly report" : "Weekly reflection"}
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {!isReviewer && savedAt && !editing && !loading ? (
         <div className="space-y-5">
@@ -583,7 +806,18 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                     );
                   })}
                 </div>
-                <p className="mt-2 text-xs text-[var(--text-lo)]">{mood ? <>Feeling <span className="font-semibold text-[var(--text-hi)]">{MOOD_LABELS[mood - 1]}</span></> : "No mood selected"}</p>
+                <p className="mt-2 text-xs text-[var(--text-lo)]">
+                  {mood ? (
+                    <>
+                      Feeling{" "}
+                      <span className="font-semibold text-[var(--text-hi)]">
+                        {MOOD_LABELS[mood - 1]}
+                      </span>
+                    </>
+                  ) : (
+                    "No mood selected"
+                  )}
+                </p>
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">
@@ -646,4 +880,3 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     </div>
   );
 }
-

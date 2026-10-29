@@ -13,12 +13,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { ids } = await req.json() as { ids: string[] };
+  const { ids } = (await req.json()) as { ids: string[] };
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json({ error: "No IDs provided" }, { status: 400 });
   }
   if (ids.length > 200) {
-    return NextResponse.json({ error: "Max 200 records per batch" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Max 200 records per batch" },
+      { status: 400 },
+    );
   }
 
   // Fetch CV keys before deleting
@@ -36,13 +39,22 @@ export async function POST(req: Request) {
     cvUrls.map((url) => {
       const key = url.split("/").pop();
       if (!key) return Promise.resolve();
-      return r2.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: key }));
-    })
+      return r2.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME!,
+          Key: key,
+        }),
+      );
+    }),
   );
 
   // Delete DB records (cascades to notes, scorecards, ai_logs via FK)
-  const { error } = await supabaseAdmin.from("candidates").delete().in("id", ids);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error } = await supabaseAdmin
+    .from("candidates")
+    .delete()
+    .in("id", ids);
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
   await invalidateTables("candidates");
   return NextResponse.json({ deleted: ids.length });

@@ -10,7 +10,11 @@ export default async function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      <SetPageHeader title="Security" description="Password and session management" icon="solar:shield-keyhole-broken" />
+      <SetPageHeader
+        title="Security"
+        description="Password and session management"
+        icon="solar:shield-keyhole-broken"
+      />
       <SecurityClient />
     </div>
   );

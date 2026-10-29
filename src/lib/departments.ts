@@ -6,7 +6,9 @@ import { supabaseAdmin } from "@/lib/supabase";
  * Settings → Departments, preventing near-duplicate departments by casing or
  * whitespace.
  */
-export async function canonicalDepartment(value: string | null | undefined): Promise<string | null> {
+export async function canonicalDepartment(
+  value: string | null | undefined,
+): Promise<string | null> {
   const name = value?.trim().replace(/\s+/g, " ") ?? "";
   if (!name) return null;
   const { data, error } = await supabaseAdmin
@@ -15,6 +17,9 @@ export async function canonicalDepartment(value: string | null | undefined): Pro
     .ilike("name", name.replace(/[%_\\]/g, "\\$&"))
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error(`Choose an existing department from Settings → Departments before saving “${name}”.`);
+  if (!data)
+    throw new Error(
+      `Choose an existing department from Settings → Departments before saving “${name}”.`,
+    );
   return data.name;
 }

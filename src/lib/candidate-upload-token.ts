@@ -18,7 +18,11 @@ export function createCandidateUploadToken(candidateId: string, jobId: string) {
   return `${expiresAt}.${signature(candidateId, jobId, expiresAt)}`;
 }
 
-export function verifyCandidateUploadToken(token: string | null, candidateId: string, jobId: string) {
+export function verifyCandidateUploadToken(
+  token: string | null,
+  candidateId: string,
+  jobId: string,
+) {
   if (!token || !signingSecret()) return false;
   const [expiresAt, provided] = token.split(".");
   if (!expiresAt || !provided || Number(expiresAt) < Date.now()) return false;
@@ -26,5 +30,8 @@ export function verifyCandidateUploadToken(token: string | null, candidateId: st
   const expected = signature(candidateId, jobId, expiresAt);
   const providedBuffer = Buffer.from(provided);
   const expectedBuffer = Buffer.from(expected);
-  return providedBuffer.length === expectedBuffer.length && timingSafeEqual(providedBuffer, expectedBuffer);
+  return (
+    providedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(providedBuffer, expectedBuffer)
+  );
 }

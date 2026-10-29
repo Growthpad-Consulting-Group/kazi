@@ -41,18 +41,24 @@ export async function POST(req: Request) {
   if (!format || !ALLOWED_FORMATS.includes(format as ExportFormat)) {
     return NextResponse.json(
       { error: `format must be one of: ${ALLOWED_FORMATS.join(", ")}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   // Validate data
   if (!Array.isArray(data) || data.length === 0) {
-    return NextResponse.json({ error: "data must be a non-empty array" }, { status: 400 });
+    return NextResponse.json(
+      { error: "data must be a non-empty array" },
+      { status: 400 },
+    );
   }
 
   // Validate headers
   if (!Array.isArray(headers) || headers.length === 0) {
-    return NextResponse.json({ error: "headers must be a non-empty array" }, { status: 400 });
+    return NextResponse.json(
+      { error: "headers must be a non-empty array" },
+      { status: 400 },
+    );
   }
 
   const exportFormat = format as ExportFormat;
@@ -76,9 +82,15 @@ export async function POST(req: Request) {
 
   let attachment: Awaited<ReturnType<typeof buildExportAttachment>>;
   try {
-    attachment = await buildExportAttachment(exportFormat, exportData, exportHeaders, baseFilename);
+    attachment = await buildExportAttachment(
+      exportFormat,
+      exportData,
+      exportHeaders,
+      baseFilename,
+    );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to build attachment";
+    const msg =
+      err instanceof Error ? err.message : "Failed to build attachment";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 

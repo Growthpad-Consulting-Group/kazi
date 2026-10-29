@@ -11,7 +11,9 @@ export function getGoogleConfig() {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI;
   if (!clientId || !clientSecret || !redirectUri) {
-    throw new Error("Google Calendar OAuth has not been configured (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI).");
+    throw new Error(
+      "Google Calendar OAuth has not been configured (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI).",
+    );
   }
   return { clientId, clientSecret, redirectUri };
 }
@@ -20,25 +22,45 @@ export function getGoogleConfig() {
 
 function googleEncryptionKey() {
   const encoded = process.env.GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY;
-  if (!encoded) throw new Error("GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY is not configured.");
+  if (!encoded)
+    throw new Error("GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY is not configured.");
   const key = Buffer.from(encoded, "base64");
-  if (key.length !== 32) throw new Error("GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key.");
+  if (key.length !== 32)
+    throw new Error(
+      "GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key.",
+    );
   return key;
 }
 
 export function encryptGoogleToken(value: string): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", googleEncryptionKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
-  return ["v1", iv.toString("base64"), cipher.getAuthTag().toString("base64"), encrypted.toString("base64")].join(":");
+  const encrypted = Buffer.concat([
+    cipher.update(value, "utf8"),
+    cipher.final(),
+  ]);
+  return [
+    "v1",
+    iv.toString("base64"),
+    cipher.getAuthTag().toString("base64"),
+    encrypted.toString("base64"),
+  ].join(":");
 }
 
 export function decryptGoogleToken(value: string): string {
   const [version, iv, tag, ciphertext] = value.split(":");
-  if (version !== "v1" || !iv || !tag || !ciphertext) throw new Error("Stored Google token is invalid.");
-  const decipher = createDecipheriv("aes-256-gcm", googleEncryptionKey(), Buffer.from(iv, "base64"));
+  if (version !== "v1" || !iv || !tag || !ciphertext)
+    throw new Error("Stored Google token is invalid.");
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    googleEncryptionKey(),
+    Buffer.from(iv, "base64"),
+  );
   decipher.setAuthTag(Buffer.from(tag, "base64"));
-  return Buffer.concat([decipher.update(Buffer.from(ciphertext, "base64")), decipher.final()]).toString("utf8");
+  return Buffer.concat([
+    decipher.update(Buffer.from(ciphertext, "base64")),
+    decipher.final(),
+  ]).toString("utf8");
 }
 
 // ── Token access + refresh ─────────────────────────────────────────────────────
@@ -50,7 +72,8 @@ export async function getGoogleAccessToken(userId: string): Promise<string> {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!row) throw new Error("No Google Calendar connection found for this user.");
+  if (!row)
+    throw new Error("No Google Calendar connection found for this user.");
 
   // Refresh if token expires within 60 seconds
   const expiryMs = row.token_expiry ? new Date(row.token_expiry).getTime() : 0;
@@ -68,14 +91,17 @@ export async function getGoogleAccessToken(userId: string): Promise<string> {
         refresh_token: refreshToken,
       }),
     });
-    const data = await res.json().catch(() => null) as {
+    const data = (await res.json().catch(() => null)) as {
       access_token?: string;
       expires_in?: number;
       error?: string;
     } | null;
-    if (!res.ok || !data?.access_token) throw new Error(data?.error ?? "Google token refresh failed.");
+    if (!res.ok || !data?.access_token)
+      throw new Error(data?.error ?? "Google token refresh failed.");
 
-    const newExpiry = new Date(Date.now() + (data.expires_in ?? 3600) * 1000).toISOString();
+    const newExpiry = new Date(
+      Date.now() + (data.expires_in ?? 3600) * 1000,
+    ).toISOString();
     await supabaseAdmin
       .from("google_calendar_connections")
       .update({
@@ -111,7 +137,7 @@ async function getCalendarId(userId: string): Promise<string> {
 
 export async function createCalendarEvent(
   userId: string,
-  opts: CalendarEventOpts
+  opts: CalendarEventOpts,
 ): Promise<{ eventId: string; htmlLink: string } | null> {
   try {
     const [accessToken, calendarId] = await Promise.all([
@@ -127,16 +153,23 @@ export async function createCalendarEvent(
       attendees: opts.attendeeEmails.map((email) => ({ email })),
     };
 
-    const res = await fetch(`${GOOGLE_CALENDAR_BASE}/${encodeURIComponent(calendarId)}/events`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const res = await fetch(
+      `${GOOGLE_CALENDAR_BASE}/${encodeURIComponent(calendarId)}/events`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+    );
 
-    const data = await res.json().catch(() => null) as { id?: string; htmlLink?: string; error?: unknown } | null;
+    const data = (await res.json().catch(() => null)) as {
+      id?: string;
+      htmlLink?: string;
+      error?: unknown;
+    } | null;
     if (!res.ok || !data?.id) {
       console.error("Google Calendar createCalendarEvent failed", data?.error);
       return null;
@@ -153,7 +186,12 @@ export async function createCalendarEvent(
 export async function updateCalendarEvent(
   userId: string,
   eventId: string,
-  opts: { title?: string; description?: string; startAt?: string; endAt?: string }
+  opts: {
+    title?: string;
+    description?: string;
+    startAt?: string;
+    endAt?: string;
+  },
 ): Promise<boolean> {
   try {
     const [accessToken, calendarId] = await Promise.all([
@@ -176,7 +214,7 @@ export async function updateCalendarEvent(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-      }
+      },
     );
 
     if (!res.ok) {
@@ -191,7 +229,10 @@ export async function updateCalendarEvent(
   }
 }
 
-export async function deleteCalendarEvent(userId: string, eventId: string): Promise<boolean> {
+export async function deleteCalendarEvent(
+  userId: string,
+  eventId: string,
+): Promise<boolean> {
   try {
     const [accessToken, calendarId] = await Promise.all([
       getGoogleAccessToken(userId),
@@ -203,7 +244,7 @@ export async function deleteCalendarEvent(userId: string, eventId: string): Prom
       {
         method: "DELETE",
         headers: { Authorization: `Bearer ${accessToken}` },
-      }
+      },
     );
 
     if (!res.ok && res.status !== 410) {

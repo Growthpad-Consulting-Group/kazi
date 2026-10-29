@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, MouseEvent, ReactNode } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  MouseEvent,
+  ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 import { cn } from "@/shared/lib/cn";
 import { getNestedValue, isDateField, formatDateValue } from "./TableUtils";
 import type { Column, RowAction, RowActionVariant } from "../GenericTable";
 import TooltipIconButton from "../TooltipIconButton";
-
 
 /** Tinted button colours per RowAction variant, styled after bflowpos. */
 function actionVariantClass(variant: RowActionVariant = "default"): string {
@@ -67,9 +73,12 @@ export default function TableRow<T extends Record<string, unknown>>({
     const close = (e: Event) => {
       const t = e.target as Node;
       if (
-        dropdownRef.current && !dropdownRef.current.contains(t) &&
-        triggerRef.current && !triggerRef.current.contains(t)
-      ) setShowDropdown(false);
+        dropdownRef.current &&
+        !dropdownRef.current.contains(t) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(t)
+      )
+        setShowDropdown(false);
     };
     const closeScroll = () => setShowDropdown(false);
     document.addEventListener("mousedown", close);
@@ -81,10 +90,18 @@ export default function TableRow<T extends Record<string, unknown>>({
   }, [showDropdown]);
 
   const visibleActions = actions.filter((a) => !a.show || a.show(row));
-  const rowBg = selected ? "bg-brand-500/5" : isEven ? "bg-[var(--surface)]" : "bg-[var(--surface-2)]/30";
+  const rowBg = selected
+    ? "bg-brand-500/5"
+    : isEven
+      ? "bg-[var(--surface)]"
+      : "bg-[var(--surface-2)]/30";
 
   const handleRowClick = (e: MouseEvent<HTMLTableRowElement>) => {
-    if ((e.target as Element).closest("button") || (e.target as Element).closest('input[type="checkbox"]')) return;
+    if (
+      (e.target as Element).closest("button") ||
+      (e.target as Element).closest('input[type="checkbox"]')
+    )
+      return;
     onRowClick?.(row);
   };
 
@@ -94,15 +111,18 @@ export default function TableRow<T extends Record<string, unknown>>({
       className={cn(
         "group border-b border-slate-200/60 dark:border-slate-800/60 last:border-0 transition-colors duration-150",
         rowBg,
-        onRowClick ? "cursor-pointer hover:bg-brand-500/5" : "hover:bg-[var(--surface-2)]/60",
-        showDropdown && "relative z-60"
+        onRowClick
+          ? "cursor-pointer hover:bg-brand-500/5"
+          : "hover:bg-[var(--surface-2)]/60",
+        showDropdown && "relative z-60",
       )}
     >
       {selectable && (
         <td
           className={cn(
             "sticky left-0 z-10 w-10 px-3 py-3.5 border-r border-[var(--border)] transition-colors duration-150",
-            rowBg, "group-hover:bg-brand-500/5"
+            rowBg,
+            "group-hover:bg-brand-500/5",
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -123,7 +143,11 @@ export default function TableRow<T extends Record<string, unknown>>({
         if (col.render) {
           display = col.render(row, value);
         } else if (isDateField(accessor) && value) {
-          display = <span className="text-[var(--text-lo)] whitespace-nowrap">{formatDateValue(value)}</span>;
+          display = (
+            <span className="text-[var(--text-lo)] whitespace-nowrap">
+              {formatDateValue(value)}
+            </span>
+          );
         } else {
           const str = value == null ? "—" : String(value);
           display = <div className="truncate">{str}</div>;
@@ -132,7 +156,10 @@ export default function TableRow<T extends Record<string, unknown>>({
         return (
           <td
             key={`${accessor}-${i}`}
-            className={cn("px-4 py-3.5 text-sm text-[var(--text-hi)]", col.className)}
+            className={cn(
+              "px-4 py-3.5 text-sm text-[var(--text-hi)]",
+              col.className,
+            )}
           >
             {display}
           </td>
@@ -143,20 +170,31 @@ export default function TableRow<T extends Record<string, unknown>>({
         <td
           className={cn(
             "sticky right-0 z-10 px-3 py-3.5 border-l border-slate-200/60 dark:border-slate-800/60 transition-colors duration-150",
-            rowBg, "group-hover:bg-brand-500/5"
+            rowBg,
+            "group-hover:bg-brand-500/5",
           )}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2">
             {(() => {
-              const primary = visibleActions.length <= 4 ? visibleActions : visibleActions.slice(0, 3);
-              const overflow = visibleActions.length > 4 ? visibleActions.slice(3) : [];
+              const primary =
+                visibleActions.length <= 4
+                  ? visibleActions
+                  : visibleActions.slice(0, 3);
+              const overflow =
+                visibleActions.length > 4 ? visibleActions.slice(3) : [];
 
               return (
                 <>
                   {primary.map((action, ai) => {
-                    const ic    = typeof action.icon  === "function" ? action.icon(row)  : action.icon;
-                    const label = typeof action.label === "function" ? action.label(row) : action.label;
+                    const ic =
+                      typeof action.icon === "function"
+                        ? action.icon(row)
+                        : action.icon;
+                    const label =
+                      typeof action.label === "function"
+                        ? action.label(row)
+                        : action.label;
                     return (
                       <TooltipIconButton
                         key={ai}
@@ -166,7 +204,9 @@ export default function TableRow<T extends Record<string, unknown>>({
                         className={cn(
                           "transition-all active:scale-95 rounded-xl p-1.5",
                           actionVariantClass(action.variant),
-                          typeof action.className === "function" ? action.className(row) : action.className
+                          typeof action.className === "function"
+                            ? action.className(row)
+                            : action.className,
                         )}
                         iconClassName="h-4 w-4"
                         position="bottom"
@@ -181,39 +221,58 @@ export default function TableRow<T extends Record<string, unknown>>({
                         title="More actions"
                         className="rounded-xl bg-[var(--surface-2)] p-1.5 text-[var(--text-lo)] hover:bg-brand-500/10 hover:text-brand-500 transition-all"
                       >
-                        <Icon icon="solar:menu-dots-broken" className="h-4 w-4" />
+                        <Icon
+                          icon="solar:menu-dots-broken"
+                          className="h-4 w-4"
+                        />
                       </button>
 
-                      {showDropdown && typeof document !== "undefined" &&
+                      {showDropdown &&
+                        typeof document !== "undefined" &&
                         createPortal(
                           <div
                             ref={dropdownRef}
                             className="fixed z-[9999] min-w-[200px] rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-[var(--border)] overflow-hidden bg-[var(--surface)]"
-                            style={{ top: dropdownPos.top, left: Math.max(8, dropdownPos.left) }}
+                            style={{
+                              top: dropdownPos.top,
+                              left: Math.max(8, dropdownPos.left),
+                            }}
                           >
                             <div className="p-1.5">
                               {overflow.map((action, ai) => {
-                                const ic    = typeof action.icon  === "function" ? action.icon(row)  : action.icon;
-                                const label = typeof action.label === "function" ? action.label(row) : action.label;
+                                const ic =
+                                  typeof action.icon === "function"
+                                    ? action.icon(row)
+                                    : action.icon;
+                                const label =
+                                  typeof action.label === "function"
+                                    ? action.label(row)
+                                    : action.label;
                                 return (
                                   <button
                                     key={ai}
-                                    onClick={() => { action.onClick(row); setShowDropdown(false); }}
+                                    onClick={() => {
+                                      action.onClick(row);
+                                      setShowDropdown(false);
+                                    }}
                                     className={cn(
                                       "flex items-center gap-3 w-full px-4 py-2.5 text-sm text-left rounded-xl transition-all",
                                       action.variant === "danger"
                                         ? "text-red-500 hover:bg-red-500/10"
-                                        : "text-[var(--text-hi)] hover:bg-[var(--surface-2)] hover:translate-x-1"
+                                        : "text-[var(--text-hi)] hover:bg-[var(--surface-2)] hover:translate-x-1",
                                     )}
                                   >
-                                    <Icon icon={ic} className="h-4 w-4 shrink-0" />
+                                    <Icon
+                                      icon={ic}
+                                      className="h-4 w-4 shrink-0"
+                                    />
                                     <span className="font-medium">{label}</span>
                                   </button>
                                 );
                               })}
                             </div>
                           </div>,
-                          document.body
+                          document.body,
                         )}
                     </div>
                   )}

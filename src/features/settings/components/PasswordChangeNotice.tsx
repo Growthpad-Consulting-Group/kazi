@@ -13,7 +13,9 @@ export function PasswordChangeNotice() {
 
   useEffect(() => {
     if (!required) return;
-    toast.error("Choose a new password before you go anywhere else.", { id: "password-required" });
+    toast.error("Choose a new password before you go anywhere else.", {
+      id: "password-required",
+    });
     // Drop the flag from the address so a refresh doesn't repeat the prompt.
     router.replace(pathname);
   }, [required, router, pathname]);

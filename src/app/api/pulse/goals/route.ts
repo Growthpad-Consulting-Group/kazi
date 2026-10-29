@@ -12,8 +12,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { title, description, level, owner_id, parent_id, due_date, created_by } = await req.json();
-  if (!title || !level) return NextResponse.json({ error: "title and level required" }, { status: 400 });
+  const {
+    title,
+    description,
+    level,
+    owner_id,
+    parent_id,
+    due_date,
+    created_by,
+  } = await req.json();
+  if (!title || !level)
+    return NextResponse.json(
+      { error: "title and level required" },
+      { status: 400 },
+    );
 
   const { error } = await supabaseAdmin.from("goals").insert({
     title,
@@ -25,7 +37,8 @@ export async function POST(req: Request) {
     created_by,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   await invalidateOwnerGoals(owner_id ?? "");
   return NextResponse.json({ ok: true });
 }

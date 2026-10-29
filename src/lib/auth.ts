@@ -25,21 +25,37 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.toLowerCase().trim();
         const headers = new Headers(request?.headers ?? {});
         const [ipLimit, emailLimit] = await Promise.all([
-          checkRateLimit({ scope: "login-ip", identifier: requestIp(headers), limit: 10, windowSeconds: 15 * 60 }),
-          checkRateLimit({ scope: "login-email", identifier: email, limit: 5, windowSeconds: 15 * 60 }),
+          checkRateLimit({
+            scope: "login-ip",
+            identifier: requestIp(headers),
+            limit: 10,
+            windowSeconds: 15 * 60,
+          }),
+          checkRateLimit({
+            scope: "login-email",
+            identifier: email,
+            limit: 5,
+            windowSeconds: 15 * 60,
+          }),
         ]);
         if (!ipLimit.allowed || !emailLimit.allowed) return null;
-        if (!(await verifyRecaptcha(credentials.recaptchaToken, headers))) return null;
+        if (!(await verifyRecaptcha(credentials.recaptchaToken, headers)))
+          return null;
 
         const { data: user, error } = await supabaseAdmin
           .from("users")
-          .select("id, email, name, password_hash, role, department, avatar_url, is_active")
+          .select(
+            "id, email, name, password_hash, role, department, avatar_url, is_active",
+          )
           .eq("email", email)
           .single();
 
         if (error || !user || !user.is_active) return null;
 
-        const valid = await bcrypt.compare(credentials.password, user.password_hash);
+        const valid = await bcrypt.compare(
+          credentials.password,
+          user.password_hash,
+        );
         if (!valid) return null;
 
         // Fallback to signature staff photo if no avatar set
@@ -50,7 +66,8 @@ export const authOptions: NextAuthOptions = {
             .select("photo_url")
             .eq("user_id", user.id)
             .maybeSingle();
-          avatarUrl = (sig as { photo_url?: string | null } | null)?.photo_url ?? null;
+          avatarUrl =
+            (sig as { photo_url?: string | null } | null)?.photo_url ?? null;
         }
 
         return {
@@ -69,7 +86,9 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as { role: UserRole }).role;
-        token.department = (user as unknown as { department: string | null }).department;
+        token.department = (
+          user as unknown as { department: string | null }
+        ).department;
         token.picture = user.image ?? null;
       }
       return token;
@@ -80,8 +99,13 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as UserRole;
         session.user.department = token.department as string | null;
         session.user.image = (token.picture as string | null) ?? null;
-        session.user.extraPermissions = await getExtraPermissions(session.user.id);
-        session.user.allowedPaths = withViewGrant(await getAllowedPaths(session.user.role), session.user.extraPermissions);
+        session.user.extraPermissions = await getExtraPermissions(
+          session.user.id,
+        );
+        session.user.allowedPaths = withViewGrant(
+          await getAllowedPaths(session.user.role),
+          session.user.extraPermissions,
+        );
       }
       return session;
     },

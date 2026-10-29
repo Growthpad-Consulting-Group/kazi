@@ -10,7 +10,11 @@ import { EditableArea, ViewOnlyNotice } from "./EditableArea";
 
 export default async function DepartmentsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/departments")) redirect("/settings/profile");
+  if (
+    !session ||
+    !isPathAllowed(session.user.allowedPaths, "/settings/departments")
+  )
+    redirect("/settings/profile");
   const canEdit = can(session.user.role, "manage_departments");
 
   const departments = await getDepartmentsWithUsage().catch(() => []);

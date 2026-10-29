@@ -48,7 +48,8 @@ export async function POST(req: Request): Promise<Response> {
     .eq("status", "active")
     .lte("closes_at", nowIso)
     .select("id");
-  if ((scheduledToOpen?.length ?? 0) > 0 || (scheduledToClose?.length ?? 0) > 0) await invalidateTables("surveys");
+  if ((scheduledToOpen?.length ?? 0) > 0 || (scheduledToClose?.length ?? 0) > 0)
+    await invalidateTables("surveys");
 
   // ── 3. Side Quests ending within 48 h ─────────────────────────────────────
   const { data: endingQuests } = await supabaseAdmin
@@ -59,16 +60,22 @@ export async function POST(req: Request): Promise<Response> {
     .lte("ends_at", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString());
 
   for (const quest of endingQuests ?? []) {
-    const filters: string[] = Array.isArray(quest.audience_filters) ? quest.audience_filters : [];
+    const filters: string[] = Array.isArray(quest.audience_filters)
+      ? quest.audience_filters
+      : [];
     const eligible =
       quest.audience_type === "company"
         ? allUserIds
         : users
             .filter((u) => {
-              if (quest.audience_type === "department") return u.department != null && filters.includes(u.department);
-              if (quest.audience_type === "location") return u.location != null && filters.includes(u.location);
-              if (quest.audience_type === "manager_group") return u.manager_id != null && filters.includes(u.manager_id);
-              if (quest.audience_type === "staff") return filters.includes(u.id);
+              if (quest.audience_type === "department")
+                return u.department != null && filters.includes(u.department);
+              if (quest.audience_type === "location")
+                return u.location != null && filters.includes(u.location);
+              if (quest.audience_type === "manager_group")
+                return u.manager_id != null && filters.includes(u.manager_id);
+              if (quest.audience_type === "staff")
+                return filters.includes(u.id);
               return false;
             })
             .map((u) => u.id);
@@ -105,24 +112,28 @@ export async function POST(req: Request): Promise<Response> {
   const weekStartIso = weekStart.toISOString();
 
   for (const userId of allUserIds) {
-    const [{ count: recognitionCount }, { count: questsCount }] = await Promise.all([
-      supabaseAdmin
-        .from("feedback_recipients")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("created_at", weekStartIso),
-      supabaseAdmin
-        .from("side_quest_completions")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("completed_at", weekStartIso),
-    ]);
+    const [{ count: recognitionCount }, { count: questsCount }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("feedback_recipients")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .gte("created_at", weekStartIso),
+        supabaseAdmin
+          .from("side_quest_completions")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .gte("completed_at", weekStartIso),
+      ]);
 
     const questsCompleted = questsCount ?? 0;
     const recognitionReceived = recognitionCount ?? 0;
 
     if (questsCompleted > 0 || recognitionReceived > 0) {
-      await notifyWeeklyDigest(userId, { questsCompleted, recognitionReceived });
+      await notifyWeeklyDigest(userId, {
+        questsCompleted,
+        recognitionReceived,
+      });
       sent++;
     }
   }

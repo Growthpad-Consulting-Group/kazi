@@ -3,8 +3,14 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import SetPageHeader from "@/components/ui/SetPageHeader";
-import DateRangePicker, { type DateRangeValue } from "@/components/ui/DateRangePicker";
-import { toSearchParams, type ResolvedRange, toPickerValue } from "./DashboardRange";
+import DateRangePicker, {
+  type DateRangeValue,
+} from "@/components/ui/DateRangePicker";
+import {
+  toSearchParams,
+  type ResolvedRange,
+  toPickerValue,
+} from "./DashboardRange";
 
 interface Props {
   range: ResolvedRange;
@@ -24,13 +30,30 @@ export default function DashboardHeader({ range, description }: Props) {
   }
 
   return (
-    <div className={isPending ? "opacity-70 transition-opacity" : "transition-opacity"}>
+    <div
+      className={
+        isPending ? "opacity-70 transition-opacity" : "transition-opacity"
+      }
+    >
       <SetPageHeader
         title="Dashboard"
         description={description}
         icon="solar:widget-2-broken"
-        actions={[{ label: "Post Job", icon: "solar:add-circle-broken", href: "/hire/jobs/new", variant: "primary", write: true }]}
-        trailing={<DateRangePicker value={toPickerValue(range)} onChange={handleChange} />}
+        actions={[
+          {
+            label: "Post Job",
+            icon: "solar:add-circle-broken",
+            href: "/hire/jobs/new",
+            variant: "primary",
+            write: true,
+          },
+        ]}
+        trailing={
+          <DateRangePicker
+            value={toPickerValue(range)}
+            onChange={handleChange}
+          />
+        }
         trailingIsFilter
       />
     </div>

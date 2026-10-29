@@ -37,13 +37,22 @@ interface Props {
 const inputCls =
   "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
 
-export default function EditStaffModal({ userId, initial, managers, departments, canManageSystemAccess, isSelf, avatarFallbackUrl }: Props) {
+export default function EditStaffModal({
+  userId,
+  initial,
+  managers,
+  departments,
+  canManageSystemAccess,
+  isSelf,
+  avatarFallbackUrl,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [fields, setFields] = useState<StaffFields>({ ...initial });
   const [isPending, startTransition] = useTransition();
 
-  const set = <K extends keyof StaffFields>(k: K, v: StaffFields[K]) => setFields((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof StaffFields>(k: K, v: StaffFields[K]) =>
+    setFields((f) => ({ ...f, [k]: v }));
 
   function save() {
     startTransition(async () => {
@@ -54,7 +63,7 @@ export default function EditStaffModal({ userId, initial, managers, departments,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(profileFields),
         });
-        const body = await res.json() as { error?: string };
+        const body = (await res.json()) as { error?: string };
         if (!res.ok) throw new Error(body.error ?? "Failed to save");
         if (canManageSystemAccess && role !== initial.role) {
           const roleResponse = await fetch("/api/admin/users", {
@@ -62,8 +71,11 @@ export default function EditStaffModal({ userId, initial, managers, departments,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id: userId, role }),
           });
-          const roleBody = await roleResponse.json().catch(() => ({})) as { error?: string };
-          if (!roleResponse.ok) throw new Error(roleBody.error ?? "Could not update system access");
+          const roleBody = (await roleResponse.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          if (!roleResponse.ok)
+            throw new Error(roleBody.error ?? "Could not update system access");
         }
         toast.success("Staff profile updated");
         setOpen(false);
@@ -80,59 +92,126 @@ export default function EditStaffModal({ userId, initial, managers, departments,
         Edit staff
       </Button>
 
-      <SimpleModal open={open} onClose={() => setOpen(false)} title="Edit staff profile" icon="solar:user-id-broken">
+      <SimpleModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Edit staff profile"
+        icon="solar:user-id-broken"
+      >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Full name</span>
-              <input value={fields.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+                Full name
+              </span>
+              <input
+                value={fields.name}
+                onChange={(e) => set("name", e.target.value)}
+                className={inputCls}
+              />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Email</span>
-              <input type="email" value={fields.email} onChange={(e) => set("email", e.target.value)} className={inputCls} />
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+                Email
+              </span>
+              <input
+                type="email"
+                value={fields.email}
+                onChange={(e) => set("email", e.target.value)}
+                className={inputCls}
+              />
             </label>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Job title</span>
-              <input value={fields.job_title ?? ""} onChange={(e) => set("job_title", e.target.value || null)} placeholder="e.g. Product Designer" className={inputCls} />
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+                Job title
+              </span>
+              <input
+                value={fields.job_title ?? ""}
+                onChange={(e) => set("job_title", e.target.value || null)}
+                placeholder="e.g. Product Designer"
+                className={inputCls}
+              />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Location</span>
-              <input value={fields.location ?? ""} onChange={(e) => set("location", e.target.value || null)} placeholder="e.g. Nairobi" className={inputCls} />
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+                Location
+              </span>
+              <input
+                value={fields.location ?? ""}
+                onChange={(e) => set("location", e.target.value || null)}
+                placeholder="e.g. Nairobi"
+                className={inputCls}
+              />
             </label>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Department</span>
-              <select value={fields.department ?? ""} onChange={(e) => set("department", e.target.value || null)} className={inputCls}>
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+                Department
+              </span>
+              <select
+                value={fields.department ?? ""}
+                onChange={(e) => set("department", e.target.value || null)}
+                className={inputCls}
+              >
                 <option value="">Unassigned</option>
-                {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                {departments.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Manager</span>
-              <select value={fields.manager_id ?? ""} onChange={(e) => set("manager_id", e.target.value || null)} className={inputCls}>
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+                Manager
+              </span>
+              <select
+                value={fields.manager_id ?? ""}
+                onChange={(e) => set("manager_id", e.target.value || null)}
+                className={inputCls}
+              >
                 <option value="">No manager</option>
-                {managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                {managers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Start date</span>
-            <DatePicker value={fields.start_date ?? ""} onChange={(v) => set("start_date", v || null)} placeholder="Choose start date" />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Start date
+            </span>
+            <DatePicker
+              value={fields.start_date ?? ""}
+              onChange={(v) => set("start_date", v || null)}
+              placeholder="Choose start date"
+            />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Date of birth</span>
-            <DatePicker value={fields.date_of_birth ?? ""} onChange={(v) => set("date_of_birth", v || null)} placeholder="Choose date of birth" maxDate={new Date()} />
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Date of birth
+            </span>
+            <DatePicker
+              value={fields.date_of_birth ?? ""}
+              onChange={(v) => set("date_of_birth", v || null)}
+              placeholder="Choose date of birth"
+              maxDate={new Date()}
+            />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">Profile photo</span>
+            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+              Profile photo
+            </span>
             <AvatarUpload
               value={fields.avatar_url ?? ""}
               previewUrl={avatarFallbackUrl ?? undefined}
@@ -152,13 +231,32 @@ export default function EditStaffModal({ userId, initial, managers, departments,
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-sm font-semibold text-[var(--text-hi)]">System access</h3>
-                      <p className="mt-0.5 text-xs text-[var(--text-lo)]">Controls what this person can see and do in Kazi.</p>
+                      <h3 className="text-sm font-semibold text-[var(--text-hi)]">
+                        System access
+                      </h3>
+                      <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                        Controls what this person can see and do in Kazi.
+                      </p>
                     </div>
-                    {isSelf && <span className="rounded-lg bg-[var(--surface)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">Your access cannot be changed here</span>}
+                    {isSelf && (
+                      <span className="rounded-lg bg-[var(--surface)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">
+                        Your access cannot be changed here
+                      </span>
+                    )}
                   </div>
-                  <select value={fields.role} disabled={isSelf} onChange={(event) => set("role", event.target.value as UserRole)} className={`${inputCls} mt-3 disabled:cursor-not-allowed disabled:opacity-60`}>
-                    {SYSTEM_ACCESS_ROLES.map((accessRole) => <option key={accessRole.value} value={accessRole.value}>{accessRole.label} — {accessRole.description}</option>)}
+                  <select
+                    value={fields.role}
+                    disabled={isSelf}
+                    onChange={(event) =>
+                      set("role", event.target.value as UserRole)
+                    }
+                    className={`${inputCls} mt-3 disabled:cursor-not-allowed disabled:opacity-60`}
+                  >
+                    {SYSTEM_ACCESS_ROLES.map((accessRole) => (
+                      <option key={accessRole.value} value={accessRole.value}>
+                        {accessRole.label} — {accessRole.description}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -167,10 +265,18 @@ export default function EditStaffModal({ userId, initial, managers, departments,
         </div>
 
         <div className="mt-6 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-lo)] hover:bg-[var(--surface-2)]">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-lo)] hover:bg-[var(--surface-2)]"
+          >
             Cancel
           </button>
-          <Button icon="solar:diskette-broken" loading={isPending} onClick={save}>
+          <Button
+            icon="solar:diskette-broken"
+            loading={isPending}
+            onClick={save}
+          >
             {isPending ? "Saving…" : "Save changes"}
           </Button>
         </div>

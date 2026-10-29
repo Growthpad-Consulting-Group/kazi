@@ -5,18 +5,43 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
 
 type Row = {
-  id: string; type: string; status: string; overall_rating: number | null;
-  strengths: string | null; development_areas: string | null; submitted_at: string | null;
+  id: string;
+  type: string;
+  status: string;
+  overall_rating: number | null;
+  strengths: string | null;
+  development_areas: string | null;
+  submitted_at: string | null;
   review_cycles: { title: string; cycle: string } | null;
 };
 
 function toCsv(rows: Row[]): string {
-  const header = ["Review ID", "Cycle", "Frequency", "Type", "Status", "Overall Rating", "Strengths", "Development Areas", "Submitted At"];
-  const lines = rows.map((r) => [
-    r.id, r.review_cycles?.title ?? "", r.review_cycles?.cycle ?? "",
-    r.type, r.status, r.overall_rating ?? "",
-    r.strengths ?? "", r.development_areas ?? "", r.submitted_at ?? "",
-  ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
+  const header = [
+    "Review ID",
+    "Cycle",
+    "Frequency",
+    "Type",
+    "Status",
+    "Overall Rating",
+    "Strengths",
+    "Development Areas",
+    "Submitted At",
+  ];
+  const lines = rows.map((r) =>
+    [
+      r.id,
+      r.review_cycles?.title ?? "",
+      r.review_cycles?.cycle ?? "",
+      r.type,
+      r.status,
+      r.overall_rating ?? "",
+      r.strengths ?? "",
+      r.development_areas ?? "",
+      r.submitted_at ?? "",
+    ]
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .join(","),
+  );
   return [header.join(","), ...lines].join("\r\n");
 }
 
@@ -28,7 +53,9 @@ export async function GET() {
 
   const { data } = await supabaseAdmin
     .from("performance_reviews")
-    .select("id, type, status, overall_rating, strengths, development_areas, submitted_at, review_cycles(title, cycle)")
+    .select(
+      "id, type, status, overall_rating, strengths, development_areas, submitted_at, review_cycles(title, cycle)",
+    )
     .order("submitted_at", { ascending: false });
 
   const rows = (data ?? []) as unknown as Row[];

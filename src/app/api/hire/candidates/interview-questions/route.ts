@@ -7,12 +7,21 @@ import { recordAiUsage } from "@/lib/ai-audit";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !["admin", "hr", "hiring_manager", "interviewer"].includes(session.user.role)) {
+  if (
+    !session ||
+    !["admin", "hr", "hiring_manager", "interviewer"].includes(
+      session.user.role,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { candidateId } = await req.json();
-  if (!candidateId) return NextResponse.json({ error: "candidateId required" }, { status: 400 });
+  if (!candidateId)
+    return NextResponse.json(
+      { error: "candidateId required" },
+      { status: 400 },
+    );
 
   type CandidateWithJob = {
     cv_parsed: unknown;
@@ -21,7 +30,11 @@ export async function POST(req: Request) {
       title: string;
       description: string | null;
       requirements: { must_haves: string[]; nice_to_haves: string[] };
-      scoring_rubric: { criterion: string; weight: number; description: string }[];
+      scoring_rubric: {
+        criterion: string;
+        weight: number;
+        description: string;
+      }[];
     } | null;
   };
 
@@ -31,16 +44,18 @@ export async function POST(req: Request) {
     .eq("id", candidateId)
     .single();
 
-  if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (error || !data)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const candidate = data as unknown as CandidateWithJob;
 
   const job = candidate.jobs;
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  if (!job)
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
   const cvSummary = candidate.cv_parsed
     ? JSON.stringify(candidate.cv_parsed)
-    : candidate.cv_text?.slice(0, 3000) ?? "No CV available";
+    : (candidate.cv_text?.slice(0, 3000) ?? "No CV available");
 
   const prompt = `You are a senior recruiter preparing an interview for a candidate at Growthpad Consulting Group.
 
@@ -71,11 +86,21 @@ Return ONLY valid JSON:
   });
 
   const raw = completion.choices[0]?.message?.content ?? "{}";
-  let result: { questions: { question: string; type: string; criterion: string; guidance: string }[] };
+  let result: {
+    questions: {
+      question: string;
+      type: string;
+      criterion: string;
+      guidance: string;
+    }[];
+  };
   try {
     result = JSON.parse(raw);
   } catch {
-    return NextResponse.json({ error: "AI returned invalid JSON" }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI returned invalid JSON" },
+      { status: 500 },
+    );
   }
 
   await recordAiUsage({

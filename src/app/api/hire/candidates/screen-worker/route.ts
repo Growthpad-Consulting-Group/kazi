@@ -23,14 +23,20 @@ type CandidateWithJob = {
   jobs: {
     title: string;
     requirements: { must_haves: string[]; nice_to_haves: string[] };
-    scoring_rubric: { criterion: string; weight: number; description: string }[];
+    scoring_rubric: {
+      criterion: string;
+      weight: number;
+      description: string;
+    }[];
   } | null;
 };
 
 async function screenOne(candidateId: string): Promise<void> {
   const { data, error } = await supabaseAdmin
     .from("candidates")
-    .select("id, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)")
+    .select(
+      "id, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)",
+    )
     .eq("id", candidateId)
     .single();
 
@@ -39,9 +45,16 @@ async function screenOne(candidateId: string): Promise<void> {
   const job = candidate.jobs;
   if (!job || candidate.ai_score !== null) return;
 
-  const parsedCv = candidate.cv_parsed ?? (candidate.cv_text ? await parseCvText(candidateId, candidate.cv_text) : null);
+  const parsedCv =
+    candidate.cv_parsed ??
+    (candidate.cv_text
+      ? await parseCvText(candidateId, candidate.cv_text)
+      : null);
   if (!candidate.cv_parsed && parsedCv) {
-    await supabaseAdmin.from("candidates").update({ cv_parsed: parsedCv }).eq("id", candidateId);
+    await supabaseAdmin
+      .from("candidates")
+      .update({ cv_parsed: parsedCv })
+      .eq("id", candidateId);
   }
 
   const cvData = parsedCv
@@ -50,9 +63,14 @@ async function screenOne(candidateId: string): Promise<void> {
   if (!cvData) return;
 
   const rubric = job.scoring_rubric ?? [];
-  const requirements = job.requirements ?? { must_haves: [], nice_to_haves: [] };
+  const requirements = job.requirements ?? {
+    must_haves: [],
+    nice_to_haves: [],
+  };
   const rubricText = rubric.length
-    ? rubric.map((r) => `- ${r.criterion} (${r.weight}%): ${r.description}`).join("\n")
+    ? rubric
+        .map((r) => `- ${r.criterion} (${r.weight}%): ${r.description}`)
+        .join("\n")
     : "General fit for the role";
 
   const prompt = `You are a fair, unbiased recruitment assistant screening a candidate for a role. Anonymised CV data (no name, photo, age, gender or personal identifiers).
@@ -87,14 +105,17 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
   }
 
   await Promise.all([
-    supabaseAdmin.from("candidates").update({
-      ai_score: result.score,
-      ai_justification: result.justification,
-      shortlisted: result.shortlisted,
-      // Automation only advances a fresh application. It never rewinds a
-      // stage that a recruiter has already moved forward.
-      stage: candidate.stage === "applied" ? "screened" : candidate.stage,
-    }).eq("id", candidateId),
+    supabaseAdmin
+      .from("candidates")
+      .update({
+        ai_score: result.score,
+        ai_justification: result.justification,
+        shortlisted: result.shortlisted,
+        // Automation only advances a fresh application. It never rewinds a
+        // stage that a recruiter has already moved forward.
+        stage: candidate.stage === "applied" ? "screened" : candidate.stage,
+      })
+      .eq("id", candidateId),
 
     recordAiUsage({
       operation: "screening_queue",
@@ -158,5 +179,9 @@ export async function GET(req: Request) {
 
   const remaining = await redis.llen(SCREENING_QUEUE);
 
-  return NextResponse.json({ processed: processed.length, failed: failed.length, remaining });
+  return NextResponse.json({
+    processed: processed.length,
+    failed: failed.length,
+    remaining,
+  });
 }

@@ -31,15 +31,27 @@ const EXPORTS = [
 
 export default async function ExportsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/exports")) redirect("/settings/profile");
+  if (
+    !session ||
+    !isPathAllowed(session.user.allowedPaths, "/settings/exports")
+  )
+    redirect("/settings/profile");
   const canEdit = can(session.user.role, "manage_system");
 
   return (
     <div className="space-y-6">
-      <SetPageHeader title="Data Exports" description="Download records as CSV for offline reporting" icon="solar:download-minimalistic-broken" />
+      <SetPageHeader
+        title="Data Exports"
+        description="Download records as CSV for offline reporting"
+        icon="solar:download-minimalistic-broken"
+      />
 
       {!canEdit && <ViewOnlyNotice permissionLabel="system settings" />}
-      <SettingsSection title="Exports" description="Generated on click, downloaded straight to your device" icon="solar:download-broken">
+      <SettingsSection
+        title="Exports"
+        description="Generated on click, downloaded straight to your device"
+        icon="solar:download-broken"
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {EXPORTS.map(({ label, description, href, icon }) => (
             <a
@@ -54,8 +66,12 @@ export default async function ExportsPage() {
                 <Icon icon={icon} className="h-4.5 w-4.5 text-brand-500" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text-hi)]">{label}</p>
-                <p className="mt-0.5 text-xs text-[var(--text-lo)]">{description}</p>
+                <p className="text-sm font-semibold text-[var(--text-hi)]">
+                  {label}
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                  {description}
+                </p>
               </div>
               <div className="mt-auto flex items-center gap-1.5 text-xs font-medium text-brand-500">
                 <Icon icon="solar:download-broken" className="h-3.5 w-3.5" />

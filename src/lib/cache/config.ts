@@ -29,11 +29,23 @@ export interface CacheStrategy {
 
 export const CACHE_STRATEGIES = {
   /** Reference data that changes rarely (departments, org structure). */
-  stable: { ttl: 1800, category: "stable", description: "Reference data that rarely changes" },
+  stable: {
+    ttl: 1800,
+    category: "stable",
+    description: "Reference data that rarely changes",
+  },
   /** Business data that changes throughout the day (people, jobs, pipeline). */
-  dynamic: { ttl: 300, category: "dynamic", description: "Business data that changes regularly" },
+  dynamic: {
+    ttl: 300,
+    category: "dynamic",
+    description: "Business data that changes regularly",
+  },
   /** Operational data that must feel live (check-ins, notifications). */
-  realtime: { ttl: 30, category: "realtime", description: "Live operational data" },
+  realtime: {
+    ttl: 30,
+    category: "realtime",
+    description: "Live operational data",
+  },
 } as const;
 
 export type CacheStrategyName = keyof typeof CACHE_STRATEGIES;
@@ -69,6 +81,7 @@ const EXCLUDED_GROUPS = parseList(process.env.CACHE_EXCLUDE_GROUPS);
 export function isCacheEnabledFor(group: string): boolean {
   if (!CACHE_ENABLED) return false;
   if (EXCLUDED_GROUPS.includes(group)) return false;
-  if (ENABLED_GROUPS.length > 0 && !ENABLED_GROUPS.includes(group)) return false;
+  if (ENABLED_GROUPS.length > 0 && !ENABLED_GROUPS.includes(group))
+    return false;
   return true;
 }

@@ -10,13 +10,21 @@ import { DataRetentionClient } from "./DataRetentionClient";
 import { EditableArea, ViewOnlyNotice } from "./EditableArea";
 
 type StaleCandidate = {
-  id: string; full_name: string; email: string; stage: string; applied_at: string;
+  id: string;
+  full_name: string;
+  email: string;
+  stage: string;
+  applied_at: string;
   jobs: { title: string } | null;
 };
 
 export default async function DataRetentionPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/data-retention")) redirect("/settings/profile");
+  if (
+    !session ||
+    !isPathAllowed(session.user.allowedPaths, "/settings/data-retention")
+  )
+    redirect("/settings/profile");
   const canEdit = can(session.user.role, "access_settings");
 
   // Candidates rejected or hired more than 12 months ago
@@ -40,7 +48,21 @@ export default async function DataRetentionPage() {
         icon="solar:trash-bin-minimalistic-broken"
       />
 
-      <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300"><Icon icon="solar:shield-warning-broken" className="h-4 w-4" /></span><div><p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Retention policy reminder</p><p className="mt-1 text-xs leading-relaxed text-amber-700 dark:text-amber-300">Under Kenya&apos;s Data Protection Act, personal data must not be kept longer than necessary. Deleting a record removes its CV files and associated candidate data.</p></div></div>
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
+          <Icon icon="solar:shield-warning-broken" className="h-4 w-4" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+            Retention policy reminder
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+            Under Kenya&apos;s Data Protection Act, personal data must not be
+            kept longer than necessary. Deleting a record removes its CV files
+            and associated candidate data.
+          </p>
+        </div>
+      </div>
 
       {!canEdit && <ViewOnlyNotice permissionLabel="data retention" />}
       <EditableArea canEdit={canEdit}>

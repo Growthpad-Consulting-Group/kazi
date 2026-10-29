@@ -20,8 +20,14 @@ export async function recordAiUsage(entry: AiAuditEntry) {
     entity_type: entry.entityType,
     entity_id: entry.entityId,
     model: entry.model,
-    prompt: JSON.stringify({ redacted: true, input_characters: entry.inputCharacters }),
-    response: JSON.stringify({ redacted: true, output_characters: entry.outputCharacters }),
+    prompt: JSON.stringify({
+      redacted: true,
+      input_characters: entry.inputCharacters,
+    }),
+    response: JSON.stringify({
+      redacted: true,
+      output_characters: entry.outputCharacters,
+    }),
     tokens_used: entry.tokensUsed ?? null,
   });
 }

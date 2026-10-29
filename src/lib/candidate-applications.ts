@@ -39,12 +39,19 @@ export async function assertCanApply(jobId: string, email: string) {
     .eq("job_id", jobId)
     .eq("email", email.toLowerCase())
     .maybeSingle();
-  if (existing) throw new ApplicationError("An application with this email already exists for this role", 409);
+  if (existing)
+    throw new ApplicationError(
+      "An application with this email already exists for this role",
+      409,
+    );
 
   return job;
 }
 
-export async function insertApplicant(input: ApplicationInput, job: { title: string }) {
+export async function insertApplicant(
+  input: ApplicationInput,
+  job: { title: string },
+) {
   const { data: candidate, error } = await supabaseAdmin
     .from("candidates")
     .insert({
@@ -64,7 +71,11 @@ export async function insertApplicant(input: ApplicationInput, job: { title: str
     .single();
   if (error) throw new ApplicationError(error.message, 500);
 
-  await notifyRoles(RECRUITER_ROLES, `New application: ${input.full_name} for ${job.title}`, `/hire/candidates/${candidate.id}`);
+  await notifyRoles(
+    RECRUITER_ROLES,
+    `New application: ${input.full_name} for ${job.title}`,
+    `/hire/candidates/${candidate.id}`,
+  );
   await invalidateTables("candidates");
   return candidate.id as string;
 }

@@ -19,7 +19,8 @@ import {
  */
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!can(session.user.role, "manage_system")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

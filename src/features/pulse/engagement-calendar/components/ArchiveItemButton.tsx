@@ -54,7 +54,10 @@ export function ArchiveItemButton({ id, type }: Props) {
       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-lo)] transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10"
     >
       {loading ? (
-        <Icon icon="solar:refresh-broken" className="h-3.5 w-3.5 animate-spin" />
+        <Icon
+          icon="solar:refresh-broken"
+          className="h-3.5 w-3.5 animate-spin"
+        />
       ) : (
         <Icon icon="solar:archive-broken" className="h-3.5 w-3.5" />
       )}

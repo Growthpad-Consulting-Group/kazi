@@ -7,7 +7,9 @@ export default function useSidebar() {
 
   useEffect(() => {
     const saved = localStorage.getItem("kaziSidebarOpen");
-    setSidebarOpen(saved !== null ? JSON.parse(saved) : window.innerWidth > 768);
+    setSidebarOpen(
+      saved !== null ? JSON.parse(saved) : window.innerWidth > 768,
+    );
   }, []);
 
   useEffect(() => {

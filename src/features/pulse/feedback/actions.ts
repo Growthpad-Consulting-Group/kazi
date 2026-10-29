@@ -6,7 +6,10 @@ import {
   invalidatePublicFeedback,
   invalidateUserPrivateFeedback,
 } from "@/lib/cache/invalidate";
-import { getCachedPrivateFeedback, getCachedPublicFeedback } from "@/lib/cache/queries";
+import {
+  getCachedPrivateFeedback,
+  getCachedPublicFeedback,
+} from "@/lib/cache/queries";
 import type { Feedback, FeedbackVisibility } from "@/types/database";
 
 export type FeedbackWithUsers = Feedback & {
@@ -14,11 +17,15 @@ export type FeedbackWithUsers = Feedback & {
   to: { name: string } | null;
 };
 
-export async function getPublicFeedback(limit = 20): Promise<FeedbackWithUsers[]> {
+export async function getPublicFeedback(
+  limit = 20,
+): Promise<FeedbackWithUsers[]> {
   return getCachedPublicFeedback(limit);
 }
 
-export async function getMyPrivateFeedback(userId: string): Promise<FeedbackWithUsers[]> {
+export async function getMyPrivateFeedback(
+  userId: string,
+): Promise<FeedbackWithUsers[]> {
   return getCachedPrivateFeedback(userId);
 }
 

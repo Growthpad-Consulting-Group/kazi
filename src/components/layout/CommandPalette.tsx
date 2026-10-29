@@ -17,7 +17,10 @@ type SearchResult = {
   kind: "staff" | "candidate" | "job" | "goal" | "review" | "signature";
 };
 
-const resultMeta: Record<SearchResult["kind"], { label: string; icon: string }> = {
+const resultMeta: Record<
+  SearchResult["kind"],
+  { label: string; icon: string }
+> = {
   staff: { label: "Staff", icon: "solar:users-group-two-rounded-broken" },
   candidate: { label: "Candidate", icon: "solar:user-plus-broken" },
   job: { label: "Job", icon: "solar:case-round-broken" },
@@ -58,8 +61,11 @@ export default function CommandPalette() {
     const timeout = window.setTimeout(async () => {
       setIsSearching(true);
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(value)}`, { signal: controller.signal });
-        const data = await response.json() as { results?: SearchResult[] };
+        const response = await fetch(
+          `/api/search?q=${encodeURIComponent(value)}`,
+          { signal: controller.signal },
+        );
+        const data = (await response.json()) as { results?: SearchResult[] };
         if (response.ok) setResults(data.results ?? []);
       } catch (error) {
         if ((error as Error).name !== "AbortError") setResults([]);
@@ -88,7 +94,11 @@ export default function CommandPalette() {
         maxWidth="max-w-lg"
         header={
           <div className="flex h-14 items-center gap-3 border-b border-[var(--border)] bg-gradient-to-r from-brand-500/10 to-transparent px-5">
-            <Icon icon="solar:magnifer-broken" width={18} className="shrink-0 text-brand-500" />
+            <Icon
+              icon="solar:magnifer-broken"
+              width={18}
+              className="shrink-0 text-brand-500"
+            />
             <Command.Input
               autoFocus
               value={query}
@@ -102,41 +112,69 @@ export default function CommandPalette() {
           </div>
         }
       >
-          <Command.List className="max-h-[min(24rem,calc(90vh-180px))] overflow-y-auto">
-            <Command.Empty className="px-2 py-6 text-center text-sm text-[var(--text-lo)]">{isSearching ? "Searching…" : "No results."}</Command.Empty>
-            {results.length > 0 && <Command.Group
+        <Command.List className="max-h-[min(24rem,calc(90vh-180px))] overflow-y-auto">
+          <Command.Empty className="px-2 py-6 text-center text-sm text-[var(--text-lo)]">
+            {isSearching ? "Searching…" : "No results."}
+          </Command.Empty>
+          {results.length > 0 && (
+            <Command.Group
               heading="Search results"
               className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-[var(--text-lo)]"
             >
               {results.map((result) => {
                 const meta = resultMeta[result.kind];
-                return <Command.Item key={`${result.kind}-${result.id}`} value={`${result.label} ${result.detail}`} onSelect={() => go(result.href)} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-[var(--text-hi)] data-[selected=true]:bg-[var(--surface-2)] aria-selected:bg-[var(--surface-2)]">
-                  <Icon icon={meta.icon} width={16} className="text-brand-500" />
-                  <span className="min-w-0 flex-1"><span className="block truncate font-medium">{result.label}</span><span className="block truncate text-xs text-[var(--text-lo)]">{result.detail}</span></span>
-                  <span className="hidden rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--text-lo)] sm:block">{meta.label}</span>
-                </Command.Item>;
-              })}
-            </Command.Group>}
-            {navGroups.map((group) => (
-              <Command.Group
-                key={group.category}
-                heading={group.category}
-                className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-[var(--text-lo)]"
-              >
-                {group.items.map((item) => (
+                return (
                   <Command.Item
-                    key={item.href}
-                    value={item.label}
-                    onSelect={() => go(item.href)}
+                    key={`${result.kind}-${result.id}`}
+                    value={`${result.label} ${result.detail}`}
+                    onSelect={() => go(result.href)}
                     className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-[var(--text-hi)] data-[selected=true]:bg-[var(--surface-2)] aria-selected:bg-[var(--surface-2)]"
                   >
-                    <Icon icon={item.icon} width={16} className="text-[var(--text-lo)]" />
-                    <span className="flex-1">{item.label}</span>
+                    <Icon
+                      icon={meta.icon}
+                      width={16}
+                      className="text-brand-500"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">
+                        {result.label}
+                      </span>
+                      <span className="block truncate text-xs text-[var(--text-lo)]">
+                        {result.detail}
+                      </span>
+                    </span>
+                    <span className="hidden rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--text-lo)] sm:block">
+                      {meta.label}
+                    </span>
                   </Command.Item>
-                ))}
-              </Command.Group>
-            ))}
-          </Command.List>
+                );
+              })}
+            </Command.Group>
+          )}
+          {navGroups.map((group) => (
+            <Command.Group
+              key={group.category}
+              heading={group.category}
+              className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-[var(--text-lo)]"
+            >
+              {group.items.map((item) => (
+                <Command.Item
+                  key={item.href}
+                  value={item.label}
+                  onSelect={() => go(item.href)}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-[var(--text-hi)] data-[selected=true]:bg-[var(--surface-2)] aria-selected:bg-[var(--surface-2)]"
+                >
+                  <Icon
+                    icon={item.icon}
+                    width={16}
+                    className="text-[var(--text-lo)]"
+                  />
+                  <span className="flex-1">{item.label}</span>
+                </Command.Item>
+              ))}
+            </Command.Group>
+          ))}
+        </Command.List>
       </SimpleModal>
     </Command>
   );

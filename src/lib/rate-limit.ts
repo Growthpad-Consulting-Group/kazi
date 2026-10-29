@@ -16,16 +16,23 @@ function keyPart(value: string) {
 
 /** Extract the first trusted proxy address; Vercel supplies x-forwarded-for. */
 export function requestIp(headers: Headers) {
-  return headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || headers.get("x-real-ip")?.trim()
-    || "unknown";
+  return (
+    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    headers.get("x-real-ip")?.trim() ||
+    "unknown"
+  );
 }
 
 /**
  * Fixed-window limiter backed by Upstash. It deliberately fails closed: public
  * write endpoints should not become unprotected when the limiter is unavailable.
  */
-export async function checkRateLimit({ scope, identifier, limit, windowSeconds }: LimitOptions): Promise<RateLimitResult> {
+export async function checkRateLimit({
+  scope,
+  identifier,
+  limit,
+  windowSeconds,
+}: LimitOptions): Promise<RateLimitResult> {
   const key = `kazi:rate:${scope}:${keyPart(identifier)}`;
   try {
     const count = await redis.incr(key);

@@ -6,7 +6,11 @@ import { Icon } from "@iconify/react";
 import dynamic from "next/dynamic";
 
 // Recharts is heavy, so the charts load after the rest of the dashboard, with a placeholder of the same height.
-const DashboardCharts = dynamic(() => import("./DashboardCharts"), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
+const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
+  loading: () => (
+    <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
+  ),
+});
 import DashboardHeader from "./DashboardHeader";
 import { resolveRange } from "./DashboardRange";
 import { getDashboardData } from "../data";
@@ -37,7 +41,9 @@ function KpiCard({ stat }: { stat: StatDef }) {
           <p className="text-sm font-semibold capitalize text-[var(--text-lo)]">
             {stat.label}
           </p>
-          <p className={`mt-2 font-mono text-3xl font-bold leading-none ${stat.accent}`}>
+          <p
+            className={`mt-2 font-mono text-3xl font-bold leading-none ${stat.accent}`}
+          >
             {stat.value.toLocaleString()}
           </p>
           {stat.note && (
@@ -72,17 +78,26 @@ export default async function DashboardPage({
         userId: session.user.id,
         role: session.user.role,
         department: session.user.department ?? null,
-        viewAllScreens: session.user.extraPermissions?.includes("view_admin_screens") ?? false,
+        viewAllScreens:
+          session.user.extraPermissions?.includes("view_admin_screens") ??
+          false,
       }
     : undefined;
 
   const data = await getDashboardData(range, ctx);
-  const { stats, pipeline, trend, rolePipeline, stageAging, teamPulseTrend } = data;
+  const { stats, pipeline, trend, rolePipeline, stageAging, teamPulseTrend } =
+    data;
   const operations = data.operations ?? {
     interviewQueue: [],
     upcomingOneOnOnes: [],
     actionItems: [],
-    health: { averageDaysToHire: null, stalledCandidates: 0, offerPending: 0, offerAccepted: 0, offerDeclined: 0 },
+    health: {
+      averageDaysToHire: null,
+      stalledCandidates: 0,
+      offerPending: 0,
+      offerAccepted: 0,
+      offerDeclined: 0,
+    },
     pulse: { pendingCheckins: 0, lowMood: 0, blockers: 0, atRiskGoals: 0 },
     scheduledJobs: [],
     goals: { onTrack: 0, atRisk: 0, completed: 0, notStarted: 0 },
@@ -93,10 +108,13 @@ export default async function DashboardPage({
   const firstName = session?.user.name?.split(" ")[0] ?? "there";
   const hour = new Date().getHours();
   const greeting =
-    hour < 12 ? { text: "Good morning", icon: "solar:sun-fog-broken" }
-    : hour < 17 ? { text: "Good afternoon", icon: "solar:sun-broken" }
-    : hour < 21 ? { text: "Good evening", icon: "solar:moon-stars-broken" }
-    : { text: "Working late", icon: "solar:moon-sleep-broken" };
+    hour < 12
+      ? { text: "Good morning", icon: "solar:sun-fog-broken" }
+      : hour < 17
+        ? { text: "Good afternoon", icon: "solar:sun-broken" }
+        : hour < 21
+          ? { text: "Good evening", icon: "solar:moon-stars-broken" }
+          : { text: "Working late", icon: "solar:moon-sleep-broken" };
 
   // ── Hero banner (shared across all views) ─────────────────────────────────
   const heroBanner = (
@@ -115,7 +133,8 @@ export default async function DashboardPage({
             </h1>
           </div>
           <p className="mt-2 text-sm text-white/50 capitalize">
-            {session?.user.role?.replace("_", " ")} · {session?.user.department ?? "Growthpad"}
+            {session?.user.role?.replace("_", " ")} ·{" "}
+            {session?.user.department ?? "Growthpad"}
           </p>
         </div>
         <div className="text-right">
@@ -123,7 +142,11 @@ export default async function DashboardPage({
             {new Date().toLocaleDateString("en-GB", { weekday: "long" })}
           </p>
           <p className="text-xs text-white/30">
-            {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+            {new Date().toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
           </p>
         </div>
       </div>
@@ -178,16 +201,15 @@ export default async function DashboardPage({
 
     return (
       <div className="-mt-6 space-y-6 md:-mt-8">
-        <DashboardHeader
-          range={range}
-          description="Your personal workspace"
-        />
+        <DashboardHeader range={range} description="Your personal workspace" />
 
         {heroBanner}
 
         {/* ── Personal KPI row ── */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {personalKpis.map((stat) => <KpiCard key={stat.label} stat={stat} />)}
+          {personalKpis.map((stat) => (
+            <KpiCard key={stat.label} stat={stat} />
+          ))}
         </div>
 
         {/* ── Action items + Goals + 1-on-1s ── */}
@@ -196,20 +218,43 @@ export default async function DashboardPage({
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15">
-                <Icon icon="solar:checklist-broken" className="h-3.5 w-3.5 text-brand-500" />
+                <Icon
+                  icon="solar:checklist-broken"
+                  className="h-3.5 w-3.5 text-brand-500"
+                />
               </div>
               <div>
-                <h2 className="text-md font-semibold text-[var(--text-hi)]">My action items</h2>
-                <p className="text-[11px] text-[var(--text-lo)]">Items that need attention</p>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  My action items
+                </h2>
+                <p className="text-[11px] text-[var(--text-lo)]">
+                  Items that need attention
+                </p>
               </div>
             </div>
             <div className="space-y-2">
-              {operations.actionItems.length ? operations.actionItems.map((item) => (
-                <Link key={item.label} href={item.href} className="flex items-center justify-between rounded-xl bg-[var(--surface-2)] px-3 py-2.5 transition-colors hover:bg-brand-500/10">
-                  <span className="text-sm text-[var(--text-hi)]">{item.label}</span>
-                  <span className={`rounded-lg px-2 py-0.5 font-mono text-xs font-bold ${item.tone === "red" ? "bg-red-500/10 text-red-500" : item.tone === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"}`}>{item.count}</span>
-                </Link>
-              )) : <p className="rounded-xl bg-green-500/5 px-3 py-4 text-sm text-green-600">You&apos;re all caught up.</p>}
+              {operations.actionItems.length ? (
+                operations.actionItems.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="flex items-center justify-between rounded-xl bg-[var(--surface-2)] px-3 py-2.5 transition-colors hover:bg-brand-500/10"
+                  >
+                    <span className="text-sm text-[var(--text-hi)]">
+                      {item.label}
+                    </span>
+                    <span
+                      className={`rounded-lg px-2 py-0.5 font-mono text-xs font-bold ${item.tone === "red" ? "bg-red-500/10 text-red-500" : item.tone === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"}`}
+                    >
+                      {item.count}
+                    </span>
+                  </Link>
+                ))
+              ) : (
+                <p className="rounded-xl bg-green-500/5 px-3 py-4 text-sm text-green-600">
+                  You&apos;re all caught up.
+                </p>
+              )}
             </div>
           </section>
 
@@ -226,26 +271,58 @@ export default async function DashboardPage({
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
-                  <Icon icon="solar:chat-round-dots-broken" className="h-3.5 w-3.5 text-brand-500" />
+                  <Icon
+                    icon="solar:chat-round-dots-broken"
+                    className="h-3.5 w-3.5 text-brand-500"
+                  />
                 </div>
                 <div>
-                  <h2 className="text-md font-semibold text-[var(--text-hi)]">Upcoming 1-on-1s</h2>
-                  <p className="text-[11px] text-[var(--text-lo)]">Your next scheduled meetings</p>
+                  <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                    Upcoming 1-on-1s
+                  </h2>
+                  <p className="text-[11px] text-[var(--text-lo)]">
+                    Your next scheduled meetings
+                  </p>
                 </div>
               </div>
-              <Link href="/pulse/one-on-ones?view=upcoming" className="text-xs text-brand-500 hover:underline">View all</Link>
+              <Link
+                href="/pulse/one-on-ones?view=upcoming"
+                className="text-xs text-brand-500 hover:underline"
+              >
+                View all
+              </Link>
             </div>
             <div className="space-y-2">
-              {p.upcomingOneOnOnes.length ? p.upcomingOneOnOnes.map((m) => (
-                <Link key={m.id} href={`/pulse/one-on-ones/${m.id}`} className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
-                  <Avatar name={m.with} src={m.withAvatar} size="sm" shape="circle" />
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-[var(--text-hi)]">with {m.with}</p>
-                    <p className="text-[11px] text-[var(--text-lo)]">{new Date(m.scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
-                  </div>
-                </Link>
-              )) : (
-                <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No 1-on-1s scheduled.</p>
+              {p.upcomingOneOnOnes.length ? (
+                p.upcomingOneOnOnes.map((m) => (
+                  <Link
+                    key={m.id}
+                    href={`/pulse/one-on-ones/${m.id}`}
+                    className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"
+                  >
+                    <Avatar
+                      name={m.with}
+                      src={m.withAvatar}
+                      size="sm"
+                      shape="circle"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-[var(--text-hi)]">
+                        with {m.with}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-lo)]">
+                        {new Date(m.scheduled_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </p>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">
+                  No 1-on-1s scheduled.
+                </p>
               )}
             </div>
           </section>
@@ -256,87 +333,265 @@ export default async function DashboardPage({
 
   // ── Org / Team view ───────────────────────────────────────────────────────
   const kpis: StatDef[] = [
-    { label: "Open Roles",        value: stats.openJobs,        icon: "solar:case-broken",                    accent: "text-brand-500",  accentBg: "bg-brand-500/10",     href: "/hire/jobs?status=open" },
-    { label: "Active Pipeline",   value: stats.activePipeline,  icon: "solar:users-group-two-rounded-broken",  accent: "text-blue-500",   accentBg: "bg-blue-500/10",      href: "/hire/candidates?stage=active" },
-    { label: "Employees",         value: stats.activeEmployees, icon: "solar:people-nearby-broken",           accent: "text-green-500",  accentBg: "bg-green-500/10",     href: "/staff" },
-    { label: "Hired",             value: stats.hired,           icon: "solar:check-circle-broken",            accent: "text-emerald-500", accentBg: "bg-emerald-500/10",    href: "/hire/candidates?stage=hired" },
+    {
+      label: "Open Roles",
+      value: stats.openJobs,
+      icon: "solar:case-broken",
+      accent: "text-brand-500",
+      accentBg: "bg-brand-500/10",
+      href: "/hire/jobs?status=open",
+    },
+    {
+      label: "Active Pipeline",
+      value: stats.activePipeline,
+      icon: "solar:users-group-two-rounded-broken",
+      accent: "text-blue-500",
+      accentBg: "bg-blue-500/10",
+      href: "/hire/candidates?stage=active",
+    },
+    {
+      label: "Employees",
+      value: stats.activeEmployees,
+      icon: "solar:people-nearby-broken",
+      accent: "text-green-500",
+      accentBg: "bg-green-500/10",
+      href: "/staff",
+    },
+    {
+      label: "Hired",
+      value: stats.hired,
+      icon: "solar:check-circle-broken",
+      accent: "text-emerald-500",
+      accentBg: "bg-emerald-500/10",
+      href: "/hire/candidates?stage=hired",
+    },
   ];
 
   return (
     <div className="-mt-6 space-y-6 md:-mt-8">
-
-      <DashboardHeader
-        range={range}
-        description="Hiring and people overview"
-      />
+      <DashboardHeader range={range} description="Hiring and people overview" />
 
       {heroBanner}
 
       {/* ── KPI row ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((stat) => <KpiCard key={stat.label} stat={stat} />)}
+        {kpis.map((stat) => (
+          <KpiCard key={stat.label} stat={stat} />
+        ))}
       </div>
 
       {/* ── Operating queue ── */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="mb-4 flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15"><Icon icon="solar:checklist-broken" className="h-3.5 w-3.5 text-brand-500" /></div>
-            <div><h2 className="text-md font-semibold text-[var(--text-hi)]">My action items</h2><p className="text-[11px] text-[var(--text-lo)]">Items that need attention</p></div>
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15">
+              <Icon
+                icon="solar:checklist-broken"
+                className="h-3.5 w-3.5 text-brand-500"
+              />
+            </div>
+            <div>
+              <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                My action items
+              </h2>
+              <p className="text-[11px] text-[var(--text-lo)]">
+                Items that need attention
+              </p>
+            </div>
           </div>
           <div className="space-y-2">
-            {operations.actionItems.length ? operations.actionItems.map((item) => (
-              <Link key={item.label} href={item.href} className="flex items-center justify-between rounded-xl bg-[var(--surface-2)] px-3 py-2.5 transition-colors hover:bg-brand-500/10">
-                <span className="text-sm text-[var(--text-hi)]">{item.label}</span>
-                <span className={`rounded-lg px-2 py-0.5 font-mono text-xs font-bold ${item.tone === "red" ? "bg-red-500/10 text-red-500" : item.tone === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"}`}>{item.count}</span>
-              </Link>
-            )) : <p className="rounded-xl bg-green-500/5 px-3 py-4 text-sm text-green-600">You&apos;re all caught up.</p>}
+            {operations.actionItems.length ? (
+              operations.actionItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="flex items-center justify-between rounded-xl bg-[var(--surface-2)] px-3 py-2.5 transition-colors hover:bg-brand-500/10"
+                >
+                  <span className="text-sm text-[var(--text-hi)]">
+                    {item.label}
+                  </span>
+                  <span
+                    className={`rounded-lg px-2 py-0.5 font-mono text-xs font-bold ${item.tone === "red" ? "bg-red-500/10 text-red-500" : item.tone === "amber" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"}`}
+                  >
+                    {item.count}
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p className="rounded-xl bg-green-500/5 px-3 py-4 text-sm text-green-600">
+                You&apos;re all caught up.
+              </p>
+            )}
           </div>
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5 text-brand-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Interview queue</h2><p className="text-[11px] text-[var(--text-lo)]">Scorecards still to complete</p></div></div><Link href="/hire/candidates?stage=interview" className="text-xs text-brand-500 hover:underline">View all</Link></div>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                <Icon
+                  icon="solar:calendar-broken"
+                  className="h-3.5 w-3.5 text-brand-500"
+                />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  Interview queue
+                </h2>
+                <p className="text-[11px] text-[var(--text-lo)]">
+                  Scorecards still to complete
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/hire/candidates?stage=interview"
+              className="text-xs text-brand-500 hover:underline"
+            >
+              View all
+            </Link>
+          </div>
           <div className="space-y-2">
-            {operations.interviewQueue.length ? operations.interviewQueue.map((candidate) => <Link key={candidate.id} href={`/hire/candidates/${candidate.id}/interview`} className="flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"><div><p className="text-sm font-medium text-[var(--text-hi)]">{candidate.full_name}</p><p className="text-[11px] text-[var(--text-lo)]">{candidate.jobs?.title ?? "Role"}</p></div><Icon icon="solar:arrow-right-broken" className="h-4 w-4 text-[var(--text-lo)]" /></Link>) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No interviews waiting for a scorecard.</p>}
+            {operations.interviewQueue.length ? (
+              operations.interviewQueue.map((candidate) => (
+                <Link
+                  key={candidate.id}
+                  href={`/hire/candidates/${candidate.id}/interview`}
+                  className="flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-[var(--text-hi)]">
+                      {candidate.full_name}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-lo)]">
+                      {candidate.jobs?.title ?? "Role"}
+                    </p>
+                  </div>
+                  <Icon
+                    icon="solar:arrow-right-broken"
+                    className="h-4 w-4 text-[var(--text-lo)]"
+                  />
+                </Link>
+              ))
+            ) : (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">
+                No interviews waiting for a scorecard.
+              </p>
+            )}
           </div>
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:users-group-two-rounded-broken" className="h-3.5 w-3.5 text-brand-500" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Check-in status</h2><p className="text-[11px] text-[var(--text-lo)]">This week&apos;s check-ins and goals</p></div></div>
+          <div className="mb-4 flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+              <Icon
+                icon="solar:users-group-two-rounded-broken"
+                className="h-3.5 w-3.5 text-brand-500"
+              />
+            </div>
+            <div>
+              <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                Check-in status
+              </h2>
+              <p className="text-[11px] text-[var(--text-lo)]">
+                This week&apos;s check-ins and goals
+              </p>
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-2">
-            {[{ label: "Check-ins due", value: operations.pulse.pendingCheckins, href: "/pulse/checkins" }, { label: "Low mood", value: operations.pulse.lowMood, href: "/pulse/checkins" }, { label: "Blockers", value: operations.pulse.blockers, href: "/pulse/checkins" }].map((item) => <Link key={item.label} href={item.href} className="rounded-xl bg-[var(--surface-2)] p-3 transition-colors hover:bg-cyan-500/10"><p className="font-mono text-xl font-bold text-[var(--text-hi)]">{item.value}</p><p className="mt-1 text-[11px] text-[var(--text-lo)]">{item.label}</p></Link>)}
+            {[
+              {
+                label: "Check-ins due",
+                value: operations.pulse.pendingCheckins,
+                href: "/pulse/checkins",
+              },
+              {
+                label: "Low mood",
+                value: operations.pulse.lowMood,
+                href: "/pulse/checkins",
+              },
+              {
+                label: "Blockers",
+                value: operations.pulse.blockers,
+                href: "/pulse/checkins",
+              },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-xl bg-[var(--surface-2)] p-3 transition-colors hover:bg-cyan-500/10"
+              >
+                <p className="font-mono text-xl font-bold text-[var(--text-hi)]">
+                  {item.value}
+                </p>
+                <p className="mt-1 text-[11px] text-[var(--text-lo)]">
+                  {item.label}
+                </p>
+              </Link>
+            ))}
           </div>
         </section>
       </div>
 
       {/* ── Second ops row: 1-on-1s, Goals, New hires, Surveys ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
         {/* Upcoming 1-on-1s */}
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
-                <Icon icon="solar:chat-round-dots-broken" className="h-3.5 w-3.5 text-brand-500" />
+                <Icon
+                  icon="solar:chat-round-dots-broken"
+                  className="h-3.5 w-3.5 text-brand-500"
+                />
               </div>
               <div>
-                <h2 className="text-md font-semibold text-[var(--text-hi)]">Upcoming 1-on-1s</h2>
-                <p className="text-[11px] text-[var(--text-lo)]">Next scheduled meetings</p>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  Upcoming 1-on-1s
+                </h2>
+                <p className="text-[11px] text-[var(--text-lo)]">
+                  Next scheduled meetings
+                </p>
               </div>
             </div>
-              <Link href="/pulse/one-on-ones?view=upcoming" className="text-xs text-brand-500 hover:underline">View all</Link>
+            <Link
+              href="/pulse/one-on-ones?view=upcoming"
+              className="text-xs text-brand-500 hover:underline"
+            >
+              View all
+            </Link>
           </div>
           <div className="space-y-2">
-            {operations.upcomingOneOnOnes.length ? operations.upcomingOneOnOnes.map((m) => (
-              <Link key={m.id} href={`/pulse/one-on-ones/${m.id}`} className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
-                <Avatar name={m.report} src={m.reportAvatar} size="sm" shape="circle" />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-[var(--text-hi)]">{m.report}</p>
-                  <p className="text-[11px] text-[var(--text-lo)]">with {m.manager} · {new Date(m.scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
-                </div>
-              </Link>
-            )) : (
-              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No 1-on-1s scheduled.</p>
+            {operations.upcomingOneOnOnes.length ? (
+              operations.upcomingOneOnOnes.map((m) => (
+                <Link
+                  key={m.id}
+                  href={`/pulse/one-on-ones/${m.id}`}
+                  className="flex items-start gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"
+                >
+                  <Avatar
+                    name={m.report}
+                    src={m.reportAvatar}
+                    size="sm"
+                    shape="circle"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-[var(--text-hi)]">
+                      {m.report}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-lo)]">
+                      with {m.manager} ·{" "}
+                      {new Date(m.scheduled_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">
+                No 1-on-1s scheduled.
+              </p>
             )}
           </div>
         </section>
@@ -354,31 +609,62 @@ export default async function DashboardPage({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
-                <Icon icon="solar:confetti-minimalistic-broken" className="h-3.5 w-3.5 text-brand-500" />
+                <Icon
+                  icon="solar:confetti-minimalistic-broken"
+                  className="h-3.5 w-3.5 text-brand-500"
+                />
               </div>
               <div>
-                <h2 className="text-md font-semibold text-[var(--text-hi)]">New hires</h2>
-                <p className="text-[11px] text-[var(--text-lo)]">Joined in the last 30 days</p>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  New hires
+                </h2>
+                <p className="text-[11px] text-[var(--text-lo)]">
+                  Joined in the last 30 days
+                </p>
               </div>
             </div>
-            <Link href="/staff" className="text-xs text-brand-500 hover:underline">View all</Link>
+            <Link
+              href="/staff"
+              className="text-xs text-brand-500 hover:underline"
+            >
+              View all
+            </Link>
           </div>
           <div className="space-y-2">
-            {operations.newHires.length ? operations.newHires.map((hire) => (
-              <Link key={hire.id} href={`/staff/${hire.id}`} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/20 to-brand-500/20 text-[10px] font-bold text-amber-500">
-                  {hire.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-[var(--text-hi)]">{hire.name}</p>
-                  <p className="truncate text-[11px] text-[var(--text-lo)]">{hire.job_title ?? hire.department ?? "New employee"}</p>
-                </div>
-                <span className="shrink-0 text-[11px] text-[var(--text-lo)]">
-                  {new Date(hire.start_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                </span>
-              </Link>
-            )) : (
-              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No new hires this month.</p>
+            {operations.newHires.length ? (
+              operations.newHires.map((hire) => (
+                <Link
+                  key={hire.id}
+                  href={`/staff/${hire.id}`}
+                  className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/20 to-brand-500/20 text-[10px] font-bold text-amber-500">
+                    {hire.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-[var(--text-hi)]">
+                      {hire.name}
+                    </p>
+                    <p className="truncate text-[11px] text-[var(--text-lo)]">
+                      {hire.job_title ?? hire.department ?? "New employee"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[11px] text-[var(--text-lo)]">
+                    {new Date(hire.start_date).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">
+                No new hires this month.
+              </p>
             )}
           </div>
         </section>
@@ -388,54 +674,188 @@ export default async function DashboardPage({
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
-                <Icon icon="solar:chart-2-broken" className="h-3.5 w-3.5 text-brand-500" />
+                <Icon
+                  icon="solar:chart-2-broken"
+                  className="h-3.5 w-3.5 text-brand-500"
+                />
               </div>
               <div>
-                <h2 className="text-md font-semibold text-[var(--text-hi)]">Active surveys</h2>
-                <p className="text-[11px] text-[var(--text-lo)]">Live and collecting responses</p>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  Active surveys
+                </h2>
+                <p className="text-[11px] text-[var(--text-lo)]">
+                  Live and collecting responses
+                </p>
               </div>
             </div>
-            <Link href="/pulse/surveys" className="text-xs text-brand-500 hover:underline">View all</Link>
+            <Link
+              href="/pulse/surveys"
+              className="text-xs text-brand-500 hover:underline"
+            >
+              View all
+            </Link>
           </div>
           <div className="space-y-2">
-            {operations.activeSurveys.length ? operations.activeSurveys.map((survey) => (
-              <Link key={survey.id} href={`/pulse/surveys/${survey.id}`} className="flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--surface-2)]">
-                <p className="truncate text-xs font-medium text-[var(--text-hi)]">{survey.title}</p>
-                <span className="ml-2 shrink-0 rounded-lg bg-pink-500/10 px-2 py-0.5 font-mono text-xs font-bold text-pink-500">
-                  {survey.response_count}
-                </span>
-              </Link>
-            )) : (
+            {operations.activeSurveys.length ? (
+              operations.activeSurveys.map((survey) => (
+                <Link
+                  key={survey.id}
+                  href={`/pulse/surveys/${survey.id}`}
+                  className="flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--surface-2)]"
+                >
+                  <p className="truncate text-xs font-medium text-[var(--text-hi)]">
+                    {survey.title}
+                  </p>
+                  <span className="ml-2 shrink-0 rounded-lg bg-pink-500/10 px-2 py-0.5 font-mono text-xs font-bold text-pink-500">
+                    {survey.response_count}
+                  </span>
+                </Link>
+              ))
+            ) : (
               <div className="flex flex-col items-center gap-2 py-4 text-center">
-                <Icon icon="solar:chart-2-broken" className="h-8 w-8 text-[var(--text-lo)] opacity-40" />
-                <p className="text-xs text-[var(--text-lo)]">No active surveys.</p>
-                <Link href="/pulse/surveys" className="text-xs font-semibold text-brand-500 hover:underline">Create one</Link>
+                <Icon
+                  icon="solar:chart-2-broken"
+                  className="h-8 w-8 text-[var(--text-lo)] opacity-40"
+                />
+                <p className="text-xs text-[var(--text-lo)]">
+                  No active surveys.
+                </p>
+                <Link
+                  href="/pulse/surveys"
+                  className="text-xs font-semibold text-brand-500 hover:underline"
+                >
+                  Create one
+                </Link>
               </div>
             )}
           </div>
         </section>
-
       </div>
 
       {/* ── Charts row ── */}
-      <DashboardCharts trend={trend} rolePipeline={rolePipeline} teamPulseTrend={teamPulseTrend} />
+      <DashboardCharts
+        trend={trend}
+        rolePipeline={rolePipeline}
+        teamPulseTrend={teamPulseTrend}
+      />
 
       {/* ── Hiring health, offers and schedules ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className="flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:sort-horizontal-broken" className="h-3.5 w-3.5" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline</h2><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Where candidates are now, and how long they have been there</p></div></div></div>
-          <PipelineOverview pipeline={pipeline} stages={stageAging} stalled={operations.health.stalledCandidates} averageDays={operations.health.averageDaysToHire} />
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                <Icon
+                  icon="solar:sort-horizontal-broken"
+                  className="h-3.5 w-3.5"
+                />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  Pipeline
+                </h2>
+                <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
+                  Where candidates are now, and how long they have been there
+                </p>
+              </div>
+            </div>
+          </div>
+          <PipelineOverview
+            pipeline={pipeline}
+            stages={stageAging}
+            stalled={operations.health.stalledCandidates}
+            averageDays={operations.health.averageDaysToHire}
+          />
         </section>
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:wallet-money-broken" className="h-3.5 w-3.5" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Pipeline outcomes</h2><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Pending offers and completed candidate outcomes</p></div></div></div>
-          <div className="mt-4"><OfferTrackerChart pending={operations.health.offerPending} accepted={operations.health.offerAccepted} declined={operations.health.offerDeclined} /></div>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                <Icon
+                  icon="solar:wallet-money-broken"
+                  className="h-3.5 w-3.5"
+                />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  Pipeline outcomes
+                </h2>
+                <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
+                  Pending offers and completed candidate outcomes
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <OfferTrackerChart
+              pending={operations.health.offerPending}
+              accepted={operations.health.offerAccepted}
+              declined={operations.health.offerDeclined}
+            />
+          </div>
         </section>
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500"><Icon icon="solar:calendar-broken" className="h-3.5 w-3.5" /></div><div><h2 className="text-md font-semibold text-[var(--text-hi)]">Role schedule</h2><p className="mt-0.5 text-[11px] text-[var(--text-lo)]">Publishing and closing soon</p></div></div><Link href="/hire/jobs" className="text-xs text-brand-500 hover:underline">Jobs</Link></div>
-          <div className="mt-3 space-y-2">{operations.scheduledJobs.length ? operations.scheduledJobs.map((job) => { const date = job.kind === "publishes" ? job.published_at : job.closes_at; return <Link key={`${job.id}-${job.kind}`} href={`/hire/jobs/${job.id}`} className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-[var(--surface-2)]"><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--text-hi)]">{job.title}</p><p className="text-[11px] text-[var(--text-lo)]">{job.kind === "publishes" ? "Publishes" : "Closes"} {date ? new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : ""}</p></div><Icon icon="solar:calendar-mark-broken" className="h-4 w-4 shrink-0 text-brand-500" /></Link>; }) : <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">No scheduled role changes.</p>}</div>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-500">
+                <Icon icon="solar:calendar-broken" className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
+                  Role schedule
+                </h2>
+                <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
+                  Publishing and closing soon
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/hire/jobs"
+              className="text-xs text-brand-500 hover:underline"
+            >
+              Jobs
+            </Link>
+          </div>
+          <div className="mt-3 space-y-2">
+            {operations.scheduledJobs.length ? (
+              operations.scheduledJobs.map((job) => {
+                const date =
+                  job.kind === "publishes" ? job.published_at : job.closes_at;
+                return (
+                  <Link
+                    key={`${job.id}-${job.kind}`}
+                    href={`/hire/jobs/${job.id}`}
+                    className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-[var(--surface-2)]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--text-hi)]">
+                        {job.title}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-lo)]">
+                        {job.kind === "publishes" ? "Publishes" : "Closes"}{" "}
+                        {date
+                          ? new Date(date).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                            })
+                          : ""}
+                      </p>
+                    </div>
+                    <Icon
+                      icon="solar:calendar-mark-broken"
+                      className="h-4 w-4 shrink-0 text-brand-500"
+                    />
+                  </Link>
+                );
+              })
+            ) : (
+              <p className="rounded-xl bg-[var(--surface-2)] px-3 py-4 text-sm text-[var(--text-lo)]">
+                No scheduled role changes.
+              </p>
+            )}
+          </div>
         </section>
       </div>
-
     </div>
   );
 }

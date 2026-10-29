@@ -5,7 +5,8 @@ import { useEffect, useRef } from "react";
 function useGlassFilter() {
   const injected = useRef(false);
   useEffect(() => {
-    if (injected.current || document.getElementById("glass-distortion-filter")) return;
+    if (injected.current || document.getElementById("glass-distortion-filter"))
+      return;
     injected.current = true;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("id", "glass-distortion-filter");
@@ -25,7 +26,12 @@ interface Props {
   shadow?: string;
 }
 
-export default function GlassPanel({ mode = "light", className = "", shadow, children }: Props) {
+export default function GlassPanel({
+  mode = "light",
+  className = "",
+  shadow,
+  children,
+}: Props) {
   useGlassFilter();
   const defaultShadow =
     mode === "dark"
@@ -33,13 +39,27 @@ export default function GlassPanel({ mode = "light", className = "", shadow, chi
       : "shadow-[0_8px_32px_0_rgba(31,38,135,0.12)]";
 
   return (
-    <div className={`relative flex flex-col ${shadow ?? defaultShadow} ${className}`}>
+    <div
+      className={`relative flex flex-col ${shadow ?? defaultShadow} ${className}`}
+    >
       <div className="pointer-events-none absolute inset-0 rounded-[inherit] overflow-hidden">
-        <div aria-hidden style={{ filter: "url(#glass-distortion)" }} className="absolute inset-0 rounded-[inherit] backdrop-blur-[3px]" />
-        <div aria-hidden className={`absolute inset-0 rounded-[inherit] backdrop-saturate-[180%] ${mode === "dark" ? "bg-gray-900/30" : "bg-white/5"}`} />
-        <div aria-hidden className={`absolute inset-0 rounded-[inherit] ${mode === "dark" ? "border border-white/[0.03]" : "border ring-inset border-white/10 ring-white/40"}`} />
+        <div
+          aria-hidden
+          style={{ filter: "url(#glass-distortion)" }}
+          className="absolute inset-0 rounded-[inherit] backdrop-blur-[3px]"
+        />
+        <div
+          aria-hidden
+          className={`absolute inset-0 rounded-[inherit] backdrop-saturate-[180%] ${mode === "dark" ? "bg-gray-900/30" : "bg-white/5"}`}
+        />
+        <div
+          aria-hidden
+          className={`absolute inset-0 rounded-[inherit] ${mode === "dark" ? "border border-white/[0.03]" : "border ring-inset border-white/10 ring-white/40"}`}
+        />
       </div>
-      <div className="relative flex flex-col min-h-0 flex-1 gap-4">{children}</div>
+      <div className="relative flex flex-col min-h-0 flex-1 gap-4">
+        {children}
+      </div>
     </div>
   );
 }

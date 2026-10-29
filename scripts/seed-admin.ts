@@ -10,11 +10,15 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!url || !serviceKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  console.error(
+    "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+  );
   process.exit(1);
 }
 
-const db = createClient<Database>(url, serviceKey, { auth: { persistSession: false } });
+const db = createClient<Database>(url, serviceKey, {
+  auth: { persistSession: false },
+});
 
 async function main() {
   const email = process.env.ADMIN_EMAIL ?? "analytics.growthpad@gmail.com";
@@ -25,7 +29,10 @@ async function main() {
 
   const { data, error } = await db
     .from("users")
-    .upsert({ email, name, password_hash: hash, role: "admin" }, { onConflict: "email" })
+    .upsert(
+      { email, name, password_hash: hash, role: "admin" },
+      { onConflict: "email" },
+    )
     .select("id, email, role")
     .single();
 

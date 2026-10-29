@@ -8,13 +8,15 @@ import type { GoalStatus } from "@/types/database";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, progress, status } = await req.json();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
   const update: { progress?: number; status?: GoalStatus } = {};
-  if (progress !== undefined) update.progress = Math.max(0, Math.min(100, progress));
+  if (progress !== undefined)
+    update.progress = Math.max(0, Math.min(100, progress));
   if (status) update.status = status as GoalStatus;
 
   // Read the owner (and parent) before the write so the right cached lists
@@ -24,21 +26,37 @@ export async function PATCH(req: Request) {
     .select("owner_id, parent_id, title")
     .eq("id", id)
     .maybeSingle();
-  const before = existing as unknown as { owner_id: string | null; parent_id: string | null; title: string } | null;
+  const before = existing as unknown as {
+    owner_id: string | null;
+    parent_id: string | null;
+    title: string;
+  } | null;
   const ownerId = before?.owner_id ?? "";
   const parentId = before?.parent_id ?? null;
   const goalTitle = before?.title ?? "a goal";
 
-  const { error } = await supabaseAdmin.from("goals").update(update).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error } = await supabaseAdmin
+    .from("goals")
+    .update(update)
+    .eq("id", id);
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Roll up progress to parent if this goal has one
   if (parentId) {
-    const { data: siblings } = await supabaseAdmin.from("goals").select("progress").eq("parent_id", parentId);
+    const { data: siblings } = await supabaseAdmin
+      .from("goals")
+      .select("progress")
+      .eq("parent_id", parentId);
     const sibs = (siblings ?? []) as unknown as { progress: number }[];
     if (sibs.length) {
-      const avg = Math.round(sibs.reduce((sum, s) => sum + s.progress, 0) / sibs.length);
-      await supabaseAdmin.from("goals").update({ progress: avg }).eq("id", parentId);
+      const avg = Math.round(
+        sibs.reduce((sum, s) => sum + s.progress, 0) / sibs.length,
+      );
+      await supabaseAdmin
+        .from("goals")
+        .update({ progress: avg })
+        .eq("id", parentId);
     }
   }
 
@@ -51,7 +69,7 @@ export async function PATCH(req: Request) {
       .eq("id", parentId)
       .maybeSingle();
     await invalidateOwnerGoals(
-      (parent as unknown as { owner_id: string | null } | null)?.owner_id ?? ""
+      (parent as unknown as { owner_id: string | null } | null)?.owner_id ?? "",
     );
   }
 
@@ -63,7 +81,8 @@ export async function PATCH(req: Request) {
         .select("name")
         .eq("id", ownerId)
         .maybeSingle();
-      const ownerName = (userRow as unknown as { name: string } | null)?.name ?? "Someone";
+      const ownerName =
+        (userRow as unknown as { name: string } | null)?.name ?? "Someone";
       const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
 
       await postSlackMessage(
@@ -75,13 +94,18 @@ export async function PATCH(req: Request) {
           },
           {
             type: "section",
-            text: { type: "mrkdwn", text: `*${ownerName}* just completed their goal: *${goalTitle}*` },
+            text: {
+              type: "mrkdwn",
+              text: `*${ownerName}* just completed their goal: *${goalTitle}*`,
+            },
           },
           {
             type: "context",
-            elements: [{ type: "mrkdwn", text: `<${appUrl}/pulse/goals|View in Kazi>` }],
+            elements: [
+              { type: "mrkdwn", text: `<${appUrl}/pulse/goals|View in Kazi>` },
+            ],
           },
-        ]
+        ],
       );
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);

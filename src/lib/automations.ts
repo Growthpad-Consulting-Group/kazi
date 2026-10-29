@@ -2,7 +2,8 @@ import { awardPoints } from "@/lib/award-points";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { AutomationTrigger } from "@/types/database";
 
-type AudienceType = "company" | "department" | "location" | "manager_group" | "staff";
+type AudienceType =
+  "company" | "department" | "location" | "manager_group" | "staff";
 
 type ActiveStaff = {
   id: string;
@@ -27,9 +28,16 @@ export async function getAutomationAudience(
 
   return staff
     .filter((member) => {
-      if (audienceType === "department") return member.department !== null && filters.includes(member.department);
-      if (audienceType === "location") return member.location !== null && filters.includes(member.location);
-      if (audienceType === "manager_group") return member.manager_id !== null && filters.includes(member.manager_id);
+      if (audienceType === "department")
+        return (
+          member.department !== null && filters.includes(member.department)
+        );
+      if (audienceType === "location")
+        return member.location !== null && filters.includes(member.location);
+      if (audienceType === "manager_group")
+        return (
+          member.manager_id !== null && filters.includes(member.manager_id)
+        );
       return filters.includes(member.id);
     })
     .map((member) => member.id);
@@ -45,7 +53,9 @@ type AutomationEvent = {
 };
 
 /** Executes matching active rules once per event and recipient. */
-export async function runAutomationEvent(event: AutomationEvent): Promise<number> {
+export async function runAutomationEvent(
+  event: AutomationEvent,
+): Promise<number> {
   const { data: rules, error: rulesError } = await supabaseAdmin
     .from("automation_rules")
     .select("id, action_type, config")
@@ -59,7 +69,12 @@ export async function runAutomationEvent(event: AutomationEvent): Promise<number
     for (const userId of [...new Set(event.recipientIds)]) {
       const { error: claimError } = await supabaseAdmin
         .from("automation_rule_executions")
-        .insert({ rule_id: rule.id, event_key: event.eventKey, user_id: userId, action_type: rule.action_type });
+        .insert({
+          rule_id: rule.id,
+          event_key: event.eventKey,
+          user_id: userId,
+          action_type: rule.action_type,
+        });
 
       if (claimError?.code === "23505" || claimError) continue;
 
@@ -67,10 +82,13 @@ export async function runAutomationEvent(event: AutomationEvent): Promise<number
         if (rule.action_type === "send_notification") {
           await event.notification(userId);
         } else {
-          const configuredPoints = Number((rule.config as Record<string, unknown>)?.points);
-          const amount = Number.isFinite(configuredPoints) && configuredPoints > 0
-            ? Math.min(Math.floor(configuredPoints), 10_000)
-            : 50;
+          const configuredPoints = Number(
+            (rule.config as Record<string, unknown>)?.points,
+          );
+          const amount =
+            Number.isFinite(configuredPoints) && configuredPoints > 0
+              ? Math.min(Math.floor(configuredPoints), 10_000)
+              : 50;
           await awardPoints({
             userId,
             amount,
@@ -83,8 +101,12 @@ export async function runAutomationEvent(event: AutomationEvent): Promise<number
         processed += 1;
       } catch {
         // Permit a later run to recover if the side effect failed.
-        await supabaseAdmin.from("automation_rule_executions").delete()
-          .eq("rule_id", rule.id).eq("event_key", event.eventKey).eq("user_id", userId);
+        await supabaseAdmin
+          .from("automation_rule_executions")
+          .delete()
+          .eq("rule_id", rule.id)
+          .eq("event_key", event.eventKey)
+          .eq("user_id", userId);
       }
     }
   }

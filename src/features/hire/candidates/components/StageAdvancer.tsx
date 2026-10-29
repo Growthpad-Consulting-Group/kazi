@@ -27,18 +27,18 @@ export function StageAdvancer({ candidateId, stage, current }: Props) {
 
   return (
     <>
-    {stageEmailDialog}
-    <button
-      onClick={advance}
-      disabled={isActive || isPending}
-      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-        isActive
-          ? STAGE_COLORS[stage] + " cursor-default"
-          : "bg-[var(--surface-2)] text-[var(--text-lo)] hover:bg-[var(--surface)]"
-      }`}
-    >
-      {STAGE_LABELS[stage]}
-    </button>
+      {stageEmailDialog}
+      <button
+        onClick={advance}
+        disabled={isActive || isPending}
+        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+          isActive
+            ? STAGE_COLORS[stage] + " cursor-default"
+            : "bg-[var(--surface-2)] text-[var(--text-lo)] hover:bg-[var(--surface)]"
+        }`}
+      >
+        {STAGE_LABELS[stage]}
+      </button>
     </>
   );
 }

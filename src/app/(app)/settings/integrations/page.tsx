@@ -15,28 +15,37 @@ export default async function IntegrationsPage() {
   const isAdmin = can(session.user.role, "manage_system");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: asanaRow } = await (supabaseAdmin as any)
+  const { data: asanaRow } = (await (supabaseAdmin as any)
     .from("asana_connections")
     .select("workspace_name, created_at")
     .eq("user_id", session.user.id)
-    .maybeSingle() as { data: { workspace_name?: string; created_at?: string } | null };
+    .maybeSingle()) as {
+    data: { workspace_name?: string; created_at?: string } | null;
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: slackRow } = await (supabaseAdmin as any)
+  const { data: slackRow } = (await (supabaseAdmin as any)
     .from("slack_connections")
     .select("channel_name")
     .limit(1)
-    .maybeSingle() as { data: { channel_name: string } | null };
+    .maybeSingle()) as { data: { channel_name: string } | null };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: gcalRow } = await (supabaseAdmin as any)
+  const { data: gcalRow } = (await (supabaseAdmin as any)
     .from("google_calendar_connections")
     .select("calendar_id, calendar_name, created_at")
     .eq("user_id", session.user.id)
-    .maybeSingle() as { data: { calendar_id: string; calendar_name: string | null; created_at: string } | null };
+    .maybeSingle()) as {
+    data: {
+      calendar_id: string;
+      calendar_name: string | null;
+      created_at: string;
+    } | null;
+  };
 
   const googleConnected = Boolean(
-    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
   );
 
   const aiSettings = isAdmin ? await getAISettings() : null;

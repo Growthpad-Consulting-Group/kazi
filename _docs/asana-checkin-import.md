@@ -12,6 +12,7 @@ Kazi lets each employee connect their own Asana account, then select assigned ta
    ```
 
    For local development, use the same callback URL on your local application origin.
+
 3. Apply `supabase/migrations/008_asana_checkin_import.sql`.
 4. Set these server-side environment variables:
 
@@ -29,4 +30,3 @@ Kazi lets each employee connect their own Asana account, then select assigned ta
 The connection requests read-only access to tasks, projects, users, and workspaces. Kazi searches the connected employee's assigned tasks that were completed within the selected weekly check-in period; it does not create, edit, or complete Asana tasks.
 
 Asana's workspace task-search endpoint may require a paid Asana tier. If the connected workspace does not include that capability, the employee will see Asana's returned access error and can still complete their check-in manually.
-

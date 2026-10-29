@@ -4,7 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOneOnOneParticipants } from "@/lib/cache/invalidate";
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar";
+import {
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+} from "@/lib/google-calendar";
 import { sendOneOnOneSlackDMs } from "@/lib/slack";
 import { notifyOneOnOneScheduled } from "@/lib/notifications";
 
@@ -20,14 +24,20 @@ function canAccessOneOnOne(
   user: { id: string; role: Parameters<typeof can>[0] },
   meeting: OneOnOneParticipants,
 ) {
-  return user.id === meeting.manager_id
-    || user.id === meeting.report_id
-    || can(user.role, "manage_one_on_ones");
+  return (
+    user.id === meeting.manager_id ||
+    user.id === meeting.report_id ||
+    can(user.role, "manage_one_on_ones")
+  );
 }
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const { agenda, notes, action_items, scheduledAt } = await req.json();
@@ -51,15 +61,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .eq("id", id)
     .maybeSingle();
 
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  if (existingError)
+    return NextResponse.json({ error: existingError.message }, { status: 500 });
   const participants = existing as unknown as OneOnOneParticipants | null;
-  if (!participants) return NextResponse.json({ error: "1-on-1 not found" }, { status: 404 });
+  if (!participants)
+    return NextResponse.json({ error: "1-on-1 not found" }, { status: 404 });
   if (!canAccessOneOnOne(session.user, participants)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { error } = await supabaseAdmin.from("one_on_ones").update(update).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error } = await supabaseAdmin
+    .from("one_on_ones")
+    .update(update)
+    .eq("id", id);
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
   await invalidateOneOnOneParticipants({
     managerId: participants?.manager_id ?? undefined,
@@ -75,7 +91,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (participants.google_event_id) {
         // Update existing event
         const endAt = scheduledAt
-          ? new Date(new Date(scheduledAt).getTime() + 60 * 60 * 1000).toISOString()
+          ? new Date(
+              new Date(scheduledAt).getTime() + 60 * 60 * 1000,
+            ).toISOString()
           : undefined;
         await updateCalendarEvent(managerId, participants.google_event_id, {
           startAt: scheduledAt ?? undefined,
@@ -94,7 +112,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const managerName = managerUser?.name ?? "Manager";
         const reportName = reportUser?.name ?? "Report";
         const attendeeEmails = userList.map((u) => u.email).filter(Boolean);
-        const endAt = new Date(new Date(scheduledAt).getTime() + 60 * 60 * 1000).toISOString();
+        const endAt = new Date(
+          new Date(scheduledAt).getTime() + 60 * 60 * 1000,
+        ).toISOString();
 
         const calResult = await createCalendarEvent(managerId, {
           title: `1-on-1: ${managerName} & ${reportName}`,
@@ -119,19 +139,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Direct-message both participants when the time changes (non-blocking)
   if (scheduledAt !== undefined && scheduledAt && participants?.manager_id) {
     try {
-      await sendOneOnOneSlackDMs(participants.manager_id, participants.report_id ?? "", scheduledAt);
+      await sendOneOnOneSlackDMs(
+        participants.manager_id,
+        participants.report_id ?? "",
+        scheduledAt,
+      );
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);
     }
-    await notifyOneOnOneScheduled(id, participants.manager_id, participants.report_id ?? "", scheduledAt);
+    await notifyOneOnOneScheduled(
+      id,
+      participants.manager_id,
+      participants.report_id ?? "",
+      scheduledAt,
+    );
   }
 
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
 
@@ -142,9 +175,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     .eq("id", id)
     .maybeSingle();
 
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  if (existingError)
+    return NextResponse.json({ error: existingError.message }, { status: 500 });
   const row = existing as unknown as OneOnOneParticipants | null;
-  if (!row) return NextResponse.json({ error: "1-on-1 not found" }, { status: 404 });
+  if (!row)
+    return NextResponse.json({ error: "1-on-1 not found" }, { status: 404 });
   if (!canAccessOneOnOne(session.user, row)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -158,8 +193,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     }
   }
 
-  const { error } = await supabaseAdmin.from("one_on_ones").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error } = await supabaseAdmin
+    .from("one_on_ones")
+    .delete()
+    .eq("id", id);
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
   await invalidateOneOnOneParticipants({
     managerId: row.manager_id ?? undefined,

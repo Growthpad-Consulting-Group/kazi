@@ -14,7 +14,12 @@
  */
 
 import { redis } from "@/lib/redis";
-import { CACHE_VERBOSE, isCacheEnabledFor, type CacheStrategyName, getCacheTTL } from "./config";
+import {
+  CACHE_VERBOSE,
+  isCacheEnabledFor,
+  type CacheStrategyName,
+  getCacheTTL,
+} from "./config";
 import { groupIndexKey, type CacheGroup } from "./groups";
 import { recordHit, recordMiss, recordError } from "./monitoring";
 
@@ -30,7 +35,10 @@ function indexTTLFor(ttl: number): number {
 }
 
 /** Read a cached value. Returns null on a miss or any Redis failure. */
-export async function getCached<T>(group: CacheGroup, key: string): Promise<T | null> {
+export async function getCached<T>(
+  group: CacheGroup,
+  key: string,
+): Promise<T | null> {
   if (!isCacheEnabledFor(group)) return null;
   const started = Date.now();
   try {
@@ -58,7 +66,7 @@ export async function setCached<T>(
   group: CacheGroup,
   key: string,
   value: T,
-  strategy: CacheStrategyName
+  strategy: CacheStrategyName,
 ): Promise<boolean> {
   if (!isCacheEnabledFor(group)) return false;
   if (value === undefined) return false;
@@ -97,7 +105,10 @@ export async function deleteCached(key: string): Promise<boolean> {
  * Used for targeted invalidation (e.g. one user's notifications) where
  * dropping the whole group would be needlessly destructive.
  */
-export async function deleteCachedInGroup(group: CacheGroup, key: string): Promise<boolean> {
+export async function deleteCachedInGroup(
+  group: CacheGroup,
+  key: string,
+): Promise<boolean> {
   try {
     await redis.del(key);
     // Best-effort: remove the key from the group index so a later group
@@ -124,7 +135,7 @@ export async function deleteCachedInGroup(group: CacheGroup, key: string): Promi
  */
 export async function deleteCachedInGroupMatching(
   group: CacheGroup,
-  predicate: (key: string) => boolean
+  predicate: (key: string) => boolean,
 ): Promise<{ removed: number; failed: boolean }> {
   try {
     const index = groupIndexKey(group);
@@ -141,7 +152,8 @@ export async function deleteCachedInGroupMatching(
     for (let i = 0; i < matches.length; i += BATCH) {
       await redis.srem(index, ...matches.slice(i, i + BATCH));
     }
-    if (CACHE_VERBOSE) console.debug(`[cache] INVALIDATE group=${group} keys=${removed}`);
+    if (CACHE_VERBOSE)
+      console.debug(`[cache] INVALIDATE group=${group} keys=${removed}`);
     return { removed, failed: false };
   } catch (error) {
     recordError(group, error);
@@ -160,7 +172,7 @@ export async function cached<T>(
   group: CacheGroup,
   key: string,
   strategy: CacheStrategyName,
-  loader: () => Promise<T>
+  loader: () => Promise<T>,
 ): Promise<T> {
   if (!isCacheEnabledFor(group)) return loader();
 
@@ -209,7 +221,8 @@ export async function invalidateGroup(group: CacheGroup): Promise<number> {
       removed += await redis.del(...keys.slice(i, i + BATCH));
     }
     await redis.del(index);
-    if (CACHE_VERBOSE) console.debug(`[cache] INVALIDATE group=${group} keys=${removed}`);
+    if (CACHE_VERBOSE)
+      console.debug(`[cache] INVALIDATE group=${group} keys=${removed}`);
     return removed;
   } catch (error) {
     recordError(group, error);
@@ -237,7 +250,10 @@ export async function invalidateAll(): Promise<number> {
     let cursor = "0";
     const keys: string[] = [];
     do {
-      const [next, found] = await redis.scan(cursor, { match: "kazi:*", count: 500 });
+      const [next, found] = await redis.scan(cursor, {
+        match: "kazi:*",
+        count: 500,
+      });
       cursor = next;
       keys.push(...found);
     } while (cursor !== "0");

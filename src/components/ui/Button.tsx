@@ -8,10 +8,13 @@ type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md";
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:   "bg-brand-500 text-white hover:bg-brand-600 shadow-sm",
-  secondary: "bg-[var(--surface)] text-[var(--text-hi)] border border-[var(--border)] hover:bg-[var(--surface-2)]",
-  ghost:     "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]",
-  danger:    "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20",
+  primary: "bg-brand-500 text-white hover:bg-brand-600 shadow-sm",
+  secondary:
+    "bg-[var(--surface)] text-[var(--text-hi)] border border-[var(--border)] hover:bg-[var(--surface-2)]",
+  ghost:
+    "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]",
+  danger:
+    "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -47,7 +50,7 @@ export function Button({
     "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
     variantClasses[variant],
     sizeClasses[size],
-    className
+    className,
   );
   const content = (
     <>
@@ -59,9 +62,19 @@ export function Button({
       {children}
     </>
   );
-  if (href) return <Link href={href} className={classes}>{content}</Link>;
+  if (href)
+    return (
+      <Link href={href} className={classes}>
+        {content}
+      </Link>
+    );
   return (
-    <button type={type} onClick={onClick} disabled={disabled || loading} className={classes}>
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={classes}
+    >
       {content}
     </button>
   );

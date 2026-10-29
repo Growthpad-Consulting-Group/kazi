@@ -9,10 +9,28 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import TopPerformersSection from "./TopPerformersSection";
 import type { TopPerformerEntry } from "./TopPerformersSection";
-const PulseAnalyticsCharts = dynamic(() => import("./PulseAnalyticsCharts").then((m) => m.PulseAnalyticsCharts), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
+const PulseAnalyticsCharts = dynamic(
+  () => import("./PulseAnalyticsCharts").then((m) => m.PulseAnalyticsCharts),
+  {
+    loading: () => (
+      <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
+    ),
+  },
+);
 
-type TeamMember = { id: string; name: string; department: string | null; manager_id: string | null };
-type Checkin = { user_id: string; week_start: string; mood: number | null; blockers: string | null; status: string };
+type TeamMember = {
+  id: string;
+  name: string;
+  department: string | null;
+  manager_id: string | null;
+};
+type Checkin = {
+  user_id: string;
+  week_start: string;
+  mood: number | null;
+  blockers: string | null;
+  status: string;
+};
 type Goal = { owner_id: string | null; status: string; progress: number };
 
 function getWeekStart(weeksAgo = 0) {
@@ -28,7 +46,9 @@ function isFlightRisk(checkins: Checkin[], userId: string) {
     .slice(0, 4);
   if (recent.length < 2) return false;
   const lowMood = recent.filter((c) => c.mood !== null && c.mood <= 2).length;
-  const hasBlockers = recent.filter((c) => c.blockers && c.blockers.trim().length > 0).length;
+  const hasBlockers = recent.filter(
+    (c) => c.blockers && c.blockers.trim().length > 0,
+  ).length;
   return lowMood >= 2 || hasBlockers >= 3;
 }
 
@@ -42,10 +62,17 @@ export default async function LeadershipDashboard() {
   const fourWeeksAgo = getWeekStart(4);
 
   // The team list and the latest review cycle don't depend on each other, so they load together.
-  const membersQuery = supabaseAdmin.from("users").select("id, name, department, manager_id").eq("is_active", true);
+  const membersQuery = supabaseAdmin
+    .from("users")
+    .select("id, name, department, manager_id")
+    .eq("is_active", true);
   const [{ data: allMembers }, { data: latestCycleRows }] = await Promise.all([
     isHr ? membersQuery : membersQuery.eq("manager_id", session.user.id),
-    supabaseAdmin.from("review_cycles").select("id").order("start_date", { ascending: false }).limit(1),
+    supabaseAdmin
+      .from("review_cycles")
+      .select("id")
+      .order("start_date", { ascending: false })
+      .limit(1),
   ]);
 
   const members = (allMembers ?? []) as TeamMember[];
@@ -60,8 +87,13 @@ export default async function LeadershipDashboard() {
           icon="solar:chart-broken"
         />
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-12 text-center transition-shadow duration-200">
-          <Icon icon="solar:users-group-broken" className="mx-auto h-10 w-10 text-[var(--text-lo)] opacity-40" />
-          <p className="mt-3 text-sm text-[var(--text-lo)]">No team members found.</p>
+          <Icon
+            icon="solar:users-group-broken"
+            className="mx-auto h-10 w-10 text-[var(--text-lo)] opacity-40"
+          />
+          <p className="mt-3 text-sm text-[var(--text-lo)]">
+            No team members found.
+          </p>
         </div>
       </div>
     );
@@ -81,7 +113,10 @@ export default async function LeadershipDashboard() {
       .select("user_id, week_start, mood, blockers, status")
       .in("user_id", memberIds)
       .gte("week_start", fourWeeksAgo),
-    supabaseAdmin.from("goals").select("owner_id, status, progress").in("owner_id", memberIds),
+    supabaseAdmin
+      .from("goals")
+      .select("owner_id, status, progress")
+      .in("owner_id", memberIds),
     // Gap 4: opt-out set
     supabaseAdmin
       .from("engagement_notification_preferences")
@@ -108,23 +143,46 @@ export default async function LeadershipDashboard() {
   const goals = (rawGoals ?? []) as Goal[];
 
   const thisWeekCheckins = checkins.filter((c) => c.week_start === thisWeek);
-  const completionRate = members.length > 0
-    ? Math.round((thisWeekCheckins.length / members.length) * 100)
-    : 0;
+  const completionRate =
+    members.length > 0
+      ? Math.round((thisWeekCheckins.length / members.length) * 100)
+      : 0;
 
-  const moodsThisWeek = thisWeekCheckins.map((c) => c.mood).filter((m): m is number => m !== null);
-  const avgMood = moodsThisWeek.length > 0
-    ? (moodsThisWeek.reduce((a, b) => a + b, 0) / moodsThisWeek.length).toFixed(1)
-    : null;
+  const moodsThisWeek = thisWeekCheckins
+    .map((c) => c.mood)
+    .filter((m): m is number => m !== null);
+  const avgMood =
+    moodsThisWeek.length > 0
+      ? (
+          moodsThisWeek.reduce((a, b) => a + b, 0) / moodsThisWeek.length
+        ).toFixed(1)
+      : null;
 
   const weeklyTrend = Array.from({ length: 4 }, (_, i) => {
     const week = getWeekStart(3 - i);
     const weekCheckins = checkins.filter((c) => c.week_start === week);
     const submitted = weekCheckins.length;
-    const pct = members.length > 0 ? Math.round((submitted / members.length) * 100) : 0;
-    const weekMoods = weekCheckins.map((checkin) => checkin.mood).filter((mood): mood is number => mood !== null);
-    const mood = weekMoods.length ? Math.round((weekMoods.reduce((total, value) => total + value, 0) / weekMoods.length) * 10) / 10 : null;
-    return { week, label: new Date(`${week}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short" }), rate: pct, mood };
+    const pct =
+      members.length > 0 ? Math.round((submitted / members.length) * 100) : 0;
+    const weekMoods = weekCheckins
+      .map((checkin) => checkin.mood)
+      .filter((mood): mood is number => mood !== null);
+    const mood = weekMoods.length
+      ? Math.round(
+          (weekMoods.reduce((total, value) => total + value, 0) /
+            weekMoods.length) *
+            10,
+        ) / 10
+      : null;
+    return {
+      week,
+      label: new Date(`${week}T12:00:00`).toLocaleDateString("en-KE", {
+        day: "numeric",
+        month: "short",
+      }),
+      rate: pct,
+      mood,
+    };
   });
 
   const goalBuckets = {
@@ -134,9 +192,10 @@ export default async function LeadershipDashboard() {
     completed: goals.filter((g) => g.status === "completed").length,
   };
   const totalGoals = Object.values(goalBuckets).reduce((a, b) => a + b, 0);
-  const avgProgress = goals.length > 0
-    ? Math.round(goals.reduce((a, g) => a + g.progress, 0) / goals.length)
-    : 0;
+  const avgProgress =
+    goals.length > 0
+      ? Math.round(goals.reduce((a, g) => a + g.progress, 0) / goals.length)
+      : 0;
 
   const flightRisks = members.filter((m) => isFlightRisk(checkins, m.id));
 
@@ -148,7 +207,10 @@ export default async function LeadershipDashboard() {
   const rewardTotals = new Map<string, number>();
   for (const row of rewardRows ?? []) {
     if (row.amount > 0) {
-      rewardTotals.set(row.user_id, (rewardTotals.get(row.user_id) ?? 0) + row.amount);
+      rewardTotals.set(
+        row.user_id,
+        (rewardTotals.get(row.user_id) ?? 0) + row.amount,
+      );
     }
   }
   const topRewardPoints: TopPerformerEntry[] = [...rewardTotals.entries()]
@@ -173,7 +235,9 @@ export default async function LeadershipDashboard() {
     goalsByOwner.set(g.owner_id, entry);
   }
   const topGoalCompletion: TopPerformerEntry[] = [...goalsByOwner.entries()]
-    .filter(([id, v]) => v.total >= 3 && !optedOutSet.has(id) && membersMap.has(id))
+    .filter(
+      ([id, v]) => v.total >= 3 && !optedOutSet.has(id) && membersMap.has(id),
+    )
     .map(([id, v]) => ({
       id,
       rate: v.completed / v.total,
@@ -191,15 +255,23 @@ export default async function LeadershipDashboard() {
     }));
 
   // 3. Review ratings — avg overall_rating per reviewee in latest cycle
-  const reviewRatingsByUser = new Map<string, { total: number; count: number }>();
+  const reviewRatingsByUser = new Map<
+    string,
+    { total: number; count: number }
+  >();
   for (const r of reviewRows ?? []) {
     if (r.overall_rating === null) continue;
-    const entry = reviewRatingsByUser.get(r.reviewee_id) ?? { total: 0, count: 0 };
+    const entry = reviewRatingsByUser.get(r.reviewee_id) ?? {
+      total: 0,
+      count: 0,
+    };
     entry.total += r.overall_rating;
     entry.count += 1;
     reviewRatingsByUser.set(r.reviewee_id, entry);
   }
-  const topReviewRatings: TopPerformerEntry[] = [...reviewRatingsByUser.entries()]
+  const topReviewRatings: TopPerformerEntry[] = [
+    ...reviewRatingsByUser.entries(),
+  ]
     .filter(([id]) => !optedOutSet.has(id) && membersMap.has(id))
     .map(([id, v]) => ({ id, avg: v.total / v.count }))
     .sort((a, b) => b.avg - a.avg)
@@ -212,11 +284,15 @@ export default async function LeadershipDashboard() {
       scoreLabel: `${avg.toFixed(1)} / 5`,
     }));
 
-  const deptMap: Record<string, { total: number; submitted: number; avgMood: number[]; atRisk: number }> = {};
+  const deptMap: Record<
+    string,
+    { total: number; submitted: number; avgMood: number[]; atRisk: number }
+  > = {};
   if (isHr) {
     for (const m of members) {
       const dept = m.department ?? "Unknown";
-      if (!deptMap[dept]) deptMap[dept] = { total: 0, submitted: 0, avgMood: [], atRisk: 0 };
+      if (!deptMap[dept])
+        deptMap[dept] = { total: 0, submitted: 0, avgMood: [], atRisk: 0 };
       deptMap[dept].total++;
       const checkin = thisWeekCheckins.find((c) => c.user_id === m.id);
       if (checkin) {
@@ -236,13 +312,69 @@ export default async function LeadershipDashboard() {
       />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard title="Check-in rate" value={`${completionRate}%`} icon="solar:checklist-minimalistic-broken" color={completionRate >= 80 ? "green" : completionRate >= 50 ? "amber" : "red"} compact subtitle="Submitted this week" />
-        <StatCard title="Average mood" value={avgMood ? `${avgMood}/5` : "—"} icon="solar:emoji-funny-circle-broken" color={avgMood && parseFloat(avgMood) >= 3.5 ? "green" : avgMood ? "amber" : "slate"} compact subtitle="From this week’s check-ins" />
-        <StatCard title="Goal progress" value={`${avgProgress}%`} icon="solar:target-broken" color={avgProgress >= 70 ? "green" : avgProgress >= 40 ? "amber" : "blue"} compact subtitle={`${totalGoals} goals tracked`} />
-        <StatCard title="Attention signals" value={flightRisks.length} icon="solar:danger-triangle-broken" color={flightRisks.length === 0 ? "green" : flightRisks.length <= 2 ? "amber" : "red"} compact subtitle={flightRisks.length ? "Need a conversation" : "No signals detected"} />
+        <StatCard
+          title="Check-in rate"
+          value={`${completionRate}%`}
+          icon="solar:checklist-minimalistic-broken"
+          color={
+            completionRate >= 80
+              ? "green"
+              : completionRate >= 50
+                ? "amber"
+                : "red"
+          }
+          compact
+          subtitle="Submitted this week"
+        />
+        <StatCard
+          title="Average mood"
+          value={avgMood ? `${avgMood}/5` : "—"}
+          icon="solar:emoji-funny-circle-broken"
+          color={
+            avgMood && parseFloat(avgMood) >= 3.5
+              ? "green"
+              : avgMood
+                ? "amber"
+                : "slate"
+          }
+          compact
+          subtitle="From this week’s check-ins"
+        />
+        <StatCard
+          title="Goal progress"
+          value={`${avgProgress}%`}
+          icon="solar:target-broken"
+          color={
+            avgProgress >= 70 ? "green" : avgProgress >= 40 ? "amber" : "blue"
+          }
+          compact
+          subtitle={`${totalGoals} goals tracked`}
+        />
+        <StatCard
+          title="Attention signals"
+          value={flightRisks.length}
+          icon="solar:danger-triangle-broken"
+          color={
+            flightRisks.length === 0
+              ? "green"
+              : flightRisks.length <= 2
+                ? "amber"
+                : "red"
+          }
+          compact
+          subtitle={
+            flightRisks.length ? "Need a conversation" : "No signals detected"
+          }
+        />
       </section>
 
-      <PulseAnalyticsCharts trend={weeklyTrend} goals={Object.entries(goalBuckets).map(([status, count]) => ({ status, count }))} />
+      <PulseAnalyticsCharts
+        trend={weeklyTrend}
+        goals={Object.entries(goalBuckets).map(([status, count]) => ({
+          status,
+          count,
+        }))}
+      />
 
       {/* Flight Risk */}
       {flightRisks.length > 0 && (
@@ -258,17 +390,35 @@ export default async function LeadershipDashboard() {
                 .filter((c) => c.user_id === m.id)
                 .sort((a, b) => b.week_start.localeCompare(a.week_start))
                 .slice(0, 4);
-              const lowMoods = recent.filter((c) => c.mood !== null && c.mood <= 2).length;
-              const blockerWeeks = recent.filter((c) => c.blockers && c.blockers.trim()).length;
-              const initials = m.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+              const lowMoods = recent.filter(
+                (c) => c.mood !== null && c.mood <= 2,
+              ).length;
+              const blockerWeeks = recent.filter(
+                (c) => c.blockers && c.blockers.trim(),
+              ).length;
+              const initials = m.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase();
               return (
-                <div key={m.id} className="flex items-center gap-3 rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/40 dark:bg-amber-900/10 px-4 py-3">
+                <div
+                  key={m.id}
+                  className="flex items-center gap-3 rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/40 dark:bg-amber-900/10 px-4 py-3"
+                >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-200 dark:bg-amber-800/50 text-amber-700 dark:text-amber-300 text-xs font-bold">
                     {initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--text-hi)] truncate">{m.name}</p>
-                    {m.department && <p className="text-xs text-[var(--text-lo)]">{m.department}</p>}
+                    <p className="text-sm font-medium text-[var(--text-hi)] truncate">
+                      {m.name}
+                    </p>
+                    {m.department && (
+                      <p className="text-xs text-[var(--text-lo)]">
+                        {m.department}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     {lowMoods >= 2 && (
@@ -291,12 +441,22 @@ export default async function LeadershipDashboard() {
 
       {/* Department Breakdown — HR only */}
       {isHr && Object.keys(deptMap).length > 0 && (
-        <SectionCard icon="solar:buildings-broken" title="Department Breakdown" description="Check-in completion by department">
+        <SectionCard
+          icon="solar:buildings-broken"
+          title="Department Breakdown"
+          description="Check-in completion by department"
+        >
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)]">
-                  {["Department", "Headcount", "Check-ins", "Avg Mood", "At Risk"].map((h) => (
+                  {[
+                    "Department",
+                    "Headcount",
+                    "Check-ins",
+                    "Avg Mood",
+                    "At Risk",
+                  ].map((h) => (
                     <th
                       key={h}
                       className={`pb-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-lo)] ${h === "Department" ? "text-left" : "text-right"}`}
@@ -308,25 +468,46 @@ export default async function LeadershipDashboard() {
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {Object.entries(deptMap).map(([dept, stats]) => {
-                  const mood = stats.avgMood.length > 0
-                    ? (stats.avgMood.reduce((a, b) => a + b, 0) / stats.avgMood.length).toFixed(1)
-                    : "—";
-                  const deptRate = Math.round((stats.submitted / stats.total) * 100);
+                  const mood =
+                    stats.avgMood.length > 0
+                      ? (
+                          stats.avgMood.reduce((a, b) => a + b, 0) /
+                          stats.avgMood.length
+                        ).toFixed(1)
+                      : "—";
+                  const deptRate = Math.round(
+                    (stats.submitted / stats.total) * 100,
+                  );
                   return (
-                    <tr key={dept} className="hover:bg-[var(--surface-2)] transition-colors">
-                      <td className="py-3 font-medium text-[var(--text-hi)]">{dept}</td>
-                      <td className="py-3 text-right text-[var(--text-lo)] tabular-nums">{stats.total}</td>
+                    <tr
+                      key={dept}
+                      className="hover:bg-[var(--surface-2)] transition-colors"
+                    >
+                      <td className="py-3 font-medium text-[var(--text-hi)]">
+                        {dept}
+                      </td>
+                      <td className="py-3 text-right text-[var(--text-lo)] tabular-nums">
+                        {stats.total}
+                      </td>
                       <td className="py-3 text-right tabular-nums">
-                        <span className={`font-medium ${deptRate >= 80 ? "text-green-500" : deptRate >= 50 ? "text-amber-500" : "text-red-400"}`}>
+                        <span
+                          className={`font-medium ${deptRate >= 80 ? "text-green-500" : deptRate >= 50 ? "text-amber-500" : "text-red-400"}`}
+                        >
                           {deptRate}%
                         </span>
                       </td>
-                      <td className="py-3 text-right text-[var(--text-lo)] tabular-nums">{mood}</td>
+                      <td className="py-3 text-right text-[var(--text-lo)] tabular-nums">
+                        {mood}
+                      </td>
                       <td className="py-3 text-right tabular-nums">
                         {stats.atRisk > 0 ? (
-                          <span className="font-medium text-amber-500">{stats.atRisk}</span>
+                          <span className="font-medium text-amber-500">
+                            {stats.atRisk}
+                          </span>
                         ) : (
-                          <span className="text-[var(--text-lo)] opacity-30">—</span>
+                          <span className="text-[var(--text-lo)] opacity-30">
+                            —
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -365,14 +546,24 @@ function SectionCard({
 }) {
   const isAmber = accent === "amber";
   return (
-    <div className={`rounded-2xl border shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-all duration-300 ${isAmber ? "border-amber-200/60 dark:border-amber-800/30 bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--surface)]"}`}>
-      <div className={`flex items-center gap-3 border-b px-6 py-4 ${isAmber ? "border-amber-100 dark:border-amber-800/20" : "border-[var(--border)]"}`}>
-        <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${isAmber ? "bg-amber-500/10 text-amber-500" : "bg-brand-500/10 text-brand-500"}`}>
+    <div
+      className={`rounded-2xl border shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-all duration-300 ${isAmber ? "border-amber-200/60 dark:border-amber-800/30 bg-[var(--surface)]" : "border-[var(--border)] bg-[var(--surface)]"}`}
+    >
+      <div
+        className={`flex items-center gap-3 border-b px-6 py-4 ${isAmber ? "border-amber-100 dark:border-amber-800/20" : "border-[var(--border)]"}`}
+      >
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-xl ${isAmber ? "bg-amber-500/10 text-amber-500" : "bg-brand-500/10 text-brand-500"}`}
+        >
           <Icon icon={icon} className="h-4 w-4" />
         </div>
         <div>
-          <h3 className="text-md font-semibold text-[var(--text-hi)]">{title}</h3>
-          {description && <p className="text-xs text-[var(--text-lo)]">{description}</p>}
+          <h3 className="text-md font-semibold text-[var(--text-hi)]">
+            {title}
+          </h3>
+          {description && (
+            <p className="text-xs text-[var(--text-lo)]">{description}</p>
+          )}
         </div>
       </div>
       <div className="p-6">{children}</div>

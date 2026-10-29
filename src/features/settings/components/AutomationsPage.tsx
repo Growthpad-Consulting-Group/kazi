@@ -13,13 +13,19 @@ type RuleRunSummary = { ruleId: string; lastRunAt: string; runCount: number };
 
 export default async function AutomationsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || !isPathAllowed(session.user.allowedPaths, "/settings/automations")) {
+  if (
+    !session ||
+    !isPathAllowed(session.user.allowedPaths, "/settings/automations")
+  ) {
     redirect("/settings/profile");
   }
   const canEdit = can(session.user.role, "manage_automations");
 
   const [{ data }, { data: executions }] = await Promise.all([
-    supabaseAdmin.from("automation_rules").select("*").order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("automation_rules")
+      .select("*")
+      .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("automation_rule_executions")
       .select("rule_id, created_at")
@@ -47,7 +53,10 @@ export default async function AutomationsPage() {
       />
       {!canEdit && <ViewOnlyNotice permissionLabel="automation management" />}
       <EditableArea canEdit={canEdit}>
-        <AutomationsClient initial={rules} runSummaries={[...runMap.values()]} />
+        <AutomationsClient
+          initial={rules}
+          runSummaries={[...runMap.values()]}
+        />
       </EditableArea>
     </div>
   );

@@ -16,7 +16,15 @@ type Result = { data?: unknown; error: { message: string } | null };
 type Database = {
   from: (table: string) => {
     select: (columns: string) => {
-      eq: (column: string, value: string) => { lt: (column: string, value: number) => { limit: (count: number) => PromiseLike<Result> } };
+      eq: (
+        column: string,
+        value: string,
+      ) => {
+        lt: (
+          column: string,
+          value: number,
+        ) => { limit: (count: number) => PromiseLike<Result> };
+      };
     };
   };
 };
@@ -33,9 +41,12 @@ export async function GET(request: Request) {
     .eq("gmail_sync_status", "error")
     .lt("gmail_sync_attempts", MAX_AUTOMATIC_SYNC_ATTEMPTS)
     .limit(BATCH_SIZE);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const profileIds = ((data ?? []) as { staff_profile_id: string }[]).map((row) => row.staff_profile_id);
+  const profileIds = ((data ?? []) as { staff_profile_id: string }[]).map(
+    (row) => row.staff_profile_id,
+  );
   let synced = 0;
   let failed = 0;
   for (const staffProfileId of profileIds) {
@@ -44,5 +55,10 @@ export async function GET(request: Request) {
     if (result.status === "error") failed += 1;
   }
 
-  return NextResponse.json({ ok: true, attempted: profileIds.length, synced, failed });
+  return NextResponse.json({
+    ok: true,
+    attempted: profileIds.length,
+    synced,
+    failed,
+  });
 }

@@ -19,7 +19,17 @@ interface AccordionProps {
   className?: string;
 }
 
-export function Accordion({ title, subtitle, icon, badge, children, defaultOpen = false, open, onToggle, className }: AccordionProps) {
+export function Accordion({
+  title,
+  subtitle,
+  icon,
+  badge,
+  children,
+  defaultOpen = false,
+  open,
+  onToggle,
+  className,
+}: AccordionProps) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const panelId = useId();
   const isOpen = open ?? internalOpen;
@@ -31,7 +41,12 @@ export function Accordion({ title, subtitle, icon, badge, children, defaultOpen 
   };
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={toggle}
@@ -46,12 +61,28 @@ export function Accordion({ title, subtitle, icon, badge, children, defaultOpen 
             </span>
           )}
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium text-[var(--text-hi)]">{title}</span>
-            {subtitle && <span className="block truncate text-xs text-[var(--text-lo)]">{subtitle}</span>}
+            <span className="block truncate text-sm font-medium text-[var(--text-hi)]">
+              {title}
+            </span>
+            {subtitle && (
+              <span className="block truncate text-xs text-[var(--text-lo)]">
+                {subtitle}
+              </span>
+            )}
           </span>
         </span>
-        {badge && <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs font-medium text-[var(--text-lo)]">{badge}</span>}
-        <Icon icon="solar:alt-arrow-down-broken" className={cn("h-4 w-4 shrink-0 text-[var(--text-lo)] transition-transform duration-200", isOpen && "rotate-180")} />
+        {badge && (
+          <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs font-medium text-[var(--text-lo)]">
+            {badge}
+          </span>
+        )}
+        <Icon
+          icon="solar:alt-arrow-down-broken"
+          className={cn(
+            "h-4 w-4 shrink-0 text-[var(--text-lo)] transition-transform duration-200",
+            isOpen && "rotate-180",
+          )}
+        />
       </button>
       {isOpen && (
         <div id={panelId} className="border-t border-[var(--border)] px-4 py-4">

@@ -12,7 +12,9 @@ function getSafeReturnTo(value: string | null, origin: string) {
   if (!value?.startsWith("/")) return undefined;
   try {
     const destination = new URL(value, origin);
-    return destination.origin === origin ? `${destination.pathname}${destination.search}${destination.hash}` : undefined;
+    return destination.origin === origin
+      ? `${destination.pathname}${destination.search}${destination.hash}`
+      : undefined;
   } catch {
     return undefined;
   }
@@ -25,7 +27,10 @@ export async function GET(request: Request) {
   try {
     const config = getGoogleConfig();
     const state = randomUUID();
-    const returnTo = getSafeReturnTo(new URL(request.url).searchParams.get("returnTo"), new URL(request.url).origin);
+    const returnTo = getSafeReturnTo(
+      new URL(request.url).searchParams.get("returnTo"),
+      new URL(request.url).origin,
+    );
     const store = await cookies();
     store.set(STATE_COOKIE, JSON.stringify({ state, returnTo }), {
       httpOnly: true,
@@ -48,7 +53,10 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(authUrl.toString());
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Google Calendar connection could not be started.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Google Calendar connection could not be started.";
     return NextResponse.json({ error: message }, { status: 503 });
   }
 }

@@ -25,7 +25,14 @@ function toValue(date: Date) {
   return format(date, "yyyy-MM-dd");
 }
 
-export function DatePicker({ value, onChange, placeholder = "Select date", minDate, maxDate, className = "" }: DatePickerProps) {
+export function DatePicker({
+  value,
+  onChange,
+  placeholder = "Select date",
+  minDate,
+  maxDate,
+  className = "",
+}: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [style, setStyle] = useState<React.CSSProperties>({});
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -38,8 +45,14 @@ export function DatePicker({ value, onChange, placeholder = "Select date", minDa
     const width = Math.min(320, window.innerWidth - 24);
     const height = popoverRef.current?.getBoundingClientRect().height ?? 390;
     const margin = 12;
-    const left = Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin));
-    const top = Math.max(margin, Math.min(rect.bottom + 6, window.innerHeight - height - margin));
+    const left = Math.max(
+      margin,
+      Math.min(rect.left, window.innerWidth - width - margin),
+    );
+    const top = Math.max(
+      margin,
+      Math.min(rect.bottom + 6, window.innerHeight - height - margin),
+    );
     setStyle({ position: "fixed", top, left, width, zIndex: 9999 });
   }, []);
 
@@ -59,9 +72,15 @@ export function DatePicker({ value, onChange, placeholder = "Select date", minDa
     if (!open) return;
     const closeOnOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (!popoverRef.current?.contains(target) && !triggerRef.current?.contains(target)) setOpen(false);
+      if (
+        !popoverRef.current?.contains(target) &&
+        !triggerRef.current?.contains(target)
+      )
+        setOpen(false);
     };
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", closeOnOutside);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
@@ -80,27 +99,44 @@ export function DatePicker({ value, onChange, placeholder = "Select date", minDa
         onClick={() => setOpen((current) => !current)}
         className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none transition-colors hover:border-brand-500/40 focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10 ${open ? "border-brand-500/60" : "border-[var(--border)]"}`}
       >
-        <span className={selected ? "" : "text-[var(--text-lo)]"}>{selected ? format(selected, "MMM d, yyyy") : placeholder}</span>
-        <Icon icon="solar:calendar-date-broken" className="h-4 w-4 shrink-0 text-[var(--text-lo)]" />
+        <span className={selected ? "" : "text-[var(--text-lo)]"}>
+          {selected ? format(selected, "MMM d, yyyy") : placeholder}
+        </span>
+        <Icon
+          icon="solar:calendar-date-broken"
+          className="h-4 w-4 shrink-0 text-[var(--text-lo)]"
+        />
       </button>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div ref={popoverRef} style={style} role="dialog" aria-label="Choose date" className="max-h-[calc(100vh-24px)] overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl">
-          <div className="kazi-calendar"><Calendar
-            date={selected ?? new Date()}
-            onChange={(date) => {
-              onChange(toValue(date));
-              setOpen(false);
-              window.requestAnimationFrame(() => triggerRef.current?.focus());
-            }}
-            minDate={minDate}
-            maxDate={maxDate}
-            color="#f05d23"
-            className="w-full"
-          /></div>
-        </div>,
-        document.body,
-      )}
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={style}
+            role="dialog"
+            aria-label="Choose date"
+            className="max-h-[calc(100vh-24px)] overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl"
+          >
+            <div className="kazi-calendar">
+              <Calendar
+                date={selected ?? new Date()}
+                onChange={(date) => {
+                  onChange(toValue(date));
+                  setOpen(false);
+                  window.requestAnimationFrame(() =>
+                    triggerRef.current?.focus(),
+                  );
+                }}
+                minDate={minDate}
+                maxDate={maxDate}
+                color="#f05d23"
+                className="w-full"
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

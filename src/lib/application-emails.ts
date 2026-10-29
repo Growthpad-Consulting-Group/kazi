@@ -1,10 +1,18 @@
 import { resend, EMAIL_FROM } from "@/lib/email";
 
 const escapeHtml = (value: string) =>
-  value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 
 /** Confirms receipt to the applicant. Failures are logged, never thrown: the application is already saved. */
-export async function sendApplicationConfirmation(params: { email: string; fullName: string; jobTitle: string }) {
+export async function sendApplicationConfirmation(params: {
+  email: string;
+  fullName: string;
+  jobTitle: string;
+}) {
   const firstName = params.fullName.trim().split(/\s+/)[0] ?? "there";
   const role = escapeHtml(params.jobTitle);
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1e293b;max-width:640px;margin:0 auto">

@@ -22,10 +22,18 @@ export function resolveRange(params: {
   const end = params.to ? new Date(params.to) : null;
 
   if (start && end && !isNaN(start.getTime()) && !isNaN(end.getTime())) {
-    return { startDate: sod(start), endDate: eod(end), label: params.preset || "Custom Range" };
+    return {
+      startDate: sod(start),
+      endDate: eod(end),
+      label: params.preset || "Custom Range",
+    };
   }
   if (params.preset === "All Time") {
-    return { startDate: sod(ALL_TIME_FROM), endDate: eod(new Date()), label: "All Time" };
+    return {
+      startDate: sod(ALL_TIME_FROM),
+      endDate: eod(new Date()),
+      label: "All Time",
+    };
   }
   const preset = computePresetRange(params.preset || "Today");
   return {
@@ -37,12 +45,19 @@ export function resolveRange(params: {
 
 /** The value passed to the client-side DateRangePicker. */
 export function toPickerValue(range: ResolvedRange): DateRangeValue {
-  return { startDate: range.startDate, endDate: range.endDate, label: range.label };
+  return {
+    startDate: range.startDate,
+    endDate: range.endDate,
+    label: range.label,
+  };
 }
 
 /** Serialises a picker value into URL params. */
 export function toSearchParams(value: DateRangeValue): Record<string, string> {
-  const label = value.label === "Custom Range" || !value.label ? "Custom Range" : value.label;
+  const label =
+    value.label === "Custom Range" || !value.label
+      ? "Custom Range"
+      : value.label;
   if (!value.startDate || !value.endDate) return { preset: label };
   return {
     preset: label,

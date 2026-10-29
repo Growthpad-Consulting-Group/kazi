@@ -19,10 +19,21 @@ export default async function CandidatesPage({
   const [candidates, session, { data: interviewerData }] = await Promise.all([
     getCandidates(jobId),
     getServerSession(authOptions),
-    supabaseAdmin.from("users").select("id, name, job_title").in("role", ["admin", "hr", "manager", "hiring_manager", "interviewer"]).eq("is_active", true).order("name"),
+    supabaseAdmin
+      .from("users")
+      .select("id, name, job_title")
+      .in("role", ["admin", "hr", "manager", "hiring_manager", "interviewer"])
+      .eq("is_active", true)
+      .order("name"),
   ]);
-  const awaitingAi = candidates.filter((c) => c.ai_score === null && (c.cv_text || c.cv_parsed));
-  const interviewers = (interviewerData ?? []) as { id: string; name: string; job_title: string | null }[];
+  const awaitingAi = candidates.filter(
+    (c) => c.ai_score === null && (c.cv_text || c.cv_parsed),
+  );
+  const interviewers = (interviewerData ?? []) as {
+    id: string;
+    name: string;
+    job_title: string | null;
+  }[];
 
   return (
     <>

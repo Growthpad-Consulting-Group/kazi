@@ -10,18 +10,24 @@ type Database = { from: (table: string) => Table };
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const database = supabaseAdmin as unknown as Database;
   const { data, error } = await database
     .from("signature_staff_profiles")
-    .select("id, user_id, domain_id, email, full_name, role_title, department, phone, mobile, photo_url, status, created_at, updated_at");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    .select(
+      "id, user_id, domain_id, email, full_name, role_title, department, phone, mobile, photo_url, status, created_at, updated_at",
+    );
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as { user_id: string | null }[];
   const canManage = can(session.user.role, "manage_signatures");
   return NextResponse.json({
-    staff: canManage ? rows : rows.filter((row) => row.user_id === session.user.id),
+    staff: canManage
+      ? rows
+      : rows.filter((row) => row.user_id === session.user.id),
     canManage,
   });
 }

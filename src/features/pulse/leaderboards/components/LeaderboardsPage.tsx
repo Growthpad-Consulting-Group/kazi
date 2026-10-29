@@ -5,23 +5,243 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 
 type Person = { id: string; name: string };
-function leaders(entries: { user_id: string }[], people: Map<string, string>) { const counts = new Map<string, number>(); entries.forEach((entry) => counts.set(entry.user_id, (counts.get(entry.user_id) ?? 0) + 1)); return [...counts.entries()].map(([id, count]) => ({ id, name: people.get(id) ?? "Staff member", count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, 5); }
-function Board({ title, icon, items, label }: { title: string; icon: string; items: { id: string; name: string; count: number }[]; label: string }) { return <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20"><div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-4"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500"><Icon icon={icon} className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-[var(--text-hi)]">{title}</h2><p className="mt-0.5 text-xs text-[var(--text-lo)]">Last 90 days</p></div></div>{items.length ? <ol className="divide-y divide-[var(--border)]">{items.map((item, index) => <li key={item.id} className="flex items-center gap-3 px-5 py-3"><span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? "bg-amber-500/15 text-amber-700" : "bg-[var(--surface-2)] text-[var(--text-lo)]"}`}>{index + 1}</span><span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-hi)]">{item.name}</span><span className="font-mono text-xs font-semibold text-brand-500">{item.count} {label}</span></li>)}</ol> : <p className="px-5 py-10 text-center text-xs text-[var(--text-lo)]">Participation will appear here as the team gets involved.</p>}</section>; }
-export default async function LeaderboardsPage() { const session = await getServerSession(authOptions); if (!session) return null; const since = new Date(); since.setDate(since.getDate() - 90);
+function leaders(entries: { user_id: string }[], people: Map<string, string>) {
+  const counts = new Map<string, number>();
+  entries.forEach((entry) =>
+    counts.set(entry.user_id, (counts.get(entry.user_id) ?? 0) + 1),
+  );
+  return [...counts.entries()]
+    .map(([id, count]) => ({
+      id,
+      name: people.get(id) ?? "Staff member",
+      count,
+    }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 5);
+}
+function Board({
+  title,
+  icon,
+  items,
+  label,
+}: {
+  title: string;
+  icon: string;
+  items: { id: string; name: string; count: number }[];
+  label: string;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-4">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+          <Icon icon={icon} className="h-4 w-4" />
+        </span>
+        <div>
+          <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+            {title}
+          </h2>
+          <p className="mt-0.5 text-xs text-[var(--text-lo)]">Last 90 days</p>
+        </div>
+      </div>
+      {items.length ? (
+        <ol className="divide-y divide-[var(--border)]">
+          {items.map((item, index) => (
+            <li key={item.id} className="flex items-center gap-3 px-5 py-3">
+              <span
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? "bg-amber-500/15 text-amber-700" : "bg-[var(--surface-2)] text-[var(--text-lo)]"}`}
+              >
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-hi)]">
+                {item.name}
+              </span>
+              <span className="font-mono text-xs font-semibold text-brand-500">
+                {item.count} {label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="px-5 py-10 text-center text-xs text-[var(--text-lo)]">
+          Participation will appear here as the team gets involved.
+        </p>
+      )}
+    </section>
+  );
+}
+export default async function LeaderboardsPage() {
+  const session = await getServerSession(authOptions);
+  if (!session) return null;
+  const since = new Date();
+  since.setDate(since.getDate() - 90);
   // company_settings predates the typed Supabase schema and is intentionally isolated here.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companySettings = supabaseAdmin as any;
-  const [{ data: setting }, { data: staff }, { data: recognition }, { data: completions }, { data: quizResponses }, { data: optInPrefs }, { data: publicFeedbackGivers }, { data: feedbackRecipientRows }] = await Promise.all([companySettings.from("company_settings").select("culture_leaderboards_enabled").eq("id", "default").maybeSingle(), supabaseAdmin.from("users").select("id, name").eq("is_active", true), supabaseAdmin.from("feedback").select("from_user_id").eq("visibility", "public").not("campaign_id", "is", null).gte("created_at", since.toISOString()), supabaseAdmin.from("side_quest_completions").select("user_id").gte("completed_at", since.toISOString()), supabaseAdmin.from("survey_responses").select("respondent_id, answers").not("respondent_id", "is", null), supabaseAdmin.from("engagement_notification_preferences").select("user_id").eq("show_on_leaderboard", true), supabaseAdmin.from("feedback").select("from_user_id").eq("visibility", "public").gte("created_at", since.toISOString()), supabaseAdmin.from("feedback_recipients").select("user_id").gte("created_at", since.toISOString())]);
+  const [
+    { data: setting },
+    { data: staff },
+    { data: recognition },
+    { data: completions },
+    { data: quizResponses },
+    { data: optInPrefs },
+    { data: publicFeedbackGivers },
+    { data: feedbackRecipientRows },
+  ] = await Promise.all([
+    companySettings
+      .from("company_settings")
+      .select("culture_leaderboards_enabled")
+      .eq("id", "default")
+      .maybeSingle(),
+    supabaseAdmin.from("users").select("id, name").eq("is_active", true),
+    supabaseAdmin
+      .from("feedback")
+      .select("from_user_id")
+      .eq("visibility", "public")
+      .not("campaign_id", "is", null)
+      .gte("created_at", since.toISOString()),
+    supabaseAdmin
+      .from("side_quest_completions")
+      .select("user_id")
+      .gte("completed_at", since.toISOString()),
+    supabaseAdmin
+      .from("survey_responses")
+      .select("respondent_id, answers")
+      .not("respondent_id", "is", null),
+    supabaseAdmin
+      .from("engagement_notification_preferences")
+      .select("user_id")
+      .eq("show_on_leaderboard", true),
+    supabaseAdmin
+      .from("feedback")
+      .select("from_user_id")
+      .eq("visibility", "public")
+      .gte("created_at", since.toISOString()),
+    supabaseAdmin
+      .from("feedback_recipients")
+      .select("user_id")
+      .gte("created_at", since.toISOString()),
+  ]);
 
   // Build the set of opted-in user IDs; if the query failed, fall back to allowing all users
-  const optInSet: Set<string> | null = optInPrefs ? new Set(optInPrefs.map((p) => p.user_id)) : null;
+  const optInSet: Set<string> | null = optInPrefs
+    ? new Set(optInPrefs.map((p) => p.user_id))
+    : null;
   const isOptedIn = (id: string) => optInSet === null || optInSet.has(id);
 
-  const enabled = Boolean((setting as { culture_leaderboards_enabled?: boolean } | null)?.culture_leaderboards_enabled); const people = new Map(((staff ?? []) as unknown as Person[]).map((person) => [person.id, person.name])); const quizLeaders = [...new Map((quizResponses ?? []).filter((response) => typeof (response.answers as Record<string, unknown>)._quiz_score === "number" && response.respondent_id).map((response) => [response.respondent_id as string, Number((response.answers as Record<string, unknown>)._quiz_score)])).entries()].map(([id, count]) => ({ id, name: people.get(id) ?? "Staff member", count })).sort((a, b) => b.count - a.count).slice(0, 5);
+  const enabled = Boolean(
+    (setting as { culture_leaderboards_enabled?: boolean } | null)
+      ?.culture_leaderboards_enabled,
+  );
+  const people = new Map(
+    ((staff ?? []) as unknown as Person[]).map((person) => [
+      person.id,
+      person.name,
+    ]),
+  );
+  const quizLeaders = [
+    ...new Map(
+      (quizResponses ?? [])
+        .filter(
+          (response) =>
+            typeof (response.answers as Record<string, unknown>)._quiz_score ===
+              "number" && response.respondent_id,
+        )
+        .map((response) => [
+          response.respondent_id as string,
+          Number((response.answers as Record<string, unknown>)._quiz_score),
+        ]),
+    ).entries(),
+  ]
+    .map(([id, count]) => ({
+      id,
+      name: people.get(id) ?? "Staff member",
+      count,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
   // Recognition givers: public feedback senders who opted in
-  const giverEntries = (publicFeedbackGivers ?? []).filter((r) => isOptedIn(r.from_user_id)).map((r) => ({ user_id: r.from_user_id }));
+  const giverEntries = (publicFeedbackGivers ?? [])
+    .filter((r) => isOptedIn(r.from_user_id))
+    .map((r) => ({ user_id: r.from_user_id }));
   // Recognition receivers: feedback_recipients who opted in
-  const receiverEntries = (feedbackRecipientRows ?? []).filter((r) => isOptedIn(r.user_id)).map((r) => ({ user_id: r.user_id }));
+  const receiverEntries = (feedbackRecipientRows ?? [])
+    .filter((r) => isOptedIn(r.user_id))
+    .map((r) => ({ user_id: r.user_id }));
 
-  return <><SetPageHeader title="Culture leaderboards" description="A positive, opt-in view of recent participation." icon="solar:medal-ribbon-broken" /> <div className="mx-auto max-w-7xl space-y-5">{!enabled ? <section className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 text-center"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-lo)]"><Icon icon="solar:eye-closed-broken" className="h-6 w-6" /></span><h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">Leaderboards are off</h2><p className="mt-1 max-w-md text-xs leading-relaxed text-[var(--text-lo)]">An administrator can enable this in Company &amp; System settings when public participation rankings fit your culture.</p></section> : <><section className="rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] px-5 py-4"><p className="text-sm font-semibold text-[var(--text-hi)]">Celebrate participation, not competition</p><p className="mt-1 text-xs text-[var(--text-lo)]">These rankings are limited to recent voluntary culture activity and refresh automatically.</p></section><div className="grid gap-5 lg:grid-cols-2"><Board title="Campaign participation" icon="solar:flag-2-broken" items={leaders((recognition ?? []).map((r) => ({ user_id: r.from_user_id })), people)} label="recognitions" /><Board title="Side Quests completed" icon="solar:cup-star-broken" items={leaders((completions ?? []) as { user_id: string }[], people)} label="completed" /><Board title="Quiz scores" icon="solar:medal-ribbon-broken" items={quizLeaders} label="points" /><Board title="Recognition givers" icon="solar:hand-heart-broken" items={leaders(giverEntries, people)} label="given" /><Board title="Recognition receivers" icon="solar:star-broken" items={leaders(receiverEntries, people)} label="received" /></div></>}</div></>; }
+  return (
+    <>
+      <SetPageHeader
+        title="Culture leaderboards"
+        description="A positive, opt-in view of recent participation."
+        icon="solar:medal-ribbon-broken"
+      />{" "}
+      <div className="mx-auto max-w-7xl space-y-5">
+        {!enabled ? (
+          <section className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-lo)]">
+              <Icon icon="solar:eye-closed-broken" className="h-6 w-6" />
+            </span>
+            <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+              Leaderboards are off
+            </h2>
+            <p className="mt-1 max-w-md text-xs leading-relaxed text-[var(--text-lo)]">
+              An administrator can enable this in Company &amp; System settings
+              when public participation rankings fit your culture.
+            </p>
+          </section>
+        ) : (
+          <>
+            <section className="rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] px-5 py-4">
+              <p className="text-sm font-semibold text-[var(--text-hi)]">
+                Celebrate participation, not competition
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-lo)]">
+                These rankings are limited to recent voluntary culture activity
+                and refresh automatically.
+              </p>
+            </section>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <Board
+                title="Campaign participation"
+                icon="solar:flag-2-broken"
+                items={leaders(
+                  (recognition ?? []).map((r) => ({ user_id: r.from_user_id })),
+                  people,
+                )}
+                label="recognitions"
+              />
+              <Board
+                title="Side Quests completed"
+                icon="solar:cup-star-broken"
+                items={leaders(
+                  (completions ?? []) as { user_id: string }[],
+                  people,
+                )}
+                label="completed"
+              />
+              <Board
+                title="Quiz scores"
+                icon="solar:medal-ribbon-broken"
+                items={quizLeaders}
+                label="points"
+              />
+              <Board
+                title="Recognition givers"
+                icon="solar:hand-heart-broken"
+                items={leaders(giverEntries, people)}
+                label="given"
+              />
+              <Board
+                title="Recognition receivers"
+                icon="solar:star-broken"
+                items={leaders(receiverEntries, people)}
+                label="received"
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}

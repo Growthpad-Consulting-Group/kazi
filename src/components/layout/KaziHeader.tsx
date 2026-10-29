@@ -22,7 +22,12 @@ export default function KaziHeader({
   const { resolvedMode: mode } = useTheme();
   const pageHeader = usePageHeaderValue();
   const { open: openCommandPalette } = useCommandPalette();
-  const { notifications, isLoading, markNotificationAsRead, clearAllNotifications } = useNotifications();
+  const {
+    notifications,
+    isLoading,
+    markNotificationAsRead,
+    clearAllNotifications,
+  } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +35,10 @@ export default function KaziHeader({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target as Node)
+      ) {
         setIsNotificationsOpen(false);
       }
     };
@@ -40,9 +48,11 @@ export default function KaziHeader({
 
   return (
     <header className="sticky top-0 z-40 flex items-stretch gap-3 animate-header-slide-in transition-all duration-300 m-1 md:mx-8 md:mt-4 md:mb-0">
-
       {/* Left — sidebar toggle + page title + actions */}
-      <GlassPanel mode={mode} className={`flex-1 min-w-0 rounded-2xl ${mode === "dark" ? "bg-gray-900/80" : "bg-white"}`}>
+      <GlassPanel
+        mode={mode}
+        className={`flex-1 min-w-0 rounded-2xl ${mode === "dark" ? "bg-gray-900/80" : "bg-white"}`}
+      >
         <div className="flex h-full items-center gap-2 px-2 py-1.5">
           <button
             onClick={toggleSidebar}
@@ -50,7 +60,11 @@ export default function KaziHeader({
             title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
             <Icon
-              icon={isSidebarOpen ? "solar:double-alt-arrow-left-broken" : "solar:double-alt-arrow-right-broken"}
+              icon={
+                isSidebarOpen
+                  ? "solar:double-alt-arrow-left-broken"
+                  : "solar:double-alt-arrow-right-broken"
+              }
               className="w-5 h-5 transition-transform duration-300 group-hover:scale-110"
             />
           </button>
@@ -61,14 +75,21 @@ export default function KaziHeader({
 
               {pageHeader.icon && (
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-sm">
-                  <Icon icon={pageHeader.icon} className="h-3.5 w-3.5 text-white" />
+                  <Icon
+                    icon={pageHeader.icon}
+                    className="h-3.5 w-3.5 text-white"
+                  />
                 </div>
               )}
 
               <div className="min-w-0">
-                <h1 className="text-sm font-semibold leading-tight text-[var(--text-hi)] truncate">{pageHeader.title}</h1>
+                <h1 className="text-sm font-semibold leading-tight text-[var(--text-hi)] truncate">
+                  {pageHeader.title}
+                </h1>
                 {pageHeader.description && (
-                  <p className="hidden sm:block text-xs text-[var(--text-lo)] truncate">{pageHeader.description}</p>
+                  <p className="hidden sm:block text-xs text-[var(--text-lo)] truncate">
+                    {pageHeader.description}
+                  </p>
                 )}
               </div>
 
@@ -82,14 +103,18 @@ export default function KaziHeader({
                       disabled={action.disabled}
                       title={action.title}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        action.variant === "primary" || (!pageHeader.content && pageHeader.actions?.length === 1)
+                        action.variant === "primary" ||
+                        (!pageHeader.content &&
+                          pageHeader.actions?.length === 1)
                           ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
                           : mode === "dark"
                             ? "border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
                             : "border border-[var(--border)] bg-[var(--surface)] text-gray-700 hover:bg-[var(--surface-2)]"
                       }`}
                     >
-                      {action.icon && <Icon icon={action.icon} className="h-3.5 w-3.5" />}
+                      {action.icon && (
+                        <Icon icon={action.icon} className="h-3.5 w-3.5" />
+                      )}
                       {action.label}
                     </button>
                   ))}
@@ -101,9 +126,11 @@ export default function KaziHeader({
       </GlassPanel>
 
       {/* Right — search, notifications, theme, profile */}
-      <GlassPanel mode={mode} className={`shrink-0 rounded-2xl ${mode === "dark" ? "bg-gray-900/80" : "bg-white"}`}>
+      <GlassPanel
+        mode={mode}
+        className={`shrink-0 rounded-2xl ${mode === "dark" ? "bg-gray-900/80" : "bg-white"}`}
+      >
         <div className="flex h-full items-center gap-0.5 px-2 py-1.5">
-
           {/* Search / Command Palette */}
           <TooltipIconButton
             icon="solar:magnifer-broken"
@@ -135,8 +162,14 @@ export default function KaziHeader({
               </div>
             </TooltipIconButton>
             {isNotificationsOpen && (
-              <div className="absolute top-12 right-0 w-96 z-50" onClick={(e) => e.stopPropagation()}>
-                <GlassPanel mode={mode} className={`rounded-2xl ${mode === "dark" ? "bg-gray-900/90 text-white" : "bg-white/90 text-[var(--text-hi)]"}`}>
+              <div
+                className="absolute top-12 right-0 w-96 z-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GlassPanel
+                  mode={mode}
+                  className={`rounded-2xl ${mode === "dark" ? "bg-gray-900/90 text-white" : "bg-white/90 text-[var(--text-hi)]"}`}
+                >
                   <Notifications
                     notifications={notifications}
                     mode={mode}

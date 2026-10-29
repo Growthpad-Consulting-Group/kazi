@@ -24,7 +24,8 @@ const DEFAULTS: CompanySettings = {
 export default async function OverviewPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (!isPathAllowed(session.user.allowedPaths, "/settings/overview")) redirect("/settings/profile");
+  if (!isPathAllowed(session.user.allowedPaths, "/settings/overview"))
+    redirect("/settings/profile");
   const canEdit = can(session.user.role, "manage_system");
 
   const [
@@ -37,13 +38,22 @@ export default async function OverviewPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabaseAdmin as any)
       .from("company_settings")
-      .select("company_name, logo_url, website, industry, company_size, country, timezone, fiscal_year_start, culture_leaderboards_enabled")
+      .select(
+        "company_name, logo_url, website, industry, company_size, country, timezone, fiscal_year_start, culture_leaderboards_enabled",
+      )
       .eq("id", "default")
       .maybeSingle(),
-    supabaseAdmin.from("users").select("id", { count: "exact", head: true }).eq("is_active", true),
-    supabaseAdmin.from("departments").select("id", { count: "exact", head: true }),
+    supabaseAdmin
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true),
+    supabaseAdmin
+      .from("departments")
+      .select("id", { count: "exact", head: true }),
     supabaseAdmin.from("jobs").select("id", { count: "exact", head: true }),
-    supabaseAdmin.from("candidates").select("id", { count: "exact", head: true }),
+    supabaseAdmin
+      .from("candidates")
+      .select("id", { count: "exact", head: true }),
   ]);
 
   const row = companyResult.data as Partial<CompanySettings> | null;

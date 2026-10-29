@@ -35,13 +35,21 @@ export default function PageHeader({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             {icon && (
-              <div className={`w-11 h-11 ${iconBgColor} rounded-xl flex items-center justify-center shrink-0`}>
+              <div
+                className={`w-11 h-11 ${iconBgColor} rounded-xl flex items-center justify-center shrink-0`}
+              >
                 <Icon icon={icon} className="w-5 h-5 text-brand-500" />
               </div>
             )}
             <div>
-              <h1 className="font-display text-xl font-semibold text-[var(--text-hi)]">{title}</h1>
-              {description && <div className="text-sm mt-0.5 text-[var(--text-lo)]">{description}</div>}
+              <h1 className="font-display text-xl font-semibold text-[var(--text-hi)]">
+                {title}
+              </h1>
+              {description && (
+                <div className="text-sm mt-0.5 text-[var(--text-lo)]">
+                  {description}
+                </div>
+              )}
             </div>
           </div>
 
@@ -59,7 +67,9 @@ export default function PageHeader({
                         : "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-[var(--border)] bg-[var(--surface)] text-[var(--text-hi)] hover:bg-[var(--surface-2)] transition-colors"
                     }
                   >
-                    {action.icon && <Icon icon={action.icon} className="w-4 h-4" />}
+                    {action.icon && (
+                      <Icon icon={action.icon} className="w-4 h-4" />
+                    )}
                     {action.label}
                   </a>
                 ) : (
@@ -73,10 +83,12 @@ export default function PageHeader({
                         : "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-[var(--border)] bg-[var(--surface)] text-[var(--text-hi)] hover:bg-[var(--surface-2)] transition-colors disabled:opacity-50"
                     }
                   >
-                    {action.icon && <Icon icon={action.icon} className="w-4 h-4" />}
+                    {action.icon && (
+                      <Icon icon={action.icon} className="w-4 h-4" />
+                    )}
                     {action.label}
                   </button>
-                )
+                ),
               )}
             </div>
           )}

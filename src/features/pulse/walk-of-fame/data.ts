@@ -9,11 +9,14 @@ export interface WalkOfFameEntry {
   isRecent: boolean;
 }
 
-function computeTenureBadge(startDate: string | null): "10yr" | "5yr" | "3yr" | "1yr" | null {
+function computeTenureBadge(
+  startDate: string | null,
+): "10yr" | "5yr" | "3yr" | "1yr" | null {
   if (!startDate) return null;
   const start = new Date(startDate);
   const now = new Date();
-  const years = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  const years =
+    (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
   if (years >= 10) return "10yr";
   if (years >= 5) return "5yr";
   if (years >= 3) return "3yr";
@@ -33,9 +36,7 @@ export async function getWalkOfFameData(): Promise<WalkOfFameEntry[]> {
     { data: activeUsers },
   ] = await Promise.all([
     // (a) All-time recognition counts per recipient
-    supabaseAdmin
-      .from("feedback_recipients")
-      .select("user_id"),
+    supabaseAdmin.from("feedback_recipients").select("user_id"),
     // (b) Recipients with a recognition in the last 30 days
     supabaseAdmin
       .from("feedback_recipients")
@@ -64,7 +65,12 @@ export async function getWalkOfFameData(): Promise<WalkOfFameEntry[]> {
   }
 
   // Build user detail map
-  type UserRow = { id: string; name: string; department: string | null; start_date: string | null };
+  type UserRow = {
+    id: string;
+    name: string;
+    department: string | null;
+    start_date: string | null;
+  };
   const userMap = new Map<string, UserRow>();
   for (const user of (activeUsers ?? []) as UserRow[]) {
     userMap.set(user.id, user);

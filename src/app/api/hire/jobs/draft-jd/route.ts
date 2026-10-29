@@ -13,7 +13,10 @@ export async function POST(req: Request) {
 
   const { title, department, brief, jobId } = await req.json();
   if (!title || !brief) {
-    return NextResponse.json({ error: "title and brief are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "title and brief are required" },
+      { status: 400 },
+    );
   }
 
   const prompt = `You are an HR specialist at Growthpad Consulting Group, a Nairobi-based communications, technology and digital services firm.

@@ -6,6 +6,7 @@ import { can } from "@/lib/rbac";
 
 export default async function Page() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_signatures")) redirect("/signatures");
+  if (!session || !can(session.user.role, "manage_signatures"))
+    redirect("/signatures");
   return <NewSignatureTemplatePage />;
 }

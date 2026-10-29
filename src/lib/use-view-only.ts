@@ -14,5 +14,10 @@ export function useIsViewOnly(): boolean {
   const { data } = useSession();
   const pathname = usePathname();
   const user = data?.user;
-  return Boolean(user && user.role === "employee" && hasViewGrant(user) && isAdminScreenPath(pathname));
+  return Boolean(
+    user &&
+    user.role === "employee" &&
+    hasViewGrant(user) &&
+    isAdminScreenPath(pathname),
+  );
 }

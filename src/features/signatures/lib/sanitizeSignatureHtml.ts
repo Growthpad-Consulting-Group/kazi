@@ -1,6 +1,14 @@
 import sanitizeHtml from "sanitize-html";
 
-const MERGE_TAGS = ["full_name", "email", "role_title", "department", "phone", "mobile", "photo_url"] as const;
+const MERGE_TAGS = [
+  "full_name",
+  "email",
+  "role_title",
+  "department",
+  "phone",
+  "mobile",
+  "photo_url",
+] as const;
 const markerFor = (tag: string) => `https://kazi.invalid/merge/${tag}`;
 
 /**
@@ -15,7 +23,31 @@ export function sanitizeSignatureHtml(html: string) {
   }
 
   const safe = sanitizeHtml(prepared, {
-    allowedTags: ["a", "b", "br", "div", "em", "h1", "h2", "h3", "h4", "i", "img", "li", "ol", "p", "span", "strong", "table", "tbody", "td", "th", "thead", "tr", "ul"],
+    allowedTags: [
+      "a",
+      "b",
+      "br",
+      "div",
+      "em",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "i",
+      "img",
+      "li",
+      "ol",
+      "p",
+      "span",
+      "strong",
+      "table",
+      "tbody",
+      "td",
+      "th",
+      "thead",
+      "tr",
+      "ul",
+    ],
     allowedAttributes: {
       "*": ["align", "class", "height", "style", "width"],
       a: ["href", "name", "target", "title"],
@@ -29,7 +61,7 @@ export function sanitizeSignatureHtml(html: string) {
     allowedStyles: {
       "*": {
         "background-color": [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i, /^transparent$/i],
-        "border": [/^[\w\s#().,%/-]+$/],
+        border: [/^[\w\s#().,%/-]+$/],
         "border-radius": [/^[\d.]+(px|%|em|rem)$/],
         color: [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i],
         display: [/^(block|inline|inline-block|none|table|table-cell)$/],
@@ -52,5 +84,8 @@ export function sanitizeSignatureHtml(html: string) {
     },
   });
 
-  return MERGE_TAGS.reduce((value, tag) => value.replaceAll(markerFor(tag), `{{${tag}}}`), safe);
+  return MERGE_TAGS.reduce(
+    (value, tag) => value.replaceAll(markerFor(tag), `{{${tag}}}`),
+    safe,
+  );
 }

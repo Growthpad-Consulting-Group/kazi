@@ -2,8 +2,25 @@ import dynamic from "next/dynamic";
 import { Icon } from "@iconify/react";
 import { supabaseAdmin } from "@/lib/supabase";
 import StatCard from "@/components/ui/StatCard";
-const RecognitionTrendChart = dynamic(() => import("./RecognitionTrendChart").then((m) => m.RecognitionTrendChart), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
-const SurveyDistributionChart = dynamic(() => import("@/features/pulse/surveys/components/SurveyDistributionChart").then((m) => m.SurveyDistributionChart), { loading: () => <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> });
+const RecognitionTrendChart = dynamic(
+  () => import("./RecognitionTrendChart").then((m) => m.RecognitionTrendChart),
+  {
+    loading: () => (
+      <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
+    ),
+  },
+);
+const SurveyDistributionChart = dynamic(
+  () =>
+    import("@/features/pulse/surveys/components/SurveyDistributionChart").then(
+      (m) => m.SurveyDistributionChart,
+    ),
+  {
+    loading: () => (
+      <div className="h-72 animate-pulse rounded-2xl bg-[var(--surface-2)]" />
+    ),
+  },
+);
 
 interface Props {
   since?: Date;
@@ -18,7 +35,9 @@ function weekLabel(date: Date): string {
   return date.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
 }
 
-function getWeekBuckets(count: number): { start: Date; end: Date; label: string }[] {
+function getWeekBuckets(
+  count: number,
+): { start: Date; end: Date; label: string }[] {
   const buckets: { start: Date; end: Date; label: string }[] = [];
   const now = new Date();
   for (let i = count - 1; i >= 0; i--) {
@@ -54,24 +73,46 @@ export default async function RecognitionAnalyticsSection({
   if (untilIso) giversQuery = giversQuery.lte("created_at", untilIso);
   if (campaignId) giversQuery = giversQuery.eq("campaign_id", campaignId);
 
-  let feedbackIdQuery = supabaseAdmin.from("feedback").select("id").eq("visibility", "public");
+  let feedbackIdQuery = supabaseAdmin
+    .from("feedback")
+    .select("id")
+    .eq("visibility", "public");
   if (sinceIso) feedbackIdQuery = feedbackIdQuery.gte("created_at", sinceIso);
   if (untilIso) feedbackIdQuery = feedbackIdQuery.lte("created_at", untilIso);
-  if (campaignId) feedbackIdQuery = feedbackIdQuery.eq("campaign_id", campaignId);
+  if (campaignId)
+    feedbackIdQuery = feedbackIdQuery.eq("campaign_id", campaignId);
 
-  const valuesQuery = supabaseAdmin.from("recognition_values").select("id, name").eq("is_active", true).order("name");
+  const valuesQuery = supabaseAdmin
+    .from("recognition_values")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name");
 
   // Count value_id usage from the feedback rows, which need value_id included.
-  let valueQuery = supabaseAdmin.from("feedback").select("value_id").eq("visibility", "public").not("value_id", "is", null);
+  let valueQuery = supabaseAdmin
+    .from("feedback")
+    .select("value_id")
+    .eq("visibility", "public")
+    .not("value_id", "is", null);
   if (sinceIso) valueQuery = valueQuery.gte("created_at", sinceIso);
   if (untilIso) valueQuery = valueQuery.lte("created_at", untilIso);
   if (campaignId) valueQuery = valueQuery.eq("campaign_id", campaignId);
 
-  let trendQuery = supabaseAdmin.from("feedback").select("created_at").eq("visibility", "public");
-  if (trendSince) trendQuery = trendQuery.gte("created_at", trendSince.toISOString());
+  let trendQuery = supabaseAdmin
+    .from("feedback")
+    .select("created_at")
+    .eq("visibility", "public");
+  if (trendSince)
+    trendQuery = trendQuery.gte("created_at", trendSince.toISOString());
   if (campaignId) trendQuery = trendQuery.eq("campaign_id", campaignId);
 
-  const [{ data: rawGivers }, { data: feedbackIds }, { data: allValues }, { data: valueRows }, { data: trendRows }] = await Promise.all([
+  const [
+    { data: rawGivers },
+    { data: feedbackIds },
+    { data: allValues },
+    { data: valueRows },
+    { data: trendRows },
+  ] = await Promise.all([
     giversQuery,
     feedbackIdQuery,
     valuesQuery,
@@ -105,7 +146,10 @@ export default async function RecognitionAnalyticsSection({
   // Join feedback_recipients → feedback to apply time/campaign filters.
   const ids = (feedbackIds ?? []).map((f: { id: string }) => f.id);
 
-  type RecipRow = { user_id: string; user: { name: string; department: string | null } | null };
+  type RecipRow = {
+    user_id: string;
+    user: { name: string; department: string | null } | null;
+  };
   let recipientsData: RecipRow[] = [];
 
   if (ids.length > 0) {
@@ -154,10 +198,12 @@ export default async function RecognitionAnalyticsSection({
     }
   }
 
-  const valueDistribution = (allValues ?? []).map((v: { id: string; name: string }) => ({
-    label: v.name,
-    count: valueCounts.get(v.id) ?? 0,
-  }));
+  const valueDistribution = (allValues ?? []).map(
+    (v: { id: string; name: string }) => ({
+      label: v.name,
+      count: valueCounts.get(v.id) ?? 0,
+    }),
+  );
 
   // ── 4. Weekly trend (last 8 weeks) ────────────────────────────────────────
   const trendDates = (trendRows ?? []).map(
@@ -177,9 +223,10 @@ export default async function RecognitionAnalyticsSection({
   );
   const crossTeamReach = uniqueDepts.size;
 
-  const uniqueRecipients = recipientsData.length > 0
-    ? new Set(recipientsData.map((r) => r.user_id)).size
-    : 0;
+  const uniqueRecipients =
+    recipientsData.length > 0
+      ? new Set(recipientsData.map((r) => r.user_id)).size
+      : 0;
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -193,7 +240,11 @@ export default async function RecognitionAnalyticsSection({
           icon="solar:heart-broken"
           color="orange"
           compact
-          subtitle={since ? `Since ${since.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}` : "All time"}
+          subtitle={
+            since
+              ? `Since ${since.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+              : "All time"
+          }
         />
         <StatCard
           title="People recognised"
@@ -285,8 +336,12 @@ function SectionCard({
           <Icon icon={icon} className="h-4 w-4" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold text-[var(--text-hi)]">{title}</h2>
-          {description && <p className="text-[11px] text-[var(--text-lo)]">{description}</p>}
+          <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+            {title}
+          </h2>
+          {description && (
+            <p className="text-[11px] text-[var(--text-lo)]">{description}</p>
+          )}
         </div>
       </div>
       {children}

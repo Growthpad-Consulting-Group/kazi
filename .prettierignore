@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+coverage
+.open-next
+.wrangler
+supabase/.temp
+next-env.d.ts
+package-lock.json
+.agents

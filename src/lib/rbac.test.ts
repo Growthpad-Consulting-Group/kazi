@@ -22,7 +22,17 @@ describe("role permissions", () => {
   });
 
   it("honours an explicit extra permission without widening the role", () => {
-    expect(userCan({ role: "employee", extraPermissions: ["manage_side_quests"] }, "manage_side_quests")).toBe(true);
-    expect(userCan({ role: "employee", extraPermissions: ["manage_side_quests"] }, "manage_hiring")).toBe(false);
+    expect(
+      userCan(
+        { role: "employee", extraPermissions: ["manage_side_quests"] },
+        "manage_side_quests",
+      ),
+    ).toBe(true);
+    expect(
+      userCan(
+        { role: "employee", extraPermissions: ["manage_side_quests"] },
+        "manage_hiring",
+      ),
+    ).toBe(false);
   });
 });

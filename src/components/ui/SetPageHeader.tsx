@@ -1,7 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { usePageHeader, type PageHeaderConfig } from "@/shared/contexts/PageHeaderContext";
+import {
+  usePageHeader,
+  type PageHeaderConfig,
+} from "@/shared/contexts/PageHeaderContext";
 import { useIsViewOnly } from "@/lib/use-view-only";
 
 interface ActionDef {
@@ -28,11 +31,20 @@ interface Props {
   trailingIsFilter?: boolean;
 }
 
-export default function SetPageHeader({ title, description, icon, actions, trailing, trailingIsFilter = false }: Props) {
+export default function SetPageHeader({
+  title,
+  description,
+  icon,
+  actions,
+  trailing,
+  trailingIsFilter = false,
+}: Props) {
   const router = useRouter();
   const viewOnly = useIsViewOnly();
   // Read-only reviewers keep navigation buttons, and lose anything that changes data.
-  const visibleActions = viewOnly ? actions?.filter((a) => (a.href || a.scrollToId) && !a.write) : actions;
+  const visibleActions = viewOnly
+    ? actions?.filter((a) => (a.href || a.scrollToId) && !a.write)
+    : actions;
 
   const config: PageHeaderConfig = {
     title,
@@ -43,7 +55,16 @@ export default function SetPageHeader({ title, description, icon, actions, trail
       icon: a.icon,
       variant: a.variant,
       disabled: a.disabled,
-      onClick: a.onClick ?? (a.scrollToId ? () => document.getElementById(a.scrollToId!)?.scrollIntoView({ behavior: "smooth", block: "start" }) : a.href ? () => router.push(a.href!) : () => {}),
+      onClick:
+        a.onClick ??
+        (a.scrollToId
+          ? () =>
+              document
+                .getElementById(a.scrollToId!)
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+          : a.href
+            ? () => router.push(a.href!)
+            : () => {}),
     })),
     content: viewOnly && !trailingIsFilter ? undefined : trailing,
   };

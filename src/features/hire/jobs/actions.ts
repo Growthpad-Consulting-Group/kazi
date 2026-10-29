@@ -13,18 +13,24 @@ import type { Database } from "@/types/database";
 import type { JobFormData } from "./types";
 
 function jobSlug(title: string) {
-  const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const base = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
 function scheduledDate(value: string | null | undefined, label: string) {
   if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) throw new Error(`${label} must be a valid date and time`);
+  if (Number.isNaN(date.getTime()))
+    throw new Error(`${label} must be a valid date and time`);
   return date.toISOString();
 }
 
-function validateSchedule(form: Pick<JobFormData, "published_at" | "closes_at">) {
+function validateSchedule(
+  form: Pick<JobFormData, "published_at" | "closes_at">,
+) {
   const publishedAt = scheduledDate(form.published_at, "Publish date");
   const closesAt = scheduledDate(form.closes_at, "Close date");
   if (publishedAt && closesAt && new Date(closesAt) <= new Date(publishedAt)) {
@@ -49,7 +55,8 @@ export async function getJob(id: string) {
 
 export async function createJob(form: JobFormData) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring"))
+    throw new Error("Forbidden");
 
   const { publishedAt, closesAt } = validateSchedule(form);
   const department = await canonicalDepartment(form.department);
@@ -62,11 +69,16 @@ export async function createJob(form: JobFormData) {
       department,
       location: form.location || null,
       description: form.description || null,
-      requirements: { must_haves: form.must_haves, nice_to_haves: form.nice_to_haves },
+      requirements: {
+        must_haves: form.must_haves,
+        nice_to_haves: form.nice_to_haves,
+      },
       scoring_rubric: form.scoring_rubric,
       status: form.status,
       // Opening a job with no schedule publishes it immediately.
-      published_at: publishedAt ?? (form.status === "open" ? new Date().toISOString() : null),
+      published_at:
+        publishedAt ??
+        (form.status === "open" ? new Date().toISOString() : null),
       closes_at: closesAt,
       created_by: session.user.id,
     })
@@ -82,7 +94,8 @@ export async function createJob(form: JobFormData) {
 
 export async function updateJob(id: string, form: Partial<JobFormData>) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_hiring"))
+    throw new Error("Forbidden");
 
   type JobUpdate = Database["public"]["Tables"]["jobs"]["Update"];
   const update: JobUpdate = {};
@@ -95,16 +108,19 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
     if (form.closes_at !== undefined) update.closes_at = closesAt;
   }
   if (form.title !== undefined) update.title = form.title;
-  if (form.department !== undefined) update.department = await canonicalDepartment(form.department);
+  if (form.department !== undefined)
+    update.department = await canonicalDepartment(form.department);
   if (form.location !== undefined) update.location = form.location || null;
-  if (form.description !== undefined) update.description = form.description || null;
+  if (form.description !== undefined)
+    update.description = form.description || null;
   if (form.must_haves !== undefined || form.nice_to_haves !== undefined) {
     update.requirements = {
       must_haves: form.must_haves ?? [],
       nice_to_haves: form.nice_to_haves ?? [],
     };
   }
-  if (form.scoring_rubric !== undefined) update.scoring_rubric = form.scoring_rubric;
+  if (form.scoring_rubric !== undefined)
+    update.scoring_rubric = form.scoring_rubric;
   if (form.status !== undefined) {
     update.status = form.status;
     if (form.status === "open" && form.published_at === undefined) {
@@ -114,7 +130,8 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
         .eq("id", id)
         .single();
       if (currentError) throw new Error(currentError.message);
-      if (!current?.published_at) update.published_at = new Date().toISOString();
+      if (!current?.published_at)
+        update.published_at = new Date().toISOString();
     }
   }
 
@@ -135,7 +152,8 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
 
 export async function deleteJob(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_system")) throw new Error("Forbidden");
+  if (!session || !can(session.user.role, "manage_system"))
+    throw new Error("Forbidden");
 
   const { error } = await supabaseAdmin.from("jobs").delete().eq("id", id);
   if (error) throw new Error(error.message);

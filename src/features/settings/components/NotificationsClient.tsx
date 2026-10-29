@@ -11,12 +11,24 @@ interface Props {
   initial: NotifPrefs;
 }
 
-function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
+function Toggle({
+  checked,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  description?: string;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 py-3">
       <div className="min-w-0">
         <p className="text-sm font-medium text-[var(--text-hi)]">{label}</p>
-        {description && <p className="mt-0.5 text-xs text-[var(--text-lo)]">{description}</p>}
+        {description && (
+          <p className="mt-0.5 text-xs text-[var(--text-lo)]">{description}</p>
+        )}
       </div>
       <button
         type="button"
@@ -33,14 +45,27 @@ function Toggle({ checked, onChange, label, description }: { checked: boolean; o
   );
 }
 
-const GROUPS: { title: string; icon: string; keys: (keyof NotifPrefs)[]; labels: Partial<Record<keyof NotifPrefs, { label: string; description?: string }>> }[] = [
+const GROUPS: {
+  title: string;
+  icon: string;
+  keys: (keyof NotifPrefs)[];
+  labels: Partial<
+    Record<keyof NotifPrefs, { label: string; description?: string }>
+  >;
+}[] = [
   {
     title: "Check-ins",
     icon: "solar:calendar-mark-broken",
     keys: ["checkin_reminders", "checkin_submitted"],
     labels: {
-      checkin_reminders: { label: "Check-in reminders", description: "Nudge before a scheduled check-in is due" },
-      checkin_submitted: { label: "Check-in submitted", description: "When someone on your team submits a check-in" },
+      checkin_reminders: {
+        label: "Check-in reminders",
+        description: "Nudge before a scheduled check-in is due",
+      },
+      checkin_submitted: {
+        label: "Check-in submitted",
+        description: "When someone on your team submits a check-in",
+      },
     },
   },
   {
@@ -48,8 +73,14 @@ const GROUPS: { title: string; icon: string; keys: (keyof NotifPrefs)[]; labels:
     icon: "solar:target-broken",
     keys: ["goal_due_soon", "goal_completed"],
     labels: {
-      goal_due_soon: { label: "Goal due soon", description: "Alert 3 days before a goal deadline" },
-      goal_completed: { label: "Goal completed", description: "When a goal you own or follow is marked complete" },
+      goal_due_soon: {
+        label: "Goal due soon",
+        description: "Alert 3 days before a goal deadline",
+      },
+      goal_completed: {
+        label: "Goal completed",
+        description: "When a goal you own or follow is marked complete",
+      },
     },
   },
   {
@@ -57,8 +88,14 @@ const GROUPS: { title: string; icon: string; keys: (keyof NotifPrefs)[]; labels:
     icon: "solar:diploma-broken",
     keys: ["review_cycle_started", "review_submitted"],
     labels: {
-      review_cycle_started: { label: "Review cycle started", description: "When a new review cycle opens that includes you" },
-      review_submitted: { label: "Review submitted", description: "When a review is submitted about you" },
+      review_cycle_started: {
+        label: "Review cycle started",
+        description: "When a new review cycle opens that includes you",
+      },
+      review_submitted: {
+        label: "Review submitted",
+        description: "When a review is submitted about you",
+      },
     },
   },
   {
@@ -66,8 +103,14 @@ const GROUPS: { title: string; icon: string; keys: (keyof NotifPrefs)[]; labels:
     icon: "solar:chat-round-dots-broken",
     keys: ["one_on_one_scheduled", "one_on_one_reminder"],
     labels: {
-      one_on_one_scheduled: { label: "1-on-1 scheduled", description: "When a meeting is created with you" },
-      one_on_one_reminder: { label: "1-on-1 reminder", description: "24-hour reminder before a scheduled 1-on-1" },
+      one_on_one_scheduled: {
+        label: "1-on-1 scheduled",
+        description: "When a meeting is created with you",
+      },
+      one_on_one_reminder: {
+        label: "1-on-1 reminder",
+        description: "24-hour reminder before a scheduled 1-on-1",
+      },
     },
   },
   {
@@ -75,16 +118,36 @@ const GROUPS: { title: string; icon: string; keys: (keyof NotifPrefs)[]; labels:
     icon: "solar:checklist-broken",
     keys: ["survey_published"],
     labels: {
-      survey_published: { label: "Survey published", description: "When a new survey you're invited to goes live" },
+      survey_published: {
+        label: "Survey published",
+        description: "When a new survey you're invited to goes live",
+      },
     },
   },
-  { title: "Culture", icon: "solar:cup-star-broken", keys: ["campaign_updates", "side_quest_updates"], labels: { campaign_updates: { label: "Campaign updates", description: "When a recognition campaign becomes relevant to you" }, side_quest_updates: { label: "Side Quest updates", description: "When a challenge opens or is nearing its deadline" } } },
+  {
+    title: "Culture",
+    icon: "solar:cup-star-broken",
+    keys: ["campaign_updates", "side_quest_updates"],
+    labels: {
+      campaign_updates: {
+        label: "Campaign updates",
+        description: "When a recognition campaign becomes relevant to you",
+      },
+      side_quest_updates: {
+        label: "Side Quest updates",
+        description: "When a challenge opens or is nearing its deadline",
+      },
+    },
+  },
   {
     title: "System",
     icon: "solar:bell-broken",
     keys: ["system_announcements"],
     labels: {
-      system_announcements: { label: "System announcements", description: "Important updates from your Kazi administrator" },
+      system_announcements: {
+        label: "System announcements",
+        description: "Important updates from your Kazi administrator",
+      },
     },
   },
 ];
@@ -110,7 +173,9 @@ export default function NotificationsClient({ initial }: Props) {
         await saveNotificationPrefs(prefs);
         toast.success("Notification preferences saved");
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not save preferences");
+        toast.error(
+          e instanceof Error ? e.message : "Could not save preferences",
+        );
       }
     });
   }
@@ -126,13 +191,23 @@ export default function NotificationsClient({ initial }: Props) {
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error((json as { error?: string }).error ?? "Failed to update");
+        throw new Error(
+          (json as { error?: string }).error ?? "Failed to update",
+        );
       }
-      toast.success(value ? "You're now visible on leaderboards" : "Hidden from leaderboards");
+      toast.success(
+        value
+          ? "You're now visible on leaderboards"
+          : "Hidden from leaderboards",
+      );
     } catch (e) {
       // Revert on failure
       setShowOnLeaderboard(!value);
-      toast.error(e instanceof Error ? e.message : "Could not update leaderboard preference");
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : "Could not update leaderboard preference",
+      );
     } finally {
       setLeaderboardPending(false);
     }
@@ -141,7 +216,11 @@ export default function NotificationsClient({ initial }: Props) {
   return (
     <div className="space-y-5">
       {GROUPS.map((group) => (
-        <SettingsSection key={group.title} title={group.title} icon={group.icon}>
+        <SettingsSection
+          key={group.title}
+          title={group.title}
+          icon={group.icon}
+        >
           <div className="divide-y divide-[var(--border)]">
             {group.keys.map((key) => {
               const meta = group.labels[key];
@@ -164,8 +243,13 @@ export default function NotificationsClient({ initial }: Props) {
         <div className="divide-y divide-[var(--border)]">
           <div className="flex items-start justify-between gap-4 py-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-[var(--text-hi)]">Show me on leaderboards</p>
-              <p className="mt-0.5 text-xs text-[var(--text-lo)]">Include your name in culture participation rankings visible to the team</p>
+              <p className="text-sm font-medium text-[var(--text-hi)]">
+                Show me on leaderboards
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                Include your name in culture participation rankings visible to
+                the team
+              </p>
             </div>
             <button
               type="button"

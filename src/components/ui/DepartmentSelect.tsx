@@ -4,7 +4,10 @@ import { useState } from "react";
 import CreatableSelect from "react-select/creatable";
 import toast from "react-hot-toast";
 import { createDepartment } from "@/features/departments/actions";
-import { getSelectStyles, type SelectOption } from "@/components/ui/export/selectStyles";
+import {
+  getSelectStyles,
+  type SelectOption,
+} from "@/components/ui/export/selectStyles";
 import { useTheme } from "@/shared/contexts/ThemeContext";
 
 interface Props {
@@ -27,9 +30,9 @@ export default function DepartmentSelect({
   const [created, setCreated] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
-  const names = Array.from(new Set([...departments, ...created, ...(value ? [value] : [])])).sort(
-    (a, b) => a.localeCompare(b)
-  );
+  const names = Array.from(
+    new Set([...departments, ...created, ...(value ? [value] : [])]),
+  ).sort((a, b) => a.localeCompare(b));
 
   async function handleCreate(input: string) {
     setCreating(true);
@@ -63,7 +66,9 @@ export default function DepartmentSelect({
         ...getSelectStyles<SelectOption>(resolvedMode),
         menuPortal: (b) => ({ ...b, zIndex: 99999 }),
       }}
-      menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+      menuPortalTarget={
+        typeof document !== "undefined" ? document.body : undefined
+      }
       menuPosition="fixed"
     />
   );

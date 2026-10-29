@@ -7,11 +7,18 @@ const cache = new Map<string, { value: boolean; loadedAt: number }>();
 
 export async function mustChangePassword(userId: string): Promise<boolean> {
   const cached = cache.get(userId);
-  if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) return cached.value;
+  if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS)
+    return cached.value;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the flag is newer than the generated types
-  const { data } = await (supabaseAdmin as any).from("users").select("must_change_password").eq("id", userId).maybeSingle();
-  const value = Boolean((data as { must_change_password?: boolean } | null)?.must_change_password);
+  const { data } = await (supabaseAdmin as any)
+    .from("users")
+    .select("must_change_password")
+    .eq("id", userId)
+    .maybeSingle();
+  const value = Boolean(
+    (data as { must_change_password?: boolean } | null)?.must_change_password,
+  );
   cache.set(userId, { value, loadedAt: Date.now() });
   return value;
 }

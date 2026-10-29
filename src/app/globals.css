@@ -15,27 +15,33 @@
 }
 
 :root {
-  --canvas:    #f7f7f8;
-  --surface:   #ffffff;
+  --canvas: #f7f7f8;
+  --surface: #ffffff;
   --surface-2: #f1f1f3;
-  --border:    #e4e4e7;
-  --text-hi:   #18181b;
-  --text-lo:   #71717a;
+  --border: #e4e4e7;
+  --text-hi: #18181b;
+  --text-lo: #71717a;
   --header-height: 72px;
 }
 
 :root.dark {
-  --canvas:    #0b0c0e;
-  --surface:   #131417;
+  --canvas: #0b0c0e;
+  --surface: #131417;
   --surface-2: #1a1c1f;
-  --border:    #26282c;
-  --text-hi:   #f4f4f5;
-  --text-lo:   #8b8d93;
+  --border: #26282c;
+  --text-hi: #f4f4f5;
+  --text-lo: #8b8d93;
 }
 
 @keyframes headerSlideIn {
-  from { transform: translateY(-100%); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 .animate-header-slide-in {
   animation: headerSlideIn 400ms ease-out;
@@ -46,25 +52,47 @@ body {
   color: var(--text-hi);
   font-family: var(--font-figtree), sans-serif;
   font-size: 15px;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 html {
   font-family: var(--font-figtree), sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6, nav {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+nav {
   font-family: var(--font-clover-display), sans-serif;
 }
 
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* The Signoff canvas has many utility controls. Kazi keeps those calm until interaction. */
-.signature-builder .border-app-border { border-color: color-mix(in srgb, var(--border) 52%, transparent); }
-.signature-builder button.border-app-border { border-color: transparent; background-color: color-mix(in srgb, var(--surface-2) 78%, transparent); }
-.signature-builder button.border-app-border:hover { background-color: color-mix(in srgb, #f05d23 8%, var(--surface)); }
-.signature-builder .border-dashed.border-app-border { border-color: color-mix(in srgb, var(--border) 66%, transparent); }
+.signature-builder .border-app-border {
+  border-color: color-mix(in srgb, var(--border) 52%, transparent);
+}
+.signature-builder button.border-app-border {
+  border-color: transparent;
+  background-color: color-mix(in srgb, var(--surface-2) 78%, transparent);
+}
+.signature-builder button.border-app-border:hover {
+  background-color: color-mix(in srgb, #f05d23 8%, var(--surface));
+}
+.signature-builder .border-dashed.border-app-border {
+  border-color: color-mix(in srgb, var(--border) 66%, transparent);
+}
 
 .goal-progress-slider {
   appearance: none;
@@ -90,7 +118,9 @@ h1, h2, h3, h4, h5, h6, nav {
   background: #38bdf8;
   box-shadow: 0 1px 4px rgb(14 116 144 / 35%);
 }
-.goal-progress-slider::-moz-range-track { background: transparent; }
+.goal-progress-slider::-moz-range-track {
+  background: transparent;
+}
 
 /* react-date-range ships light-only styles; map them onto the app's theme tokens. */
 .kazi-calendar .rdrCalendarWrap,
@@ -99,31 +129,68 @@ h1, h2, h3, h4, h5, h6, nav {
   background: var(--surface);
   color: var(--text-hi);
 }
-.kazi-calendar .rdrDefinedRangesWrapper { border-color: var(--border); background: var(--surface-2); }
-.kazi-calendar .rdrMonth { color: var(--text-hi); }
+.kazi-calendar .rdrDefinedRangesWrapper {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+.kazi-calendar .rdrMonth {
+  color: var(--text-hi);
+}
 .kazi-calendar .rdrMonthAndYearPickers select,
 .kazi-calendar .rdrMonthAndYearPickers select option {
   background: var(--surface-2);
   color: var(--text-hi);
   border-color: var(--border);
 }
-.kazi-calendar .rdrWeekDay { color: var(--text-lo); }
-.kazi-calendar .rdrDayNumber span { color: var(--text-hi); }
-.kazi-calendar .rdrDayPassive .rdrDayNumber span { color: var(--text-lo); opacity: 0.45; }
-.kazi-calendar .rdrDayDisabled { background-color: var(--surface-2); }
-.kazi-calendar .rdrDayDisabled .rdrDayNumber span { color: var(--text-lo); opacity: 0.4; }
-.kazi-calendar .rdrDayToday .rdrDayNumber span:after { background: #f05d23; }
-.kazi-calendar .rdrNextPrevButton { background: var(--surface-2); }
-.kazi-calendar .rdrNextPrevButton i { border-color: transparent var(--text-hi); }
-.kazi-calendar .rdrPprevButton i { border-color: transparent var(--text-hi); }
-.kazi-calendar .rdrStaticRange { border-color: var(--border); color: var(--text-hi); background: transparent; }
+.kazi-calendar .rdrWeekDay {
+  color: var(--text-lo);
+}
+.kazi-calendar .rdrDayNumber span {
+  color: var(--text-hi);
+}
+.kazi-calendar .rdrDayPassive .rdrDayNumber span {
+  color: var(--text-lo);
+  opacity: 0.45;
+}
+.kazi-calendar .rdrDayDisabled {
+  background-color: var(--surface-2);
+}
+.kazi-calendar .rdrDayDisabled .rdrDayNumber span {
+  color: var(--text-lo);
+  opacity: 0.4;
+}
+.kazi-calendar .rdrDayToday .rdrDayNumber span:after {
+  background: #f05d23;
+}
+.kazi-calendar .rdrNextPrevButton {
+  background: var(--surface-2);
+}
+.kazi-calendar .rdrNextPrevButton i {
+  border-color: transparent var(--text-hi);
+}
+.kazi-calendar .rdrPprevButton i {
+  border-color: transparent var(--text-hi);
+}
+.kazi-calendar .rdrStaticRange {
+  border-color: var(--border);
+  color: var(--text-hi);
+  background: transparent;
+}
 .kazi-calendar .rdrStaticRange:hover .rdrStaticRangeLabel,
-.kazi-calendar .rdrStaticRange:focus .rdrStaticRangeLabel { background: var(--surface); }
-.kazi-calendar .rdrInputRange { background: var(--surface-2); }
+.kazi-calendar .rdrStaticRange:focus .rdrStaticRangeLabel {
+  background: var(--surface);
+}
+.kazi-calendar .rdrInputRange {
+  background: var(--surface-2);
+}
 .kazi-calendar .rdrInRange,
 .kazi-calendar .rdrStartEdge,
-.kazi-calendar .rdrEndEdge { color: #f05d23; }
-.kazi-calendar .rdrDayHovered .rdrDayNumber span { color: var(--text-hi); }
+.kazi-calendar .rdrEndEdge {
+  color: #f05d23;
+}
+.kazi-calendar .rdrDayHovered .rdrDayNumber span {
+  color: var(--text-hi);
+}
 .kazi-calendar .rdrCalendarWrapper,
 .kazi-calendar .rdrMonthAndYearWrapper {
   background: var(--surface) !important;

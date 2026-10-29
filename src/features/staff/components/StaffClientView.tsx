@@ -4,8 +4,17 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
-import { GenericTable, type BulkAction, type Column, type RowAction } from "@/components/ui/GenericTable";
-import UnifiedSearchFilter, { type ActiveFilter, type FilterCategoryDef, type FilterOption } from "@/components/ui/UnifiedSearchFilter";
+import {
+  GenericTable,
+  type BulkAction,
+  type Column,
+  type RowAction,
+} from "@/components/ui/GenericTable";
+import UnifiedSearchFilter, {
+  type ActiveFilter,
+  type FilterCategoryDef,
+  type FilterOption,
+} from "@/components/ui/UnifiedSearchFilter";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
@@ -32,7 +41,8 @@ const ROLE_COLORS: Record<string, string> = {
   hiring_manager: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   manager: "bg-violet-500/10 text-violet-500 border-violet-500/20",
   interviewer: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  employee: "bg-[var(--surface-2)] text-[var(--text-lo)] border-[var(--border)]",
+  employee:
+    "bg-[var(--surface-2)] text-[var(--text-lo)] border-[var(--border)]",
 };
 
 const FILTER_CATEGORIES: FilterCategoryDef[] = [
@@ -51,7 +61,14 @@ interface Props {
   canScheduleOneOnOnes: boolean;
 }
 
-export default function StaffClientView({ people, departments, locations, currentUserId, canManageStaff, canScheduleOneOnOnes }: Props) {
+export default function StaffClientView({
+  people,
+  departments,
+  locations,
+  currentUserId,
+  canManageStaff,
+  canScheduleOneOnOnes,
+}: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>([]);
@@ -70,8 +87,14 @@ export default function StaffClientView({ people, departments, locations, curren
   async function bulkRemoveStaff() {
     setBulkRemoving(true);
     try {
-      await Promise.all(bulkToRemove.map((row) => fetch(`/api/staff/${row.id}`, { method: "DELETE" })));
-      toast.success(`${bulkToRemove.length} staff member${bulkToRemove.length !== 1 ? "s" : ""} removed`);
+      await Promise.all(
+        bulkToRemove.map((row) =>
+          fetch(`/api/staff/${row.id}`, { method: "DELETE" }),
+        ),
+      );
+      toast.success(
+        `${bulkToRemove.length} staff member${bulkToRemove.length !== 1 ? "s" : ""} removed`,
+      );
       setBulkToRemove([]);
       router.refresh();
     } catch {
@@ -86,28 +109,53 @@ export default function StaffClientView({ people, departments, locations, curren
     setRemoving(true);
     setRemoveError("");
     try {
-      const response = await fetch(`/api/staff/${staffToRemove.id}`, { method: "DELETE" });
-      const data = await response.json().catch(() => null) as { error?: string } | null;
-      if (!response.ok) throw new Error(data?.error ?? "Could not remove this staff member.");
+      const response = await fetch(`/api/staff/${staffToRemove.id}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(data?.error ?? "Could not remove this staff member.");
       toast.success(`${staffToRemove.name} removed from staff`);
       setStaffToRemove(null);
       router.refresh();
     } catch (cause) {
-      setRemoveError(cause instanceof Error ? cause.message : "Could not remove this staff member.");
+      setRemoveError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not remove this staff member.",
+      );
     } finally {
       setRemoving(false);
     }
   }
 
   const deptOptions: FilterOption[] = departments.map((d) => ({
-    id: d, label: d, category: "department", value: d,
+    id: d,
+    label: d,
+    category: "department",
+    value: d,
   }));
   const locationOptions: FilterOption[] = locations.map((l) => ({
-    id: l, label: l, category: "location", value: l,
+    id: l,
+    label: l,
+    category: "location",
+    value: l,
   }));
   const roleOptions: FilterOption[] = [
-    "admin", "hr", "hiring_manager", "manager", "interviewer", "employee",
-  ].map((r) => ({ id: r, label: r.replace("_", " "), category: "role", value: r }));
+    "admin",
+    "hr",
+    "hiring_manager",
+    "manager",
+    "interviewer",
+    "employee",
+  ].map((r) => ({
+    id: r,
+    label: r.replace("_", " "),
+    category: "role",
+    value: r,
+  }));
 
   const filtered = useMemo(() => {
     let list = people;
@@ -119,29 +167,39 @@ export default function StaffClientView({ people, departments, locations, curren
           p.name.toLowerCase().includes(q) ||
           p.email.toLowerCase().includes(q) ||
           (p.job_title ?? "").toLowerCase().includes(q) ||
-          (p.department ?? "").toLowerCase().includes(q)
+          (p.department ?? "").toLowerCase().includes(q),
       );
     }
 
     for (const f of filters) {
       if (f.category === "department") {
-        if (f.operator === "is") list = list.filter((p) => f.values.includes(p.department ?? ""));
+        if (f.operator === "is")
+          list = list.filter((p) => f.values.includes(p.department ?? ""));
         else list = list.filter((p) => !f.values.includes(p.department ?? ""));
       }
       if (f.category === "role") {
-        if (f.operator === "is") list = list.filter((p) => f.values.includes(p.role));
+        if (f.operator === "is")
+          list = list.filter((p) => f.values.includes(p.role));
         else list = list.filter((p) => !f.values.includes(p.role));
       }
       if (f.category === "location") {
-        if (f.operator === "is") list = list.filter((p) => f.values.includes(p.location ?? ""));
+        if (f.operator === "is")
+          list = list.filter((p) => f.values.includes(p.location ?? ""));
         else list = list.filter((p) => !f.values.includes(p.location ?? ""));
       }
     }
 
-    const managerIds = new Set(people.map((person) => person.manager_id).filter((id): id is string => !!id));
+    const managerIds = new Set(
+      people
+        .map((person) => person.manager_id)
+        .filter((id): id is string => !!id),
+    );
     for (const f of filters) {
       if (f.category === "manager" && f.values.includes("has_direct_reports")) {
-        list = f.operator === "is" ? list.filter((person) => managerIds.has(person.id)) : list.filter((person) => !managerIds.has(person.id));
+        list =
+          f.operator === "is"
+            ? list.filter((person) => managerIds.has(person.id))
+            : list.filter((person) => !managerIds.has(person.id));
       }
     }
 
@@ -149,15 +207,72 @@ export default function StaffClientView({ people, departments, locations, curren
   }, [people, search, filters]);
 
   const peopleStats = useMemo(() => {
-    const managers = new Set(people.map((person) => person.manager_id).filter(Boolean)).size;
-    const activeDepartments = new Set(people.map((person) => person.department).filter(Boolean)).size;
-    const activeLocations = new Set(people.map((person) => person.location).filter(Boolean)).size;
+    const managers = new Set(
+      people.map((person) => person.manager_id).filter(Boolean),
+    ).size;
+    const activeDepartments = new Set(
+      people.map((person) => person.department).filter(Boolean),
+    ).size;
+    const activeLocations = new Set(
+      people.map((person) => person.location).filter(Boolean),
+    ).size;
     return [
-      { filter: [] as ActiveFilter[], label: "Staff", value: people.length, icon: "solar:users-group-two-rounded-broken", color: "blue" },
-      { filter: [{ category: "department", values: departments, label: "Department: is assigned", operator: "is" as const }], label: "Departments", value: activeDepartments, icon: "solar:buildings-broken", color: "violet" },
-      { filter: [{ category: "manager", values: ["has_direct_reports"], label: "Manager: has direct reports", operator: "is" as const }], label: "Managers", value: managers, icon: "solar:user-speak-broken", color: "orange" },
-      { filter: [{ category: "location", values: locations, label: "Location: is assigned", operator: "is" as const }], label: "Locations", value: activeLocations, icon: "solar:map-point-broken", color: "green" },
-    ] as { filter: ActiveFilter[]; label: string; value: number; icon: string; color: StatCardColor }[];
+      {
+        filter: [] as ActiveFilter[],
+        label: "Staff",
+        value: people.length,
+        icon: "solar:users-group-two-rounded-broken",
+        color: "blue",
+      },
+      {
+        filter: [
+          {
+            category: "department",
+            values: departments,
+            label: "Department: is assigned",
+            operator: "is" as const,
+          },
+        ],
+        label: "Departments",
+        value: activeDepartments,
+        icon: "solar:buildings-broken",
+        color: "violet",
+      },
+      {
+        filter: [
+          {
+            category: "manager",
+            values: ["has_direct_reports"],
+            label: "Manager: has direct reports",
+            operator: "is" as const,
+          },
+        ],
+        label: "Managers",
+        value: managers,
+        icon: "solar:user-speak-broken",
+        color: "orange",
+      },
+      {
+        filter: [
+          {
+            category: "location",
+            values: locations,
+            label: "Location: is assigned",
+            operator: "is" as const,
+          },
+        ],
+        label: "Locations",
+        value: activeLocations,
+        icon: "solar:map-point-broken",
+        color: "green",
+      },
+    ] as {
+      filter: ActiveFilter[];
+      label: string;
+      value: number;
+      icon: string;
+      color: StatCardColor;
+    }[];
   }, [people, departments, locations]);
 
   const columns: Column<UserRow>[] = [
@@ -167,16 +282,32 @@ export default function StaffClientView({ people, departments, locations, curren
       sortable: true,
       render: (row) => {
         const avatarSrc = row.avatar_url ?? row.sig_photo_url ?? null;
-        const initials = row.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("");
+        const initials = row.name
+          .split(" ")
+          .map((n: string) => n[0])
+          .slice(0, 2)
+          .join("");
         return (
           <div className="flex items-center gap-3">
             <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-brand-500/10">
-              {avatarSrc
-                ? <Image src={avatarSrc} alt={row.name} width={32} height={32} className="h-full w-full object-cover" />
-                : <span className="text-xs font-bold text-brand-500">{initials}</span>}
+              {avatarSrc ? (
+                <Image
+                  src={avatarSrc}
+                  alt={row.name}
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-xs font-bold text-brand-500">
+                  {initials}
+                </span>
+              )}
             </div>
             <div>
-              <div className="font-medium text-[var(--text-hi)]">{row.name}</div>
+              <div className="font-medium text-[var(--text-hi)]">
+                {row.name}
+              </div>
               <div className="text-xs text-[var(--text-lo)]">{row.email}</div>
             </div>
           </div>
@@ -187,20 +318,26 @@ export default function StaffClientView({ people, departments, locations, curren
       header: "Job Title",
       accessor: "job_title",
       sortable: true,
-      render: (row) => <span className="text-[var(--text-lo)]">{row.job_title ?? "—"}</span>,
+      render: (row) => (
+        <span className="text-[var(--text-lo)]">{row.job_title ?? "—"}</span>
+      ),
     },
     {
       header: "Department",
       accessor: "department",
       sortable: true,
-      render: (row) => <span className="text-[var(--text-lo)]">{row.department ?? "—"}</span>,
+      render: (row) => (
+        <span className="text-[var(--text-lo)]">{row.department ?? "—"}</span>
+      ),
     },
     {
       header: "Role",
       accessor: "role",
       sortable: true,
       render: (row) => (
-        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${ROLE_COLORS[row.role] ?? ROLE_COLORS.employee}`}>
+        <span
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${ROLE_COLORS[row.role] ?? ROLE_COLORS.employee}`}
+        >
           {row.role.replace("_", " ")}
         </span>
       ),
@@ -215,25 +352,32 @@ export default function StaffClientView({ people, departments, locations, curren
               <Icon icon="solar:map-point-broken" className="h-3.5 w-3.5" />
               {row.location}
             </span>
-          ) : "—"}
+          ) : (
+            "—"
+          )}
         </span>
       ),
     },
     {
       header: "Manager",
       accessor: "manager_name",
-      render: (row) => <span className="text-[var(--text-lo)]">{row.manager_name ?? "—"}</span>,
+      render: (row) => (
+        <span className="text-[var(--text-lo)]">{row.manager_name ?? "—"}</span>
+      ),
     },
   ];
 
-  const bulkActions: BulkAction<UserRow>[] = canManageStaff ? [
-    {
-      icon: "solar:trash-bin-trash-broken",
-      label: "Remove selected",
-      variant: "danger",
-      onClick: (rows) => setBulkToRemove(rows.filter((r) => r.id !== currentUserId)),
-    },
-  ] : [];
+  const bulkActions: BulkAction<UserRow>[] = canManageStaff
+    ? [
+        {
+          icon: "solar:trash-bin-trash-broken",
+          label: "Remove selected",
+          variant: "danger",
+          onClick: (rows) =>
+            setBulkToRemove(rows.filter((r) => r.id !== currentUserId)),
+        },
+      ]
+    : [];
 
   const actions: RowAction<UserRow>[] = [
     {
@@ -254,7 +398,8 @@ export default function StaffClientView({ people, departments, locations, curren
       label: "Signature profile",
       variant: "info",
       show: (row) => canManageStaff && Boolean(row.signature_profile_id),
-      onClick: (row) => router.push(`/signatures/staff/${row.signature_profile_id}`),
+      onClick: (row) =>
+        router.push(`/signatures/staff/${row.signature_profile_id}`),
     },
     {
       icon: "solar:trash-bin-trash-broken",
@@ -271,47 +416,126 @@ export default function StaffClientView({ people, departments, locations, curren
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {peopleStats.map((stat) => <StatCard key={stat.label} title={stat.label} value={stat.value} icon={stat.icon} color={stat.color} compact onClick={() => setFilters(stat.filter)} />)}
+        {peopleStats.map((stat) => (
+          <StatCard
+            key={stat.label}
+            title={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            compact
+            onClick={() => setFilters(stat.filter)}
+          />
+        ))}
       </div>
       <GenericTable
-      data={filtered}
-      columns={columns}
-      actions={actions}
-      enableDateFilter={false}
-      storageKey="staff-table"
-      bulkActions={bulkActions}
-      emptyMessage="No staff match your filters."
-      emptyIcon="solar:user-id-broken"
-      icon="solar:user-id-broken"
-      unifiedSearchFilter={
-        <UnifiedSearchFilter
-          onSearchChange={setSearch}
-          onFilterChange={setFilters}
-          filterCategories={FILTER_CATEGORIES}
-          categoryOptions={{ department: deptOptions, manager: [{ id: "has_direct_reports", label: "Has direct reports", category: "manager", value: "has_direct_reports" }], role: roleOptions, location: locationOptions }}
-          initialFilters={filters}
-          searchPlaceholder="Search by name, email, title or department…"
-        />
-      }
-      onRefresh={() => { setSearch(""); setFilters([]); }}
+        data={filtered}
+        columns={columns}
+        actions={actions}
+        enableDateFilter={false}
+        storageKey="staff-table"
+        bulkActions={bulkActions}
+        emptyMessage="No staff match your filters."
+        emptyIcon="solar:user-id-broken"
+        icon="solar:user-id-broken"
+        unifiedSearchFilter={
+          <UnifiedSearchFilter
+            onSearchChange={setSearch}
+            onFilterChange={setFilters}
+            filterCategories={FILTER_CATEGORIES}
+            categoryOptions={{
+              department: deptOptions,
+              manager: [
+                {
+                  id: "has_direct_reports",
+                  label: "Has direct reports",
+                  category: "manager",
+                  value: "has_direct_reports",
+                },
+              ],
+              role: roleOptions,
+              location: locationOptions,
+            }}
+            initialFilters={filters}
+            searchPlaceholder="Search by name, email, title or department…"
+          />
+        }
+        onRefresh={() => {
+          setSearch("");
+          setFilters([]);
+        }}
       />
-      <SimpleModal open={!!staffToRemove} onClose={closeRemoveModal} title="Remove staff member" icon="solar:trash-bin-trash-broken" maxWidth="max-w-md">
+      <SimpleModal
+        open={!!staffToRemove}
+        onClose={closeRemoveModal}
+        title="Remove staff member"
+        icon="solar:trash-bin-trash-broken"
+        maxWidth="max-w-md"
+      >
         <p className="text-sm leading-6 text-[var(--text-lo)]">
-          Remove <span className="font-semibold text-[var(--text-hi)]">{staffToRemove?.name}</span> from active staff? They will lose access immediately and be removed from this directory. Their historical work is retained.
+          Remove{" "}
+          <span className="font-semibold text-[var(--text-hi)]">
+            {staffToRemove?.name}
+          </span>{" "}
+          from active staff? They will lose access immediately and be removed
+          from this directory. Their historical work is retained.
         </p>
-        {removeError && <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600">{removeError}</p>}
+        {removeError && (
+          <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600">
+            {removeError}
+          </p>
+        )}
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="secondary" disabled={removing} onClick={closeRemoveModal}>Cancel</Button>
-          <Button variant="danger" icon="solar:trash-bin-trash-broken" loading={removing} onClick={removeStaff}>{removing ? "Removing" : "Remove staff"}</Button>
+          <Button
+            variant="secondary"
+            disabled={removing}
+            onClick={closeRemoveModal}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            icon="solar:trash-bin-trash-broken"
+            loading={removing}
+            onClick={removeStaff}
+          >
+            {removing ? "Removing" : "Remove staff"}
+          </Button>
         </div>
       </SimpleModal>
-      <SimpleModal open={bulkToRemove.length > 0} onClose={() => { if (!bulkRemoving) setBulkToRemove([]); }} title="Remove staff members" icon="solar:trash-bin-trash-broken" maxWidth="max-w-md">
+      <SimpleModal
+        open={bulkToRemove.length > 0}
+        onClose={() => {
+          if (!bulkRemoving) setBulkToRemove([]);
+        }}
+        title="Remove staff members"
+        icon="solar:trash-bin-trash-broken"
+        maxWidth="max-w-md"
+      >
         <p className="text-sm leading-6 text-[var(--text-lo)]">
-          Remove <span className="font-semibold text-[var(--text-hi)]">{bulkToRemove.length} staff member{bulkToRemove.length !== 1 ? "s" : ""}</span>? They will lose access immediately. Historical work is retained.
+          Remove{" "}
+          <span className="font-semibold text-[var(--text-hi)]">
+            {bulkToRemove.length} staff member
+            {bulkToRemove.length !== 1 ? "s" : ""}
+          </span>
+          ? They will lose access immediately. Historical work is retained.
         </p>
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="secondary" disabled={bulkRemoving} onClick={() => setBulkToRemove([])}>Cancel</Button>
-          <Button variant="danger" icon="solar:trash-bin-trash-broken" loading={bulkRemoving} onClick={bulkRemoveStaff}>{bulkRemoving ? "Removing…" : `Remove ${bulkToRemove.length}`}</Button>
+          <Button
+            variant="secondary"
+            disabled={bulkRemoving}
+            onClick={() => setBulkToRemove([])}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            icon="solar:trash-bin-trash-broken"
+            loading={bulkRemoving}
+            onClick={bulkRemoveStaff}
+          >
+            {bulkRemoving ? "Removing…" : `Remove ${bulkToRemove.length}`}
+          </Button>
         </div>
       </SimpleModal>
     </div>

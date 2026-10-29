@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(
   "https://vefioteqgbbhdznqttmw.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZmlvdGVxZ2JiaGR6bnF0dG13Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjQwOTA3MSwiZXhwIjoyMTA3OTg1MDcxfQ.1Homi6_AfT7_psAf8inUInjRVAjJCNY4t-U-TJTk2cU"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZmlvdGVxZ2JiaGR6bnF0dG13Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjQwOTA3MSwiZXhwIjoyMTA3OTg1MDcxfQ.1Homi6_AfT7_psAf8inUInjRVAjJCNY4t-U-TJTk2cU",
 );
 
 const ids = [
@@ -12,8 +12,14 @@ const ids = [
 ];
 
 async function main() {
-  const { data, error } = await sb.from("users").select("id, name, is_active, role").in("id", ids);
-  if (error) { console.error(error); process.exit(1); }
+  const { data, error } = await sb
+    .from("users")
+    .select("id, name, is_active, role")
+    .in("id", ids);
+  if (error) {
+    console.error(error);
+    process.exit(1);
+  }
   console.table(data);
 }
 

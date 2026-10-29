@@ -25,7 +25,15 @@ export function NoteForm({ candidateId }: { candidateId: string }) {
         placeholder="Add a note…"
         className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-brand-500/30"
       />
-      <Button type="submit" disabled={isPending || !note.trim()} loading={isPending} size="sm" icon="solar:add-circle-broken">Add note</Button>
+      <Button
+        type="submit"
+        disabled={isPending || !note.trim()}
+        loading={isPending}
+        size="sm"
+        icon="solar:add-circle-broken"
+      >
+        Add note
+      </Button>
     </form>
   );
 }

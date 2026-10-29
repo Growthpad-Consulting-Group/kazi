@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { RichEmailEditor } from "@/components/ui/RichEmailEditor";
 
 type EmailType = "acknowledgement" | "invite" | "rejection";
-type Draft = { subject: string; bodyHtml: string; bodyText: string; to: string };
+type Draft = {
+  subject: string;
+  bodyHtml: string;
+  bodyText: string;
+  to: string;
+};
 
 const TYPE_LABELS: Record<EmailType, string> = {
   acknowledgement: "Acknowledgement",
@@ -34,15 +39,28 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
         body: JSON.stringify({ candidateId, type }),
       });
       const text = await res.text();
-      let json: { subject?: string; body?: string; to?: string; error?: string };
+      let json: {
+        subject?: string;
+        body?: string;
+        to?: string;
+        error?: string;
+      };
       try {
         json = JSON.parse(text) as typeof json;
       } catch {
-        throw new Error("Unable to draft an email right now. Please try again.");
+        throw new Error(
+          "Unable to draft an email right now. Please try again.",
+        );
       }
       if (!res.ok) throw new Error(json.error);
-      if (!json.subject || !json.body || !json.to) throw new Error("The AI draft was incomplete. Please try again.");
-      setDraft({ subject: json.subject, bodyText: json.body, bodyHtml: plainTextToHtml(json.body), to: json.to });
+      if (!json.subject || !json.body || !json.to)
+        throw new Error("The AI draft was incomplete. Please try again.");
+      setDraft({
+        subject: json.subject,
+        bodyText: json.body,
+        bodyHtml: plainTextToHtml(json.body),
+        to: json.to,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Draft failed");
     } finally {
@@ -73,7 +91,22 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
 
   return (
     <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
-      <div className="flex items-center gap-2.5"><span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10"><Icon icon="solar:letter-broken" className="h-3.5 w-3.5 text-brand-500" /></span><div><h2 className="text-base font-semibold text-[var(--text-hi)]">Candidate communications</h2><p className="text-[11px] text-[var(--text-lo)]">Draft and send thoughtful updates with AI assistance.</p></div></div>
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10">
+          <Icon
+            icon="solar:letter-broken"
+            className="h-3.5 w-3.5 text-brand-500"
+          />
+        </span>
+        <div>
+          <h2 className="text-base font-semibold text-[var(--text-hi)]">
+            Candidate communications
+          </h2>
+          <p className="text-[11px] text-[var(--text-lo)]">
+            Draft and send thoughtful updates with AI assistance.
+          </p>
+        </div>
+      </div>
 
       {sent && (
         <p className="rounded-xl bg-green-500/10 px-3 py-2 text-sm text-green-600">
@@ -85,7 +118,11 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
         {(Object.keys(TYPE_LABELS) as EmailType[]).map((t) => (
           <button
             key={t}
-            onClick={() => { setType(t); setDraft(null); setSent(false); }}
+            onClick={() => {
+              setType(t);
+              setDraft(null);
+              setSent(false);
+            }}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               type === t
                 ? "bg-brand-500 text-white shadow-sm"
@@ -100,15 +137,26 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       {!draft ? (
-        <Button onClick={draftEmail} loading={drafting} icon="solar:magic-stick-3-broken" variant="secondary">Draft with AI</Button>
+        <Button
+          onClick={draftEmail}
+          loading={drafting}
+          icon="solar:magic-stick-3-broken"
+          variant="secondary"
+        >
+          Draft with AI
+        </Button>
       ) : (
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">To</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">
+              To
+            </label>
             <p className="text-sm text-[var(--text-hi)]">{draft.to}</p>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Subject</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">
+              Subject
+            </label>
             <input
               value={draft.subject}
               onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
@@ -116,18 +164,30 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">Body</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">
+              Body
+            </label>
             <RichEmailEditor
               initialHtml={draft.bodyHtml}
-              onChange={(bodyHtml, bodyText) => setDraft({ ...draft, bodyHtml, bodyText })}
+              onChange={(bodyHtml, bodyText) =>
+                setDraft({ ...draft, bodyHtml, bodyText })
+              }
             />
           </div>
           <p className="text-xs italic text-[var(--text-lo)]">
             Review this email before sending — AI drafted it, you own it.
           </p>
           <div className="flex gap-2">
-            <Button onClick={sendEmail} loading={sending} icon="solar:plain-2-broken">Send email</Button>
-            <Button onClick={() => setDraft(null)} variant="secondary">Discard</Button>
+            <Button
+              onClick={sendEmail}
+              loading={sending}
+              icon="solar:plain-2-broken"
+            >
+              Send email
+            </Button>
+            <Button onClick={() => setDraft(null)} variant="secondary">
+              Discard
+            </Button>
           </div>
         </div>
       )}
@@ -136,6 +196,19 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
 }
 
 function plainTextToHtml(text: string) {
-  const escapeHtml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
-  return text.split(/\n{2,}/).filter(Boolean).map((paragraph) => `<p>${escapeHtml(paragraph).replaceAll("\n", "<br />")}</p>`).join("");
+  const escapeHtml = (value: string) =>
+    value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  return text
+    .split(/\n{2,}/)
+    .filter(Boolean)
+    .map(
+      (paragraph) =>
+        `<p>${escapeHtml(paragraph).replaceAll("\n", "<br />")}</p>`,
+    )
+    .join("");
 }

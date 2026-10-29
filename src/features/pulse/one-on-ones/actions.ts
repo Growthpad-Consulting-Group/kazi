@@ -18,10 +18,18 @@ export async function getOneOnOnes(params: {
   return getCachedOneOnOnes(params);
 }
 
-export async function createOneOnOne(managerId: string, reportId: string, scheduledAt?: string) {
+export async function createOneOnOne(
+  managerId: string,
+  reportId: string,
+  scheduledAt?: string,
+) {
   const { data, error } = await supabaseAdmin
     .from("one_on_ones")
-    .insert({ manager_id: managerId, report_id: reportId, scheduled_at: scheduledAt ?? null })
+    .insert({
+      manager_id: managerId,
+      report_id: reportId,
+      scheduled_at: scheduledAt ?? null,
+    })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -32,9 +40,16 @@ export async function createOneOnOne(managerId: string, reportId: string, schedu
 
 export async function updateOneOnOne(
   id: string,
-  fields: { agenda?: string; notes?: string; action_items?: { text: string; done: boolean }[] }
+  fields: {
+    agenda?: string;
+    notes?: string;
+    action_items?: { text: string; done: boolean }[];
+  },
 ) {
-  const { error } = await supabaseAdmin.from("one_on_ones").update(fields).eq("id", id);
+  const { error } = await supabaseAdmin
+    .from("one_on_ones")
+    .update(fields)
+    .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/pulse/one-on-ones/${id}`);
   const participants = await oneOnOneParticipants(id);
@@ -51,7 +66,10 @@ async function oneOnOneParticipants(id: string): Promise<{
     .select("manager_id, report_id")
     .eq("id", id)
     .maybeSingle();
-  const row = data as { manager_id: string | null; report_id: string | null } | null;
+  const row = data as {
+    manager_id: string | null;
+    report_id: string | null;
+  } | null;
   return {
     managerId: row?.manager_id ?? undefined,
     reportId: row?.report_id ?? undefined,

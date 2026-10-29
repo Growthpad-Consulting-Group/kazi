@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   }
 
   const { weekStart } = await req.json();
-  if (!weekStart) return NextResponse.json({ error: "weekStart required" }, { status: 400 });
+  if (!weekStart)
+    return NextResponse.json({ error: "weekStart required" }, { status: 400 });
 
   // Get direct reports
   const { data: reports } = await supabaseAdmin
@@ -21,7 +22,8 @@ export async function POST(req: Request) {
     .select("id, name")
     .eq("manager_id", session.user.id);
   const ids = (reports ?? []).map((r) => r.id as string);
-  if (!ids.length) return NextResponse.json({ error: "No direct reports" }, { status: 400 });
+  if (!ids.length)
+    return NextResponse.json({ error: "No direct reports" }, { status: 400 });
 
   const { data: checkins } = await supabaseAdmin
     .from("checkins")
@@ -30,17 +32,30 @@ export async function POST(req: Request) {
     .eq("week_start", weekStart);
 
   const reportNames = Object.fromEntries(
-    (reports ?? []).map((r) => [r.id, r.name as string])
+    (reports ?? []).map((r) => [r.id, r.name as string]),
   );
 
-  type RawCheckin = { user_id: string; wins: string | null; priorities: string | null; blockers: string | null; mood: number | null };
+  type RawCheckin = {
+    user_id: string;
+    wins: string | null;
+    priorities: string | null;
+    blockers: string | null;
+    mood: number | null;
+  };
   const rows = (checkins ?? []) as unknown as RawCheckin[];
 
-  if (!rows.length) return NextResponse.json({ error: "No check-ins submitted yet" }, { status: 400 });
+  if (!rows.length)
+    return NextResponse.json(
+      { error: "No check-ins submitted yet" },
+      { status: 400 },
+    );
 
-  const checkinText = rows.map((c) =>
-    `${reportNames[c.user_id] ?? "Unknown"}: wins="${c.wins ?? "—"}" priorities="${c.priorities ?? "—"}" blockers="${c.blockers ?? "—"}" mood=${c.mood ?? "—"}`
-  ).join("\n");
+  const checkinText = rows
+    .map(
+      (c) =>
+        `${reportNames[c.user_id] ?? "Unknown"}: wins="${c.wins ?? "—"}" priorities="${c.priorities ?? "—"}" blockers="${c.blockers ?? "—"}" mood=${c.mood ?? "—"}`,
+    )
+    .join("\n");
 
   const prompt = `You are an AI assistant helping a manager review their team's weekly check-ins.
 

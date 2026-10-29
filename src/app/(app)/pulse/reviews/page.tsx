@@ -5,9 +5,9 @@ import PipsPage from "@/features/pulse/pips/components/PipsPage";
 import TabBar from "@/components/ui/TabBar";
 
 const TABS = [
-  { id: "reviews", label: "Reviews",  icon: "solar:clipboard-list-broken" },
-  { id: "idps",    label: "Dev Plans", icon: "solar:book-broken" },
-  { id: "pips",    label: "PIPs",      icon: "solar:danger-triangle-broken" },
+  { id: "reviews", label: "Reviews", icon: "solar:clipboard-list-broken" },
+  { id: "idps", label: "Dev Plans", icon: "solar:book-broken" },
+  { id: "pips", label: "PIPs", icon: "solar:danger-triangle-broken" },
 ];
 
 export default async function Page({
@@ -25,7 +25,9 @@ export default async function Page({
 
       {tab === "idps" && <IdpsPage />}
       {tab === "pips" && <PipsPage />}
-      {(tab === "reviews" || !["idps", "pips"].includes(tab)) && <ReviewsPage />}
+      {(tab === "reviews" || !["idps", "pips"].includes(tab)) && (
+        <ReviewsPage />
+      )}
     </div>
   );
 }

@@ -15,7 +15,9 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const ALLOWED_RETURN = ["/pulse/checkins", "/settings/integrations"];
     const requestedReturn = url.searchParams.get("returnTo") ?? "";
-    const returnTo = ALLOWED_RETURN.some((prefix) => requestedReturn.startsWith(prefix))
+    const returnTo = ALLOWED_RETURN.some((prefix) =>
+      requestedReturn.startsWith(prefix),
+    )
       ? requestedReturn
       : "/settings/integrations";
     const state = randomUUID();
@@ -30,7 +32,10 @@ export async function GET(request: Request) {
     });
     return NextResponse.redirect(asanaAuthorizeUrl(config, state));
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Asana connection could not be started.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Asana connection could not be started.";
     return NextResponse.json({ error: message }, { status: 503 });
   }
 }
