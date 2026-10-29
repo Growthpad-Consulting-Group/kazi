@@ -9,6 +9,10 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import StatCard from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
+import {
+  renderPreviewHtml,
+  type PreviewStaff,
+} from "@/features/signatures/lib/previewStaff";
 
 type Template = {
   id: string;
@@ -31,11 +35,18 @@ function formatUpdatedAt(value: string) {
 
 export default function TemplatesClient({
   templates,
+  staff,
 }: {
   templates: Template[];
+  staff: PreviewStaff[];
 }) {
   const router = useRouter();
   const [preview, setPreview] = useState<Template | null>(null);
+  const [previewStaffId, setPreviewStaffId] = useState<string>(
+    staff[0]?.id ?? "",
+  );
+  const previewStaff =
+    staff.find((person) => person.id === previewStaffId) ?? null;
   const [deleting, setDeleting] = useState<Template | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [query, setQuery] = useState("");
@@ -371,11 +382,41 @@ export default function TemplatesClient({
         icon="solar:document-text-broken"
         maxWidth="max-w-4xl"
       >
+        <div className="mb-4 flex flex-col gap-3 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-hi)]">
+              Preview as staff
+            </p>
+            <p className="mt-1 text-xs text-[var(--text-lo)]">
+              Merge fields are resolved using the selected staff profile.
+            </p>
+          </div>
+          {staff.length ? (
+            <label className="block text-xs font-medium text-[var(--text-lo)]">
+              <span className="sr-only">Choose staff profile</span>
+              <select
+                value={previewStaffId}
+                onChange={(event) => setPreviewStaffId(event.target.value)}
+                className="mt-1 h-9 min-w-52 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm font-medium text-[var(--text-hi)] outline-none focus:border-brand-500"
+              >
+                {staff.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.full_name} · {person.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <span className="rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-600">
+              No active staff profiles
+            </span>
+          )}
+        </div>
         <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
           <iframe
             title="Email signature preview"
             sandbox=""
-            srcDoc={preview?.html ?? ""}
+            srcDoc={renderPreviewHtml(preview?.html ?? "", previewStaff)}
             className="h-[540px] w-full border-0"
           />
         </div>

@@ -11,6 +11,16 @@ type Database = {
     select: (columns: string) => PromiseLike<QueryResult>;
   };
 };
+type StaffDatabase = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (
+        column: string,
+        value: string,
+      ) => { order: (column: string) => PromiseLike<QueryResult> };
+    };
+  };
+};
 type Assignment = { template_id: string };
 
 export default async function TemplatesPage() {
@@ -18,18 +28,28 @@ export default async function TemplatesPage() {
   if (!session || !canView(session.user, "manage_signatures"))
     redirect("/signatures");
   const database = supabaseAdmin as unknown as Database;
-  const [templateResult, clickResult, assignmentResult] = await Promise.all([
-    database
-      .from("signature_templates")
-      .select(
-        "id, name, description, html, thumbnail_url, is_default, created_at, updated_at",
-      ),
-    database.from("signature_template_link_clicks").select("template_id"),
-    database.from("signature_assignments").select("template_id"),
-  ]);
+  const staffDatabase = supabaseAdmin as unknown as StaffDatabase;
+  const [templateResult, clickResult, assignmentResult, staffResult] =
+    await Promise.all([
+      database
+        .from("signature_templates")
+        .select(
+          "id, name, description, html, thumbnail_url, is_default, created_at, updated_at",
+        ),
+      database.from("signature_template_link_clicks").select("template_id"),
+      database.from("signature_assignments").select("template_id"),
+      staffDatabase
+        .from("signature_staff_profiles")
+        .select(
+          "id, full_name, email, role_title, department, phone, mobile, photo_url",
+        )
+        .eq("status", "active")
+        .order("full_name"),
+    ]);
   if (templateResult.error) throw new Error(templateResult.error.message);
   if (clickResult.error) throw new Error(clickResult.error.message);
   if (assignmentResult.error) throw new Error(assignmentResult.error.message);
+  if (staffResult.error) throw new Error(staffResult.error.message);
   const clickCounts = new Map<string, number>();
   for (const click of (clickResult.data ?? []) as Array<{
     template_id: string;
@@ -51,5 +71,10 @@ export default async function TemplatesPage() {
     link_clicks: clickCounts.get(String(template.id)) ?? 0,
     assignment_count: assignmentCounts.get(String(template.id)) ?? 0,
   }));
-  return <TemplatesClient templates={templates as never[]} />;
+  return (
+    <TemplatesClient
+      templates={templates as never[]}
+      staff={(staffResult.data ?? []) as never[]}
+    />
+  );
 }
