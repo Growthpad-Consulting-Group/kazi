@@ -123,6 +123,17 @@ export async function notifySurveyClosingSoon(
     .insert({ user_id: userId, message: `Survey closing soon (${dt}): ${surveyTitle}`, link: "/pulse/surveys" });
 }
 
+export async function notifySurveyPublished(
+  userId: string,
+  surveyTitle: string,
+  surveyId: string,
+): Promise<void> {
+  await supabaseAdmin
+    .from("notifications")
+    .insert({ user_id: userId, message: `New survey: ${surveyTitle}`, link: `/pulse/surveys/${surveyId}` });
+  await invalidateUserNotifications(userId);
+}
+
 export async function notifyWeeklyDigest(
   userId: string,
   summary: { questsCompleted: number; recognitionReceived: number },

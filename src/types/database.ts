@@ -11,6 +11,7 @@ export type ReviewCycle = "quarterly" | "biannual" | "annual";
 export type ReviewStatus = "pending" | "self_review" | "manager_review" | "peer_review" | "completed";
 export type ReviewType = "self" | "manager" | "peer";
 export type SurveyStatus = "draft" | "active" | "closed";
+export type SurveyAudienceType = "staff" | "staff_group" | "department" | "manager_group";
 export type IdpStatus = "active" | "completed" | "cancelled";
 export type RedemptionStatus = "pending" | "approved" | "fulfilled" | "rejected";
 export type MilestoneType = "work_anniversary" | "birthday" | "onboarding_complete" | "service_achievement";
@@ -477,6 +478,30 @@ export interface Database {
           submitted_at: string;
         };
         Insert: Omit<Database["public"]["Tables"]["survey_responses"]["Row"], "id" | "submitted_at" | "respondent_id"> & { respondent_id?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      survey_participants: {
+        Row: {
+          survey_id: string;
+          user_id: string;
+          responded_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["survey_participants"]["Row"], "responded_at"> & { responded_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      survey_audiences: {
+        Row: {
+          id: string;
+          survey_id: string;
+          audience_type: SurveyAudienceType;
+          user_id: string | null;
+          staff_group_id: string | null;
+          department: string | null;
+          manager_id: string | null;
+        };
+        Insert: Omit<Database["public"]["Tables"]["survey_audiences"]["Row"], "id">;
         Update: never;
         Relationships: [];
       };

@@ -12,7 +12,7 @@ export function SendRecognitionButton(props: Props) {
   return (
     <>
       <Button size="sm" icon="solar:star-fall-broken" onClick={() => setOpen(true)}>Send recognition</Button>
-      <SimpleModal open={open} onClose={() => setOpen(false)} title="Send recognition" icon="solar:star-fall-broken" maxWidth="max-w-xl">
+      <SimpleModal open={open} onClose={() => setOpen(false)} title="Share feedback" subtitle="Make it specific, timely, and useful." icon="solar:heart-broken" maxWidth="max-w-xl">
         {open && <SendFeedbackForm {...props} onSent={() => setOpen(false)} />}
       </SimpleModal>
     </>

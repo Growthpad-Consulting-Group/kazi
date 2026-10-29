@@ -4,10 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import { Button } from "@/components/ui/Button";
+import DateRangePicker, { type DateRangeValue } from "@/components/ui/DateRangePicker";
 
 type Question = { id: string; text: string; type: "scale" | "text" | "choice" | "quiz"; options?: string[]; correct_answer?: string; time_limit_seconds?: number };
+type Audience = "all" | "staff" | "staff_group" | "department" | "manager_group";
+export type SurveyAudienceOptions = { staff: { id: string; name: string; department: string | null }[]; groups: { id: string; name: string }[]; managers: { id: string; name: string }[]; departments: string[] };
+const EMPTY_RANGE: DateRangeValue = { startDate: null, endDate: null, label: "Custom Range" };
+const field = "mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10";
 
-export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?: "sm" | "md" }) {
+export function NewSurveyButton({ size = "md", options }: { size?: "sm" | "md"; options: SurveyAudienceOptions }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -18,6 +23,11 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
   ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [audience, setAudience] = useState<Audience>("all");
+  const [audienceIds, setAudienceIds] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [schedule, setSchedule] = useState<DateRangeValue>(EMPTY_RANGE);
+  const audienceComplete = audience === "all" || (audience === "department" ? departments.length > 0 : audienceIds.length > 0);
 
   function addQuestion() {
     setQuestions([...questions, { id: String(Date.now()), text: "", type: "scale" }]);
@@ -29,7 +39,7 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
 
   async function submit() {
     const valid = questions.filter((q) => q.text.trim()).map((q) => ({ ...q, options: q.type === "choice" || q.type === "quiz" ? (q.options ?? []).map((option) => option.trim()).filter(Boolean) : undefined }));
-    if (!title.trim() || !valid.length) return;
+    if (!title.trim() || !valid.length || !audienceComplete) return;
     if (valid.some((q) => (q.type === "choice" || q.type === "quiz") && (q.options?.length ?? 0) < 2)) { setError("A poll or quiz needs at least two options."); return; }
     if (valid.some((q) => q.type === "quiz" && (!q.correct_answer || !q.options?.includes(q.correct_answer) || !q.time_limit_seconds || q.time_limit_seconds < 10))) { setError("Each quiz needs a correct answer and a time limit of at least 10 seconds."); return; }
     setSaving(true);
@@ -38,7 +48,7 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
       const res = await fetch("/api/pulse/surveys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, anonymous, questions: valid, created_by: userId }),
+        body: JSON.stringify({ title, description, anonymous, questions: valid, audienceType: audience, audienceIds, audienceDepartments: departments, opensAt: schedule.startDate?.toISOString() ?? null, closesAt: schedule.endDate ? new Date(schedule.endDate.getFullYear(), schedule.endDate.getMonth(), schedule.endDate.getDate(), 23, 59, 59, 999).toISOString() : null }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
       const json = await res.json();
@@ -55,7 +65,7 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
     <>
       <Button size={size} icon="solar:add-circle-broken" className="rounded-lg" onClick={() => setOpen(true)}>New survey</Button>
 
-      <SimpleModal open={open} onClose={() => setOpen(false)} title="New survey" icon="solar:clipboard-list-broken" maxWidth="max-w-lg">
+      <SimpleModal open={open} onClose={() => setOpen(false)} title="New survey" icon="solar:clipboard-list-broken" maxWidth="max-w-2xl">
         <div className="space-y-4">
 
           <div>
@@ -73,6 +83,19 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
             <span className="text-sm text-[var(--text-hi)]">Anonymous responses</span>
             <span className="text-xs text-[var(--text-lo)]">(results hidden if &lt; 5 respondents)</span>
           </label>
+
+          <div className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/35 p-3 sm:grid-cols-2">
+            <label className="block text-xs font-medium text-[var(--text-lo)]">Audience
+              <select value={audience} onChange={(event) => { setAudience(event.target.value as Audience); setAudienceIds([]); setDepartments([]); }} className={field}>
+                <option value="all">All active staff</option><option value="staff">Selected staff</option><option value="staff_group">Staff groups</option><option value="department">Departments</option><option value="manager_group">Manager&apos;s team</option>
+              </select>
+            </label>
+            <div><p className="text-xs font-medium text-[var(--text-lo)]">Schedule <span className="font-normal">Optional</span></p><DateRangePicker value={schedule} onChange={setSchedule} maxDate={null} fullWidth allowedRanges={["Today", "This Week", "Next Week", "This Month", "Next Month", "Custom Range"]} className="mt-1.5" /></div>
+          </div>
+          {audience === "staff" && <label className="block text-xs font-medium text-[var(--text-lo)]">Select staff <span className="font-normal">Hold ⌘ / Ctrl for several</span><select multiple value={audienceIds} onChange={(event) => setAudienceIds(Array.from(event.target.selectedOptions, (option) => option.value))} className={field + " h-28"}>{options.staff.map((person) => <option key={person.id} value={person.id}>{person.name}{person.department ? ` · ${person.department}` : ""}</option>)}</select></label>}
+          {audience === "staff_group" && <label className="block text-xs font-medium text-[var(--text-lo)]">Select staff groups <span className="font-normal">Hold ⌘ / Ctrl for several</span><select multiple value={audienceIds} onChange={(event) => setAudienceIds(Array.from(event.target.selectedOptions, (option) => option.value))} className={field + " h-28"}>{options.groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>}
+          {audience === "department" && <label className="block text-xs font-medium text-[var(--text-lo)]">Select departments <span className="font-normal">Hold ⌘ / Ctrl for several</span><select multiple value={departments} onChange={(event) => setDepartments(Array.from(event.target.selectedOptions, (option) => option.value))} className={field + " h-28"}>{options.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>}
+          {audience === "manager_group" && <label className="block text-xs font-medium text-[var(--text-lo)]">Select manager teams <span className="font-normal">Hold ⌘ / Ctrl for several</span><select multiple value={audienceIds} onChange={(event) => setAudienceIds(Array.from(event.target.selectedOptions, (option) => option.value))} className={field + " h-28"}>{options.managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}</select></label>}
 
           <div className="space-y-3">
             <label className="block text-xs font-medium text-[var(--text-lo)]">Questions *</label>
@@ -102,7 +125,7 @@ export function NewSurveyButton({ userId, size = "md" }: { userId: string; size?
 
           <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
             <button onClick={() => setOpen(false)} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-hi)] hover:bg-[var(--surface-2)] transition-colors">Cancel</button>
-            <button onClick={submit} disabled={saving || !title.trim()} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-[#d94d18] disabled:opacity-50 transition-colors">
+            <button onClick={submit} disabled={saving || !title.trim() || !audienceComplete} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-[#d94d18] disabled:opacity-50 transition-colors">
               {saving ? "Creating…" : "Create Survey"}
             </button>
           </div>

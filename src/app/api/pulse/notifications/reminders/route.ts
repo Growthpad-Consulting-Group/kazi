@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   notifyQuestEndingSoon,
+  notifySurveyPublished,
   notifySurveyClosingSoon,
   notifyWeeklyDigest,
 } from "@/lib/notifications";
 import { hasCronAccess } from "@/lib/cron-auth";
+import { audienceUserIds } from "@/features/pulse/surveys/audience";
+import { invalidateTables } from "@/lib/cache/invalidate";
 
 export async function POST(req: Request): Promise<Response> {
   // Auth: Bearer CRON_SECRET
@@ -24,7 +27,30 @@ export async function POST(req: Request): Promise<Response> {
   const users = activeUsers ?? [];
   const allUserIds = users.map((u) => u.id);
 
-  // ── 2. Side Quests ending within 48 h ─────────────────────────────────────
+  // ── 2. Scheduled surveys ────────────────────────────────────────────────
+  // State changes are conditional, so each survey is launched and announced once.
+  const nowIso = new Date().toISOString();
+  const { data: scheduledToOpen } = await supabaseAdmin
+    .from("surveys")
+    .update({ status: "active" })
+    .eq("status", "draft")
+    .lte("opens_at", nowIso)
+    .select("id,title");
+  for (const survey of scheduledToOpen ?? []) {
+    for (const userId of await audienceUserIds(survey.id)) {
+      await notifySurveyPublished(userId, survey.title, survey.id);
+      sent++;
+    }
+  }
+  const { data: scheduledToClose } = await supabaseAdmin
+    .from("surveys")
+    .update({ status: "closed" })
+    .eq("status", "active")
+    .lte("closes_at", nowIso)
+    .select("id");
+  if ((scheduledToOpen?.length ?? 0) > 0 || (scheduledToClose?.length ?? 0) > 0) await invalidateTables("surveys");
+
+  // ── 3. Side Quests ending within 48 h ─────────────────────────────────────
   const { data: endingQuests } = await supabaseAdmin
     .from("side_quests")
     .select("id, title, ends_at, audience_type, audience_filters")
@@ -53,7 +79,7 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
-  // ── 3. Surveys closing within 48 h ────────────────────────────────────────
+  // ── 4. Surveys closing within 48 h ────────────────────────────────────────
   const { data: closingSurveys } = await supabaseAdmin
     .from("surveys")
     .select("id, title, closes_at")
@@ -62,13 +88,13 @@ export async function POST(req: Request): Promise<Response> {
     .lte("closes_at", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString());
 
   for (const survey of closingSurveys ?? []) {
-    for (const userId of allUserIds) {
+    for (const userId of await audienceUserIds(survey.id)) {
       await notifySurveyClosingSoon(userId, survey.title, survey.closes_at!);
       sent++;
     }
   }
 
-  // ── 4. Weekly digest ──────────────────────────────────────────────────────
+  // ── 5. Weekly digest ──────────────────────────────────────────────────────
   // Compute Monday of the current week at 00:00 UTC.
   const now = new Date();
   const dayOfWeek = now.getUTCDay(); // 0 = Sunday

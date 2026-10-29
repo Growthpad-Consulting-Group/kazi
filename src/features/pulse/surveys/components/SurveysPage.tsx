@@ -8,6 +8,7 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { NewSurveyButton } from "./NewSurveyButton";
 import type { Survey, SurveyStatus } from "@/types/database";
+import { isSurveyAudienceMember } from "../audience";
 
 const STATUS: Record<SurveyStatus, { label: string; badge: string; icon: string; accent: string }> = {
   draft: { label: "Draft", badge: "bg-slate-500/10 text-slate-600", icon: "solar:pen-new-square-broken", accent: "bg-slate-400" },
@@ -24,8 +25,18 @@ export default async function SurveysPage() {
   if (!session) return null;
 
   const isAdmin = can(session.user.role, "manage_surveys");
-  const { data } = await supabaseAdmin.from("surveys").select("*").order("created_at", { ascending: false });
-  const surveys = (data ?? []) as unknown as Survey[];
+  const [{ data }, { data: staff }, { data: groups }] = await Promise.all([
+    supabaseAdmin.from("surveys").select("*").order("created_at", { ascending: false }),
+    isAdmin ? supabaseAdmin.from("users").select("id,name,department,manager_id,role").eq("is_active", true).order("name") : Promise.resolve({ data: [] }),
+    isAdmin ? supabaseAdmin.from("staff_groups").select("id,name").order("name") : Promise.resolve({ data: [] }),
+  ]);
+  const allSurveys = (data ?? []) as unknown as Survey[];
+  const surveys = isAdmin
+    ? allSurveys
+    : (await Promise.all(allSurveys.filter((survey) => survey.status !== "draft").map(async (survey) => (await isSurveyAudienceMember(survey.id, session.user.id)) ? survey : null))).filter((survey): survey is Survey => Boolean(survey));
+  const staffOptions = (staff ?? []) as { id: string; name: string; department: string | null; manager_id: string | null; role: string }[];
+  const managerIds = new Set(staffOptions.map((person) => person.manager_id).filter((id): id is string => Boolean(id)));
+  const audienceOptions = { staff: staffOptions.map(({ id, name, department }) => ({ id, name, department })), groups: (groups ?? []) as { id: string; name: string }[], managers: staffOptions.filter((person) => managerIds.has(person.id)).map(({ id, name }) => ({ id, name })), departments: [...new Set(staffOptions.map((person) => person.department).filter((department): department is string => Boolean(department)))].sort() };
   const active = surveys.filter((survey) => survey.status === "active");
   const drafts = surveys.filter((survey) => survey.status === "draft");
   const closed = surveys.filter((survey) => survey.status === "closed");
@@ -33,7 +44,7 @@ export default async function SurveysPage() {
 
   return (
     <>
-      <SetPageHeader title="Surveys" description={active.length ? `${active.length} live survey${active.length === 1 ? "" : "s"} ready for your team` : "Listen closely, then act on what your team shares"} icon="solar:chat-round-dots-broken" trailing={isAdmin ? <NewSurveyButton userId={session.user.id} size="sm" /> : undefined} />
+      <SetPageHeader title="Surveys" description={active.length ? `${active.length} live survey${active.length === 1 ? "" : "s"} ready for your team` : "Listen closely, then act on what your team shares"} icon="solar:chat-round-dots-broken" trailing={isAdmin ? <NewSurveyButton options={audienceOptions} size="sm" /> : undefined} />
 
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">

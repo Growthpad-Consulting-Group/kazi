@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/Button";
 interface Props {
   surveyId: string;
   questions: { id: string; text: string; type: "scale" | "text" | "choice" | "quiz"; options?: string[]; time_limit_seconds?: number }[];
-  respondentId: string | null;
 }
 
-export function SurveyResponseForm({ surveyId, questions, respondentId }: Props) {
+export function SurveyResponseForm({ surveyId, questions }: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [saving, setSaving] = useState(false);
@@ -23,7 +22,7 @@ export function SurveyResponseForm({ surveyId, questions, respondentId }: Props)
       const res = await fetch("/api/pulse/surveys/respond", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ surveyId, answers, respondentId }),
+        body: JSON.stringify({ surveyId, answers }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
       router.refresh();

@@ -226,17 +226,31 @@ export default function HallOfFameClient({
         title={cycle ? `${monthLabel(cycle.month)} · Wall of Fame` : "Growthpad Wall of Fame"}
         description="Recognise people who create WOW experiences for clients and deliver excellent performance."
         icon="solar:cup-star-broken"
-        trailing={canManage ? (
-          <Button
-            size="sm"
-            variant={isOpen ? "secondary" : "primary"}
-            icon={isOpen ? "solar:lock-keyhole-broken" : "solar:add-circle-broken"}
-            loading={saving}
-            onClick={isOpen ? closeCycle : () => setNewCycleOpen(true)}
-          >
-            {isOpen ? "Close nominations" : "Open nominations"}
-          </Button>
-        ) : undefined}
+        trailing={
+          <>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                isOpen
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                  : "bg-[var(--surface-2)] text-[var(--text-lo)]"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${isOpen ? "bg-emerald-500" : "bg-[var(--text-lo)]"}`} />
+              {cycle ? (isOpen ? "Nominations open" : "Nominations closed") : "Nominations not open yet"}
+            </span>
+            {canManage && (
+              <Button
+                size="sm"
+                variant={isOpen ? "secondary" : "primary"}
+                icon={isOpen ? "solar:lock-keyhole-broken" : "solar:add-circle-broken"}
+                loading={saving}
+                onClick={isOpen ? closeCycle : () => setNewCycleOpen(true)}
+              >
+                {isOpen ? "Close nominations" : "Open nominations"}
+              </Button>
+            )}
+          </>
+        }
       />
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard variant="inline" compact title="Nominations" value={nominations.length} icon="solar:star-fall-broken" color="orange" subtitle="This award cycle" />
@@ -327,8 +341,8 @@ export default function HallOfFameClient({
         {selected && !isOpen && (
           <div className="rounded-xl bg-[var(--surface-2)] p-4 text-center">
             <Icon icon="solar:lock-keyhole-broken" className="mx-auto h-5 w-5 text-[var(--text-lo)]" />
-            <p className="mt-2 text-xs font-semibold text-[var(--text-hi)]">Nominations are not open</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-lo)]">
+            <p className="mt-2 text-sm font-semibold text-[var(--text-hi)]">Nominations are not open</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
               {canManage ? "Open this month’s cycle to start nominating." : "Your HR team will open the next Wall of Fame cycle."}
             </p>
           </div>

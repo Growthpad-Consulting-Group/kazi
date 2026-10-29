@@ -36,6 +36,7 @@ export default async function EngagementCalendarPage() {
     { data: locations },
     { data: managers },
     { data: staff },
+    { data: staffGroups },
   ] = await Promise.all([
     supabaseAdmin.from("recognition_campaigns").select("id,name,starts_at,ends_at,status"),
     supabaseAdmin.from("surveys").select("id,title,opens_at,closes_at,status"),
@@ -45,6 +46,7 @@ export default async function EngagementCalendarPage() {
     supabaseAdmin.from("users").select("location").eq("is_active", true).not("location", "is", null),
     supabaseAdmin.from("users").select("id,name").eq("is_active", true).in("role", ["manager", "hr", "admin"]),
     supabaseAdmin.from("users").select("id,name").eq("is_active", true).order("name"),
+    supabaseAdmin.from("staff_groups").select("id,name").order("name"),
   ]);
 
   const items: Item[] = [
@@ -82,7 +84,7 @@ export default async function EngagementCalendarPage() {
           <div className="flex flex-wrap gap-2">
             {canManageCampaigns && <NewCampaignButton values={values ?? []} options={audienceOptions} />}
             {canManageQuests && <NewSideQuestButton options={audienceOptions} />}
-            {canManageSurveys && session?.user?.id && <NewSurveyButton userId={session.user.id} size="sm" />}
+            {canManageSurveys && <NewSurveyButton options={{ staff: audienceOptions.staff.map((person) => ({ ...person, department: null })), groups: (staffGroups ?? []) as { id: string; name: string }[], managers: audienceOptions.managers, departments: audienceOptions.departments }} size="sm" />}
           </div>
         )}
 

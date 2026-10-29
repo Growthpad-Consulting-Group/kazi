@@ -105,18 +105,8 @@ export function SendFeedbackForm({ fromUserId, users, values, campaigns, groups 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-          <Icon icon="solar:heart-broken" className="h-4 w-4" />
-        </span>
-        <div>
-          <h2 className="text-sm font-semibold text-[var(--text-hi)]">Share feedback</h2>
-          <p className="mt-0.5 text-xs text-[var(--text-lo)]">Make it specific, timely, and useful.</p>
-        </div>
-      </div>
-
       {/* Visibility toggle */}
-      <div className="mt-5 grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {(["public", "private"] as const).map((value) => (
           <button
             key={value}

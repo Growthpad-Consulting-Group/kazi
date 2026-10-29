@@ -1,0 +1,26 @@
+name: Pulse Survey Scheduler
+
+on:
+  schedule:
+    # Survey windows are date-based, so a daily UTC run opens and closes them
+    # without exposing a long-lived scheduler in the application runtime.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  process-pulse-reminders:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Verify credentials
+        if: env.CRON_SECRET == ''
+        run: |
+          echo "::error::CRON_SECRET is not configured in GitHub Actions."
+          exit 1
+      - name: Process scheduled surveys and Pulse reminders
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/pulse/notifications/reminders"
