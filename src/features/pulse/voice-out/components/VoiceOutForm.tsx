@@ -197,7 +197,7 @@ export function VoiceOutForm() {
     <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
       <div className="space-y-7 p-6">
         <fieldset>
-          <legend className="text-xs font-semibold text-[var(--text-hi)]">
+          <legend className="text-sm font-semibold text-[var(--text-hi)]">
             What is this about?
           </legend>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -217,10 +217,10 @@ export function VoiceOutForm() {
                     <Icon icon={item.icon} className="h-4 w-4" />
                   </span>
                   <span>
-                    <span className="block text-xs font-semibold text-[var(--text-hi)]">
+                    <span className="block text-sm font-semibold text-[var(--text-hi)]">
                       {item.label}
                     </span>
-                    <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--text-lo)]">
+                    <span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-lo)]">
                       {item.description}
                     </span>
                   </span>
@@ -234,7 +234,7 @@ export function VoiceOutForm() {
           <div className="flex items-center justify-between gap-3">
             <label
               htmlFor="voice-out-message"
-              className="text-xs font-semibold text-[var(--text-hi)]"
+              className="text-sm font-semibold text-[var(--text-hi)]"
             >
               Your message
             </label>
@@ -252,14 +252,14 @@ export function VoiceOutForm() {
             placeholder="Describe what happened, how it is affecting staff, and what would help…"
             className="mt-2 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-relaxed text-[var(--text-hi)] outline-none transition focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/20"
           />
-          <p className="mt-1.5 text-[11px] text-[var(--text-lo)]">
+          <p className="mt-1.5 text-sm text-[var(--text-lo)]">
             At least {MIN_MESSAGE} characters so the HR team has enough to work
             with.
           </p>
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-[var(--text-hi)]">
+          <p className="text-sm font-semibold text-[var(--text-hi)]">
             Screenshots{" "}
             <span className="font-normal text-[var(--text-lo)]">
               Optional, up to {MAX_ATTACHMENTS}
@@ -325,7 +325,7 @@ export function VoiceOutForm() {
         </div>
 
         <fieldset>
-          <legend className="text-xs font-semibold text-[var(--text-hi)]">
+          <legend className="text-sm font-semibold text-[var(--text-hi)]">
             How does this feel?{" "}
             <span className="font-normal text-[var(--text-lo)]">Optional</span>
           </legend>
@@ -341,7 +341,7 @@ export function VoiceOutForm() {
                   className={`flex flex-col items-center gap-1 rounded-xl border p-3 transition-all ${active ? "border-brand-500/40 bg-brand-500/[0.06]" : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
                 >
                   <span className="text-2xl">{item.emoji}</span>
-                  <span className="text-[11px] font-medium text-[var(--text-hi)]">
+                  <span className="text-xs font-medium text-[var(--text-hi)]">
                     {item.label}
                   </span>
                 </button>
@@ -358,10 +358,10 @@ export function VoiceOutForm() {
             className="mt-0.5 h-4 w-4 rounded border-[var(--border)] text-brand-500 focus:ring-brand-500"
           />
           <span>
-            <span className="block text-xs font-semibold text-[var(--text-hi)]">
+            <span className="block text-sm font-semibold text-[var(--text-hi)]">
               Allow anonymous follow-up
             </span>
-            <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-lo)]">
+            <span className="mt-1 block text-xs leading-relaxed text-[var(--text-lo)]">
               HR can reply through a private code you receive after sending.
               Without this, the report stays one-way.
             </span>
@@ -375,7 +375,7 @@ export function VoiceOutForm() {
         )}
 
         <div className="flex flex-col-reverse gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[11px] leading-relaxed text-[var(--text-lo)]">
+          <p className="text-xs leading-relaxed text-[var(--text-lo)]">
             In an emergency, use your safeguarding or emergency channels
             instead.
           </p>

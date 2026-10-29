@@ -279,6 +279,14 @@ export default function TemplatesClient({
                       </Button>
                       <Button
                         size="sm"
+                        variant="ghost"
+                        icon="solar:chart-2-broken"
+                        href={`/signatures/templates/${template.id}/clicks`}
+                      >
+                        Analytics
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="secondary"
                         icon="solar:pen-broken"
                         onClick={() => edit(template)}
