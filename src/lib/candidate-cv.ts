@@ -28,7 +28,10 @@ export async function readCv(file: File): Promise<ReadCv> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let text = "";
   try {
-    text = await extractCvText(file, bytes);
+    // PDF.js (used by unpdf) may transfer/detach the buffer it receives.
+    // Keep the original bytes intact because they are the exact bytes we
+    // upload to R2 after extraction succeeds.
+    text = await extractCvText(file, bytes.slice());
   } catch {
     throw new ApplicationError(
       "We could not read that CV. Please try another PDF or DOCX file.",
