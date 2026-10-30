@@ -377,7 +377,18 @@ export function NewRewardButton() {
   );
 }
 
-export function CatalogueManager({ items }: { items: RewardCatalogue[] }) {
+export function CatalogueManager({
+  items,
+  costReport,
+}: {
+  items: RewardCatalogue[];
+  costReport: {
+    fulfilledCost: number;
+    committedCost: number;
+    fulfilledCount: number;
+    pendingCount: number;
+  };
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState<RewardCatalogue | null>(null);
   const [deleting, setDeleting] = useState<RewardCatalogue | null>(null);
@@ -464,7 +475,59 @@ export function CatalogueManager({ items }: { items: RewardCatalogue[] }) {
         />
       </section>
 
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+            <Icon icon="solar:wallet-money-broken" className="h-4.5 w-4.5" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+              Programme cost
+            </h2>
+            <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+              Cash value from fulfilled rewards and approved commitments.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <StatCard
+            title="Fulfilled cost"
+            value={`KES ${costReport.fulfilledCost.toLocaleString()}`}
+            icon="solar:check-circle-broken"
+            color="green"
+            variant="inline"
+            compact
+            subtitle={`${costReport.fulfilledCount} fulfilled redemption${costReport.fulfilledCount === 1 ? "" : "s"}`}
+          />
+          <StatCard
+            title="Committed cost"
+            value={`KES ${costReport.committedCost.toLocaleString()}`}
+            icon="solar:hourglass-broken"
+            color="amber"
+            variant="inline"
+            compact
+            subtitle={`${costReport.pendingCount} approved redemption${costReport.pendingCount === 1 ? "" : "s"}`}
+          />
+        </div>
+      </section>
+
       <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+        <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                Reward catalogue
+              </h2>
+              <p className="mt-1 text-xs text-[var(--text-lo)]">
+                Availability, reward type, points and fulfilment cost at a
+                glance.
+              </p>
+            </div>
+            <span className="rounded-lg bg-[var(--surface-2)] px-2.5 py-1 font-mono text-[11px] font-semibold text-[var(--text-lo)]">
+              {activeCount}/{items.length} live
+            </span>
+          </div>
+        </div>
         <div className="p-4 sm:p-5">
           {items.length > 4 && (
             <label className="relative mb-4 block">
@@ -511,7 +574,7 @@ export function CatalogueManager({ items }: { items: RewardCatalogue[] }) {
               {visibleItems.map((item) => (
                 <li
                   key={item.id}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 transition-shadow hover:shadow-md"
+                  className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   {item.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element -- reward images are uploaded external URLs
@@ -525,7 +588,7 @@ export function CatalogueManager({ items }: { items: RewardCatalogue[] }) {
                       <Icon icon="solar:gift-broken" className="h-4 w-4" />
                     </span>
                   )}
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-[12rem] flex-1">
                     <p
                       className={`truncate text-sm font-semibold ${item.is_active ? "text-[var(--text-hi)]" : "text-[var(--text-lo)]"}`}
                     >
@@ -534,6 +597,23 @@ export function CatalogueManager({ items }: { items: RewardCatalogue[] }) {
                     <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
                       {item.description || "No description added"}
                     </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
+                        {item.reward_type === "donation"
+                          ? "Donation"
+                          : "Reward"}
+                      </span>
+                      {item.reward_type === "donation" && item.charity_name && (
+                        <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-lo)]">
+                          {item.charity_name}
+                        </span>
+                      )}
+                      <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-lo)]">
+                        {item.cash_cost_kes === null
+                          ? "Cost not set"
+                          : `KES ${item.cash_cost_kes.toLocaleString()}`}
+                      </span>
+                    </div>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="font-mono text-xs font-bold text-brand-500">

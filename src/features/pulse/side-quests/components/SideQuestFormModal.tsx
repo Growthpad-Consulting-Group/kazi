@@ -96,6 +96,7 @@ function SideQuestForm({
   const [brief, setBrief] = useState(quest?.brief ?? "");
   const [criteria, setCriteria] = useState(quest?.completion_criteria ?? "");
   const [points, setPoints] = useState(String(quest?.points ?? 10));
+  const [xpPoints, setXpPoints] = useState(String(quest?.xp_points ?? 0));
   const [repeatFrequency, setRepeatFrequency] = useState(
     quest?.repeat_frequency ?? "once",
   );
@@ -153,6 +154,7 @@ function SideQuestForm({
       brief,
       completion_criteria: criteria,
       points: Number(points) || 0,
+      xp_points: Number(xpPoints) || 0,
       repeat_frequency: repeatFrequency,
       max_completions_per_period: Number(completionCap) || 1,
       approver_id: approverId || null,
@@ -258,16 +260,29 @@ function SideQuestForm({
           className={inputClass}
         />
       </div>
-      <div>
-        <label className={labelClass}>Points awarded on completion</label>
-        <input
-          type="number"
-          min={0}
-          max={1000}
-          value={points}
-          onChange={(event) => setPoints(event.target.value)}
-          className={inputClass}
-        />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className={labelClass}>
+          Reward points on completion
+          <input
+            type="number"
+            min={0}
+            max={1000}
+            value={points}
+            onChange={(event) => setPoints(event.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className={labelClass}>
+          Quarterly XP on completion
+          <input
+            type="number"
+            min={0}
+            max={1000}
+            value={xpPoints}
+            onChange={(event) => setXpPoints(event.target.value)}
+            className={inputClass}
+          />
+        </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">

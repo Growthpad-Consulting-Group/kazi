@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     starts_at,
     ends_at,
     points,
+    xp_points,
     completion_mode,
     repeat_frequency,
     max_completions_per_period,
@@ -39,9 +40,15 @@ export async function POST(req: Request) {
     status: requestedStatus,
   } = await req.json();
   const questPoints = Number.isInteger(points) ? points : 10;
+  const questXp = Number.isInteger(xp_points) ? xp_points : 0;
   if (questPoints < 0 || questPoints > 1000)
     return NextResponse.json(
       { error: "Points must be between 0 and 1000." },
+      { status: 400 },
+    );
+  if (questXp < 0 || questXp > 1000)
+    return NextResponse.json(
+      { error: "XP must be between 0 and 1000." },
       { status: 400 },
     );
   const repeatFrequency = repeat_frequency ?? "once";
@@ -117,6 +124,7 @@ export async function POST(req: Request) {
       starts_at: starts_at || null,
       ends_at: ends_at || null,
       points: questPoints,
+      xp_points: questXp,
       completion_mode: completion_mode ?? "self_confirm",
       repeat_frequency: repeatFrequency,
       max_completions_per_period: completionCap,

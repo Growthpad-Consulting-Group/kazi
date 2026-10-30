@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { awardPoints } from "@/lib/award-points";
+import { awardQuarterlyXp } from "@/lib/award-xp";
+import { refreshSideQuestAchievements } from "@/lib/side-quest-achievements";
 
 type RouteContext = { params: Promise<{ id: string; userId: string }> };
 
@@ -33,7 +35,7 @@ export async function POST(request: Request, context: RouteContext) {
       .maybeSingle(),
     supabaseAdmin
       .from("side_quests")
-      .select("points, approver_id")
+      .select("points, xp_points, approver_id")
       .eq("id", id)
       .maybeSingle(),
   ]);
@@ -76,6 +78,16 @@ export async function POST(request: Request, context: RouteContext) {
       referenceId: completion.id,
       createdBy: session.user.id,
     });
+  if (status === "approved")
+    await awardQuarterlyXp({
+      userId,
+      amount: quest.xp_points,
+      reason: `Side quest completed: ${id}`,
+      referenceType: "side_quest_completion",
+      referenceId: completion.id,
+      createdBy: session.user.id,
+    });
+  if (status === "approved") await refreshSideQuestAchievements(userId, id);
 
   return NextResponse.json({ ok: true, status });
 }

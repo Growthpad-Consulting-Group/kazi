@@ -70,6 +70,12 @@ export async function PATCH(req: Request, context: RouteContext) {
       { error: "Points must be a whole number between 0 and 1000." },
       { status: 400 },
     );
+  const xpPoints = body?.xp_points === undefined ? 0 : Number(body.xp_points);
+  if (!Number.isInteger(xpPoints) || xpPoints < 0 || xpPoints > 1000)
+    return NextResponse.json(
+      { error: "XP must be a whole number between 0 and 1000." },
+      { status: 400 },
+    );
   const completionMode = body?.completion_mode ?? "self_confirm";
   if (
     typeof completionMode !== "string" ||
@@ -112,7 +118,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   const { data: existing } = await supabaseAdmin
     .from("side_quests")
     .select(
-      "status, points, audience_type, audience_filters, completion_mode, repeat_frequency, max_completions_per_period, approver_id",
+      "status, points, xp_points, audience_type, audience_filters, completion_mode, repeat_frequency, max_completions_per_period, approver_id",
     )
     .eq("id", id)
     .maybeSingle();
@@ -124,6 +130,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   const current = (existing as { status: string }).status;
   const currentQuest = existing as {
     points: number;
+    xp_points: number;
     audience_type: string;
     audience_filters: string[];
     completion_mode: string;
@@ -142,6 +149,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (
     (completionCount ?? 0) > 0 &&
     (currentQuest.points !== points ||
+      currentQuest.xp_points !== xpPoints ||
       !sameAudience ||
       currentQuest.completion_mode !== completionMode ||
       currentQuest.repeat_frequency !== repeatFrequency ||
@@ -172,6 +180,7 @@ export async function PATCH(req: Request, context: RouteContext) {
       brief,
       completion_criteria: completionCriteria,
       points,
+      xp_points: xpPoints,
       completion_mode: completionMode as
         "self_confirm" | "evidence_required" | "manager_approval",
       repeat_frequency: repeatFrequency as "once" | "weekly" | "monthly",

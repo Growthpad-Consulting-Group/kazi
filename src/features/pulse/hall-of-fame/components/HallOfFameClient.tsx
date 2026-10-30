@@ -161,6 +161,10 @@ export default function HallOfFameClient({
   const yourNominations = nominations.filter(
     (item) => item.nominator_id === currentUserId,
   ).length;
+  const hasMonthlyEntry = nominations.some(
+    (item) =>
+      item.nominator_id === currentUserId && item.nominee_id === currentUserId,
+  );
   const isOpen = cycle?.status === "open";
   const votingStage =
     cycle?.status === "team_voting"
@@ -527,6 +531,35 @@ export default function HallOfFameClient({
           subtitle="Client excellence"
         />
       </section>
+
+      {isOpen && !hasMonthlyEntry && (
+        <section className="flex flex-col gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-4 shadow-lg shadow-brand-500/5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+              <Icon
+                icon="solar:pen-new-square-broken"
+                className="h-4.5 w-4.5"
+              />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-hi)]">
+                Your monthly project entry is needed
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+                Submit one self-nomination in either award category, describing
+                the project or work you delivered this month.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            icon="solar:pen-new-square-broken"
+            onClick={() => openNominate(currentUserId)}
+          >
+            Add your entry
+          </Button>
+        </section>
+      )}
 
       <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20">
         <div className="flex flex-col gap-3 border-b border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

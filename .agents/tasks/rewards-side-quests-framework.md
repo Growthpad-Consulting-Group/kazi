@@ -15,21 +15,21 @@ Source: Corporate Gifting and Side Quests Program Framework
 - [x] Add a donation reward type with charity, amount, and fulfilment instructions.
 - [x] Show each staff member their progress to the next available reward.
 - [x] Add a 12-month wallet-points expiry policy, scheduled expiry processing, and advance notices.
-- [ ] Record the programme cost in KES per reward and show management cost reporting.
+- [x] Record the programme cost in KES per reward and show management cost reporting.
 
 ## P1 Core performance awards
 
-- [ ] Enforce one required monthly project entry for every eligible staff member across MVP and WOW.
+- [x] Enforce one required monthly project entry for every eligible staff member across MVP and WOW.
 - [x] Add 1–10 team voting after nominations close.
 - [x] Add management voting for the top three nominees in each award category.
 - [x] Select, publish, and archive winners with prize and fulfilment tracking.
 
 ## P2 Engagement layer
 
-- [ ] Introduce a separate quarterly XP balance that never affects redeemable wallet points.
-- [ ] Add seasonal XP leaderboards and quarterly reset processing.
-- [ ] Award and display streaks such as four weekly Asana clean-ups.
-- [ ] Award and display achievement badges such as Knowledge Sharer after three Masterclasses.
+- [x] Introduce a separate quarterly XP balance that never affects redeemable wallet points.
+- [x] Add seasonal XP leaderboards and quarterly reset processing.
+- [x] Award and display streaks such as four weekly Asana clean-ups.
+- [x] Award and display achievement badges such as Knowledge Sharer after three Masterclasses.
 
 ## P2 Operations and reporting
 

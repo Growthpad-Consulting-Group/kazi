@@ -28,6 +28,12 @@ type PendingRedemption = RewardRedemption & {
   user_name: string;
   requester_role: string;
 };
+type RewardCostReport = {
+  fulfilledCost: number;
+  committedCost: number;
+  fulfilledCount: number;
+  pendingCount: number;
+};
 
 const STATUS_STYLES: Record<RedemptionStatus, string> = {
   pending: "bg-amber-500/10 text-amber-600",
@@ -56,6 +62,8 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
     pendingResult,
     staffResult,
     manageCatalogueResult,
+    xpWalletResult,
+    costRedemptionsResult,
   ] = await Promise.all([
     supabaseAdmin
       .from("reward_wallets")
@@ -98,6 +106,18 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
           .order("is_active", { ascending: false })
           .order("points_cost", { ascending: true })
       : Promise.resolve({ data: [] }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- quarterly XP tables are migration-backed and intentionally separate from reward wallet types
+    (supabaseAdmin as any)
+      .from("xp_wallets")
+      .select("quarter_start, quarterly_balance, lifetime_balance")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    showingManage
+      ? supabaseAdmin
+          .from("reward_redemptions")
+          .select("catalogue_item_id, status")
+          .in("status", ["approved", "fulfilled"])
+      : Promise.resolve({ data: [] }),
   ]);
   const staffOptions = (staffResult.data ?? []) as {
     id: string;
@@ -105,6 +125,11 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
   }[];
 
   const balance = walletResult.data?.balance ?? 0;
+  const xpWallet = xpWalletResult.data as {
+    quarter_start: string;
+    quarterly_balance: number;
+    lifetime_balance: number;
+  } | null;
   const catalogue = (catalogueResult.data ?? []) as RewardCatalogue[];
   const nextReward =
     catalogue.find((item) => item.points_cost > balance) ?? null;
@@ -112,6 +137,28 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
   const pendingRedemptions = (pendingResult.data ?? []) as RewardRedemption[];
   const manageCatalogue = (manageCatalogueResult.data ??
     []) as RewardCatalogue[];
+  const costCatalogue = new Map(
+    manageCatalogue.map((item) => [item.id, item.cash_cost_kes ?? 0]),
+  );
+  const costReport = (
+    (costRedemptionsResult.data ?? []) as Pick<
+      RewardRedemption,
+      "catalogue_item_id" | "status"
+    >[]
+  ).reduce<RewardCostReport>(
+    (report, redemption) => {
+      const cost = costCatalogue.get(redemption.catalogue_item_id) ?? 0;
+      if (redemption.status === "fulfilled") {
+        report.fulfilledCost += cost;
+        report.fulfilledCount += 1;
+      } else {
+        report.committedCost += cost;
+        report.pendingCount += 1;
+      }
+      return report;
+    },
+    { fulfilledCost: 0, committedCost: 0, fulfilledCount: 0, pendingCount: 0 },
+  );
 
   // Enrich my redemptions with catalogue names
   const catalogueMap = new Map(catalogue.map((item) => [item.id, item.name]));
@@ -190,11 +237,11 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
           </Suspense>
         )}
         {showingManage ? (
-          <CatalogueManager items={manageCatalogue} />
+          <CatalogueManager items={manageCatalogue} costReport={costReport} />
         ) : (
           <>
             {/* Balance */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Your points"
                 value={balance}
@@ -202,6 +249,14 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                 color="amber"
                 compact
                 subtitle="Available to redeem"
+              />
+              <StatCard
+                title="Quarterly XP"
+                value={xpWallet?.quarterly_balance ?? 0}
+                icon="solar:medal-ribbon-broken"
+                color="blue"
+                compact
+                subtitle="Recognition progress, not redeemable"
               />
               {canManage && (
                 <>
@@ -565,7 +620,6 @@ const EMPTY_WEEK_POINTS: WeekPoints = { total: 0, awards: 0, earners: [] };
 
 async function loadWeekPoints(): Promise<WeekPoints> {
   const weekPoints: WeekPoints = { total: 0, awards: 0, earners: [] };
-  // eslint-disable-next-line react-hooks/purity -- server component; the window is fixed per request
   const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reward_ledger is not in the generated types
   const { data: ledger } = await (supabaseAdmin as any)

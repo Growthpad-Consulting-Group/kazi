@@ -21,23 +21,50 @@ export default async function SideQuestsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
   const canManage = userCan(session.user, "manage_side_quests");
-  const [{ data: quests }, { data: completions }, { data: staff }] =
-    await Promise.all([
-      supabaseAdmin
-        .from("side_quests")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabaseAdmin
-        .from("side_quest_completions")
-        .select(
-          "side_quest_id, user_id, status, evidence_note, evidence_url, completed_at",
-        ),
-      supabaseAdmin
-        .from("users")
-        .select("id, name, role, department, location, manager_id")
-        .eq("is_active", true)
-        .order("name"),
-    ]);
+  const [
+    { data: quests },
+    { data: completions },
+    { data: staff },
+    { data: xpWallets },
+    { data: achievements },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("side_quests")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("side_quest_completions")
+      .select(
+        "side_quest_id, user_id, status, evidence_note, evidence_url, completed_at",
+      ),
+    supabaseAdmin
+      .from("users")
+      .select("id, name, role, department, location, manager_id")
+      .eq("is_active", true)
+      .order("name"),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- quarterly XP table is migration-backed and remains separate from reward points
+    (supabaseAdmin as any)
+      .from("xp_wallets")
+      .select("user_id, quarter_start, quarterly_balance")
+      .gt("quarterly_balance", 0)
+      .order("quarterly_balance", { ascending: false })
+      .limit(5),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed achievements table awaits generated types
+    (supabaseAdmin as any)
+      .from("staff_achievements")
+      .select("id, title, description, icon")
+      .eq("user_id", session.user.id)
+      .order("awarded_at", { ascending: false }),
+  ]);
+  const quarterStart = new Date(
+    Date.UTC(
+      new Date().getUTCFullYear(),
+      Math.floor(new Date().getUTCMonth() / 3) * 3,
+      1,
+    ),
+  )
+    .toISOString()
+    .slice(0, 10);
   const completionByQuest = new Map<string, Set<string>>();
   for (const completion of completions ?? []) {
     if (completion.status !== "approved") continue;
@@ -47,6 +74,18 @@ export default async function SideQuestsPage() {
     completionByQuest.set(completion.side_quest_id, set);
   }
   const nameById = new Map((staff ?? []).map((user) => [user.id, user.name]));
+  const xpLeaderboard = (
+    (xpWallets ?? []) as {
+      user_id: string;
+      quarter_start: string;
+      quarterly_balance: number;
+    }[]
+  )
+    .filter((wallet) => wallet.quarter_start === quarterStart)
+    .map((wallet) => ({
+      ...wallet,
+      name: nameById.get(wallet.user_id) ?? "Staff member",
+    }));
   const completersByQuest = new Map<string, string[]>();
   for (const completion of completions ?? [])
     completersByQuest.set(completion.side_quest_id, [
@@ -191,6 +230,102 @@ export default async function SideQuestsPage() {
             color="amber"
             subtitle="Culture in action"
           />
+        </section>
+        {(achievements ?? []).length > 0 && (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                <Icon icon="solar:cup-star-broken" className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                  Your achievements
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                  Recognition unlocked through consistent Side Quest
+                  participation.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {(
+                achievements as {
+                  id: string;
+                  title: string;
+                  description: string;
+                  icon: string;
+                }[]
+              ).map((achievement) => (
+                <div
+                  key={achievement.id}
+                  className="flex items-center gap-3 rounded-xl bg-[var(--surface-2)] p-3"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                    <Icon icon={achievement.icon} className="h-4.5 w-4.5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--text-hi)]">
+                      {achievement.title}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-lo)]">
+                      {achievement.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
+                <Icon
+                  icon="solar:medal-ribbon-broken"
+                  className="h-4.5 w-4.5"
+                />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                  Quarterly XP leaderboard
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                  Recognition progress resets each quarter and never spends from
+                  reward points.
+                </p>
+              </div>
+            </div>
+            <span className="rounded-lg bg-[var(--surface-2)] px-2 py-1 font-mono text-[11px] font-semibold text-[var(--text-lo)]">
+              This quarter
+            </span>
+          </div>
+          {xpLeaderboard.length ? (
+            <ol className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              {xpLeaderboard.map((entry, index) => (
+                <li
+                  key={entry.user_id}
+                  className="flex items-center gap-2.5 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"
+                >
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold ${index === 0 ? "bg-amber-500 text-white" : "bg-[var(--surface)] text-[var(--text-lo)]"}`}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--text-hi)]">
+                    {entry.name}
+                  </span>
+                  <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-300">
+                    {entry.quarterly_balance} XP
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mt-4 rounded-xl bg-[var(--surface-2)] px-3 py-4 text-center text-xs text-[var(--text-lo)]">
+              Complete an XP-enabled Side Quest to start this quarter’s
+              leaderboard.
+            </p>
+          )}
         </section>
         {canManage && pendingReviews.length > 0 && (
           <section className="rounded-2xl border border-amber-500/20 bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">

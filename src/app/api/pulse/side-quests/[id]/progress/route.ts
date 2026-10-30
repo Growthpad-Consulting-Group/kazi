@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { awardPoints } from "@/lib/award-points";
+import { awardQuarterlyXp } from "@/lib/award-xp";
+import { refreshSideQuestAchievements } from "@/lib/side-quest-achievements";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,7 +17,7 @@ export async function POST(req: Request, context: RouteContext) {
     supabaseAdmin
       .from("side_quests")
       .select(
-        "id, status, starts_at, ends_at, audience_type, audience_filters, points, completion_mode, repeat_frequency, max_completions_per_period",
+        "id, status, starts_at, ends_at, audience_type, audience_filters, points, xp_points, completion_mode, repeat_frequency, max_completions_per_period",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -142,6 +144,15 @@ export async function POST(req: Request, context: RouteContext) {
       referenceId: completion.id,
       createdBy: null,
     });
+    await awardQuarterlyXp({
+      userId: session.user.id,
+      amount: quest.xp_points,
+      reason: `Side quest completed: ${id}`,
+      referenceType: "side_quest_completion",
+      referenceId: completion.id,
+      createdBy: null,
+    });
+    await refreshSideQuestAchievements(session.user.id, id);
   }
   return NextResponse.json({ ok: true, status: completionStatus });
 }

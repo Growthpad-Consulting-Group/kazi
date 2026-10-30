@@ -574,6 +574,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           points: number;
+          xp_points: number;
           completion_mode:
             "self_confirm" | "evidence_required" | "manager_approval";
           repeat_frequency: "once" | "weekly" | "monthly";
@@ -590,6 +591,7 @@ export interface Database {
           | "ends_at"
           | "status"
           | "points"
+          | "xp_points"
           | "completion_mode"
           | "repeat_frequency"
           | "max_completions_per_period"
@@ -600,6 +602,7 @@ export interface Database {
           ends_at?: string | null;
           status?: "draft" | "upcoming" | "live" | "closed" | "archived";
           points?: number;
+          xp_points?: number;
           completion_mode?:
             "self_confirm" | "evidence_required" | "manager_approval";
           repeat_frequency?: "once" | "weekly" | "monthly";
@@ -1317,6 +1320,17 @@ export interface Database {
         Returns: string;
       };
       award_reward_points: {
+        Args: {
+          p_user_id: string;
+          p_amount: number;
+          p_reason: string;
+          p_reference_type?: string | null;
+          p_reference_id?: string | null;
+          p_created_by?: string | null;
+        };
+        Returns: boolean;
+      };
+      award_quarterly_xp: {
         Args: {
           p_user_id: string;
           p_amount: number;

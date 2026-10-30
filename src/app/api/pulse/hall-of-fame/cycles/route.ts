@@ -77,6 +77,46 @@ export async function PATCH(req: Request) {
     );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
   const db = supabaseAdmin as any;
+  if (body.status === "team_voting") {
+    const [
+      { data: eligibleStaff, error: staffError },
+      { data: entries, error: entriesError },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("is_active", true)
+        .not("role", "in", "(admin,hr,manager)"),
+      db
+        .from("hall_of_fame_nominations")
+        .select("nominator_id, nominee_id")
+        .eq("cycle_id", body.id),
+    ]);
+    if (staffError || entriesError)
+      return NextResponse.json(
+        { error: staffError?.message ?? entriesError?.message },
+        { status: 500 },
+      );
+    const entered = new Set(
+      (entries ?? [])
+        .filter(
+          (entry: { nominator_id: string; nominee_id: string }) =>
+            entry.nominator_id === entry.nominee_id,
+        )
+        .map((entry: { nominator_id: string }) => entry.nominator_id),
+    );
+    const missing = (eligibleStaff ?? []).filter(
+      (member) => !entered.has(member.id),
+    );
+    if (missing.length > 0)
+      return NextResponse.json(
+        {
+          error: `${missing.length} eligible staff member${missing.length === 1 ? " has" : "s have"} not submitted a monthly project entry yet.`,
+          missingEntries: missing.length,
+        },
+        { status: 409 },
+      );
+  }
   const { error } = await db
     .from("hall_of_fame_cycles")
     .update({ status: body.status })
