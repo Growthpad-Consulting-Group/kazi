@@ -233,7 +233,7 @@ export default async function ReportingPage() {
         applications={report.applications}
         sources={report.sources}
       />
-      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+      <section className="grid w-full gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/30 dark:shadow-black/20">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>

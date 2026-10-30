@@ -13,6 +13,7 @@ import { withViewGrant } from "@/lib/page-access";
 import { getExtraPermissions } from "@/lib/user-permissions";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { verifyRecaptcha } from "@/lib/recaptcha";
+import { highResGoogleProfilePhoto } from "@/lib/google-profile";
 import type { UserRole } from "@/types/database";
 import {
   PASSKEY_AUTHENTICATION_COOKIE,
@@ -49,7 +50,7 @@ async function provisionGoogleWorkspaceConnection({
     .from("users")
     .update({
       ...(name?.trim() ? { name: name.trim() } : {}),
-      ...(image ? { avatar_url: image } : {}),
+      ...(image ? { avatar_url: highResGoogleProfilePhoto(image) } : {}),
     })
     .eq("id", userId);
 
@@ -331,7 +332,7 @@ export const authOptions: NextAuthOptions = {
             user as unknown as { department: string | null }
           ).department;
         }
-        token.picture = user.image ?? null;
+        token.picture = highResGoogleProfilePhoto(user.image);
       }
       return token;
     },

@@ -84,6 +84,30 @@ function monthLabel(month: string) {
   });
 }
 
+function nominationWindowLabel(cycle: NonNullable<Cycle>) {
+  const format = (value: string) =>
+    new Date(`${value}T12:00:00`).toLocaleDateString("en-KE", {
+      day: "numeric",
+      month: "short",
+    });
+  if (cycle.opens_at && cycle.closes_at)
+    return `Nominations: ${format(cycle.opens_at)} – ${format(cycle.closes_at)}`;
+  if (cycle.closes_at) return `Closes ${format(cycle.closes_at)}`;
+  if (cycle.opens_at) return `Open from ${format(cycle.opens_at)}`;
+  return null;
+}
+
+function nominationCountdown(cycle: NonNullable<Cycle>) {
+  if (!cycle.closes_at) return null;
+  const closeAt = new Date(`${cycle.closes_at}T23:59:59`).getTime();
+  const days = Math.max(0, Math.ceil((closeAt - Date.now()) / 86_400_000));
+  if (days === 0) return { label: "Closes today", urgent: true };
+  return {
+    label: `${days} day${days === 1 ? "" : "s"} remaining`,
+    urgent: days <= 3,
+  };
+}
+
 function toDateString(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 }
@@ -168,6 +192,10 @@ export default function HallOfFameClient({
       item.nominator_id === currentUserId && item.nominee_id === currentUserId,
   );
   const isOpen = cycle?.status === "open";
+  const activeNominationWindowLabel = cycle
+    ? nominationWindowLabel(cycle)
+    : null;
+  const activeNominationCountdown = cycle ? nominationCountdown(cycle) : null;
   const votingStage =
     cycle?.status === "team_voting"
       ? "team"
@@ -435,7 +463,24 @@ export default function HallOfFameClient({
                         ? "Winners published"
                         : "Nominations closed"
                 : "Nominations not open yet"}
+              {isOpen && activeNominationCountdown && (
+                <span
+                  className={
+                    activeNominationCountdown.urgent
+                      ? "text-amber-600 dark:text-amber-300"
+                      : ""
+                  }
+                >
+                  · {activeNominationCountdown.label}
+                </span>
+              )}
             </span>
+            {isOpen && activeNominationWindowLabel && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-lo)]">
+                <Icon icon="solar:calendar-broken" className="h-3.5 w-3.5" />
+                {activeNominationWindowLabel}
+              </span>
+            )}
             {canManage && (
               <div className="flex flex-wrap items-center gap-2">
                 {isOpen && (
