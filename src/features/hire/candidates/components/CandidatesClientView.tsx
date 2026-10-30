@@ -428,14 +428,6 @@ export default function CandidatesClientView({
             </span>
           </div>
         ) : (
-          <span className="text-xs text-[var(--text-lo)] opacity-50">—</span>
-        ),
-    },
-    {
-      header: "AI status",
-      accessor: "ai_score",
-      render: (row) =>
-        row.ai_score === null ? (
           <span
             className={`inline-flex items-center gap-1.5 text-xs font-medium ${row.cv_text || row.cv_parsed ? "text-amber-600" : "text-[var(--text-lo)]"}`}
           >
@@ -448,11 +440,6 @@ export default function CandidatesClientView({
               className="h-3.5 w-3.5"
             />
             {row.cv_text || row.cv_parsed ? "Queued for AI" : "CV needed"}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-            <Icon icon="solar:check-circle-broken" className="h-3.5 w-3.5" />
-            Screened
           </span>
         ),
     },

@@ -1086,15 +1086,29 @@ export interface Database {
           points_cost: number;
           image_url: string | null;
           is_active: boolean;
+          category: string | null;
+          vendor_name: string | null;
+          fulfilment_instructions: string | null;
+          stock_quantity: number | null;
+          redemption_limit_per_user: number | null;
+          available_from: string | null;
+          expires_at: string | null;
           created_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["reward_catalogue"]["Row"],
-          "id" | "created_at" | "description" | "image_url" | "is_active"
+          "id" | "created_at" | "description" | "image_url" | "is_active" | "category" | "vendor_name" | "fulfilment_instructions" | "stock_quantity" | "redemption_limit_per_user" | "available_from" | "expires_at"
         > & {
           description?: string | null;
           image_url?: string | null;
           is_active?: boolean;
+          category?: string | null;
+          vendor_name?: string | null;
+          fulfilment_instructions?: string | null;
+          stock_quantity?: number | null;
+          redemption_limit_per_user?: number | null;
+          available_from?: string | null;
+          expires_at?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["reward_catalogue"]["Insert"]
@@ -1111,6 +1125,7 @@ export interface Database {
           approved_by: string | null;
           fulfilled_at: string | null;
           notes: string | null;
+          refunded_at: string | null;
           created_at: string;
         };
         Insert: Omit<
@@ -1126,12 +1141,14 @@ export interface Database {
           approved_by?: string | null;
           fulfilled_at?: string | null;
           notes?: string | null;
+          refunded_at?: string | null;
         };
         Update: Partial<{
           status: RedemptionStatus;
           approved_by: string | null;
           fulfilled_at: string | null;
           notes: string | null;
+          refunded_at: string | null;
         }>;
         Relationships: [];
       };

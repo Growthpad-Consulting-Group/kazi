@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
+import { notifyRoles } from "@/lib/notifications";
 import type { RedemptionStatus } from "@/types/database";
 
 const ALLOWED_STATUSES: RedemptionStatus[] = [
@@ -67,17 +68,19 @@ export async function PATCH(
     );
   }
 
-  const { error } = await supabaseAdmin
-    .from("reward_redemptions")
-    .update({
-      status: status as RedemptionStatus,
-      approved_by: session.user.id,
-      fulfilled_at: status === "fulfilled" ? new Date().toISOString() : null,
-      notes: notes ?? null,
-    })
-    .eq("id", id);
-
+  const { data, error } = await supabaseAdmin.rpc(
+    "process_reward_redemption" as never,
+    { p_redemption_id: id, p_status: status, p_actor_id: session.user.id, p_notes: typeof notes === "string" ? notes.trim() || null : null } as never,
+  );
   if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  const result = data as { user_id: string; reward_name: string; status: RedemptionStatus };
+  await supabaseAdmin.from("notifications").insert({
+    user_id: result.user_id,
+    message: `Reward ${result.status}: ${result.reward_name}${result.status === "rejected" ? " — your points have been refunded" : ""}`,
+    link: "/pulse/rewards",
+  });
+  if (result.status === "approved")
+    await notifyRoles(["admin", "hr"], `Reward ready to fulfil: ${result.reward_name}`, "/pulse/rewards");
   return NextResponse.json({ ok: true });
 }

@@ -23,6 +23,9 @@ export async function PATCH(
     points_cost?: unknown;
     image_url?: unknown;
     is_active?: unknown;
+    category?: unknown; vendor_name?: unknown; fulfilment_instructions?: unknown;
+    stock_quantity?: unknown; redemption_limit_per_user?: unknown;
+    available_from?: unknown; expires_at?: unknown;
   } | null;
   const update: Partial<{
     name: string;
@@ -30,6 +33,9 @@ export async function PATCH(
     points_cost: number;
     image_url: string | null;
     is_active: boolean;
+    category: string | null; vendor_name: string | null; fulfilment_instructions: string | null;
+    stock_quantity: number | null; redemption_limit_per_user: number | null;
+    available_from: string | null; expires_at: string | null;
   }> = {};
   if (body?.name !== undefined) {
     if (typeof body.name !== "string" || !body.name.trim())
@@ -59,6 +65,13 @@ export async function PATCH(
         ? body.image_url.trim()
         : null;
   if (body?.is_active !== undefined) update.is_active = Boolean(body.is_active);
+  for (const key of ["category", "vendor_name", "fulfilment_instructions"] as const) if (body?.[key] !== undefined) update[key] = typeof body[key] === "string" && body[key].trim() ? body[key].trim() : null;
+  for (const key of ["stock_quantity", "redemption_limit_per_user"] as const) if (body?.[key] !== undefined) {
+    const value = body[key];
+    if (value !== null && (typeof value !== "number" || !Number.isInteger(value) || (key === "stock_quantity" ? value < 0 : value < 1))) return NextResponse.json({ error: key === "stock_quantity" ? "Stock must be a whole number or unlimited." : "Redemption limit must be a whole number above zero." }, { status: 400 });
+    update[key] = value as number | null;
+  }
+  for (const key of ["available_from", "expires_at"] as const) if (body?.[key] !== undefined) update[key] = typeof body[key] === "string" && body[key] ? body[key] : null;
   if (!Object.keys(update).length)
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
 

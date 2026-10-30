@@ -81,7 +81,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
           .select(
             "id, user_id, catalogue_item_id, points_spent, status, approved_by, fulfilled_at, notes, created_at",
           )
-          .eq("status", "pending")
+          .in("status", ["pending", "approved"])
           .order("created_at", { ascending: true })
       : Promise.resolve({ data: [] }),
     canManage
@@ -458,7 +458,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                     <Icon icon="solar:inbox-broken" className="h-3.5 w-3.5" />
                   </span>
                   <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-                    Pending redemptions
+                    Redemption queue
                   </h2>
                   {enrichedPending.length > 0 && (
                     <span className="ml-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600">
@@ -469,7 +469,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
 
                 {enrichedPending.length === 0 ? (
                   <p className="text-sm text-[var(--text-lo)]">
-                    No pending redemptions.
+                    No redemptions waiting for review or fulfilment.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -490,6 +490,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                               { day: "numeric", month: "short" },
                             )}
                           </p>
+                          <span className={`mt-2 inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${r.status === "approved" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"}`}>{r.status === "approved" ? "Approved · awaiting fulfilment" : "Pending review"}</span>
                         </div>
                         {r.user_id === userId ||
                         (r.requester_role === "admin" &&
@@ -500,7 +501,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                               : "Waiting for HR"}
                           </span>
                         ) : (
-                          <RedemptionActions redemptionId={r.id} />
+                          <RedemptionActions redemptionId={r.id} status={r.status as "pending" | "approved"} />
                         )}
                       </div>
                     ))}
