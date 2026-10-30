@@ -122,6 +122,8 @@ export interface Database {
           application_instructions: string | null;
           selection_process: string | null;
           source_document_url: string | null;
+          google_indexed_at: string | null;
+          google_removed_at: string | null;
           created_by: string;
           created_at: string;
           updated_at: string;
@@ -142,6 +144,8 @@ export interface Database {
           | "application_instructions"
           | "selection_process"
           | "source_document_url"
+          | "google_indexed_at"
+          | "google_removed_at"
         > & {
           published_at?: string | null;
           closes_at?: string | null;
@@ -154,6 +158,8 @@ export interface Database {
           application_instructions?: string | null;
           selection_process?: string | null;
           source_document_url?: string | null;
+          google_indexed_at?: string | null;
+          google_removed_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["jobs"]["Insert"]>;
         Relationships: [];

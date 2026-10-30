@@ -43,19 +43,19 @@ npm run seed:admin
 
 Set the required values in `.env.local`. Never commit this file or any credential.
 
-| Area                  | Variables                                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------- |
-| Core                  | `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`                                                  |
-| Supabase              | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`                  |
-| Cache and jobs        | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `CRON_SECRET`                                       |
-| Files                 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`            |
-| Email                 | `RESEND_API_KEY`, `EMAIL_FROM`                                                                            |
-| AI                    | `GROQ_API_KEY`, optional `GROQ_MODEL`, `AI_PROVIDER`                                                      |
-| CAPTCHA               | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY`                                                  |
-| Google                | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY` |
-| Asana                 | `ASANA_CLIENT_ID`, `ASANA_CLIENT_SECRET`, `ASANA_REDIRECT_URI`, `ASANA_TOKEN_ENCRYPTION_KEY`              |
-| Slack                 | `SLACK_BOT_TOKEN`, `SLACK_WEBHOOK_URL`                                                                    |
-| Optional integrations | `GIPHY_API_KEY`, `CAREERS_REVALIDATE_SECRET`, `CAREERS_REVALIDATE_URL`                                    |
+| Area                  | Variables                                                                                                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core                  | `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`                                                                                                                     |
+| Supabase              | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`                                                                                     |
+| Cache and jobs        | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `CRON_SECRET`                                                                                                          |
+| Files                 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`                                                                               |
+| Email                 | `RESEND_API_KEY`, `EMAIL_FROM`                                                                                                                                               |
+| AI                    | `GROQ_API_KEY`, optional `GROQ_MODEL`, `AI_PROVIDER`                                                                                                                         |
+| CAPTCHA               | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY`                                                                                                                     |
+| Google                | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY`, optional `GOOGLE_APPLICATION_CREDENTIALS` for JobPosting indexing |
+| Asana                 | `ASANA_CLIENT_ID`, `ASANA_CLIENT_SECRET`, `ASANA_REDIRECT_URI`, `ASANA_TOKEN_ENCRYPTION_KEY`                                                                                 |
+| Slack                 | `SLACK_BOT_TOKEN`, `SLACK_WEBHOOK_URL`                                                                                                                                       |
+| Optional integrations | `GIPHY_API_KEY`, `CAREERS_REVALIDATE_SECRET`, `CAREERS_REVALIDATE_URL`                                                                                                       |
 
 ### Sentry
 
@@ -92,12 +92,13 @@ npm run seed:admin
 
 GitHub Actions invokes authenticated routes using `APP_URL` and `CRON_SECRET`:
 
-| Workflow         | Cadence          | Purpose                                                    |
-| ---------------- | ---------------- | ---------------------------------------------------------- |
-| Screening Worker | Every 5 minutes  | Parses uploaded CVs and performs queued AI screening.      |
-| Signature Retry  | Every 15 minutes | Retries eligible failed Gmail signature syncs.             |
-| Review Reminders | Daily            | Sends outstanding review reminders.                        |
-| AI Log Retention | Monthly          | Removes expired, privacy-reduced AI audit logs in batches. |
+| Workflow            | Cadence          | Purpose                                                              |
+| ------------------- | ---------------- | -------------------------------------------------------------------- |
+| Screening Worker    | Every 5 minutes  | Parses uploaded CVs and performs queued AI screening.                |
+| Signature Retry     | Every 15 minutes | Retries eligible failed Gmail signature syncs.                       |
+| Review Reminders    | Daily            | Sends outstanding review reminders.                                  |
+| AI Log Retention    | Monthly          | Removes expired, privacy-reduced AI audit logs in batches.           |
+| Google Job Indexing | Hourly           | Notifies Google when scheduled job postings become public or expire. |
 
 The retention endpoint supports a safe verification call:
 

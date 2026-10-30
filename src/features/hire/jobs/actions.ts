@@ -3,6 +3,7 @@
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { notifyCareersSiteJobsChanged } from "@/lib/careers-site";
+import { notifyGoogleOfJob } from "@/lib/google-job-indexing";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
@@ -37,6 +38,47 @@ function validateSchedule(
     throw new Error("Close date must be after the publish date");
   }
   return { publishedAt, closesAt };
+}
+
+type IndexableJob = {
+  id: string;
+  slug: string;
+  status: Database["public"]["Tables"]["jobs"]["Row"]["status"];
+  published_at: string | null;
+  closes_at: string | null;
+};
+
+function isPublicJob(job: Omit<IndexableJob, "id">) {
+  const now = new Date();
+  return (
+    job.status === "open" &&
+    (!job.published_at || new Date(job.published_at) <= now) &&
+    (!job.closes_at || new Date(job.closes_at) > now)
+  );
+}
+
+async function syncGoogleJobIndexing(
+  job: IndexableJob,
+  previous?: Omit<IndexableJob, "id"> | null,
+) {
+  const type = isPublicJob(job)
+    ? "URL_UPDATED"
+    : previous && isPublicJob(previous)
+      ? "URL_DELETED"
+      : null;
+  if (!type || !(await notifyGoogleOfJob(job.slug, type))) return;
+
+  await supabaseAdmin
+    .from("jobs")
+    .update(
+      type === "URL_UPDATED"
+        ? {
+            google_indexed_at: new Date().toISOString(),
+            google_removed_at: null,
+          }
+        : { google_removed_at: new Date().toISOString() },
+    )
+    .eq("id", job.id);
 }
 
 export async function getJobs() {
@@ -98,6 +140,7 @@ export async function createJob(form: JobFormData) {
   revalidatePath("/hire/jobs");
   await invalidateTables("jobs");
   await notifyCareersSiteJobsChanged();
+  await syncGoogleJobIndexing(data);
   return data;
 }
 
@@ -105,6 +148,13 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   const session = await getServerSession(authOptions);
   if (!session || !can(session.user.role, "manage_hiring"))
     throw new Error("Forbidden");
+
+  const { data: previous, error: previousError } = await supabaseAdmin
+    .from("jobs")
+    .select("slug, status, published_at, closes_at")
+    .eq("id", id)
+    .single();
+  if (previousError) throw new Error(previousError.message);
 
   type JobUpdate = Database["public"]["Tables"]["jobs"]["Update"];
   const update: JobUpdate = {};
@@ -149,13 +199,7 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   if (form.status !== undefined) {
     update.status = form.status;
     if (form.status === "open" && form.published_at === undefined) {
-      const { data: current, error: currentError } = await supabaseAdmin
-        .from("jobs")
-        .select("published_at")
-        .eq("id", id)
-        .single();
-      if (currentError) throw new Error(currentError.message);
-      if (!current?.published_at)
+      if (!previous?.published_at)
         update.published_at = new Date().toISOString();
     }
   }
@@ -172,6 +216,7 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   revalidatePath(`/hire/jobs/${id}`);
   await invalidateTables("jobs");
   await notifyCareersSiteJobsChanged();
+  await syncGoogleJobIndexing(data, previous);
   return data;
 }
 
@@ -180,9 +225,18 @@ export async function deleteJob(id: string) {
   if (!session || !can(session.user.role, "manage_system"))
     throw new Error("Forbidden");
 
+  const { data: previous, error: previousError } = await supabaseAdmin
+    .from("jobs")
+    .select("id, slug, status, published_at, closes_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (previousError) throw new Error(previousError.message);
+
   const { error } = await supabaseAdmin.from("jobs").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/hire/jobs");
   await invalidateTables("jobs");
   await notifyCareersSiteJobsChanged();
+  if (previous && isPublicJob(previous))
+    await notifyGoogleOfJob(previous.slug, "URL_DELETED");
 }
