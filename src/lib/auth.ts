@@ -1,13 +1,87 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
+import { encryptGoogleToken } from "@/lib/google-calendar";
 import { getAllowedPaths } from "@/lib/page-access-server";
 import { withViewGrant } from "@/lib/page-access";
 import { getExtraPermissions } from "@/lib/user-permissions";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { verifyRecaptcha } from "@/lib/recaptcha";
 import type { UserRole } from "@/types/database";
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleWorkspaceLoginEnabled = Boolean(
+  googleClientId && googleClientSecret,
+);
+
+async function provisionGoogleWorkspaceConnection({
+  userId,
+  email,
+  name,
+  image,
+  subject,
+  accessToken,
+  refreshToken,
+  expiresAt,
+}: {
+  userId: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+  subject: string;
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  expiresAt?: number | null;
+}) {
+  await supabaseAdmin
+    .from("users")
+    .update({
+      ...(name?.trim() ? { name: name.trim() } : {}),
+      ...(image ? { avatar_url: image } : {}),
+    })
+    .eq("id", userId);
+
+  await supabaseAdmin.from("google_profile_connections").upsert(
+    {
+      user_id: userId,
+      google_subject: subject,
+      google_email: email,
+      refreshed_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (!accessToken) return;
+
+  const { data: existing } = await supabaseAdmin
+    .from("google_calendar_connections")
+    .select("refresh_token_ciphertext")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const encryptedRefreshToken = refreshToken
+    ? encryptGoogleToken(refreshToken)
+    : existing?.refresh_token_ciphertext;
+
+  // Google grants a refresh token on the consent flow. Preserve a previously
+  // stored one if Google omits it on a later sign-in.
+  if (!encryptedRefreshToken) return;
+  await supabaseAdmin.from("google_calendar_connections").upsert(
+    {
+      user_id: userId,
+      access_token_ciphertext: encryptGoogleToken(accessToken),
+      refresh_token_ciphertext: encryptedRefreshToken,
+      token_expiry: new Date(
+        (expiresAt ?? Math.floor(Date.now() / 1000) + 3600) * 1000,
+      ).toISOString(),
+      calendar_id: "primary",
+      calendar_name: email,
+    },
+    { onConflict: "user_id" },
+  );
+}
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -80,15 +154,82 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    ...(googleWorkspaceLoginEnabled
+      ? [
+          GoogleProvider({
+            clientId: googleClientId!,
+            clientSecret: googleClientSecret!,
+            authorization: {
+              params: {
+                prompt: "consent",
+                access_type: "offline",
+                response_type: "code",
+                // A work-account sign-in also creates the connection Kazi uses
+                // for calendar events and internal Google Docs.
+                scope:
+                  "openid email profile https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.readonly",
+              },
+            },
+          }),
+        ]
+      : []),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google") return true;
+      const email = user.email?.toLowerCase().trim();
+      const googleProfile = profile as { email_verified?: boolean } | undefined;
+      if (
+        !email ||
+        !account.providerAccountId ||
+        googleProfile?.email_verified !== true
+      )
+        return false;
+
+      const { data: staff } = await supabaseAdmin
+        .from("users")
+        .select("id, is_active")
+        .eq("email", email)
+        .maybeSingle();
+      if (!staff?.is_active) return false;
+
+      try {
+        await provisionGoogleWorkspaceConnection({
+          userId: staff.id,
+          email,
+          name: user.name,
+          image: user.image,
+          subject: account.providerAccountId,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          expiresAt: account.expires_at,
+        });
+        return true;
+      } catch (error) {
+        console.error("Google work-account sign-in could not be provisioned", error);
+        return false;
+      }
+    },
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as unknown as { role: UserRole }).role;
-        token.department = (
-          user as unknown as { department: string | null }
-        ).department;
+        if (account?.provider === "google") {
+          const { data: staff } = await supabaseAdmin
+            .from("users")
+            .select("id, role, department")
+            .eq("email", user.email?.toLowerCase().trim() ?? "")
+            .maybeSingle();
+          if (staff) {
+            token.id = staff.id;
+            token.role = staff.role;
+            token.department = staff.department;
+          }
+        } else {
+          token.id = user.id;
+          token.role = (user as unknown as { role: UserRole }).role;
+          token.department = (
+            user as unknown as { department: string | null }
+          ).department;
+        }
         token.picture = user.image ?? null;
       }
       return token;
