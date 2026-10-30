@@ -134,6 +134,15 @@ export async function notifyQuestEndingSoon(
   });
 }
 
+export async function notifyQuestLive(userId: string, questTitle: string) {
+  await supabaseAdmin.from("notifications").insert({
+    user_id: userId,
+    message: `New Side Quest: ${questTitle}`,
+    link: "/pulse/side-quests",
+  });
+  await invalidateUserNotifications(userId);
+}
+
 export async function notifySurveyClosingSoon(
   userId: string,
   surveyTitle: string,

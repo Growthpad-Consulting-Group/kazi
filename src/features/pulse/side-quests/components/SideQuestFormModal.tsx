@@ -64,6 +64,7 @@ function SideQuestForm({
   const [completionMode, setCompletionMode] = useState(
     quest?.completion_mode ?? "self_confirm",
   );
+  const [lifecycle, setLifecycle] = useState(quest?.status ?? "live");
   const [audience, setAudience] = useState(quest?.audience_type ?? "company");
   const [filters, setFilters] = useState<string[]>(
     quest?.audience_filters ?? [],
@@ -102,6 +103,7 @@ function SideQuestForm({
       completion_criteria: criteria,
       points: Number(points) || 0,
       completion_mode: completionMode,
+      status: lifecycle,
       audience_type: audience,
       audience_filters: filters,
       starts_at: startDate ? `${startDate}T${startTime || "09:00"}:00` : null,
@@ -138,6 +140,22 @@ function SideQuestForm({
 
   return (
     <div className="space-y-4">
+      <div>
+        <label className={labelClass}>Quest status</label>
+        <select
+          value={lifecycle}
+          onChange={(event) =>
+            setLifecycle(event.target.value as typeof lifecycle)
+          }
+          className={inputClass}
+        >
+          <option value="draft">Draft</option>
+          <option value="upcoming">Scheduled</option>
+          <option value="live">Live now</option>
+          <option value="closed">Closed</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
       <div>
         <label className={labelClass}>Challenge name</label>
         <input
@@ -258,6 +276,9 @@ function SideQuestForm({
           Quest window{" "}
           <span className="font-normal text-[var(--text-lo)]">Optional</span>
         </label>
+        <p className="mb-2 text-xs text-[var(--text-lo)]">
+          Times use East Africa Time (EAT, UTC+3).
+        </p>
         <DateRangePicker
           value={{
             startDate: startDate ? new Date(`${startDate}T12:00:00`) : null,

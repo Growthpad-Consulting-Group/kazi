@@ -76,6 +76,28 @@ export default async function SideQuestsPage() {
       )) ||
     (quest.audience_type === "staff" &&
       quest.audience_filters.includes(session.user.id));
+  const eligibleCount = (quest: {
+    audience_type: string;
+    audience_filters: string[];
+  }) =>
+    (staff ?? []).filter(
+      (user) =>
+        quest.audience_type === "company" ||
+        (quest.audience_type === "department" &&
+          Boolean(
+            user.department && quest.audience_filters.includes(user.department),
+          )) ||
+        (quest.audience_type === "location" &&
+          Boolean(
+            user.location && quest.audience_filters.includes(user.location),
+          )) ||
+        (quest.audience_type === "manager_group" &&
+          Boolean(
+            user.manager_id && quest.audience_filters.includes(user.manager_id),
+          )) ||
+        (quest.audience_type === "staff" &&
+          quest.audience_filters.includes(user.id)),
+    ).length;
   const visibleQuests = (quests ?? []).filter(
     (quest) => canManage || isEligible(quest),
   );
@@ -289,7 +311,8 @@ export default async function SideQuestsPage() {
                       <span className="font-semibold text-[var(--text-hi)]">
                         {count}
                       </span>{" "}
-                      completed · {audienceLabels[quest.audience_type]}
+                      of {eligibleCount(quest)} completed ·{" "}
+                      {audienceLabels[quest.audience_type]}
                       {quest.ends_at
                         ? ` · Ends ${new Date(quest.ends_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
                         : ""}

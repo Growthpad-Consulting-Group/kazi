@@ -16,6 +16,7 @@ const completionModes = new Set([
   "evidence_required",
   "manager_approval",
 ]);
+const statuses = new Set(["draft", "upcoming", "live", "closed", "archived"]);
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -93,7 +94,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   const { data: existing } = await supabaseAdmin
     .from("side_quests")
-    .select("status")
+    .select("status, points, audience_type, audience_filters, completion_mode")
     .eq("id", id)
     .maybeSingle();
   if (!existing)
@@ -102,12 +103,42 @@ export async function PATCH(req: Request, context: RouteContext) {
       { status: 404 },
     );
   const current = (existing as { status: string }).status;
+  const currentQuest = existing as {
+    points: number;
+    audience_type: string;
+    audience_filters: string[];
+    completion_mode: string;
+  };
+  const { count: completionCount } = await supabaseAdmin
+    .from("side_quest_completions")
+    .select("*", { count: "exact", head: true })
+    .eq("side_quest_id", id);
+  const sameAudience =
+    currentQuest.audience_type === audienceType &&
+    JSON.stringify([...currentQuest.audience_filters].sort()) ===
+      JSON.stringify([...filters].sort());
+  if (
+    (completionCount ?? 0) > 0 &&
+    (currentQuest.points !== points ||
+      !sameAudience ||
+      currentQuest.completion_mode !== completionMode)
+  )
+    return NextResponse.json(
+      {
+        error:
+          "Points, audience, and verification cannot change after staff have submitted. Close this quest and create a follow-up instead.",
+      },
+      { status: 409 },
+    );
+  const requestedStatus = body?.status;
   const status =
-    current === "closed" || current === "archived"
-      ? current
-      : startsAt && new Date(startsAt) > new Date()
-        ? "upcoming"
-        : "live";
+    typeof requestedStatus === "string" && statuses.has(requestedStatus)
+      ? requestedStatus
+      : current === "closed" || current === "archived"
+        ? current
+        : startsAt && new Date(startsAt) > new Date()
+          ? "upcoming"
+          : "live";
 
   const { error } = await supabaseAdmin
     .from("side_quests")

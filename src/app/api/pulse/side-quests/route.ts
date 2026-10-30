@@ -16,6 +16,7 @@ const completionModes = new Set([
   "evidence_required",
   "manager_approval",
 ]);
+const statuses = new Set(["draft", "upcoming", "live", "closed", "archived"]);
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
     ends_at,
     points,
     completion_mode,
+    status: requestedStatus,
   } = await req.json();
   const questPoints = Number.isInteger(points) ? points : 10;
   if (questPoints < 0 || questPoints > 1000)
@@ -80,7 +82,11 @@ export async function POST(req: Request) {
     );
 
   const now = new Date();
-  const status = starts_at && new Date(starts_at) > now ? "upcoming" : "live";
+  const status = statuses.has(requestedStatus)
+    ? requestedStatus
+    : starts_at && new Date(starts_at) > now
+      ? "upcoming"
+      : "live";
   const { data, error } = await supabaseAdmin
     .from("side_quests")
     .insert({
