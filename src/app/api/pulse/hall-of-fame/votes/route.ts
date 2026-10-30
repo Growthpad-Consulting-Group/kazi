@@ -67,6 +67,42 @@ export async function POST(request: Request) {
       { error: "Voting is not open for your role." },
       { status: 409 },
     );
+  if (stage === "management") {
+    /* eslint-disable @typescript-eslint/no-explicit-any -- migration-backed table awaits generated types */
+    const { data: teamVotes, error: finalistsError } = await (
+      supabaseAdmin as any
+    )
+      .from("hall_of_fame_votes")
+      .select("nominee_id, score")
+      .eq("cycle_id", body.cycleId)
+      .eq("category", body.category)
+      .eq("stage", "team");
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+    if (finalistsError)
+      return NextResponse.json(
+        { error: finalistsError.message },
+        { status: 500 },
+      );
+    const scores = new Map<string, { total: number; count: number }>();
+    for (const vote of teamVotes ?? []) {
+      const entry = scores.get(vote.nominee_id) ?? { total: 0, count: 0 };
+      entry.total += vote.score;
+      entry.count += 1;
+      scores.set(vote.nominee_id, entry);
+    }
+    const finalists = [...scores.entries()]
+      .sort(([, a], [, b]) => b.total / b.count - a.total / a.count)
+      .slice(0, 3)
+      .map(([nomineeId]) => nomineeId);
+    if (!finalists.includes(body.nomineeId))
+      return NextResponse.json(
+        {
+          error:
+            "Management voting is limited to the three team-vote finalists.",
+        },
+        { status: 403 },
+      );
+  }
   const { error } = await db.from("hall_of_fame_votes").upsert(
     {
       cycle_id: body.cycleId,

@@ -14,15 +14,15 @@ Source: Corporate Gifting and Side Quests Program Framework
 
 - [x] Add a donation reward type with charity, amount, and fulfilment instructions.
 - [x] Show each staff member their progress to the next available reward.
-- [ ] Add a 12-month wallet-points expiry policy, scheduled expiry processing, and advance notices.
+- [x] Add a 12-month wallet-points expiry policy, scheduled expiry processing, and advance notices.
 - [ ] Record the programme cost in KES per reward and show management cost reporting.
 
 ## P1 Core performance awards
 
 - [ ] Enforce one required monthly project entry for every eligible staff member across MVP and WOW.
-- [ ] Add 1–10 team voting after nominations close.
-- [ ] Add management voting for the top three nominees in each award category.
-- [ ] Select, publish, and archive winners with prize and fulfilment tracking.
+- [x] Add 1–10 team voting after nominations close.
+- [x] Add management voting for the top three nominees in each award category.
+- [x] Select, publish, and archive winners with prize and fulfilment tracking.
 
 ## P2 Engagement layer
 
