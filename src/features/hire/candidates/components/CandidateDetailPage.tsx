@@ -342,6 +342,22 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
         )}
       </section>
 
+      {candidate.cover_message && (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <SectionHeader icon="solar:letter-broken" title="Cover letter" />
+            <span className="rounded-lg bg-brand-500/10 px-2 py-1 text-[10px] font-semibold text-brand-600">
+              Applicant message
+            </span>
+          </div>
+          <div className="max-h-72 overflow-y-auto rounded-xl px-4 py-3.5">
+            <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--text-hi)]">
+              {candidate.cover_message}
+            </p>
+          </div>
+        </section>
+      )}
+
       {(candidate.cv_url || candidate.cv_text || cvParsed) && (
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3 capitalize">

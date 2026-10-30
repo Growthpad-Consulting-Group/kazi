@@ -43,7 +43,7 @@ export function CandidateCvViewer({
           className="h-[580px] w-full bg-white"
         />
         <p className="border-t border-[var(--border)] px-3.5 py-2 text-xs text-[var(--text-lo)]">
-          Preview is rendered securely by Kazi. If it cannot load, open the
+          Preview is rendered securely by Kazi. If it cannot load, download the
           original document.
         </p>
       </div>
