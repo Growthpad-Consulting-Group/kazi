@@ -198,15 +198,15 @@ export default function ProfileClient({
       </SettingsSection>
 
       <SettingsSection
-        title="Google profile"
-        description="Optionally refresh your name and photo from the Google account that matches your Kazi email."
-        icon="solar:google-broken"
+        title="Work profile"
+        description="Refresh your name and photo from your Growthpad work account."
+        icon="solar:case-minimalistic-broken"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[var(--text-lo)]">
             {googleProfileConnected
-              ? "Connected. Refresh any time to use your current Google profile photo."
-              : "Uses only basic identity details: name, verified email, and profile photo."}
+              ? "Connected through Google. Refresh any time to use your current profile photo."
+              : "Google verifies your work email and shares only your basic profile details."}
           </p>
           <div className="flex gap-2">
             <Button
@@ -216,8 +216,8 @@ export default function ProfileClient({
               }}
             >
               {googleProfileConnected
-                ? "Refresh from Google"
-                : "Connect Google profile"}
+                ? "Refresh work profile"
+                : "Connect work profile"}
             </Button>
             {googleProfileConnected && (
               <Button
