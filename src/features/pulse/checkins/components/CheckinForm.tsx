@@ -7,7 +7,6 @@ import type { Checkin } from "@/types/database";
 import { Button } from "@/components/ui/Button";
 import { PlainTextEditor } from "@/components/ui/PlainTextEditor";
 import { Accordion } from "@/components/ui/Accordion";
-import { AsanaTaskImport } from "./AsanaTaskImport";
 import type { DailyWeekSummary } from "../actions";
 
 interface Props {
@@ -54,15 +53,7 @@ export function CheckinForm({
   const [editingSubmitted, setEditingSubmitted] = useState(false);
   const isReviewed = existing?.status === "reviewed";
   const isSubmitted = existing?.status === "submitted";
-  const dailyTasks = [...new Set(dailySummary?.tasks ?? [])];
   const weekComplete = dailySummary?.daysLogged === 5;
-
-  const addDailyTasksToWins = () =>
-    setWins((current) => {
-      const addition = dailyTasks.map((task) => `• ${task}`).join("\n");
-      if (!addition || current.includes(addition)) return current;
-      return current.trim() ? `${current.trim()}\n${addition}` : addition;
-    });
 
   async function save(submit: boolean) {
     setSaving(true);
@@ -129,7 +120,7 @@ export function CheckinForm({
         <section
           className={`rounded-2xl border p-4 ${weekComplete ? "border-emerald-500/20 bg-emerald-500/[0.05]" : "border-brand-500/15 bg-brand-500/[0.05]"}`}
         >
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
             <div className="flex items-center gap-2.5">
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${weekComplete ? "bg-emerald-500/10 text-emerald-600" : "bg-brand-500/10 text-brand-500"}`}
@@ -156,16 +147,6 @@ export function CheckinForm({
                 </p>
               </div>
             </div>
-            {dailyTasks.length > 0 && (
-              <Button
-                size="sm"
-                variant="secondary"
-                icon="solar:import-broken"
-                onClick={addDailyTasksToWins}
-              >
-                Add logged work to highlights
-              </Button>
-            )}
           </div>
           <DailyActivityBreakdown summary={dailySummary} />
         </section>
@@ -178,16 +159,6 @@ export function CheckinForm({
           icon="solar:cup-star-broken"
           value={wins}
           onChange={setWins}
-          accessory={
-            <AsanaTaskImport
-              weekStart={weekStart}
-              onImport={(bullets) =>
-                setWins((current) =>
-                  current ? `${current}\n${bullets}` : bullets,
-                )
-              }
-            />
-          }
         />
         <Field
           step="2"

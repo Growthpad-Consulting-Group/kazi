@@ -395,10 +395,10 @@ export default async function CheckinsPage({
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-gradient-to-r from-brand-500/[0.06] to-transparent px-5 py-4 sm:px-6">
               <div>
-                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                <h2 className="text-md font-semibold text-[var(--text-hi)]">
                   Your update
                 </h2>
-                <p className="mt-1 text-xs text-[var(--text-lo)]">
+                <p className="mt-1 text-sm text-[var(--text-lo)]">
                   A quick look back, then forward.
                 </p>
               </div>
@@ -409,10 +409,10 @@ export default async function CheckinsPage({
                   <Icon icon={status.icon} className="h-4 w-4" />
                 </span>
                 <span>
-                  <span className="block text-xs font-semibold text-[var(--text-hi)]">
+                  <span className="block text-sm font-semibold text-[var(--text-hi)]">
                     {status.label}
                   </span>
-                  <span className="block text-[10px] text-[var(--text-lo)]">
+                  <span className="block text-xs text-[var(--text-lo)]">
                     {status.description}
                   </span>
                 </span>
@@ -475,10 +475,10 @@ export default async function CheckinsPage({
                   className="mt-0.5 h-4 w-4 shrink-0 text-brand-500"
                 />
                 <div>
-                  <p className="text-xs font-semibold text-[var(--text-hi)]">
+                  <p className="text-sm font-semibold text-[var(--text-hi)]">
                     Keep it useful
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--text-lo)]">
                     Specific wins and clear blockers make your next 1-on-1 more
                     productive.
                   </p>
@@ -561,7 +561,7 @@ function EmptyHistory() {
         icon="solar:history-broken"
         className="h-5 w-5 text-[var(--text-lo)]"
       />
-      <p className="mt-2 text-xs text-[var(--text-lo)]">
+      <p className="mt-2 text-sm text-[var(--text-lo)]">
         Your submitted check-ins will build a useful history here.
       </p>
     </div>
