@@ -19,6 +19,41 @@ const audiences = [
   { value: "staff", label: "Selected staff" },
 ];
 
+const questTemplates = [
+  {
+    id: "knowledge",
+    label: "Knowledge swap",
+    title: "Run a knowledge swap",
+    brief: "Share one practical skill, tool, or lesson with a colleague.",
+    criteria: "Host or contribute to a 15-minute knowledge exchange.",
+    points: 20,
+  },
+  {
+    id: "client",
+    label: "Client learning",
+    title: "Share a client learning",
+    brief: "Turn a useful client insight into something the team can reuse.",
+    criteria: "Post a clear client learning with a suggested next step.",
+    points: 15,
+  },
+  {
+    id: "wellbeing",
+    label: "Wellbeing",
+    title: "Take a wellbeing reset",
+    brief: "Make space for one deliberate wellbeing activity this week.",
+    criteria: "Complete the activity and share a short reflection.",
+    points: 10,
+  },
+  {
+    id: "culture",
+    label: "Culture connector",
+    title: "Make a culture connection",
+    brief: "Help a teammate feel seen, supported, or better connected.",
+    criteria: "Complete one thoughtful peer-support action.",
+    points: 15,
+  },
+];
+
 export type AudienceOptions = {
   departments: string[];
   locations: string[];
@@ -75,6 +110,15 @@ function SideQuestForm({
   const [endTime, setEndTime] = useState(end.time);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  function applyTemplate(id: string) {
+    const template = questTemplates.find((item) => item.id === id);
+    if (!template) return;
+    setTitle(template.title);
+    setBrief(template.brief);
+    setCriteria(template.criteria);
+    setPoints(String(template.points));
+  }
 
   const targets =
     audience === "department"
@@ -140,6 +184,26 @@ function SideQuestForm({
 
   return (
     <div className="space-y-4">
+      {!quest && (
+        <div>
+          <label className={labelClass}>
+            Start from a template{" "}
+            <span className="font-normal text-[var(--text-lo)]">Optional</span>
+          </label>
+          <select
+            defaultValue=""
+            onChange={(event) => applyTemplate(event.target.value)}
+            className={inputClass}
+          >
+            <option value="">Choose a starting point</option>
+            {questTemplates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label className={labelClass}>Quest status</label>
         <select
