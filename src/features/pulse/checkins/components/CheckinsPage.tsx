@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
-import StatCard from "@/components/ui/StatCard";
 import {
   getDailyWeekSummary,
   getMyCheckins,
@@ -392,47 +391,6 @@ export default async function CheckinsPage({
         }
       />
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="grid gap-3 sm:grid-cols-3">
-          <StatCard
-            title="Current status"
-            value={status.label.replace(" when you are", "")}
-            icon={status.icon}
-            color={
-              thisWeek?.status === "reviewed"
-                ? "green"
-                : thisWeek?.status === "submitted"
-                  ? "blue"
-                  : thisWeek?.status === "draft"
-                    ? "amber"
-                    : "orange"
-            }
-            variant="inline"
-            compact
-          />
-          <StatCard
-            title="Week ending"
-            value={new Date(`${weekStart}T12:00:00`).toLocaleDateString(
-              "en-KE",
-              { day: "numeric", month: "short" },
-            )}
-            icon="solar:calendar-broken"
-            color="blue"
-            variant="inline"
-            compact
-            subtitle="Monday to Friday"
-          />
-          <StatCard
-            title="Your pulse"
-            value={thisWeek?.mood ? `${MOODS[thisWeek.mood - 1]}` : "—"}
-            icon="solar:heart-pulse-broken"
-            color={thisWeek?.mood && thisWeek.mood <= 2 ? "amber" : "green"}
-            variant="inline"
-            compact
-            subtitle={
-              thisWeek?.mood ? `${thisWeek.mood} out of 5` : "Share how you are"
-            }
-          />
-        </section>
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-gradient-to-r from-brand-500/[0.06] to-transparent px-5 py-4 sm:px-6">

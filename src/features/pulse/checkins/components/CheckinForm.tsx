@@ -146,13 +146,13 @@ export function CheckinForm({
               <div>
                 <p className="text-sm font-semibold text-[var(--text-hi)]">
                   {weekComplete
-                    ? "Your daily week is ready to review"
+                    ? "Your week is ready to review"
                     : "Work logged this week"}
                 </p>
                 <p className="mt-0.5 text-xs text-[var(--text-lo)]">
                   {weekComplete
-                    ? `All five days are shared (${formatMinutes(dailySummary.totalMinutes)}). Add your reflection, then submit when it is ready.`
-                    : `${dailySummary.daysLogged}/5 days · ${formatMinutes(dailySummary.totalMinutes)} tracked. Use it to complete your reflection.`}
+                    ? `All five workdays are logged (${formatMinutes(dailySummary.totalMinutes)}). Add a short reflection, then submit your weekly check-in.`
+                    : `${dailySummary.daysLogged}/5 days · ${formatMinutes(dailySummary.totalMinutes)} tracked. Use it to add a short reflection.`}
                 </p>
               </div>
             </div>
@@ -163,7 +163,7 @@ export function CheckinForm({
                 icon="solar:import-broken"
                 onClick={addDailyTasksToWins}
               >
-                Add daily tasks to wins
+                Add logged work to highlights
               </Button>
             )}
           </div>
@@ -173,8 +173,8 @@ export function CheckinForm({
       <div className="space-y-4">
         <Field
           step="1"
-          label="Wins and accomplishments"
-          hint="What moved forward, shipped, or went well?"
+          label="Weekly highlights"
+          hint="Summarise what moved forward or mattered most."
           icon="solar:cup-star-broken"
           value={wins}
           onChange={setWins}
@@ -192,7 +192,7 @@ export function CheckinForm({
         <Field
           step="2"
           label="Priorities for next week"
-          hint="What are the few outcomes you want to focus on?"
+          hint="What are the few outcomes you want to focus on next?"
           icon="solar:target-broken"
           value={priorities}
           onChange={setPriorities}
@@ -447,48 +447,56 @@ function ReadOnlyCheckin({
 
 function DailyActivityBreakdown({ summary }: { summary: DailyWeekSummary }) {
   return (
-    <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
-      {summary.days.map((day, dayIndex) => (
-        <Accordion
-          key={day.date}
-          title={new Date(`${day.date}T12:00:00`).toLocaleDateString("en-KE", {
-            weekday: "long",
-            day: "numeric",
-            month: "short",
-          })}
-          subtitle={`${day.entries.length} logged task${day.entries.length === 1 ? "" : "s"}`}
-          icon="solar:calendar-broken"
-          badge={formatMinutes(
-            day.entries.reduce((total, entry) => total + entry.minutes, 0),
-          )}
-          defaultOpen={dayIndex === summary.days.length - 1}
-        >
-          {day.entries.map((entry, index) => (
-            <div
-              key={`${entry.task}-${index}`}
-              className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] py-2 last:border-0 text-xs"
-            >
-              <span className="min-w-0 flex-1 text-[var(--text-hi)]">
-                {entry.task}
-              </span>
-              <span className="flex items-center gap-1.5 text-[var(--text-lo)]">
-                {entry.client && (
+    <Accordion
+      className="mt-3"
+      title="View daily activity breakdown"
+      subtitle={`${summary.daysLogged}/5 workdays logged`}
+      icon="solar:list-check-broken"
+      badge={formatMinutes(summary.totalMinutes)}
+    >
+      <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+        {summary.days.map((day, dayIndex) => (
+          <Accordion
+            key={day.date}
+            title={new Date(`${day.date}T12:00:00`).toLocaleDateString("en-KE", {
+              weekday: "long",
+              day: "numeric",
+              month: "short",
+            })}
+            subtitle={`${day.entries.length} logged task${day.entries.length === 1 ? "" : "s"}`}
+            icon="solar:calendar-broken"
+            badge={formatMinutes(
+              day.entries.reduce((total, entry) => total + entry.minutes, 0),
+            )}
+            defaultOpen={dayIndex === summary.days.length - 1}
+          >
+            {day.entries.map((entry, index) => (
+              <div
+                key={`${entry.task}-${index}`}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] py-2 last:border-0 text-xs"
+              >
+                <span className="min-w-0 flex-1 text-[var(--text-hi)]">
+                  {entry.task}
+                </span>
+                <span className="flex items-center gap-1.5 text-[var(--text-lo)]">
+                  {entry.client && (
+                    <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
+                      {entry.client}
+                    </span>
+                  )}
                   <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
-                    {entry.client}
+                    {entry.category}
                   </span>
-                )}
-                <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
-                  {entry.category}
+                  <span className="font-mono">
+                    {formatMinutes(entry.minutes)}
+                  </span>
                 </span>
-                <span className="font-mono">
-                  {formatMinutes(entry.minutes)}
-                </span>
-              </span>
-            </div>
-          ))}
-        </Accordion>
-      ))}
-    </div>
+              </div>
+            ))}
+          </Accordion>
+        ))}
+      </div>
+    </Accordion>
   );
 }
 
