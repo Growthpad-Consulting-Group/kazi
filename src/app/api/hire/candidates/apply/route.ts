@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createCandidateUploadToken } from "@/lib/candidate-upload-token";
 import { ApplicationError } from "@/lib/application-error";
-import { assertCanApply, insertApplicant } from "@/lib/candidate-applications";
+import {
+  assertCanApply,
+  insertApplicant,
+  notifyNewApplicant,
+} from "@/lib/candidate-applications";
 import { sendApplicationConfirmation } from "@/lib/application-emails";
 import { checkRateLimit, rateLimitHeaders, requestIp } from "@/lib/rate-limit";
 
@@ -73,8 +77,8 @@ export async function POST(req: Request) {
         cover_message,
         source,
       },
-      job,
     );
+    await notifyNewApplicant(candidateId, { full_name }, job);
     await sendApplicationConfirmation({
       email,
       fullName: full_name,

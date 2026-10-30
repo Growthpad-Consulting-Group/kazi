@@ -181,7 +181,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
         job.contract_duration ||
         job.compensation ||
         job.reports_to) && (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
           <SectionHeader
             icon="solar:case-broken"
             iconBg="bg-brand-500/10"
@@ -200,7 +200,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
               .map(([label, value]) => (
                 <div
                   key={label}
-                  className="rounded-xl bg-[var(--surface-2)] px-3.5 py-3"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20"
                 >
                   <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">
                     {label}
@@ -323,14 +323,19 @@ export default async function JobDetailPage({ id }: { id: string }) {
 
       {/* ── AI Screening Rubric ── */}
       {job.scoring_rubric.length > 0 && (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-3">
-            <SectionHeader
-              icon="solar:chart-square-broken"
-              iconBg="bg-brand-500/10"
-              iconColor="text-brand-500"
-              title="AI Screening Rubric"
-            />
+            <div>
+              <SectionHeader
+                icon="solar:chart-square-broken"
+                iconBg="bg-brand-500/10"
+                iconColor="text-brand-500"
+                title="AI Screening Rubric"
+              />
+              <p className="-mt-2 pl-11 text-xs text-[var(--text-lo)]">
+                How Kazi weighs each application during the first review.
+              </p>
+            </div>
             <span
               className={`mt-0.5 shrink-0 rounded-full px-2.5 py-1 font-mono text-[11px] font-bold ${
                 rubricTotal === 100
@@ -339,35 +344,38 @@ export default async function JobDetailPage({ id }: { id: string }) {
               }`}
               title="Total weight of all criteria"
             >
-              {rubricTotal}/100
+              {rubricTotal === 100 ? "Balanced · 100%" : `${rubricTotal}/100`}
             </span>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
             {job.scoring_rubric.map((r, i) => (
-              <div key={i}>
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-medium text-[var(--text-hi)]">
+              <article
+                key={i}
+                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-semibold text-[var(--text-hi)]">
                     {r.criterion}
                   </span>
-                  <span className="font-mono text-xs font-bold text-blue-500">
+                  <span className="shrink-0 rounded-lg bg-brand-500/10 px-2 py-1 font-mono text-xs font-bold text-brand-500">
                     {r.weight}%
                   </span>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
                   <div
-                    className="h-full rounded-full bg-blue-500"
+                    className="h-full rounded-full bg-gradient-to-r from-brand-500 to-orange-400"
                     style={{
                       width: `${Math.min(Math.max(r.weight, 0), 100)}%`,
                     }}
                   />
                 </div>
                 {r.description && (
-                  <p className="mt-1.5 text-xs text-[var(--text-lo)]">
+                  <p className="mt-3 text-xs leading-5 text-[var(--text-lo)]">
                     {r.description}
                   </p>
                 )}
-              </div>
+              </article>
             ))}
           </div>
         </section>
@@ -411,7 +419,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
                     )}
                   </p>
                 </div>
-                <span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] font-medium capitalize text-[var(--text-lo)]">
+                <span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-xs font-medium capitalize text-[var(--text-lo)]">
                   {candidate.stage}
                 </span>
                 {candidate.ai_score !== null && (
@@ -464,22 +472,36 @@ export default async function JobDetailPage({ id }: { id: string }) {
         icon="solar:users-group-two-rounded-broken"
         iconClass="bg-brand-500/10 text-brand-500"
       >
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="font-mono text-3xl font-bold text-[var(--text-hi)]">
-              {candidates.length}
-            </p>
-            <p className="text-xs text-[var(--text-lo)]">total applicants</p>
+        <div className="rounded-xl bg-brand-500/5 px-3.5 py-3">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-3xl font-bold text-[var(--text-hi)]">
+                {activeCandidates}
+              </p>
+              <p className="text-xs text-[var(--text-lo)]">
+                active in pipeline
+              </p>
+            </div>
+            <span className="rounded-lg bg-[var(--surface)] px-2 py-1 font-mono text-[10px] font-bold text-[var(--text-lo)]">
+              {candidates.length} total
+            </span>
           </div>
-          <Link
-            href={`/hire/candidates?job=${job.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-500 transition-colors hover:bg-brand-500/10"
-          >
-            View all
-            <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
-          </Link>
+          <div className="mt-3 flex gap-3 border-t border-brand-500/10 pt-2.5 text-[11px] text-[var(--text-lo)]">
+            <span>
+              <strong className="text-emerald-600 dark:text-emerald-400">
+                {stageCounts.hired}
+              </strong>{" "}
+              hired
+            </span>
+            <span>
+              <strong className="text-slate-600 dark:text-slate-300">
+                {stageCounts.rejected}
+              </strong>{" "}
+              declined
+            </span>
+          </div>
         </div>
-        <div className="mt-4 space-y-2.5">
+        <div className="mt-4 space-y-3">
           {(
             ["applied", "screened", "interview", "offer", "hired"] as const
           ).map((stage) => (
@@ -491,6 +513,13 @@ export default async function JobDetailPage({ id }: { id: string }) {
             />
           ))}
         </div>
+        <Link
+          href={`/hire/candidates?job=${job.id}`}
+          className="mt-5 flex items-center justify-center gap-1.5 rounded-xl bg-[var(--surface-2)] px-3 py-2.5 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-brand-500/10 hover:text-brand-600"
+        >
+          View role pipeline
+          <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
+        </Link>
       </SidebarWidget>
 
       {/* ── Meta ── */}
@@ -606,24 +635,20 @@ function PipelineLine({
   count: number;
   total: number;
 }) {
-  const colors: Record<string, string> = {
-    applied: "bg-slate-400",
-    screened: "bg-blue-500",
-    interview: "bg-cyan-500",
-    offer: "bg-amber-500",
-    hired: "bg-green-500",
-  };
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between text-[11px]">
+      <div className="mb-1.5 flex items-center justify-between text-xs">
         <span className="capitalize text-[var(--text-lo)]">{label}</span>
         <span className="font-mono font-bold text-[var(--text-hi)]">
           {count}
+          <span className="ml-1 font-normal text-[var(--text-lo)]">
+            {total ? `${Math.round((count / total) * 100)}%` : "0%"}
+          </span>
         </span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
         <div
-          className={`h-full rounded-full ${colors[label]}`}
+          className={`h-full rounded-full bg-gradient-to-r ${label === "applied" ? "from-slate-400 to-slate-300" : label === "screened" ? "from-blue-500 to-sky-400" : label === "interview" ? "from-cyan-500 to-teal-400" : label === "offer" ? "from-amber-500 to-orange-400" : "from-emerald-500 to-green-400"}`}
           style={{ width: `${total ? (count / total) * 100 : 0}%` }}
         />
       </div>

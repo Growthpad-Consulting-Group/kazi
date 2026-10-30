@@ -50,7 +50,6 @@ export async function assertCanApply(jobId: string, email: string) {
 
 export async function insertApplicant(
   input: ApplicationInput,
-  job: { title: string },
 ) {
   const { data: candidate, error } = await supabaseAdmin
     .from("candidates")
@@ -71,13 +70,21 @@ export async function insertApplicant(
     .single();
   if (error) throw new ApplicationError(error.message, 500);
 
+  await invalidateTables("candidates");
+  return candidate.id as string;
+}
+
+/** Notify recruiters only once an application is fully persisted. */
+export async function notifyNewApplicant(
+  candidateId: string,
+  input: Pick<ApplicationInput, "full_name">,
+  job: { title: string },
+) {
   await notifyRoles(
     RECRUITER_ROLES,
     `New application: ${input.full_name} for ${job.title}`,
-    `/hire/candidates/${candidate.id}`,
+    `/hire/candidates/${candidateId}`,
   );
-  await invalidateTables("candidates");
-  return candidate.id as string;
 }
 
 export async function deleteApplicant(candidateId: string) {

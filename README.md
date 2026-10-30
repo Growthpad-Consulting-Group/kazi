@@ -48,7 +48,7 @@ Set the required values in `.env.local`. Never commit this file or any credentia
 | Core                  | `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`                                                                                                                     |
 | Supabase              | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`                                                                                     |
 | Cache and jobs        | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `CRON_SECRET`                                                                                                          |
-| Files                 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`                                                                               |
+| Files                 | `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`                                                                      |
 | Email                 | `RESEND_API_KEY`, `EMAIL_FROM`                                                                                                                                               |
 | AI                    | `GROQ_API_KEY`, optional `GROQ_MODEL`, `AI_PROVIDER`                                                                                                                         |
 | CAPTCHA               | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY`                                                                                                                     |

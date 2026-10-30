@@ -1,4 +1,4 @@
-import { uploadToR2 } from "@/lib/r2";
+import { deleteFromR2, uploadToR2 } from "@/lib/r2";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { extractCvText } from "@/lib/cv-text";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -99,10 +99,20 @@ export async function attachCv(candidateId: string, jobId: string, cv: ReadCv) {
     );
   }
 
-  await supabaseAdmin
+  const { error: candidateUpdateError } = await supabaseAdmin
     .from("candidates")
     .update({ cv_url: cvUrl, cv_text: cv.text || null, cv_parsed: null })
     .eq("id", candidateId);
+  if (candidateUpdateError) {
+    // A record without an attached CV is never useful. Avoid leaving an
+    // orphaned object behind if the database update is rejected.
+    try {
+      await deleteFromR2(key);
+    } catch (cleanupError) {
+      console.error("Could not remove orphaned CV after database failure", cleanupError);
+    }
+    throw new ApplicationError("Could not attach the uploaded CV", 500);
+  }
 
   // A later worker sweep catches this candidate if Redis is briefly unavailable.
   let queuedForScreening = false;

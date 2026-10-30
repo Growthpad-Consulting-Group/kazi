@@ -5,6 +5,7 @@ import {
   assertCanApply,
   insertApplicant,
   deleteApplicant,
+  notifyNewApplicant,
 } from "@/lib/candidate-applications";
 import { sendApplicationConfirmation } from "@/lib/application-emails";
 import { checkRateLimit, rateLimitHeaders, requestIp } from "@/lib/rate-limit";
@@ -82,11 +83,11 @@ export async function POST(req: Request) {
         cover_message: field("cover_message"),
         source: field("source") ?? "website",
       },
-      job,
     );
 
     try {
       const stored = await attachCv(candidateId, jobId, readable);
+      await notifyNewApplicant(candidateId, { full_name: fullName }, job);
       await sendApplicationConfirmation({
         email,
         fullName,
