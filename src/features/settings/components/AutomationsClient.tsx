@@ -257,7 +257,7 @@ export default function AutomationsClient({ initial, runSummaries }: Props) {
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
               <Icon icon="solar:bolt-circle-broken" className="h-5 w-5" />
             </span>
-            <p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+            <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
               No automations yet
             </p>
             <p className="mt-1 text-xs text-[var(--text-lo)]">

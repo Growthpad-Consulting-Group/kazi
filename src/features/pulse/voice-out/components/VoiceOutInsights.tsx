@@ -153,7 +153,7 @@ export function VoiceOutInsights({ reports }: { reports: VoiceOutInsight[] }) {
             icon="solar:eye-closed-broken"
             className="mx-auto h-6 w-6 text-[var(--text-lo)]"
           />
-          <h3 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+          <h3 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
             Insights are protected
           </h3>
           <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[var(--text-lo)]">

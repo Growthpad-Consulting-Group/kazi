@@ -291,7 +291,7 @@ export default async function CheckinsPage({
                       className="h-5 w-5"
                     />
                   </span>
-                  <p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+                  <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
                     No check-in submitted this week
                   </p>
                   <p className="mt-1 text-xs text-[var(--text-lo)]">

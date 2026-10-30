@@ -303,7 +303,7 @@ export default async function SignatureCampaignsPage() {
               icon="solar:flag-2-broken"
               className="mx-auto h-7 w-7 text-[var(--text-lo)]"
             />
-            <p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+            <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
               No campaign banners yet
             </p>
             <p className="mt-1 text-sm text-[var(--text-lo)]">

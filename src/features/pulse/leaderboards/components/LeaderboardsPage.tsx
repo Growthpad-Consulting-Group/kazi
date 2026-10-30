@@ -182,7 +182,7 @@ export default async function LeaderboardsPage() {
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-lo)]">
               <Icon icon="solar:eye-closed-broken" className="h-6 w-6" />
             </span>
-            <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+            <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
               Leaderboards are off
             </h2>
             <p className="mt-1 max-w-md text-xs leading-relaxed text-[var(--text-lo)]">

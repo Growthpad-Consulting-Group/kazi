@@ -318,7 +318,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
               <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/30 dark:shadow-black/15">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[.12em] text-brand-500">
+                    <p className="text-sm font-semibold capitalize text-brand-500">
                       Next reward
                     </p>
                     <p className="mt-1 truncate text-sm font-semibold text-[var(--text-hi)]">

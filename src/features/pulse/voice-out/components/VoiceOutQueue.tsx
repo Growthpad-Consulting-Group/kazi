@@ -66,10 +66,10 @@ export function VoiceOutQueue({ reports }: { reports: VoiceOutReport[] }) {
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
           <Icon icon="solar:shield-check-broken" className="h-5 w-5" />
         </span>
-        <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+        <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
           Nothing needs review
         </h2>
-        <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">
+        <p className="mt-1 max-w-sm text-sm leading-relaxed text-[var(--text-lo)]">
           New anonymous reports will appear here for the HR team.
         </p>
       </div>

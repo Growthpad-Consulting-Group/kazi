@@ -202,7 +202,7 @@ function EmptyState({ isAdmin }: { isAdmin: boolean }) {
       <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
         <Icon icon="solar:clipboard-list-broken" className="h-5 w-5" />
       </span>
-      <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+      <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
         No review cycles yet
       </h2>
       <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--text-lo)]">

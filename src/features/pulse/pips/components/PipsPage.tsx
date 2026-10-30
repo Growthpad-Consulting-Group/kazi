@@ -129,10 +129,10 @@ export default async function PipsPage() {
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
               <Icon icon="solar:heart-pulse-broken" className="h-5 w-5" />
             </span>
-            <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+            <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
               No support plans active
             </h2>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">
+            <p className="mt-1 max-w-sm text-sm leading-relaxed text-[var(--text-lo)]">
               A support plan creates a fair, documented rhythm for agreed
               outcomes, coaching, and follow-through.
             </p>

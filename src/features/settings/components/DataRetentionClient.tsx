@@ -64,7 +64,7 @@ export function DataRetentionClient({
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
           <Icon icon="solar:shield-check-broken" className="h-5 w-5" />
         </span>
-        <p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+        <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
           No stale records
         </p>
         <p className="mt-1 text-xs text-[var(--text-lo)]">

@@ -283,10 +283,10 @@ export default async function SurveyDetailPage({
                     className="h-5 w-5"
                   />
                 </span>
-                <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+                <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
                   This survey is still being prepared
                 </h2>
-                <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">
+                <p className="mt-1 max-w-sm text-sm leading-relaxed text-[var(--text-lo)]">
                   Responses will open when the survey is launched.
                 </p>
               </section>

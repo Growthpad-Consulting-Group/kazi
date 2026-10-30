@@ -162,10 +162,10 @@ export default async function StaffGoalsPage({ userId }: { userId: string }) {
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
                 <Icon icon="solar:target-broken" className="h-5 w-5" />
               </span>
-              <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+              <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
                 No individual goals yet
               </h2>
-              <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">
+              <p className="mt-1 max-w-sm text-sm leading-relaxed text-[var(--text-lo)]">
                 Goals assigned to {firstName} will appear here.
               </p>
             </div>

@@ -532,6 +532,8 @@ export default async function SideQuestsPage() {
                     </div>
                     <QuestCompletionButton
                       questId={quest.id}
+                      questTitle={quest.title}
+                      completionCriteria={quest.completion_criteria}
                       status={yourCompletionStatus.get(quest.id)}
                       completionMode={quest.completion_mode}
                     />
@@ -545,10 +547,10 @@ export default async function SideQuestsPage() {
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
               <Icon icon="solar:cup-star-broken" className="h-6 w-6" />
             </span>
-            <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+            <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
               No Side Quests are live
             </h2>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">
+            <p className="mt-1 max-w-sm text-sm leading-relaxed text-[var(--text-lo)]">
               When a challenge opens for your team, its brief and completion
               criteria will appear here.
             </p>

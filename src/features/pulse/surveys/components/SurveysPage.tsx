@@ -268,10 +268,10 @@ export default async function SurveysPage() {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
                 <Icon icon="solar:chat-round-dots-broken" className="h-6 w-6" />
               </span>
-              <h2 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+              <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
                 No surveys yet
               </h2>
-              <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-lo)]">
+              <p className="mt-1 max-w-sm text-sm leading-relaxed text-[var(--text-lo)]">
                 {isAdmin
                   ? "Start with a short pulse to understand what your team needs most."
                   : "When a survey is shared with you, it will appear here."}

@@ -93,7 +93,15 @@ export default function RootLayout({
       <body className="min-h-full">
         <SessionProvider>{children}</SessionProvider>
         <ServiceWorkerRegister />
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "rgb(255 255 255 / 0.85)",
+              borderRadius: "16px",
+            },
+          }}
+        />
       </body>
     </html>
   );

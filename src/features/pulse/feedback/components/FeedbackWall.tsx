@@ -97,7 +97,7 @@ export function FeedbackWall({
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
             <Icon icon="solar:star-fall-broken" className="h-5 w-5" />
           </span>
-          <h3 className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+          <h3 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
             Start the recognition
           </h3>
           <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--text-lo)]">

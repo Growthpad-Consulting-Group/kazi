@@ -571,7 +571,7 @@ export function CatalogueManager({
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
                 <Icon icon="solar:gift-broken" className="h-5 w-5" />
               </span>
-              <p className="mt-3 text-sm font-semibold text-[var(--text-hi)]">
+              <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
                 No rewards in the catalogue
               </p>
               <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--text-lo)]">
@@ -593,89 +593,96 @@ export function CatalogueManager({
               </button>
             </div>
           ) : (
-            <ul className="space-y-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {visibleItems.map((item) => (
-                <li
+                <article
                   key={item.id}
-                  className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                  className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-black/15"
                 >
                   {item.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element -- reward images are uploaded external URLs
                     <img
                       src={item.image_url}
-                      alt=""
-                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                      alt={item.name}
+                      className="h-36 w-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500">
-                      <Icon icon="solar:gift-broken" className="h-4 w-4" />
-                    </span>
+                    <div className="flex h-36 items-center justify-center bg-brand-500/5 text-brand-500/40">
+                      <Icon icon="solar:gift-broken" className="h-10 w-10" />
+                    </div>
                   )}
-                  <div className="min-w-[12rem] flex-1">
-                    <p
-                      className={`truncate text-sm font-semibold ${item.is_active ? "text-[var(--text-hi)]" : "text-[var(--text-lo)]"}`}
-                    >
-                      {item.name}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
+                  <div className="flex flex-1 flex-col gap-3 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p
+                          className={`truncate text-sm font-semibold ${item.is_active ? "text-[var(--text-hi)]" : "text-[var(--text-lo)]"}`}
+                        >
+                          {item.name}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
+                            {item.reward_type === "donation"
+                              ? "Donation"
+                              : "Reward"}
+                          </span>
+                          {item.reward_type === "donation" &&
+                            item.charity_name && (
+                              <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-lo)]">
+                                {item.charity_name}
+                              </span>
+                            )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggle(item)}
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${item.is_active ? "bg-emerald-500/10 text-emerald-600" : "bg-[var(--surface-2)] text-[var(--text-lo)]"}`}
+                      >
+                        {item.is_active ? "Available" : "Hidden"}
+                      </button>
+                    </div>
+                    <p className="line-clamp-2 min-h-9 text-xs leading-relaxed text-[var(--text-lo)]">
                       {item.description || "No description added"}
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
-                        {item.reward_type === "donation"
-                          ? "Donation"
-                          : "Reward"}
-                      </span>
-                      {item.reward_type === "donation" && item.charity_name && (
-                        <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-lo)]">
-                          {item.charity_name}
-                        </span>
-                      )}
-                      <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-lo)]">
-                        {item.cash_cost_kes === null
-                          ? "Cost not set"
-                          : `KES ${item.cash_cost_kes.toLocaleString()}`}
-                      </span>
+                    <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
+                      <div>
+                        <p className="font-mono text-sm font-bold text-brand-500">
+                          {item.points_cost} pts
+                        </p>
+                        <p className="mt-0.5 text-[10px] font-medium text-[var(--text-lo)]">
+                          {item.cash_cost_kes === null
+                            ? "Cost not set"
+                            : `KES ${item.cash_cost_kes.toLocaleString()}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(item)}
+                          aria-label={`Edit ${item.name}`}
+                          title={`Edit ${item.name}`}
+                          className="rounded-lg p-2 text-[var(--text-lo)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
+                        >
+                          <Icon icon="solar:pen-broken" className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(item)}
+                          aria-label={`Delete ${item.name}`}
+                          title={`Delete ${item.name}`}
+                          className="rounded-lg p-2 text-[var(--text-lo)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                        >
+                          <Icon
+                            icon="solar:trash-bin-minimalistic-broken"
+                            className="h-4 w-4"
+                          />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-mono text-xs font-bold text-brand-500">
-                      {item.points_cost} pts
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => toggle(item)}
-                      className={`mt-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${item.is_active ? "bg-emerald-500/10 text-emerald-600" : "bg-[var(--surface-2)] text-[var(--text-lo)]"}`}
-                    >
-                      {item.is_active ? "Available" : "Hidden"}
-                    </button>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(item)}
-                      aria-label={`Edit ${item.name}`}
-                      title={`Edit ${item.name}`}
-                      className="rounded-lg p-2 text-[var(--text-lo)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
-                    >
-                      <Icon icon="solar:pen-broken" className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleting(item)}
-                      aria-label={`Delete ${item.name}`}
-                      title={`Delete ${item.name}`}
-                      className="rounded-lg p-2 text-[var(--text-lo)] transition-colors hover:bg-red-500/10 hover:text-red-500"
-                    >
-                      <Icon
-                        icon="solar:trash-bin-minimalistic-broken"
-                        className="h-4 w-4"
-                      />
-                    </button>
-                  </div>
-                </li>
+                </article>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </section>

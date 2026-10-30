@@ -716,7 +716,7 @@ export default function HallOfFameClient({
                           </span>
                         ) : null}
                       </p>
-                      <p className="truncate text-[11px] text-white/70">
+                      <p className="truncate text-xs text-white/70">
                         {member.job_title ?? "Team member"}
                       </p>
                       <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-white/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
