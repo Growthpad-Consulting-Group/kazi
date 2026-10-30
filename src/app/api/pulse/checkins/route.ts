@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateUserCheckins } from "@/lib/cache/invalidate";
-import { awardPoints } from "@/lib/award-points";
 import { sendSlackDirectMessage } from "@/lib/slack";
 import { notifyManagerOfCheckin } from "@/lib/notifications";
 import type { CheckinStatus } from "@/types/database";
@@ -55,21 +54,7 @@ export async function POST(req: Request) {
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
   await invalidateUserCheckins(userId);
-  // Award +2 points for submitting a check-in (non-blocking)
   if (status === "submitted" && existing?.status !== "submitted") {
-    try {
-      await awardPoints({
-        userId,
-        amount: 2,
-        reason: "Check-in submitted",
-        referenceType: "checkin",
-        referenceId: weekStart,
-        createdBy: null,
-      });
-    } catch {
-      /* non-blocking */
-    }
-
     // Send the check-in privately to the assigned manager; company-wide
     // channels must never receive employee progress, mood, or blockers.
     try {
