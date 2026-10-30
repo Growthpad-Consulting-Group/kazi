@@ -27,7 +27,9 @@ export default function KaziHeader({
     notifications,
     isLoading,
     markNotificationAsRead,
-    clearAllNotifications,
+    markAllNotificationsAsRead,
+    dismissNotification,
+    clearReadNotifications,
   } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const {
@@ -232,7 +234,9 @@ export default function KaziHeader({
                     mode={mode}
                     isLoading={isLoading}
                     onMarkAsRead={markNotificationAsRead}
-                    onClearAll={clearAllNotifications}
+                    onMarkAllAsRead={markAllNotificationsAsRead}
+                    onDismiss={dismissNotification}
+                    onClearRead={clearReadNotifications}
                     onNavigate={() => setIsNotificationsOpen(false)}
                   />
                 </GlassPanel>

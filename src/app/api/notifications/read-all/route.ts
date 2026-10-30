@@ -20,3 +20,20 @@ export async function PATCH() {
   await invalidateUserNotifications(session.user.id);
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE() {
+  const session = await getServerSession(authOptions);
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { error } = await supabaseAdmin
+    .from("notifications")
+    .delete()
+    .eq("user_id", session.user.id)
+    .eq("read", true);
+
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateUserNotifications(session.user.id);
+  return NextResponse.json({ ok: true });
+}

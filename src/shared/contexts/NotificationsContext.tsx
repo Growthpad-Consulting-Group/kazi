@@ -23,7 +23,9 @@ type NotificationsContextValue = {
   isLoading: boolean;
   fetchNotifications: () => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
-  clearAllNotifications: () => Promise<void>;
+  markAllNotificationsAsRead: () => Promise<void>;
+  dismissNotification: (id: string) => Promise<void>;
+  clearReadNotifications: () => Promise<void>;
 };
 
 const NotificationsContext = createContext<
@@ -31,7 +33,6 @@ const NotificationsContext = createContext<
 >(undefined);
 
 const CACHE_KEY = "kazi_notifications_cache";
-const CACHE_DURATION = 5 * 60 * 1000;
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -40,15 +41,6 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_DURATION) {
-          setNotifications(data);
-          setIsLoading(false);
-          return;
-        }
-      }
       const res = await fetch("/api/notifications");
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
       const body = await res.json();
@@ -99,7 +91,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const clearAllNotifications = async () => {
+  const markAllNotificationsAsRead = async () => {
     try {
       const res = await fetch("/api/notifications/read-all", {
         method: "PATCH",
@@ -108,7 +100,29 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       localStorage.removeItem(CACHE_KEY);
     } catch (error: unknown) {
-      toast.error("Failed to clear notifications: " + (error as Error).message);
+      toast.error("Failed to mark notifications as read: " + (error as Error).message);
+    }
+  };
+
+  const dismissNotification = async (id: string) => {
+    try {
+      const res = await fetch(`/api/notifications/${id}/read`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Request failed with ${res.status}`);
+      setNotifications((prev) => prev.filter((notification) => notification.id !== id));
+      localStorage.removeItem(CACHE_KEY);
+    } catch (error: unknown) {
+      toast.error("Failed to dismiss notification: " + (error as Error).message);
+    }
+  };
+
+  const clearReadNotifications = async () => {
+    try {
+      const res = await fetch("/api/notifications/read-all", { method: "DELETE" });
+      if (!res.ok) throw new Error(`Request failed with ${res.status}`);
+      setNotifications((prev) => prev.filter((notification) => !notification.read));
+      localStorage.removeItem(CACHE_KEY);
+    } catch (error: unknown) {
+      toast.error("Failed to clear read notifications: " + (error as Error).message);
     }
   };
 
@@ -119,7 +133,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         isLoading,
         fetchNotifications,
         markNotificationAsRead,
-        clearAllNotifications,
+        markAllNotificationsAsRead,
+        dismissNotification,
+        clearReadNotifications,
       }}
     >
       {children}

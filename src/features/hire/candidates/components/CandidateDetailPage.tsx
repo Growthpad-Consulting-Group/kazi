@@ -21,6 +21,7 @@ import StatCard from "@/components/ui/StatCard";
 import type { CandidateStage } from "../types";
 import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
+import { CandidateCvViewer } from "./CandidateCvViewer";
 
 type CvParsed = {
   skills?: string[];
@@ -251,21 +252,8 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
               icon="solar:document-text-broken"
               title="CV overview"
             />
-            {candidate.cv_url && (
-              <a
-                href={candidate.cv_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-lg bg-brand-500/10 px-2.5 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-500/15"
-              >
-                View CV{" "}
-                <Icon
-                  icon="solar:arrow-right-up-broken"
-                  className="h-3.5 w-3.5"
-                />
-              </a>
-            )}
           </div>
+          {candidate.cv_url && <CandidateCvViewer url={candidate.cv_url} variant="inline" />}
           {cvParsed ? (
             <div className="space-y-5">
               {cvParsed.skills?.length ? (
@@ -433,18 +421,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             })}
           />
           {candidate.cv_url ? (
-            <a
-              href={candidate.cv_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex items-center justify-between rounded-xl bg-brand-500 px-3.5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-            >
-              <span className="inline-flex items-center gap-2">
-                <Icon icon="solar:document-text-broken" className="h-4 w-4" />
-                Open candidate CV
-              </span>
-              <Icon icon="solar:arrow-right-up-broken" className="h-4 w-4" />
-            </a>
+            <CandidateCvViewer url={candidate.cv_url} />
           ) : candidate.cv_text ? (
             <div className="mt-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3.5 py-3">
               <p className="text-xs font-semibold text-emerald-600">

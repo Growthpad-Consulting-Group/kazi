@@ -7,18 +7,23 @@ export default function Notifications({
   mode,
   isLoading,
   onMarkAsRead,
-  onClearAll,
+  onMarkAllAsRead,
+  onDismiss,
+  onClearRead,
   onNavigate,
 }: {
   notifications: Notification[];
   mode: "light" | "dark";
   isLoading: boolean;
   onMarkAsRead: (id: string) => void;
-  onClearAll?: () => void;
+  onMarkAllAsRead?: () => void;
+  onDismiss: (id: string) => void;
+  onClearRead?: () => void;
   onNavigate?: () => void;
 }) {
   const isDark = mode === "dark";
   const hasUnread = notifications.some((n) => !n.read);
+  const hasRead = notifications.some((n) => n.read);
 
   return (
     <div
@@ -28,14 +33,10 @@ export default function Notifications({
         <h3 className="text-sm font-semibold uppercase tracking-wide">
           Notifications
         </h3>
-        {hasUnread && (
-          <button
-            onClick={onClearAll}
-            className="font-mono text-[11px] uppercase tracking-wide text-brand-500 hover:text-brand-600"
-          >
-            Clear all
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {hasRead && <button onClick={onClearRead} className="font-mono text-[11px] uppercase tracking-wide text-[var(--text-lo)] hover:text-[var(--text-hi)]">Clear read</button>}
+          {hasUnread && <button onClick={onMarkAllAsRead} className="font-mono text-[11px] uppercase tracking-wide text-brand-500 hover:text-brand-600">Mark all read</button>}
+        </div>
       </div>
       {isLoading ? (
         <div className="flex h-24 items-center justify-center">
@@ -91,6 +92,15 @@ export default function Notifications({
                     Read
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => onDismiss(notification.id)}
+                  className="shrink-0 rounded-md p-1 text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"
+                  aria-label="Dismiss notification"
+                  title="Dismiss"
+                >
+                  <Icon icon="solar:close-circle-broken" className="h-4 w-4" />
+                </button>
               </li>
             ))}
           </ul>

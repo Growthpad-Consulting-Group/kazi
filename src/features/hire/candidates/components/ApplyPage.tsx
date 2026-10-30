@@ -30,6 +30,7 @@ interface Props {
 
 const inputClass =
   "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10";
+const MAX_CV_BYTES = 4 * 1024 * 1024;
 
 export function ApplyPage({
   job,
@@ -49,9 +50,20 @@ export function ApplyPage({
     "form",
   );
   const [errorMsg, setErrorMsg] = useState("");
+  const [cvError, setCvError] = useState("");
+  const selectCvFile = (file: File | null) => {
+    if (!file) return;
+    if (file.size > MAX_CV_BYTES) {
+      setCvFile(null);
+      setCvError("Choose a PDF or Word document that is 4 MB or smaller.");
+      return;
+    }
+    setCvError("");
+    setCvFile(file);
+  };
   const { isDragging: isCvDragging, dropProps: cvDropProps } = useFileDrop({
     accept: ".pdf,.docx",
-    onFiles: ([file]) => setCvFile(file),
+    onFiles: ([file]) => selectCvFile(file),
   });
 
   const mustHaves = job.requirements?.must_haves?.filter(Boolean) ?? [];
@@ -391,8 +403,7 @@ export function ApplyPage({
                           "Upload or drop a PDF or Word document"}
                       </span>
                       <span className="mt-0.5 block text-xs text-slate-500">
-                        Optional — it is securely parsed and automatically
-                        screened
+                        Optional · PDF or Word document · up to 4 MB
                       </span>
                     </span>
                   </span>
@@ -404,10 +415,15 @@ export function ApplyPage({
                     accept=".pdf,.docx"
                     className="sr-only"
                     onChange={(event) =>
-                      setCvFile(event.target.files?.[0] ?? null)
+                      selectCvFile(event.target.files?.[0] ?? null)
                     }
                   />
                 </label>
+                {cvError && (
+                  <p className="mt-2 text-xs font-medium text-red-600">
+                    {cvError}
+                  </p>
+                )}
               </Field>
               <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-3.5">
                 <input

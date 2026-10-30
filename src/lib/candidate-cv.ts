@@ -7,7 +7,10 @@ import { redis, SCREENING_QUEUE } from "@/lib/redis";
 import { ApplicationError } from "@/lib/application-error";
 import { recordAiUsage } from "@/lib/ai-audit";
 
-export const MAX_CV_BYTES = 10 * 1024 * 1024;
+// Vercel rejects multipart request bodies above its function payload limit.
+// Leave room for form fields and multipart overhead rather than advertising a
+// size applicants cannot actually submit.
+export const MAX_CV_BYTES = 4 * 1024 * 1024;
 const CV_EXTENSIONS = ["pdf", "docx"];
 
 export type ReadCv = {
@@ -23,7 +26,7 @@ export async function readCv(file: File): Promise<ReadCv> {
   if (!CV_EXTENSIONS.includes(extension))
     throw new ApplicationError("Please upload a PDF or DOCX CV.", 400);
   if (file.size > MAX_CV_BYTES)
-    throw new ApplicationError("CV files must be 10 MB or smaller.", 400);
+    throw new ApplicationError("CV files must be 4 MB or smaller.", 400);
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   let text = "";
