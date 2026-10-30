@@ -56,7 +56,7 @@ export function PipelineHeaderMetrics({
           key={metric.label}
           variant="ghost"
           size="sm"
-          className={`h-8 whitespace-nowrap px-2.5 text-[11px] ${metric.background}`}
+          className={`h-9 whitespace-nowrap px-3 text-sm ${metric.background}`}
           onClick={() =>
             document
               .getElementById(`pipeline-${metric.target}`)

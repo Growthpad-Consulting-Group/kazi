@@ -12,7 +12,7 @@ export async function sendApplicationConfirmation(params: {
   email: string;
   fullName: string;
   jobTitle: string;
-}) {
+}): Promise<boolean> {
   const firstName = params.fullName.trim().split(/\s+/)[0] ?? "there";
   const role = escapeHtml(params.jobTitle);
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1e293b;max-width:640px;margin:0 auto">
@@ -31,8 +31,13 @@ export async function sendApplicationConfirmation(params: {
       html,
       text,
     });
-    if (error) console.error("Application confirmation email failed", error);
+    if (error) {
+      console.error("Application confirmation email failed", error);
+      return false;
+    }
+    return true;
   } catch (error) {
     console.error("Application confirmation email error", error);
+    return false;
   }
 }

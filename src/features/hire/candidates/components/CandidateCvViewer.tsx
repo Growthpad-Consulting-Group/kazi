@@ -11,7 +11,7 @@ export function CandidateCvViewer({
 }: {
   url: string;
   candidateId: string;
-  variant?: "button" | "inline";
+  variant?: "button" | "inline" | "compact";
 }) {
   const [open, setOpen] = useState(false);
   const previewUrl = `/api/hire/candidates/${candidateId}/cv-preview`;
@@ -25,7 +25,7 @@ export function CandidateCvViewer({
             Original CV
           </span>
           <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">
-            Open original
+            Download CV
             <Icon icon="solar:arrow-right-up-broken" className="h-3.5 w-3.5" />
           </a>
         </div>
@@ -39,19 +39,32 @@ export function CandidateCvViewer({
     );
   }
 
+  const trigger = variant === "compact" ? (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
+    >
+      <Icon icon="solar:document-text-broken" className="h-4 w-4" />
+      View CV
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="mt-3 flex w-full items-center justify-between rounded-xl bg-brand-500 px-3.5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+    >
+      <span className="inline-flex items-center gap-2">
+        <Icon icon="solar:document-text-broken" className="h-4 w-4" />
+        View candidate CV
+      </span>
+      <Icon icon="solar:eye-broken" className="h-4 w-4" />
+    </button>
+  );
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="mt-3 flex w-full items-center justify-between rounded-xl bg-brand-500 px-3.5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-      >
-        <span className="inline-flex items-center gap-2">
-          <Icon icon="solar:document-text-broken" className="h-4 w-4" />
-          View candidate CV
-        </span>
-        <Icon icon="solar:eye-broken" className="h-4 w-4" />
-      </button>
+      {trigger}
       <SimpleModal
         open={open}
         onClose={() => setOpen(false)}

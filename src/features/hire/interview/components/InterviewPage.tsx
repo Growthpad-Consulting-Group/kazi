@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { InterviewKit } from "./InterviewKit";
+import { CandidateCvViewer } from "@/features/hire/candidates/components/CandidateCvViewer";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { Icon } from "@iconify/react";
 import StatCard from "@/components/ui/StatCard";
@@ -18,7 +19,7 @@ export default async function InterviewPage({
   const { data, error } = await supabaseAdmin
     .from("candidates")
     .select(
-      "id, full_name, email, location, cv_url, cv_text, cv_parsed, stage, jobs(id, title, department, scoring_rubric)",
+      "id, full_name, email, location, cv_url, cv_text, cv_parsed, stage, ai_score, jobs(id, title, department, scoring_rubric)",
     )
     .eq("id", candidateId)
     .single();
@@ -34,6 +35,7 @@ export default async function InterviewPage({
     cv_text: string | null;
     cv_parsed: Record<string, unknown> | null;
     stage: string;
+    ai_score: number | null;
     jobs: {
       id: string;
       title: string;
@@ -54,6 +56,11 @@ export default async function InterviewPage({
     candidate.cv_url || candidate.cv_text || candidate.cv_parsed,
   );
   const isSubmitted = Boolean(scorecard?.submitted_at);
+  const scorecardStatus = isSubmitted
+    ? "Scorecard submitted"
+    : scorecard
+      ? "Scorecard draft"
+      : "Scorecard not started";
   const initials = candidate.full_name
     .split(" ")
     .map((part) => part[0])
@@ -118,18 +125,14 @@ export default async function InterviewPage({
             <span
               className={`rounded-full px-3 py-1.5 text-xs font-semibold ${isSubmitted ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}
             >
-              {isSubmitted ? "Scorecard submitted" : "Scorecard in progress"}
+              {scorecardStatus}
             </span>
             {candidate.cv_url ? (
-              <a
-                href={candidate.cv_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
-              >
-                <Icon icon="solar:document-text-broken" className="h-4 w-4" />
-                View CV
-              </a>
+              <CandidateCvViewer
+                url={candidate.cv_url}
+                candidateId={candidate.id}
+                variant="compact"
+              />
             ) : hasCv ? (
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-lo)]">
                 <Icon icon="solar:document-text-broken" className="h-4 w-4" />
@@ -139,7 +142,7 @@ export default async function InterviewPage({
           </div>
         </div>
       </section>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <StatCard
           title="Rubric criteria"
           value={candidate.jobs?.scoring_rubric.length ?? 0}
@@ -147,6 +150,24 @@ export default async function InterviewPage({
           color="orange"
           compact
           subtitle="Role evaluation areas"
+        />
+        <StatCard
+          title="AI CV screen"
+          value={candidate.ai_score === null ? "Pending" : `${candidate.ai_score}/100`}
+          icon="solar:cpu-bolt-broken"
+          color={
+            candidate.ai_score === null
+              ? "slate"
+              : candidate.ai_score >= 65
+                ? "green"
+                : "orange"
+          }
+          compact
+          subtitle={
+            candidate.ai_score === null
+              ? "Automated review queued"
+              : "CV screening only"
+          }
         />
         <StatCard
           title="Pipeline stage"
@@ -166,7 +187,7 @@ export default async function InterviewPage({
         />
         <StatCard
           title="Your scorecard"
-          value={isSubmitted ? "Complete" : "Draft"}
+          value={isSubmitted ? "Complete" : scorecard ? "Draft" : "Not started"}
           icon={
             isSubmitted
               ? "solar:check-circle-broken"
@@ -174,13 +195,14 @@ export default async function InterviewPage({
           }
           color={isSubmitted ? "green" : "amber"}
           compact
-          subtitle={isSubmitted ? "Feedback submitted" : "Awaiting evaluation"}
+          subtitle={isSubmitted ? "Feedback submitted" : "Your interview evaluation"}
         />
       </section>
       <InterviewKit
         candidateId={candidateId}
         candidateName={candidate.full_name}
         roleTitle={candidate.jobs?.title ?? "Role not assigned"}
+        aiScore={candidate.ai_score}
         rubric={candidate.jobs?.scoring_rubric ?? []}
         existingScorecard={scorecard}
       />

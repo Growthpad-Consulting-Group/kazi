@@ -31,7 +31,7 @@ export function StageAdvancer({ candidateId, stage, current }: Props) {
       <button
         onClick={advance}
         disabled={isActive || isPending}
-        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+        className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
           isActive
             ? STAGE_COLORS[stage] + " cursor-default"
             : "bg-[var(--surface-2)] text-[var(--text-lo)] hover:bg-[var(--surface)]"

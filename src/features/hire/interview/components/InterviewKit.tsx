@@ -21,6 +21,7 @@ interface Props {
   candidateId: string;
   candidateName: string;
   roleTitle: string;
+  aiScore: number | null;
   rubric: { criterion: string; weight: number }[];
   existingScorecard: {
     id: string;
@@ -54,6 +55,7 @@ export function InterviewKit({
   candidateId,
   candidateName,
   roleTitle,
+  aiScore,
   rubric,
   existingScorecard,
 }: Props) {
@@ -204,6 +206,14 @@ export function InterviewKit({
                 answer against the hiring rubric. Your scorecard stays private
                 until you submit it.
               </p>
+              {aiScore !== null && (
+                <div className="mt-4 flex max-w-xl items-start gap-2.5 rounded-xl bg-[var(--surface-2)] px-3.5 py-3 text-xs leading-5 text-[var(--text-lo)]">
+                  <Icon icon="solar:cpu-bolt-broken" className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                  <p>
+                    AI screened the CV at <span className="font-semibold text-[var(--text-hi)]">{aiScore}/100</span>. Use it as context, then record your own interview evidence and recommendation.
+                  </p>
+                </div>
+              )}
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Button
                   icon="solar:magic-stick-3-broken"

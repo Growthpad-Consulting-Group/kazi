@@ -5,7 +5,7 @@ import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
 import { RichEmailEditor } from "@/components/ui/RichEmailEditor";
 
-type EmailType = "acknowledgement" | "invite" | "rejection";
+type EmailType = "invite" | "rejection";
 type Draft = {
   subject: string;
   bodyHtml: string;
@@ -14,24 +14,37 @@ type Draft = {
 };
 
 const TYPE_LABELS: Record<EmailType, string> = {
-  acknowledgement: "Acknowledgement",
   invite: "Interview Invite",
   rejection: "Rejection",
 };
 
 export function EmailPanel({ candidateId }: { candidateId: string }) {
-  const [type, setType] = useState<EmailType>("acknowledgement");
+  const [type, setType] = useState<EmailType>("invite");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [sentMessage, setSentMessage] = useState("");
   const [error, setError] = useState("");
+  const [resending, setResending] = useState(false);
+
+  async function resendConfirmation() {
+    setResending(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/hire/candidates/${candidateId}/resend-confirmation`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not resend confirmation.");
+      setSentMessage("Application confirmation resent successfully.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not resend confirmation.");
+    } finally { setResending(false); }
+  }
 
   async function draftEmail() {
     setDrafting(true);
     setDraft(null);
     setError("");
-    setSent(false);
+    setSentMessage("");
     try {
       const res = await fetch("/api/hire/candidates/draft-email", {
         method: "POST",
@@ -80,7 +93,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      setSent(true);
+      setSentMessage("Email sent successfully.");
       setDraft(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Send failed");
@@ -102,15 +115,15 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
           <h2 className="text-base font-semibold text-[var(--text-hi)]">
             Candidate communications
           </h2>
-          <p className="text-[11px] text-[var(--text-lo)]">
+          <p className="text-xs text-[var(--text-lo)]">
             Draft and send thoughtful updates with AI assistance.
           </p>
         </div>
       </div>
 
-      {sent && (
+      {sentMessage && (
         <p className="rounded-xl bg-green-500/10 px-3 py-2 text-sm text-green-600">
-          ✓ Email sent successfully.
+          ✓ {sentMessage}
         </p>
       )}
 
@@ -121,9 +134,9 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
             onClick={() => {
               setType(t);
               setDraft(null);
-              setSent(false);
+              setSentMessage("");
             }}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               type === t
                 ? "bg-brand-500 text-white shadow-sm"
                 : "text-[var(--text-lo)] hover:bg-[var(--surface)] hover:text-[var(--text-hi)]"
@@ -132,6 +145,11 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
             {TYPE_LABELS[t]}
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3">
+        <p className="text-xs text-[var(--text-lo)]">The application confirmation is sent automatically. Resend it only if delivery failed or the candidate asks.</p>
+        <Button size="sm" variant="secondary" loading={resending} icon="solar:refresh-broken" onClick={resendConfirmation}>Resend confirmation</Button>
       </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}

@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 
-type EmailType = "acknowledgement" | "invite" | "rejection" | "acceptance";
+type EmailType = "invite" | "rejection" | "acceptance";
 type Recipient = { id: string; full_name: string };
 type Draft = {
   candidateId: string;
@@ -23,7 +23,6 @@ const TYPE_LABELS: Record<EmailType, string> = {
   acceptance: "Acceptance / next steps",
   rejection: "Rejection",
   invite: "Interview invite",
-  acknowledgement: "Acknowledgement",
 };
 
 export const MAX_BULK_EMAIL_RECIPIENTS = 25;

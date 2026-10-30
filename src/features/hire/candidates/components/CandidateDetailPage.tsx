@@ -117,8 +117,10 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             </div>
             <p className="mt-1 text-sm font-medium text-brand-500">
               {job?.title ?? "Unassigned role"}
-              {job?.department ? ` · ${job.department}` : ""}
             </p>
+            {job?.department && (
+              <p className="text-xs text-[var(--text-lo)]">{job.department}</p>
+            )}
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[var(--text-lo)]">
               <ContactItem icon="solar:letter-broken" value={candidate.email} />
               <ContactItem icon="solar:phone-broken" value={candidate.phone} />
@@ -182,7 +184,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           icon="solar:sort-horizontal-broken"
           title="Hiring progress"
         />
-        <p className="-mt-3 mb-4 text-xs text-[var(--text-lo)]">
+        <p className="-mt-3 mb-4 text-sm text-[var(--text-lo)]">
           Update the stage as the candidate moves through your hiring process.
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -217,7 +219,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
               icon="solar:magic-stick-3-broken"
               title="AI screening scorecard"
             />
-            <p className="mt-1 text-xs text-[var(--text-lo)]">
+            <p className="mt-1 text-sm text-[var(--text-lo)]">
               Evidence from the CV, evaluated against this role&apos;s rubric.
             </p>
           </div>
@@ -295,9 +297,9 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
                   {screeningRubric.map((criterion) => (
                     <div
                       key={criterion.criterion}
-                      className="flex gap-3 px-4 py-3"
+                      className="group flex gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)]"
                     >
-                      <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-brand-500/10 px-1.5 text-xs font-bold text-brand-600">
+                      <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-brand-500/10 px-1.5 text-xs font-bold text-brand-600 transition-colors group-hover:bg-brand-500/20">
                         {criterion.weight}
                       </span>
                       <div className="min-w-0">
@@ -383,7 +385,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
                     {cvParsed.experience.map((experience, index) => (
                       <div
                         key={index}
-                        className="flex gap-3 rounded-xl bg-[var(--surface-2)] p-3"
+                        className="flex gap-3 rounded-xl border border-transparent bg-[var(--surface-2)] p-3 transition-colors hover:border-brand-500/40"
                       >
                         <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />
                         <div>

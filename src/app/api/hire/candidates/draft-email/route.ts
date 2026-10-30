@@ -6,11 +6,9 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { recordAiUsage } from "@/lib/ai-audit";
 
-type EmailType = "acknowledgement" | "invite" | "rejection" | "acceptance";
+type EmailType = "invite" | "rejection" | "acceptance";
 
 const TEMPLATES: Record<EmailType, string> = {
-  acknowledgement:
-    "Thank the candidate for applying, confirm receipt, and let them know they'll hear back within 5–7 business days.",
   invite:
     "Invite the candidate for an interview. Be warm and professional. Ask them to confirm their availability by replying to this email.",
   rejection:
