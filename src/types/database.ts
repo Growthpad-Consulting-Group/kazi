@@ -113,16 +113,47 @@ export interface Database {
           status: JobStatus;
           published_at: string | null;
           closes_at: string | null;
+          employment_type: string | null;
+          work_mode: string | null;
+          contract_duration: string | null;
+          compensation: string | null;
+          reports_to: string | null;
+          benefits: string | null;
+          application_instructions: string | null;
+          selection_process: string | null;
+          source_document_url: string | null;
           created_by: string;
           created_at: string;
           updated_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["jobs"]["Row"],
-          "id" | "created_at" | "updated_at" | "published_at" | "closes_at"
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "published_at"
+          | "closes_at"
+          | "employment_type"
+          | "work_mode"
+          | "contract_duration"
+          | "compensation"
+          | "reports_to"
+          | "benefits"
+          | "application_instructions"
+          | "selection_process"
+          | "source_document_url"
         > & {
           published_at?: string | null;
           closes_at?: string | null;
+          employment_type?: string | null;
+          work_mode?: string | null;
+          contract_duration?: string | null;
+          compensation?: string | null;
+          reports_to?: string | null;
+          benefits?: string | null;
+          application_instructions?: string | null;
+          selection_process?: string | null;
+          source_document_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["jobs"]["Insert"]>;
         Relationships: [];

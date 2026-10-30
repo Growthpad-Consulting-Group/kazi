@@ -45,7 +45,10 @@ export async function GET(request: Request) {
       client_id: config.clientId,
       redirect_uri: config.redirectUri,
       response_type: "code",
-      scope: "https://www.googleapis.com/auth/calendar.events openid email",
+      // Drive read-only lets a connected Growthpad account import Docs that are
+      // shared internally. It never grants write or delete access to Drive.
+      scope:
+        "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.readonly openid email",
       access_type: "offline",
       prompt: "consent",
       state,

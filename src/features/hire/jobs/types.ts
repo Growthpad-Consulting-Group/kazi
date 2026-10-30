@@ -19,6 +19,15 @@ export interface JobFormData {
   status: "draft" | "open";
   published_at: string | null;
   closes_at: string | null;
+  employment_type: string;
+  work_mode: string;
+  contract_duration: string;
+  compensation: string;
+  reports_to: string;
+  benefits: string;
+  application_instructions: string;
+  selection_process: string;
+  source_document_url: string;
 }
 
 export interface DraftJdRequest {

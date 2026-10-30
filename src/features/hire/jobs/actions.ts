@@ -80,6 +80,15 @@ export async function createJob(form: JobFormData) {
         publishedAt ??
         (form.status === "open" ? new Date().toISOString() : null),
       closes_at: closesAt,
+      employment_type: form.employment_type || null,
+      work_mode: form.work_mode || null,
+      contract_duration: form.contract_duration || null,
+      compensation: form.compensation || null,
+      reports_to: form.reports_to || null,
+      benefits: form.benefits || null,
+      application_instructions: form.application_instructions || null,
+      selection_process: form.selection_process || null,
+      source_document_url: form.source_document_url || null,
       created_by: session.user.id,
     })
     .select()
@@ -113,6 +122,22 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   if (form.location !== undefined) update.location = form.location || null;
   if (form.description !== undefined)
     update.description = form.description || null;
+  if (form.employment_type !== undefined)
+    update.employment_type = form.employment_type || null;
+  if (form.work_mode !== undefined) update.work_mode = form.work_mode || null;
+  if (form.contract_duration !== undefined)
+    update.contract_duration = form.contract_duration || null;
+  if (form.compensation !== undefined)
+    update.compensation = form.compensation || null;
+  if (form.reports_to !== undefined)
+    update.reports_to = form.reports_to || null;
+  if (form.benefits !== undefined) update.benefits = form.benefits || null;
+  if (form.application_instructions !== undefined)
+    update.application_instructions = form.application_instructions || null;
+  if (form.selection_process !== undefined)
+    update.selection_process = form.selection_process || null;
+  if (form.source_document_url !== undefined)
+    update.source_document_url = form.source_document_url || null;
   if (form.must_haves !== undefined || form.nice_to_haves !== undefined) {
     update.requirements = {
       must_haves: form.must_haves ?? [],

@@ -13,6 +13,7 @@ import DepartmentSelect from "@/components/ui/DepartmentSelect";
 import DateRangePicker, {
   type DateRangeValue,
 } from "@/components/ui/DateRangePicker";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   job?: Job;
@@ -119,6 +120,7 @@ function RemoveButton({
 export function JobForm({ job, departments = [] }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
 
   const [title, setTitle] = useState(job?.title ?? "");
@@ -140,6 +142,28 @@ export function JobForm({ job, departments = [] }: Props) {
   const [schedule, setSchedule] = useState<DateRangeValue | undefined>(() =>
     toScheduleRange(job),
   );
+  const [employmentType, setEmploymentType] = useState(
+    job?.employment_type ?? "",
+  );
+  const [workMode, setWorkMode] = useState(job?.work_mode ?? "");
+  const [contractDuration, setContractDuration] = useState(
+    job?.contract_duration ?? "",
+  );
+  const [compensation, setCompensation] = useState(job?.compensation ?? "");
+  const [reportsTo, setReportsTo] = useState(job?.reports_to ?? "");
+  const [benefits, setBenefits] = useState(job?.benefits ?? "");
+  const [applicationInstructions, setApplicationInstructions] = useState(
+    job?.application_instructions ?? "",
+  );
+  const [selectionProcess, setSelectionProcess] = useState(
+    job?.selection_process ?? "",
+  );
+  const [sourceDocumentUrl, setSourceDocumentUrl] = useState(
+    job?.source_document_url ?? "",
+  );
+  const [googleDocUrl, setGoogleDocUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
 
   // AI JD drafter
   const [brief, setBrief] = useState("");
@@ -175,6 +199,69 @@ export function JobForm({ job, departments = [] }: Props) {
       setDraftError(e instanceof Error ? e.message : "Draft failed");
     } finally {
       setDrafting(false);
+    }
+  }
+
+  async function importJobDescription() {
+    const document = documentInputRef.current?.files?.[0];
+    if (!document && !googleDocUrl.trim()) {
+      setImportError("Choose a PDF/DOCX file or paste a Google Docs link.");
+      return;
+    }
+    if (document && googleDocUrl.trim()) {
+      setImportError("Choose either a document or a Google Docs link.");
+      return;
+    }
+
+    setImporting(true);
+    setImportError("");
+    try {
+      const payload = new FormData();
+      if (document) payload.append("document", document);
+      if (googleDocUrl.trim())
+        payload.append("googleDocUrl", googleDocUrl.trim());
+      const response = await fetch("/api/hire/jobs/import-description", {
+        method: "POST",
+        body: payload,
+      });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+        job?: Partial<JobFormData>;
+      } | null;
+      if (!response.ok || !data?.job)
+        throw new Error(
+          data?.error ?? "We could not import that job description.",
+        );
+
+      const imported = data.job;
+      if (imported.title) setTitle(imported.title);
+      if (imported.department) setDepartment(imported.department);
+      if (imported.location) setLocation(imported.location);
+      if (imported.description) setDescription(imported.description);
+      if (imported.must_haves?.length) setMustHaves(imported.must_haves);
+      if (imported.nice_to_haves?.length)
+        setNiceToHaves(imported.nice_to_haves);
+      if (imported.employment_type) setEmploymentType(imported.employment_type);
+      if (imported.work_mode) setWorkMode(imported.work_mode);
+      if (imported.contract_duration)
+        setContractDuration(imported.contract_duration);
+      if (imported.compensation) setCompensation(imported.compensation);
+      if (imported.reports_to) setReportsTo(imported.reports_to);
+      if (imported.benefits) setBenefits(imported.benefits);
+      if (imported.application_instructions)
+        setApplicationInstructions(imported.application_instructions);
+      if (imported.selection_process)
+        setSelectionProcess(imported.selection_process);
+      if (googleDocUrl.trim()) setSourceDocumentUrl(googleDocUrl.trim());
+      toast.success("Job details imported. Review them before saving.");
+    } catch (error) {
+      setImportError(
+        error instanceof Error
+          ? error.message
+          : "We could not import that job description.",
+      );
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -222,6 +309,15 @@ export function JobForm({ job, departments = [] }: Props) {
       nice_to_haves: niceToHaves.filter(Boolean),
       scoring_rubric: rubric.filter((r) => r.criterion),
       status,
+      employment_type: employmentType,
+      work_mode: workMode,
+      contract_duration: contractDuration,
+      compensation,
+      reports_to: reportsTo,
+      benefits,
+      application_instructions: applicationInstructions,
+      selection_process: selectionProcess,
+      source_document_url: sourceDocumentUrl,
       published_at: schedule?.startDate?.toISOString() ?? null,
       // A date range represents inclusive calendar dates, so a job remains
       // live through the end of its selected closing date.
@@ -268,6 +364,55 @@ export function JobForm({ job, departments = [] }: Props) {
 
   const mainContent = (
     <div className="space-y-5">
+      <section className="rounded-2xl border border-brand-500/20 bg-brand-500/[0.04] p-5 shadow-xl shadow-slate-200/30 dark:shadow-black/10 sm:p-6">
+        <SectionHeader
+          icon="solar:import-broken"
+          iconBg="bg-brand-500/15"
+          iconColor="text-brand-500"
+          title="Import job description"
+          hint="Upload a PDF or DOCX, or use a Google Doc. Public links work immediately; internal Growthpad Docs use your connected Google account."
+        />
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
+          <Field label="Job description file">
+            <input
+              ref={documentInputRef}
+              type="file"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className={`${inputCls} file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/10 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-brand-500`}
+            />
+          </Field>
+          <p className="pb-2 text-center text-xs font-medium text-[var(--text-lo)]">
+            or
+          </p>
+          <Field label="Google Docs link">
+            <input
+              value={googleDocUrl}
+              onChange={(event) => setGoogleDocUrl(event.target.value)}
+              className={inputCls}
+              placeholder="https://docs.google.com/document/d/..."
+            />
+          </Field>
+        </div>
+        {importError && (
+          <p className="mt-3 text-xs font-medium text-red-500">{importError}</p>
+        )}
+        <Button
+          type="button"
+          size="sm"
+          className="mt-4"
+          icon={
+            importing
+              ? "solar:wheel-angle-broken"
+              : "solar:magic-stick-3-broken"
+          }
+          loading={importing}
+          disabled={importing}
+          onClick={importJobDescription}
+        >
+          {importing ? "Reading job description" : "Import and fill form"}
+        </Button>
+      </section>
+
       {/* ── Basic information ── */}
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 transition-shadow duration-200">
         <SectionHeader
@@ -317,6 +462,58 @@ export function JobForm({ job, departments = [] }: Props) {
               </div>
             </Field>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
+        <SectionHeader
+          icon="solar:case-round-broken"
+          iconBg="bg-brand-500/15"
+          iconColor="text-brand-500"
+          title="Employment details"
+          hint="Set the practical terms candidates need before they apply."
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Employment type">
+            <input
+              value={employmentType}
+              onChange={(event) => setEmploymentType(event.target.value)}
+              className={inputCls}
+              placeholder="e.g. Full-time internship"
+            />
+          </Field>
+          <Field label="Work mode">
+            <input
+              value={workMode}
+              onChange={(event) => setWorkMode(event.target.value)}
+              className={inputCls}
+              placeholder="e.g. Hybrid"
+            />
+          </Field>
+          <Field label="Duration">
+            <input
+              value={contractDuration}
+              onChange={(event) => setContractDuration(event.target.value)}
+              className={inputCls}
+              placeholder="e.g. 6 months"
+            />
+          </Field>
+          <Field label="Compensation">
+            <input
+              value={compensation}
+              onChange={(event) => setCompensation(event.target.value)}
+              className={inputCls}
+              placeholder="e.g. Monthly stipend plus commission"
+            />
+          </Field>
+          <Field label="Reports to">
+            <input
+              value={reportsTo}
+              onChange={(event) => setReportsTo(event.target.value)}
+              className={inputCls}
+              placeholder="e.g. Business Development Lead"
+            />
+          </Field>
         </div>
       </section>
 
@@ -475,6 +672,47 @@ export function JobForm({ job, departments = [] }: Props) {
               onClick={() => addListItem(niceToHaves, setNiceToHaves)}
             />
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
+        <SectionHeader
+          icon="solar:letter-broken"
+          iconBg="bg-brand-500/15"
+          iconColor="text-brand-500"
+          title="Candidate experience"
+          hint="Make the application expectations and hiring process clear before publishing."
+        />
+        <div className="space-y-4">
+          <Field label="What we offer">
+            <textarea
+              value={benefits}
+              onChange={(event) => setBenefits(event.target.value)}
+              rows={4}
+              className={inputCls}
+              placeholder="Benefits, learning support, leave, or other reasons to join."
+            />
+          </Field>
+          <Field label="How to apply">
+            <textarea
+              value={applicationInstructions}
+              onChange={(event) =>
+                setApplicationInstructions(event.target.value)
+              }
+              rows={3}
+              className={inputCls}
+              placeholder="Documents to include, cover-note prompt, and any application requirements."
+            />
+          </Field>
+          <Field label="Selection process">
+            <textarea
+              value={selectionProcess}
+              onChange={(event) => setSelectionProcess(event.target.value)}
+              rows={3}
+              className={inputCls}
+              placeholder="e.g. Screening call, practical task, interview, and reference checks."
+            />
+          </Field>
         </div>
       </section>
 

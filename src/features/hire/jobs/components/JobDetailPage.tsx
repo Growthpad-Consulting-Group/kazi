@@ -176,6 +176,44 @@ export default async function JobDetailPage({ id }: { id: string }) {
         )}
       </section>
 
+      {(job.employment_type ||
+        job.work_mode ||
+        job.contract_duration ||
+        job.compensation ||
+        job.reports_to) && (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
+          <SectionHeader
+            icon="solar:case-broken"
+            iconBg="bg-brand-500/10"
+            iconColor="text-brand-500"
+            title="Employment details"
+          />
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ["Employment", job.employment_type],
+              ["Work mode", job.work_mode],
+              ["Duration", job.contract_duration],
+              ["Compensation", job.compensation],
+              ["Reports to", job.reports_to],
+            ]
+              .filter(([, value]) => value)
+              .map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-xl bg-[var(--surface-2)] px-3.5 py-3"
+                >
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-sm font-medium text-[var(--text-hi)]">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        </section>
+      )}
+
       {/* ── Requirements ── */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 hover:shadow-2xl dark:shadow-black/20 p-5 sm:p-6 transition-shadow duration-200">
@@ -238,6 +276,50 @@ export default async function JobDetailPage({ id }: { id: string }) {
           )}
         </section>
       </div>
+
+      {(job.benefits ||
+        job.application_instructions ||
+        job.selection_process) && (
+        <div className="grid gap-5 md:grid-cols-2">
+          {job.benefits && (
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
+              <SectionHeader
+                icon="solar:heart-broken"
+                iconBg="bg-brand-500/10"
+                iconColor="text-brand-500"
+                title="What we offer"
+              />
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">
+                {job.benefits}
+              </p>
+            </section>
+          )}
+          {(job.application_instructions || job.selection_process) && (
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
+              <SectionHeader
+                icon="solar:clipboard-check-broken"
+                iconBg="bg-brand-500/10"
+                iconColor="text-brand-500"
+                title="Application process"
+              />
+              {job.application_instructions && (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">
+                  {job.application_instructions}
+                </p>
+              )}
+              {job.selection_process && (
+                <p
+                  className={`${job.application_instructions ? "mt-4 border-t border-[var(--border)] pt-4" : ""} whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]`}
+                >
+                  <span className="font-semibold">Selection process</span>
+                  <br />
+                  {job.selection_process}
+                </p>
+              )}
+            </section>
+          )}
+        </div>
+      )}
 
       {/* ── AI Screening Rubric ── */}
       {job.scoring_rubric.length > 0 && (

@@ -390,7 +390,7 @@ export default async function CheckinsPage({
             : undefined
         }
       />
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="mx-auto space-y-5">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-gradient-to-r from-brand-500/[0.06] to-transparent px-5 py-4 sm:px-6">

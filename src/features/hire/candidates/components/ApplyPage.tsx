@@ -11,6 +11,14 @@ type PublicJob = {
   location: string | null;
   description: string | null;
   requirements: { must_haves?: string[]; nice_to_haves?: string[] } | null;
+  employmentType: string | null;
+  workMode: string | null;
+  contractDuration: string | null;
+  compensation: string | null;
+  reportsTo: string | null;
+  benefits: string | null;
+  applicationInstructions: string | null;
+  selectionProcess: string | null;
   closesAt: string | null;
 };
 
@@ -175,6 +183,9 @@ export function ApplyPage({
               icon="solar:map-point-broken"
               value={job.location ?? "Location flexible"}
             />
+            {job.workMode && (
+              <Meta icon="solar:home-2-broken" value={job.workMode} />
+            )}
             <Meta icon="solar:calendar-broken" value={closingLabel} />
           </div>
         </div>
@@ -191,6 +202,28 @@ export function ApplyPage({
                   "Join our team and help us deliver meaningful work for the organisations we serve."}
               </p>
             </section>
+            {(job.employmentType ||
+              job.contractDuration ||
+              job.compensation ||
+              job.reportsTo) && (
+              <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
+                <SectionHeading icon="solar:case-broken" title="Role details" />
+                <dl className="space-y-3 text-sm">
+                  {job.employmentType && (
+                    <RoleDetail label="Employment" value={job.employmentType} />
+                  )}
+                  {job.contractDuration && (
+                    <RoleDetail label="Duration" value={job.contractDuration} />
+                  )}
+                  {job.compensation && (
+                    <RoleDetail label="Compensation" value={job.compensation} />
+                  )}
+                  {job.reportsTo && (
+                    <RoleDetail label="Reports to" value={job.reportsTo} />
+                  )}
+                </dl>
+              </section>
+            )}
             {(mustHaves.length > 0 || niceToHaves.length > 0) && (
               <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
                 <SectionHeading
@@ -213,6 +246,39 @@ export function ApplyPage({
                     />
                   )}
                 </div>
+              </section>
+            )}
+            {job.benefits && (
+              <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
+                <SectionHeading
+                  icon="solar:heart-broken"
+                  title="What we offer"
+                />
+                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                  {job.benefits}
+                </p>
+              </section>
+            )}
+            {(job.applicationInstructions || job.selectionProcess) && (
+              <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
+                <SectionHeading
+                  icon="solar:clipboard-check-broken"
+                  title="Before you apply"
+                />
+                {job.applicationInstructions && (
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                    {job.applicationInstructions}
+                  </p>
+                )}
+                {job.selectionProcess && (
+                  <p className="mt-4 border-t border-orange-100 pt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                    <span className="font-semibold text-slate-800">
+                      Selection process
+                    </span>
+                    <br />
+                    {job.selectionProcess}
+                  </p>
+                )}
               </section>
             )}
             <p className="px-2 text-xs leading-5 text-slate-500">
@@ -387,6 +453,15 @@ function SectionHeading({ icon, title }: { icon: string; title: string }) {
         <Icon icon={icon} className="h-4 w-4" />
       </span>
       <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+    </div>
+  );
+}
+
+function RoleDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-orange-100 pb-3 last:border-0 last:pb-0">
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
+      <dd className="text-right text-sm font-medium text-slate-800">{value}</dd>
     </div>
   );
 }
