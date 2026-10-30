@@ -631,6 +631,28 @@ export interface Database {
         >;
         Relationships: [];
       };
+      google_profile_connections: {
+        Row: {
+          user_id: string;
+          google_subject: string;
+          google_email: string;
+          connected_at: string;
+          refreshed_at: string;
+        };
+        Insert: {
+          user_id: string;
+          google_subject: string;
+          google_email: string;
+          connected_at?: string;
+          refreshed_at?: string;
+        };
+        Update: Partial<{
+          google_subject: string;
+          google_email: string;
+          refreshed_at: string;
+        }>;
+        Relationships: [];
+      };
       voice_out_reports: {
         Row: {
           id: string;

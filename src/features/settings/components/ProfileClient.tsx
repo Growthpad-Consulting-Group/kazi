@@ -27,11 +27,13 @@ interface Props {
   };
   /** True when the person must choose a new password before using the rest of Kazi. */
   passwordRequired?: boolean;
+  googleProfileConnected?: boolean;
 }
 
 export default function ProfileClient({
   initial,
   passwordRequired = false,
+  googleProfileConnected = false,
 }: Props) {
   const router = useRouter();
   const { update: updateSession } = useSession();
@@ -192,6 +194,49 @@ export default function ProfileClient({
           >
             {isPending ? "Saving…" : "Save changes"}
           </Button>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Google profile"
+        description="Optionally refresh your name and photo from the Google account that matches your Kazi email."
+        icon="solar:google-broken"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-[var(--text-lo)]">
+            {googleProfileConnected
+              ? "Connected. Refresh any time to use your current Google profile photo."
+              : "Uses only basic identity details: name, verified email, and profile photo."}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                router.push("/api/integrations/google-profile/connect");
+              }}
+            >
+              {googleProfileConnected
+                ? "Refresh from Google"
+                : "Connect Google profile"}
+            </Button>
+            {googleProfileConnected && (
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  const response = await fetch(
+                    "/api/integrations/google-profile/disconnect",
+                    { method: "DELETE" },
+                  );
+                  if (response.ok) {
+                    toast.success("Google profile disconnected");
+                    router.refresh();
+                  } else toast.error("Could not disconnect Google profile");
+                }}
+              >
+                Disconnect
+              </Button>
+            )}
+          </div>
         </div>
       </SettingsSection>
 

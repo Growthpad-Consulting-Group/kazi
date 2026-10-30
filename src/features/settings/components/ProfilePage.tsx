@@ -30,7 +30,7 @@ export default async function ProfilePage() {
     };
   };
 
-  const [{ data: user }, sigResult] = await Promise.all([
+  const [{ data: user }, sigResult, profileConnection] = await Promise.all([
     supabaseAdmin
       .from("users")
       .select("job_title, location, avatar_url")
@@ -39,6 +39,11 @@ export default async function ProfilePage() {
     (supabaseAdmin as unknown as SignatureDb)
       .from("signature_staff_profiles")
       .select("photo_url")
+      .eq("user_id", session.user.id)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("google_profile_connections")
+      .select("user_id")
       .eq("user_id", session.user.id)
       .maybeSingle(),
   ]);
@@ -86,6 +91,7 @@ export default async function ProfilePage() {
           location: userData?.location ?? null,
           avatar_url: avatarUrl,
         }}
+        googleProfileConnected={Boolean(profileConnection.data)}
       />
     </div>
   );
