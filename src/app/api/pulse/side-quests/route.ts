@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can, userCan } from "@/lib/rbac";
+import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const audiences = new Set([
@@ -10,6 +10,11 @@ const audiences = new Set([
   "location",
   "manager_group",
   "staff",
+]);
+const completionModes = new Set([
+  "self_confirm",
+  "evidence_required",
+  "manager_approval",
 ]);
 
 export async function POST(req: Request) {
@@ -26,6 +31,7 @@ export async function POST(req: Request) {
     starts_at,
     ends_at,
     points,
+    completion_mode,
   } = await req.json();
   const questPoints = Number.isInteger(points) ? points : 10;
   if (questPoints < 0 || questPoints > 1000)
@@ -41,6 +47,15 @@ export async function POST(req: Request) {
   if (!audiences.has(audience_type))
     return NextResponse.json(
       { error: "Choose a valid eligible audience." },
+      { status: 400 },
+    );
+  if (
+    completion_mode !== undefined &&
+    (typeof completion_mode !== "string" ||
+      !completionModes.has(completion_mode))
+  )
+    return NextResponse.json(
+      { error: "Choose a valid completion method." },
       { status: 400 },
     );
   const filters = Array.isArray(audience_filters)
@@ -77,6 +92,7 @@ export async function POST(req: Request) {
       starts_at: starts_at || null,
       ends_at: ends_at || null,
       points: questPoints,
+      completion_mode: completion_mode ?? "self_confirm",
       status,
       created_by: session.user.id,
     })

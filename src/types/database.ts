@@ -574,6 +574,8 @@ export interface Database {
           created_at: string;
           updated_at: string;
           points: number;
+          completion_mode:
+            "self_confirm" | "evidence_required" | "manager_approval";
         };
         Insert: Omit<
           Database["public"]["Tables"]["side_quests"]["Row"],
@@ -585,23 +587,48 @@ export interface Database {
           | "ends_at"
           | "status"
           | "points"
+          | "completion_mode"
         > & {
           audience_filters?: string[];
           starts_at?: string | null;
           ends_at?: string | null;
           status?: "draft" | "upcoming" | "live" | "closed" | "archived";
           points?: number;
+          completion_mode?:
+            "self_confirm" | "evidence_required" | "manager_approval";
         };
         Update: Partial<Database["public"]["Tables"]["side_quests"]["Insert"]>;
         Relationships: [];
       };
       side_quest_completions: {
-        Row: { side_quest_id: string; user_id: string; completed_at: string };
+        Row: {
+          side_quest_id: string;
+          user_id: string;
+          completed_at: string;
+          status: "pending" | "approved" | "rejected";
+          evidence_note: string | null;
+          evidence_url: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+        };
         Insert: Omit<
           Database["public"]["Tables"]["side_quest_completions"]["Row"],
-          "completed_at"
+          | "completed_at"
+          | "status"
+          | "evidence_note"
+          | "evidence_url"
+          | "reviewed_by"
+          | "reviewed_at"
+        > & {
+          status?: "pending" | "approved" | "rejected";
+          evidence_note?: string | null;
+          evidence_url?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["side_quest_completions"]["Insert"]
         >;
-        Update: never;
         Relationships: [];
       };
       voice_out_reports: {
@@ -1209,6 +1236,17 @@ export interface Database {
       rename_department: {
         Args: { p_id: string; p_name: string };
         Returns: string;
+      };
+      award_reward_points: {
+        Args: {
+          p_user_id: string;
+          p_amount: number;
+          p_reason: string;
+          p_reference_type?: string | null;
+          p_reference_id?: string | null;
+          p_created_by?: string | null;
+        };
+        Returns: boolean;
       };
     };
     Enums: {

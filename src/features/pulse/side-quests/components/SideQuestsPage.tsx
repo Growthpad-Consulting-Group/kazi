@@ -1,12 +1,13 @@
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can, userCan } from "@/lib/rbac";
+import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { EditSideQuestButton, NewSideQuestButton } from "./SideQuestFormModal";
 import { QuestCompletionButton } from "./QuestCompletionButton";
+import { QuestCompletionReviewButton } from "./QuestCompletionReviewButton";
 
 const audienceLabels: Record<string, string> = {
   company: "Company-wide",
@@ -28,7 +29,9 @@ export default async function SideQuestsPage() {
         .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("side_quest_completions")
-        .select("side_quest_id, user_id"),
+        .select(
+          "side_quest_id, user_id, status, evidence_note, evidence_url, completed_at",
+        ),
       supabaseAdmin
         .from("users")
         .select("id, name, role, department, location, manager_id")
@@ -37,6 +40,7 @@ export default async function SideQuestsPage() {
     ]);
   const completionByQuest = new Map<string, Set<string>>();
   for (const completion of completions ?? []) {
+    if (completion.status !== "approved") continue;
     const set =
       completionByQuest.get(completion.side_quest_id) ?? new Set<string>();
     set.add(completion.user_id);
@@ -84,8 +88,16 @@ export default async function SideQuestsPage() {
   );
   const completedByYou = new Set(
     (completions ?? [])
-      .filter((item) => item.user_id === session.user.id)
+      .filter(
+        (item) =>
+          item.user_id === session.user.id && item.status === "approved",
+      )
       .map((item) => item.side_quest_id),
+  );
+  const yourCompletionStatus = new Map(
+    (completions ?? [])
+      .filter((item) => item.user_id === session.user.id)
+      .map((item) => [item.side_quest_id, item.status]),
   );
   const audienceOptions = {
     departments: [
@@ -107,6 +119,10 @@ export default async function SideQuestsPage() {
       .map((user) => ({ id: user.id, name: user.name })),
     staff: (staff ?? []).map((user) => ({ id: user.id, name: user.name })),
   };
+  const pendingReviews = canManage
+    ? (completions ?? []).filter((item) => item.status === "pending")
+    : [];
+  const questById = new Map((quests ?? []).map((quest) => [quest.id, quest]));
   return (
     <>
       <SetPageHeader
@@ -154,6 +170,69 @@ export default async function SideQuestsPage() {
             subtitle="Culture in action"
           />
         </section>
+        {canManage && pendingReviews.length > 0 && (
+          <section className="rounded-2xl border border-amber-500/20 bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                <Icon icon="solar:clipboard-check-broken" className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                  Completion review
+                </h2>
+                <p className="text-xs text-[var(--text-lo)]">
+                  Approve verified work to award quest points.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 divide-y divide-[var(--border)]">
+              {pendingReviews.map((completion) => {
+                const quest = questById.get(completion.side_quest_id);
+                return (
+                  <div
+                    key={`${completion.side_quest_id}-${completion.user_id}`}
+                    className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[var(--text-hi)]">
+                        {nameById.get(completion.user_id) ?? "Staff member"}{" "}
+                        <span className="font-normal text-[var(--text-lo)]">
+                          · {quest?.title ?? "Side Quest"}
+                        </span>
+                      </p>
+                      {completion.evidence_note && (
+                        <p className="mt-1 text-sm text-[var(--text-lo)]">
+                          {completion.evidence_note}
+                        </p>
+                      )}
+                      {completion.evidence_url && (
+                        <a
+                          className="mt-1 block truncate text-xs font-medium text-brand-500 hover:underline"
+                          href={completion.evidence_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View evidence
+                        </a>
+                      )}
+                      <p className="mt-1 text-xs text-[var(--text-lo)]">
+                        Submitted{" "}
+                        {new Date(completion.completed_at).toLocaleDateString(
+                          "en-KE",
+                          { day: "numeric", month: "short" },
+                        )}
+                      </p>
+                    </div>
+                    <QuestCompletionReviewButton
+                      questId={completion.side_quest_id}
+                      userId={completion.user_id}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
         {live.length ? (
           <section className="grid gap-4 lg:grid-cols-2">
             {live.map((quest) => {
@@ -217,7 +296,8 @@ export default async function SideQuestsPage() {
                     </div>
                     <QuestCompletionButton
                       questId={quest.id}
-                      complete={completedByYou.has(quest.id)}
+                      status={yourCompletionStatus.get(quest.id)}
+                      completionMode={quest.completion_mode}
                     />
                   </div>
                 </article>

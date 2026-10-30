@@ -16,34 +16,15 @@ export async function awardPoints({
   referenceType,
   referenceId,
   createdBy,
-}: AwardPointsArgs): Promise<void> {
-  // Ensure wallet exists
-  await supabaseAdmin
-    .from("reward_wallets")
-    .upsert(
-      { user_id: userId, balance: 0 },
-      { onConflict: "user_id", ignoreDuplicates: true },
-    );
-
-  // Fetch current balance and increment
-  const { data: wallet } = await supabaseAdmin
-    .from("reward_wallets")
-    .select("balance")
-    .eq("user_id", userId)
-    .single();
-
-  await supabaseAdmin
-    .from("reward_wallets")
-    .update({ balance: (wallet?.balance ?? 0) + amount })
-    .eq("user_id", userId);
-
-  // Ledger entry
-  await supabaseAdmin.from("reward_ledger").insert({
-    user_id: userId,
-    amount,
-    reason,
-    reference_type: referenceType ?? null,
-    reference_id: referenceId ?? null,
-    created_by: createdBy ?? null,
+}: AwardPointsArgs): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.rpc("award_reward_points", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_reason: reason,
+    p_reference_type: referenceType ?? null,
+    p_reference_id: referenceId ?? null,
+    p_created_by: createdBy ?? null,
   });
+  if (error) throw new Error(error.message);
+  return data;
 }

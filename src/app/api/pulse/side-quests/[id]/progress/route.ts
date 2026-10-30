@@ -6,7 +6,7 @@ import { awardPoints } from "@/lib/award-points";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function POST(_req: Request, context: RouteContext) {
+export async function POST(req: Request, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,7 +15,7 @@ export async function POST(_req: Request, context: RouteContext) {
     supabaseAdmin
       .from("side_quests")
       .select(
-        "id, status, starts_at, ends_at, audience_type, audience_filters, points",
+        "id, status, starts_at, ends_at, audience_type, audience_filters, points, completion_mode",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -54,16 +54,48 @@ export async function POST(_req: Request, context: RouteContext) {
       { error: "This Side Quest is not assigned to you." },
       { status: 403 },
     );
-  const { error } = await supabaseAdmin
-    .from("side_quest_completions")
-    .upsert(
-      { side_quest_id: id, user_id: session.user.id },
-      { onConflict: "side_quest_id,user_id", ignoreDuplicates: true },
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const evidenceNote =
+    typeof body.evidence_note === "string" ? body.evidence_note.trim() : "";
+  const evidenceUrl =
+    typeof body.evidence_url === "string" ? body.evidence_url.trim() : "";
+  if (evidenceUrl) {
+    try {
+      const url = new URL(evidenceUrl);
+      if (!/^https?:$/.test(url.protocol)) throw new Error("Invalid protocol");
+    } catch {
+      return NextResponse.json(
+        { error: "Add a valid evidence link starting with https://." },
+        { status: 400 },
+      );
+    }
+  }
+  if (
+    quest.completion_mode === "evidence_required" &&
+    !evidenceNote &&
+    !evidenceUrl
+  )
+    return NextResponse.json(
+      { error: "Add a short note or evidence link before submitting." },
+      { status: 400 },
+    );
+  const completionStatus =
+    quest.completion_mode === "self_confirm" ? "approved" : "pending";
+  const { error } = await supabaseAdmin.from("side_quest_completions").insert({
+    side_quest_id: id,
+    user_id: session.user.id,
+    status: completionStatus,
+    evidence_note: evidenceNote || null,
+    evidence_url: evidenceUrl || null,
+  });
+  if (error?.code === "23505")
+    return NextResponse.json(
+      { error: "You have already submitted this Side Quest." },
+      { status: 409 },
     );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  // Award the quest points for completion (non-blocking)
-  try {
+  if (completionStatus === "approved") {
     await awardPoints({
       userId: session.user.id,
       amount: quest.points,
@@ -72,8 +104,6 @@ export async function POST(_req: Request, context: RouteContext) {
       referenceId: id,
       createdBy: null,
     });
-  } catch {
-    /* non-blocking */
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, status: completionStatus });
 }

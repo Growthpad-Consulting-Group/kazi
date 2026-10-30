@@ -1,0 +1,24 @@
+name: Side Quest Lifecycle
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  update-side-quests:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Verify worker credentials
+        if: env.CRON_SECRET == ''
+        run: |
+          echo "::notice::Skipping Side Quest lifecycle because CRON_SECRET is not configured in GitHub Actions."
+      - name: Open and close scheduled Side Quests
+        if: env.CRON_SECRET != ''
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/pulse/side-quests/lifecycle"

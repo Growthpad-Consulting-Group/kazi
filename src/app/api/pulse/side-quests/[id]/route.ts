@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can, userCan } from "@/lib/rbac";
+import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const audiences = new Set([
@@ -10,6 +10,11 @@ const audiences = new Set([
   "location",
   "manager_group",
   "staff",
+]);
+const completionModes = new Set([
+  "self_confirm",
+  "evidence_required",
+  "manager_approval",
 ]);
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -64,6 +69,15 @@ export async function PATCH(req: Request, context: RouteContext) {
       { error: "Points must be a whole number between 0 and 1000." },
       { status: 400 },
     );
+  const completionMode = body?.completion_mode ?? "self_confirm";
+  if (
+    typeof completionMode !== "string" ||
+    !completionModes.has(completionMode)
+  )
+    return NextResponse.json(
+      { error: "Choose a valid completion method." },
+      { status: 400 },
+    );
 
   const startsAt =
     typeof body?.starts_at === "string" && body.starts_at
@@ -102,6 +116,8 @@ export async function PATCH(req: Request, context: RouteContext) {
       brief,
       completion_criteria: completionCriteria,
       points,
+      completion_mode: completionMode as
+        "self_confirm" | "evidence_required" | "manager_approval",
       audience_type: audienceType as
         "company" | "department" | "location" | "manager_group" | "staff",
       audience_filters: filters,

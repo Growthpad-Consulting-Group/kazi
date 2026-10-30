@@ -61,6 +61,9 @@ function SideQuestForm({
   const [brief, setBrief] = useState(quest?.brief ?? "");
   const [criteria, setCriteria] = useState(quest?.completion_criteria ?? "");
   const [points, setPoints] = useState(String(quest?.points ?? 10));
+  const [completionMode, setCompletionMode] = useState(
+    quest?.completion_mode ?? "self_confirm",
+  );
   const [audience, setAudience] = useState(quest?.audience_type ?? "company");
   const [filters, setFilters] = useState<string[]>(
     quest?.audience_filters ?? [],
@@ -98,6 +101,7 @@ function SideQuestForm({
       brief,
       completion_criteria: criteria,
       points: Number(points) || 0,
+      completion_mode: completionMode,
       audience_type: audience,
       audience_filters: filters,
       starts_at: startDate ? `${startDate}T${startTime || "09:00"}:00` : null,
@@ -172,6 +176,32 @@ function SideQuestForm({
           onChange={(event) => setPoints(event.target.value)}
           className={inputClass}
         />
+      </div>
+      <div>
+        <label className={labelClass}>How completion is verified</label>
+        <select
+          value={completionMode}
+          onChange={(event) =>
+            setCompletionMode(
+              event.target.value as
+                "self_confirm" | "evidence_required" | "manager_approval",
+            )
+          }
+          className={inputClass}
+        >
+          <option value="self_confirm">
+            Self-confirm — award points immediately
+          </option>
+          <option value="evidence_required">
+            Evidence required — manager approves
+          </option>
+          <option value="manager_approval">
+            Manager approval — optional note or link
+          </option>
+        </select>
+        <p className="mt-1.5 text-xs text-[var(--text-lo)]">
+          Use approval for rewards that need a quick human check.
+        </p>
       </div>
       <div>
         <label className={labelClass}>Eligible audience</label>
