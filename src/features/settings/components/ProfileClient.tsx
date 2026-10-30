@@ -29,14 +29,22 @@ interface Props {
   /** True when the person must choose a new password before using the rest of Kazi. */
   passwordRequired?: boolean;
   googleProfileConnected?: boolean;
-  passkeyCount?: number;
+  passkeys?: Passkey[];
 }
+type Passkey = {
+  id: string;
+  device_type: "singleDevice" | "multiDevice";
+  backed_up: boolean;
+  transports: string[];
+  created_at: string;
+  last_used_at: string | null;
+};
 
 export default function ProfileClient({
   initial,
   passwordRequired = false,
   googleProfileConnected = false,
-  passkeyCount: initialPasskeyCount = 0,
+  passkeys: initialPasskeys = [],
 }: Props) {
   const router = useRouter();
   const { update: updateSession } = useSession();
@@ -54,7 +62,18 @@ export default function ProfileClient({
   const [confirmPw, setConfirmPw] = useState("");
   const [pwPending, startPwTransition] = useTransition();
   const [passkeyPending, setPasskeyPending] = useState(false);
-  const [passkeyCount, setPasskeyCount] = useState(initialPasskeyCount);
+  const [passkeys, setPasskeys] = useState(initialPasskeys);
+
+  async function refreshPasskeys() {
+    const response = await fetch("/api/auth/passkeys");
+    const data = (await response.json().catch(() => null)) as {
+      passkeys?: Passkey[];
+      error?: string;
+    } | null;
+    if (!response.ok)
+      throw new Error(data?.error ?? "Could not load passkeys.");
+    setPasskeys(data?.passkeys ?? []);
+  }
 
   async function addPasskey() {
     setPasskeyPending(true);
@@ -77,10 +96,34 @@ export default function ProfileClient({
       toast.success(
         "Passkey added. You can now use Face ID, Touch ID, or Windows Hello.",
       );
-      setPasskeyCount((count) => count + 1);
+      await refreshPasskeys();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Passkey setup failed.",
+      );
+    } finally {
+      setPasskeyPending(false);
+    }
+  }
+
+  async function removePasskey(id: string) {
+    setPasskeyPending(true);
+    try {
+      const response = await fetch("/api/auth/passkeys", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(data?.error ?? "Could not remove passkey.");
+      setPasskeys((current) => current.filter((passkey) => passkey.id !== id));
+      toast.success("Passkey removed.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not remove passkey.",
       );
     } finally {
       setPasskeyPending(false);
@@ -244,11 +287,11 @@ export default function ProfileClient({
               Passkeys are encrypted on your device or password manager. Keep
               Google and your password available for recovery.
             </p>
-            {passkeyCount > 0 && (
-              <p className="mt-2 text-xs font-semibold text-emerald-600">
-                {passkeyCount} passkey{passkeyCount === 1 ? "" : "s"} active
-              </p>
-            )}
+            <p className="mt-2 text-xs font-semibold text-emerald-600">
+              {passkeys.length
+                ? `${passkeys.length} passkey${passkeys.length === 1 ? "" : "s"} active`
+                : "No passkeys added yet"}
+            </p>
           </div>
           <Button
             icon="solar:key-broken"
@@ -257,11 +300,66 @@ export default function ProfileClient({
           >
             {passkeyPending
               ? "Setting up…"
-              : passkeyCount
+              : passkeys.length
                 ? "Add another passkey"
                 : "Add a passkey"}
           </Button>
         </div>
+        {passkeys.length > 0 && (
+          <div className="mt-4 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3">
+            {passkeys.map((passkey) => (
+              <div
+                key={passkey.id}
+                className="flex flex-wrap items-center gap-3 py-3"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--surface)] text-brand-500">
+                  <Icon icon="solar:key-broken" className="h-4.5 w-4.5" />
+                </span>
+                <div className="min-w-[12rem] flex-1">
+                  <p className="text-sm font-semibold text-[var(--text-hi)]">
+                    {passkey.device_type === "multiDevice"
+                      ? "Synced passkey"
+                      : "This device"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                    Added{" "}
+                    {new Date(passkey.created_at).toLocaleDateString("en-KE", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                    {passkey.last_used_at
+                      ? ` · Last used ${new Date(passkey.last_used_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                      : " · Not used yet"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-md bg-[var(--surface)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">
+                    {passkey.backed_up ? "Backed up" : "Device only"}
+                  </span>
+                  {passkey.transports.length > 0 && (
+                    <span className="rounded-md bg-[var(--surface)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">
+                      {passkey.transports.join(", ")}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={passkeyPending}
+                    onClick={() => removePasskey(passkey.id)}
+                    className="rounded-lg p-2 text-[var(--text-lo)] transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
+                    aria-label="Remove passkey"
+                    title="Remove passkey"
+                  >
+                    <Icon
+                      icon="solar:trash-bin-minimalistic-broken"
+                      className="h-4 w-4"
+                    />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </SettingsSection>
 
       <SettingsSection

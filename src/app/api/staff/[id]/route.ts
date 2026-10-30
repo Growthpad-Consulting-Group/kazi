@@ -98,11 +98,12 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       { status: 400 },
     );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* eslint-disable @typescript-eslint/no-explicit-any -- generated user update type does not include newly added profile fields */
   const { error } = await supabaseAdmin
     .from("users")
     .update(patch as any)
     .eq("id", id);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
   if (patch.avatar_url !== undefined)
@@ -183,6 +184,20 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     .eq("manager_id", id);
   if (reportsError)
     return NextResponse.json({ error: reportsError.message }, { status: 500 });
+
+  // Staff removal is a soft delete, so database cascades from users do not run.
+  // Remove any corresponding Signature staff profile explicitly; its dependent
+  // assignment and campaign-audience records use ON DELETE CASCADE.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- signature tables await generated types
+  const { error: signatureError } = await (supabaseAdmin as any)
+    .from("signature_staff_profiles")
+    .delete()
+    .eq("user_id", id);
+  if (signatureError)
+    return NextResponse.json(
+      { error: signatureError.message },
+      { status: 500 },
+    );
 
   const { error } = await supabaseAdmin
     .from("users")

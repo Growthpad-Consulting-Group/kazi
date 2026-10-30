@@ -91,6 +91,7 @@ function toDateString(value: Date) {
 export default function HallOfFameClient({
   currentUserId,
   canManage,
+  requiresMonthlyEntry,
   cycle,
   staff,
   nominations,
@@ -99,6 +100,7 @@ export default function HallOfFameClient({
 }: {
   currentUserId: string;
   canManage: boolean;
+  requiresMonthlyEntry: boolean;
   cycle: Cycle;
   staff: Staff[];
   nominations: Nomination[];
@@ -532,7 +534,7 @@ export default function HallOfFameClient({
         />
       </section>
 
-      {isOpen && !hasMonthlyEntry && (
+      {isOpen && requiresMonthlyEntry && !hasMonthlyEntry && (
         <section className="flex flex-col gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-4 shadow-lg shadow-brand-500/5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">

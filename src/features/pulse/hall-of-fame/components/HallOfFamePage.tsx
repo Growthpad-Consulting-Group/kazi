@@ -124,6 +124,9 @@ export default async function HallOfFamePage() {
       <HallOfFameClient
         currentUserId={session.user.id}
         canManage={userCan(session.user, "manage_recognition_campaigns")}
+        requiresMonthlyEntry={
+          !["admin", "hr", "manager"].includes(session.user.role)
+        }
         cycle={cycle}
         staff={((staffData ?? []) as Staff[]).map((member) => ({
           ...member,
