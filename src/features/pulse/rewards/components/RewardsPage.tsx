@@ -106,6 +106,8 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
 
   const balance = walletResult.data?.balance ?? 0;
   const catalogue = (catalogueResult.data ?? []) as RewardCatalogue[];
+  const nextReward =
+    catalogue.find((item) => item.points_cost > balance) ?? null;
   const myRedemptions = (redemptionsResult.data ?? []) as RewardRedemption[];
   const pendingRedemptions = (pendingResult.data ?? []) as RewardRedemption[];
   const manageCatalogue = (manageCatalogueResult.data ??
@@ -222,6 +224,35 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                 </>
               )}
             </section>
+
+            {nextReward && (
+              <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/30 dark:shadow-black/15">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[.12em] text-brand-500">
+                      Next reward
+                    </p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--text-hi)]">
+                      {nextReward.name}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-lo)]">
+                      {nextReward.points_cost - balance} more points to redeem
+                    </p>
+                  </div>
+                  <span className="font-mono text-sm font-bold text-brand-500">
+                    {balance}/{nextReward.points_cost}
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-brand-500 to-orange-400"
+                    style={{
+                      width: `${Math.min(100, Math.round((balance / nextReward.points_cost) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </section>
+            )}
 
             {canManage && (
               <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">

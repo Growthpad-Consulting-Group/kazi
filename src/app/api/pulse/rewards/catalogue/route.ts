@@ -40,6 +40,9 @@ export async function POST(req: Request): Promise<Response> {
     redemption_limit_per_user,
     available_from,
     expires_at,
+    reward_type,
+    charity_name,
+    cash_cost_kes,
   } = await req.json();
 
   if (!name?.trim())
@@ -50,6 +53,32 @@ export async function POST(req: Request): Promise<Response> {
       { status: 400 },
     );
   }
+  if (
+    reward_type !== undefined &&
+    reward_type !== "reward" &&
+    reward_type !== "donation"
+  )
+    return NextResponse.json(
+      { error: "Choose a valid reward type." },
+      { status: 400 },
+    );
+  if (
+    reward_type === "donation" &&
+    (typeof charity_name !== "string" || !charity_name.trim())
+  )
+    return NextResponse.json(
+      { error: "Name the charity for a donation reward." },
+      { status: 400 },
+    );
+  if (
+    cash_cost_kes !== undefined &&
+    cash_cost_kes !== null &&
+    (!Number.isInteger(cash_cost_kes) || cash_cost_kes < 0)
+  )
+    return NextResponse.json(
+      { error: "KES cost must be a whole number of zero or more." },
+      { status: 400 },
+    );
   if (
     stock_quantity !== undefined &&
     stock_quantity !== null &&
@@ -94,6 +123,12 @@ export async function POST(req: Request): Promise<Response> {
       redemption_limit_per_user: redemption_limit_per_user ?? null,
       available_from: available_from || null,
       expires_at: expires_at || null,
+      reward_type: reward_type ?? "reward",
+      charity_name:
+        typeof charity_name === "string" && charity_name.trim()
+          ? charity_name.trim()
+          : null,
+      cash_cost_kes: cash_cost_kes ?? null,
     })
     .select("id")
     .single();

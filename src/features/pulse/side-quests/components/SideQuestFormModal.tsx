@@ -96,6 +96,13 @@ function SideQuestForm({
   const [brief, setBrief] = useState(quest?.brief ?? "");
   const [criteria, setCriteria] = useState(quest?.completion_criteria ?? "");
   const [points, setPoints] = useState(String(quest?.points ?? 10));
+  const [repeatFrequency, setRepeatFrequency] = useState(
+    quest?.repeat_frequency ?? "once",
+  );
+  const [completionCap, setCompletionCap] = useState(
+    String(quest?.max_completions_per_period ?? 1),
+  );
+  const [approverId, setApproverId] = useState(quest?.approver_id ?? "");
   const [completionMode, setCompletionMode] = useState(
     quest?.completion_mode ?? "self_confirm",
   );
@@ -146,6 +153,9 @@ function SideQuestForm({
       brief,
       completion_criteria: criteria,
       points: Number(points) || 0,
+      repeat_frequency: repeatFrequency,
+      max_completions_per_period: Number(completionCap) || 1,
+      approver_id: approverId || null,
       completion_mode: completionMode,
       status: lifecycle,
       audience_type: audience,
@@ -258,6 +268,54 @@ function SideQuestForm({
           onChange={(event) => setPoints(event.target.value)}
           className={inputClass}
         />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className={labelClass}>Completion frequency</span>
+          <select
+            value={repeatFrequency}
+            onChange={(event) =>
+              setRepeatFrequency(
+                event.target.value as "once" | "weekly" | "monthly",
+              )
+            }
+            className={inputClass}
+          >
+            <option value="once">One time</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className={labelClass}>Max completions per period</span>
+          <input
+            type="number"
+            min={1}
+            max={52}
+            value={completionCap}
+            onChange={(event) => setCompletionCap(event.target.value)}
+            disabled={repeatFrequency === "once"}
+            className={`${inputClass} disabled:opacity-50`}
+          />
+        </label>
+      </div>
+      <div>
+        <label className={labelClass}>
+          Designated approver{" "}
+          <span className="font-normal text-[var(--text-lo)]">Optional</span>
+        </label>
+        <select
+          value={approverId}
+          onChange={(event) => setApproverId(event.target.value)}
+          className={inputClass}
+        >
+          <option value="">Any Side Quest manager</option>
+          {options.staff.map((staff) => (
+            <option key={staff.id} value={staff.id}>
+              {staff.name}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label className={labelClass}>How completion is verified</label>

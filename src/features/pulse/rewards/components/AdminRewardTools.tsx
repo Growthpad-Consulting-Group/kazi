@@ -41,6 +41,11 @@ export function RewardForm({
   const [pointsCost, setPointsCost] = useState(String(item?.points_cost ?? ""));
   const [imageUrl, setImageUrl] = useState(item?.image_url ?? "");
   const [category, setCategory] = useState(item?.category ?? "");
+  const [rewardType, setRewardType] = useState(item?.reward_type ?? "reward");
+  const [charityName, setCharityName] = useState(item?.charity_name ?? "");
+  const [cashCostKes, setCashCostKes] = useState(
+    item?.cash_cost_kes?.toString() ?? "",
+  );
   const [vendorName, setVendorName] = useState(item?.vendor_name ?? "");
   const [stockQuantity, setStockQuantity] = useState(
     item?.stock_quantity?.toString() ?? "",
@@ -95,6 +100,9 @@ export function RewardForm({
         points_cost: Number(pointsCost),
         image_url: imageUrl,
         category,
+        reward_type: rewardType,
+        charity_name: charityName,
+        cash_cost_kes: cashCostKes.trim() ? Number(cashCostKes) : null,
         vendor_name: vendorName,
         stock_quantity: stockQuantity.trim() ? Number(stockQuantity) : null,
         redemption_limit_per_user: redemptionLimit.trim()
@@ -218,6 +226,43 @@ export function RewardForm({
               className={`${inputClass} resize-y`}
             />
           </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className={labelClass}>
+              Reward type
+              <select
+                value={rewardType}
+                onChange={(e) =>
+                  setRewardType(e.target.value as "reward" | "donation")
+                }
+                className={inputClass}
+              >
+                <option value="reward">Reward</option>
+                <option value="donation">Donation</option>
+              </select>
+            </label>
+            <label className={labelClass}>
+              Programme cost (KES)
+              <input
+                type="number"
+                min={0}
+                value={cashCostKes}
+                onChange={(e) => setCashCostKes(e.target.value)}
+                placeholder="e.g. 1500"
+                className={inputClass}
+              />
+            </label>
+          </div>
+          {rewardType === "donation" && (
+            <label className={labelClass}>
+              Charity name
+              <input
+                value={charityName}
+                onChange={(e) => setCharityName(e.target.value)}
+                placeholder="e.g. Kenya Red Cross"
+                className={inputClass}
+              />
+            </label>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={labelClass}>
               Category

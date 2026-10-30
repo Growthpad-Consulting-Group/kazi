@@ -4,6 +4,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
+/** Google serves profile photos at a small default size; ask for a sharp one. */
+function highResPhoto(url: string) {
+  return /=s\d+(-c)?$/.test(url)
+    ? url.replace(/=s\d+(-c)?$/, "=s512-c")
+    : `${url}=s512-c`;
+}
+
 const STATE_COOKIE = "kazi_google_profile_oauth";
 
 export async function GET(request: Request) {
@@ -66,7 +73,7 @@ export async function GET(request: Request) {
       .from("users")
       .update({
         name: profile.name?.trim() || session.user.name || "",
-        avatar_url: profile.picture ?? null,
+        avatar_url: profile.picture ? highResPhoto(profile.picture) : null,
       })
       .eq("id", session.user.id);
     await supabaseAdmin.from("google_profile_connections").upsert(

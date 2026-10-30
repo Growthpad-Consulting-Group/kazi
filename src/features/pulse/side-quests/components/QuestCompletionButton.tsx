@@ -20,6 +20,9 @@ export function QuestCompletionButton({
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const [url, setUrl] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [uploading, setUploading] = useState(false);
   if (status === "approved")
     return (
       <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
@@ -41,7 +44,11 @@ export function QuestCompletionButton({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ evidence_note: note, evidence_url: url }),
+          body: JSON.stringify({
+            evidence_note: note,
+            evidence_url: url,
+            evidence_file_url: fileUrl,
+          }),
         },
       );
       const data = (await response.json().catch(() => null)) as {
@@ -59,6 +66,33 @@ export function QuestCompletionButton({
       );
     } finally {
       setSaving(false);
+    }
+  }
+  async function uploadEvidence(file: File) {
+    setUploading(true);
+    setError("");
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const response = await fetch("/api/pulse/side-quests/evidence-upload", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await response.json()) as {
+        url?: string;
+        name?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.url)
+        throw new Error(data.error ?? "Evidence upload failed.");
+      setFileUrl(data.url);
+      setFileName(data.name ?? file.name);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Evidence upload failed.",
+      );
+    } finally {
+      setUploading(false);
     }
   }
   return (
@@ -107,6 +141,22 @@ export function QuestCompletionButton({
             placeholder="Evidence link (optional)"
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm"
           />
+          <label className="block rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-lo)] cursor-pointer">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void uploadEvidence(file);
+              }}
+            />
+            {uploading
+              ? "Uploading evidence…"
+              : fileName
+                ? `Attached: ${fileName}`
+                : "Attach screenshot or PDF (max 5 MB)"}
+          </label>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setOpen(false)}>
               Cancel

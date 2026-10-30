@@ -9,7 +9,7 @@ type RouteContext = { params: Promise<{ id: string; userId: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !userCan(session.user, "manage_side_quests"))
+  if (!session)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id, userId } = await context.params;
   const body = (await request.json().catch(() => null)) as {
@@ -24,13 +24,16 @@ export async function POST(request: Request, context: RouteContext) {
   const [{ data: completion }, { data: quest }] = await Promise.all([
     supabaseAdmin
       .from("side_quest_completions")
-      .select("status")
+      .select("id, status")
       .eq("side_quest_id", id)
       .eq("user_id", userId)
+      .eq("status", "pending")
+      .order("completed_at", { ascending: false })
+      .limit(1)
       .maybeSingle(),
     supabaseAdmin
       .from("side_quests")
-      .select("points")
+      .select("points, approver_id")
       .eq("id", id)
       .maybeSingle(),
   ]);
@@ -39,6 +42,12 @@ export async function POST(request: Request, context: RouteContext) {
       { error: "Completion not found." },
       { status: 404 },
     );
+  if (
+    quest.approver_id
+      ? quest.approver_id !== session.user.id
+      : !userCan(session.user, "manage_side_quests")
+  )
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (completion.status !== "pending")
     return NextResponse.json(
       { error: "This submission has already been reviewed." },
@@ -53,8 +62,7 @@ export async function POST(request: Request, context: RouteContext) {
       reviewed_by: session.user.id,
       reviewed_at: new Date().toISOString(),
     })
-    .eq("side_quest_id", id)
-    .eq("user_id", userId)
+    .eq("id", completion.id)
     .eq("status", "pending");
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -65,7 +73,7 @@ export async function POST(request: Request, context: RouteContext) {
       amount: quest.points,
       reason: `Side quest completed: ${id}`,
       referenceType: "side_quest_completion",
-      referenceId: id,
+      referenceId: completion.id,
       createdBy: session.user.id,
     });
 

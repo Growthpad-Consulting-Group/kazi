@@ -58,9 +58,19 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = (await req.json().catch(() => null)) as {
     id?: string;
-    status?: "open" | "closed";
+    status?:
+      "open" | "team_voting" | "management_voting" | "published" | "closed";
   } | null;
-  if (!body?.id || !["open", "closed"].includes(body.status ?? ""))
+  if (
+    !body?.id ||
+    ![
+      "open",
+      "team_voting",
+      "management_voting",
+      "published",
+      "closed",
+    ].includes(body.status ?? "")
+  )
     return NextResponse.json(
       { error: "A cycle and status are required." },
       { status: 400 },

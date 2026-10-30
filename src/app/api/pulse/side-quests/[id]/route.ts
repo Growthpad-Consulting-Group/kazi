@@ -79,6 +79,23 @@ export async function PATCH(req: Request, context: RouteContext) {
       { error: "Choose a valid completion method." },
       { status: 400 },
     );
+  const repeatFrequency = body?.repeat_frequency ?? "once";
+  const completionCap = Number(body?.max_completions_per_period ?? 1);
+  const approverId =
+    typeof body?.approver_id === "string" && body.approver_id
+      ? body.approver_id
+      : null;
+  if (
+    typeof repeatFrequency !== "string" ||
+    !["once", "weekly", "monthly"].includes(repeatFrequency) ||
+    !Number.isInteger(completionCap) ||
+    completionCap < 1 ||
+    completionCap > 52
+  )
+    return NextResponse.json(
+      { error: "Check the repeat frequency and completion cap." },
+      { status: 400 },
+    );
 
   const startsAt =
     typeof body?.starts_at === "string" && body.starts_at
@@ -94,7 +111,9 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   const { data: existing } = await supabaseAdmin
     .from("side_quests")
-    .select("status, points, audience_type, audience_filters, completion_mode")
+    .select(
+      "status, points, audience_type, audience_filters, completion_mode, repeat_frequency, max_completions_per_period, approver_id",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!existing)
@@ -108,6 +127,9 @@ export async function PATCH(req: Request, context: RouteContext) {
     audience_type: string;
     audience_filters: string[];
     completion_mode: string;
+    repeat_frequency: string;
+    max_completions_per_period: number;
+    approver_id: string | null;
   };
   const { count: completionCount } = await supabaseAdmin
     .from("side_quest_completions")
@@ -121,7 +143,10 @@ export async function PATCH(req: Request, context: RouteContext) {
     (completionCount ?? 0) > 0 &&
     (currentQuest.points !== points ||
       !sameAudience ||
-      currentQuest.completion_mode !== completionMode)
+      currentQuest.completion_mode !== completionMode ||
+      currentQuest.repeat_frequency !== repeatFrequency ||
+      currentQuest.max_completions_per_period !== completionCap ||
+      currentQuest.approver_id !== approverId)
   )
     return NextResponse.json(
       {
@@ -149,6 +174,9 @@ export async function PATCH(req: Request, context: RouteContext) {
       points,
       completion_mode: completionMode as
         "self_confirm" | "evidence_required" | "manager_approval",
+      repeat_frequency: repeatFrequency as "once" | "weekly" | "monthly",
+      max_completions_per_period: completionCap,
+      approver_id: approverId,
       audience_type: audienceType as
         "company" | "department" | "location" | "manager_group" | "staff",
       audience_filters: filters,

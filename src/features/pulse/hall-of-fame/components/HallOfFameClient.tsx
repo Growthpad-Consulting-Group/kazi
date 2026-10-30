@@ -477,17 +477,17 @@ export default function HallOfFameClient({
                   >
                     <Icon icon={option.icon} className="h-4 w-4" />
                   </span>
-                  <span className="mt-2 block text-xs font-semibold text-[var(--text-hi)]">
+                  <span className="mt-2 block text-sm font-semibold text-[var(--text-hi)]">
                     {option.label}
                   </span>
-                  <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--text-lo)]">
+                  <span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-lo)]">
                     {option.description}
                   </span>
                 </button>
               ))}
             </div>
 
-            <label className="block text-xs font-semibold text-[var(--text-hi)]">
+            <label className="block text-sm font-semibold text-[var(--text-hi)]">
               Impactful work or project
               <textarea
                 rows={6}
@@ -498,7 +498,7 @@ export default function HallOfFameClient({
                 className="mt-1.5 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm font-normal leading-relaxed text-[var(--text-hi)] outline-none focus:border-brand-500"
               />
             </label>
-            <p className="text-[11px] leading-relaxed text-[var(--text-lo)]">
+            <p className="text-xs leading-relaxed text-[var(--text-lo)]">
               You can nominate yourself, but only once per cycle across both
               awards. Please make the impact specific.
             </p>

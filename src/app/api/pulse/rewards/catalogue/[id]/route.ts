@@ -30,6 +30,9 @@ export async function PATCH(
     redemption_limit_per_user?: unknown;
     available_from?: unknown;
     expires_at?: unknown;
+    reward_type?: unknown;
+    charity_name?: unknown;
+    cash_cost_kes?: unknown;
   } | null;
   const update: Partial<{
     name: string;
@@ -44,6 +47,9 @@ export async function PATCH(
     redemption_limit_per_user: number | null;
     available_from: string | null;
     expires_at: string | null;
+    reward_type: "reward" | "donation";
+    charity_name: string | null;
+    cash_cost_kes: number | null;
   }> = {};
   if (body?.name !== undefined) {
     if (typeof body.name !== "string" || !body.name.trim())
@@ -107,6 +113,32 @@ export async function PATCH(
     if (body?.[key] !== undefined)
       update[key] =
         typeof body[key] === "string" && body[key] ? body[key] : null;
+  if (body?.reward_type !== undefined) {
+    if (body.reward_type !== "reward" && body.reward_type !== "donation")
+      return NextResponse.json(
+        { error: "Choose a valid reward type." },
+        { status: 400 },
+      );
+    update.reward_type = body.reward_type;
+  }
+  if (body?.charity_name !== undefined)
+    update.charity_name =
+      typeof body.charity_name === "string" && body.charity_name.trim()
+        ? body.charity_name.trim()
+        : null;
+  if (body?.cash_cost_kes !== undefined) {
+    if (
+      body.cash_cost_kes !== null &&
+      (typeof body.cash_cost_kes !== "number" ||
+        !Number.isInteger(body.cash_cost_kes) ||
+        body.cash_cost_kes < 0)
+    )
+      return NextResponse.json(
+        { error: "KES cost must be a whole number of zero or more." },
+        { status: 400 },
+      );
+    update.cash_cost_kes = body.cash_cost_kes as number | null;
+  }
   if (!Object.keys(update).length)
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
 

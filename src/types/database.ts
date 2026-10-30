@@ -576,6 +576,9 @@ export interface Database {
           points: number;
           completion_mode:
             "self_confirm" | "evidence_required" | "manager_approval";
+          repeat_frequency: "once" | "weekly" | "monthly";
+          max_completions_per_period: number;
+          approver_id: string | null;
         };
         Insert: Omit<
           Database["public"]["Tables"]["side_quests"]["Row"],
@@ -588,6 +591,9 @@ export interface Database {
           | "status"
           | "points"
           | "completion_mode"
+          | "repeat_frequency"
+          | "max_completions_per_period"
+          | "approver_id"
         > & {
           audience_filters?: string[];
           starts_at?: string | null;
@@ -596,35 +602,49 @@ export interface Database {
           points?: number;
           completion_mode?:
             "self_confirm" | "evidence_required" | "manager_approval";
+          repeat_frequency?: "once" | "weekly" | "monthly";
+          max_completions_per_period?: number;
+          approver_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["side_quests"]["Insert"]>;
         Relationships: [];
       };
       side_quest_completions: {
         Row: {
+          id: string;
           side_quest_id: string;
           user_id: string;
           completed_at: string;
           status: "pending" | "approved" | "rejected";
           evidence_note: string | null;
           evidence_url: string | null;
+          evidence_file_url: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
+          period_key: string;
+          completion_sequence: number;
         };
         Insert: Omit<
           Database["public"]["Tables"]["side_quest_completions"]["Row"],
+          | "id"
           | "completed_at"
           | "status"
           | "evidence_note"
           | "evidence_url"
+          | "evidence_file_url"
           | "reviewed_by"
           | "reviewed_at"
+          | "period_key"
+          | "completion_sequence"
         > & {
           status?: "pending" | "approved" | "rejected";
           evidence_note?: string | null;
           evidence_url?: string | null;
+          evidence_file_url?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          period_key?: string;
+          completion_sequence?: number;
         };
         Update: Partial<
           Database["public"]["Tables"]["side_quest_completions"]["Insert"]
@@ -1091,6 +1111,9 @@ export interface Database {
           fulfilment_instructions: string | null;
           stock_quantity: number | null;
           redemption_limit_per_user: number | null;
+          reward_type: "reward" | "donation";
+          charity_name: string | null;
+          cash_cost_kes: number | null;
           available_from: string | null;
           expires_at: string | null;
           created_at: string;
@@ -1107,6 +1130,9 @@ export interface Database {
           | "fulfilment_instructions"
           | "stock_quantity"
           | "redemption_limit_per_user"
+          | "reward_type"
+          | "charity_name"
+          | "cash_cost_kes"
           | "available_from"
           | "expires_at"
         > & {
@@ -1118,6 +1144,9 @@ export interface Database {
           fulfilment_instructions?: string | null;
           stock_quantity?: number | null;
           redemption_limit_per_user?: number | null;
+          reward_type?: "reward" | "donation";
+          charity_name?: string | null;
+          cash_cost_kes?: number | null;
           available_from?: string | null;
           expires_at?: string | null;
         };
