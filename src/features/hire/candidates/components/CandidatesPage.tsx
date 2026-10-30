@@ -27,7 +27,7 @@ export default async function CandidatesPage({
       .order("name"),
   ]);
   const awaitingAi = candidates.filter(
-    (c) => c.ai_score === null && (c.cv_text || c.cv_parsed),
+    (c) => c.ai_score === null && (c.cv_url || c.cv_text || c.cv_parsed),
   );
   const interviewers = (interviewerData ?? []) as {
     id: string;

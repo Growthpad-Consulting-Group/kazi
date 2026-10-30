@@ -288,7 +288,7 @@ export default function CandidatesClientView({
         const matches = (c: CandidateWithJob) =>
           f.values.some((value) =>
             value === "needs_screening"
-              ? c.ai_score === null && !!(c.cv_text || c.cv_parsed)
+              ? c.ai_score === null && !!(c.cv_url || c.cv_text || c.cv_parsed)
               : !["hired", "rejected"].includes(c.stage) &&
                 new Date(c.applied_at).getTime() < fourteenDaysAgo,
           );
@@ -429,17 +429,19 @@ export default function CandidatesClientView({
           </div>
         ) : (
           <span
-            className={`inline-flex items-center gap-1.5 text-xs font-medium ${row.cv_text || row.cv_parsed ? "text-amber-600" : "text-[var(--text-lo)]"}`}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium ${row.cv_url || row.cv_text || row.cv_parsed ? "text-amber-600" : "text-[var(--text-lo)]"}`}
           >
             <Icon
               icon={
-                row.cv_text || row.cv_parsed
+                row.cv_url || row.cv_text || row.cv_parsed
                   ? "solar:clock-circle-broken"
                   : "solar:file-remove-broken"
               }
               className="h-3.5 w-3.5"
             />
-            {row.cv_text || row.cv_parsed ? "Queued for AI" : "CV needed"}
+            {row.cv_url || row.cv_text || row.cv_parsed
+              ? "Queued for AI"
+              : "CV needed"}
           </span>
         ),
     },

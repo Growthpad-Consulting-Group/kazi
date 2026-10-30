@@ -29,11 +29,11 @@ export async function POST(req: Request) {
   // Only enqueue candidates that have CV data and haven't been screened
   const { data } = await supabaseAdmin
     .from("candidates")
-    .select("id, ai_score, cv_text, cv_parsed")
+    .select("id, ai_score, cv_url, cv_text, cv_parsed")
     .in("id", candidateIds);
 
   const eligible = (data ?? []).filter(
-    (c) => c.ai_score === null && (c.cv_text || c.cv_parsed),
+    (c) => c.ai_score === null && (c.cv_url || c.cv_text || c.cv_parsed),
   );
 
   if (eligible.length === 0) {
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   });
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session || !can(session.user.role, "manage_hiring")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
