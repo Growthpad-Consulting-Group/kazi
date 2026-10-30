@@ -85,6 +85,20 @@ export async function notifyOneOnOneScheduled(
   ]);
 }
 
+export async function notifyManagerOfCheckin(
+  managerId: string,
+  employeeName: string,
+  employeeId: string,
+  hasBlockers: boolean,
+): Promise<void> {
+  await supabaseAdmin.from("notifications").insert({
+    user_id: managerId,
+    message: `${employeeName} submitted their weekly check-in${hasBlockers ? " with a blocker" : ""}.`,
+    link: `/pulse/checkins?user=${employeeId}`,
+  });
+  await invalidateUserNotifications(managerId);
+}
+
 export async function notifyMilestone(
   userId: string,
   type: string,
