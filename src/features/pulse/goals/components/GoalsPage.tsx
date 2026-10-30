@@ -7,7 +7,9 @@ import StatCard from "@/components/ui/StatCard";
 import { getGoals } from "../actions";
 import { GoalTree } from "./GoalTree";
 import { NewGoalButton } from "./NewGoalButton";
-import type { Goal, GoalLevel } from "@/types/database";
+import { supabaseAdmin } from "@/lib/supabase";
+import { canManageGoal } from "@/lib/goal-permissions";
+import type { Goal, GoalLevel, User } from "@/types/database";
 
 const LEVEL_ORDER: GoalLevel[] = ["company", "team", "individual"];
 const LEVEL_META: Record<
@@ -39,7 +41,50 @@ export default async function GoalsPage() {
   if (!session) return null;
 
   const canEdit = can(session.user.role, "manage_goals");
-  const goals = await getGoals();
+  const allGoals = await getGoals();
+  const goals = allGoals.filter(
+    (goal) =>
+      goal.level !== "individual" ||
+      canEdit ||
+      goal.owner_id === session.user.id,
+  );
+  const { data: staffData } = await supabaseAdmin
+    .from("users")
+    .select("id, name, manager_id")
+    .eq("is_active", true)
+    .order("name");
+  const staff = (staffData ?? []) as Pick<User, "id" | "name" | "manager_id">[];
+  const owners = !["admin", "hr", "manager"].includes(session.user.role)
+    ? staff.filter((user) => user.id === session.user.id)
+    : session.user.role === "manager"
+      ? staff.filter(
+          (user) =>
+            user.id === session.user.id || user.manager_id === session.user.id,
+        )
+      : staff;
+  const parentGoals = allGoals.filter((goal) => {
+    if (session.user.role === "admin" || session.user.role === "hr")
+      return true;
+    if (session.user.role === "manager") {
+      if (goal.level === "company") return true;
+      return (
+        goal.created_by === session.user.id || goal.owner_id === session.user.id
+      );
+    }
+    return goal.level === "company" || goal.level === "team";
+  });
+  const manageableGoalIds = (
+    await Promise.all(
+      goals.map(async (goal) =>
+        (await canManageGoal(
+          { id: session.user.id, role: session.user.role },
+          goal,
+        ))
+          ? goal.id
+          : null,
+      ),
+    )
+  ).filter((id): id is string => Boolean(id));
   const active = goals.filter(
     (g) => !["completed", "cancelled"].includes(g.status),
   );
@@ -69,9 +114,17 @@ export default async function GoalsPage() {
         description={`${active.length} active · ${atRisk.length} at risk · ${completed.length} completed`}
         icon="solar:target-broken"
         trailing={
-          canEdit ? (
-            <NewGoalButton userId={session.user.id} size="sm" />
-          ) : undefined
+          <NewGoalButton
+            userId={session.user.id}
+            role={session.user.role}
+            owners={owners.map(({ id, name }) => ({ id, name }))}
+            parentGoals={parentGoals.map(({ id, title, level }) => ({
+              id,
+              title,
+              level,
+            }))}
+            size="sm"
+          />
         }
       />
 
@@ -153,7 +206,8 @@ export default async function GoalsPage() {
                       <GoalTree
                         goals={items}
                         childMap={childMap}
-                        canEdit={canEdit}
+                        manageableGoalIds={manageableGoalIds}
+                        viewerId={session.user.id}
                       />
                     ) : (
                       <div className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border)] text-center">

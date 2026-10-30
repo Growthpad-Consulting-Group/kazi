@@ -5,11 +5,9 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
-import type { Goal, GoalLevel } from "@/types/database";
+import type { Goal } from "@/types/database";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
-
-const LEVELS: GoalLevel[] = ["company", "team", "individual"];
 
 export function GoalActions({ goal }: { goal: Goal }) {
   const router = useRouter();
@@ -18,13 +16,11 @@ export function GoalActions({ goal }: { goal: Goal }) {
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState(goal.title);
   const [description, setDescription] = useState(goal.description ?? "");
-  const [level, setLevel] = useState<GoalLevel>(goal.level);
   const [dueDate, setDueDate] = useState(goal.due_date ?? "");
 
   const openEdit = () => {
     setTitle(goal.title);
     setDescription(goal.description ?? "");
-    setLevel(goal.level);
     setDueDate(goal.due_date ?? "");
     setEditing(true);
   };
@@ -39,7 +35,6 @@ export function GoalActions({ goal }: { goal: Goal }) {
         body: JSON.stringify({
           title,
           description,
-          level,
           due_date: dueDate || null,
         }),
       });
@@ -148,17 +143,7 @@ export function GoalActions({ goal }: { goal: Goal }) {
               <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
                 Scope
               </label>
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value as GoalLevel)}
-                className={inputClass}
-              >
-                {LEVELS.map((item) => (
-                  <option key={item} value={item} className="capitalize">
-                    {item}
-                  </option>
-                ))}
-              </select>
+              <p className={`${inputClass} capitalize`}>{goal.level}</p>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">

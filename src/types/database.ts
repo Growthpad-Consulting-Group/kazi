@@ -379,6 +379,9 @@ export interface Database {
           parent_id: string | null;
           status: GoalStatus;
           progress: number;
+          target_value: number | null;
+          current_value: number | null;
+          target_unit: string | null;
           due_date: string | null;
           created_by: string;
           created_at: string;
@@ -395,11 +398,17 @@ export interface Database {
           | "owner_id"
           | "parent_id"
           | "due_date"
+          | "target_value"
+          | "current_value"
+          | "target_unit"
         > & {
           description?: string | null;
           owner_id?: string | null;
           parent_id?: string | null;
           due_date?: string | null;
+          target_value?: number | null;
+          current_value?: number | null;
+          target_unit?: string | null;
           status?: GoalStatus;
           progress?: number;
         };

@@ -159,10 +159,10 @@ export function SendFeedbackForm({
               }
               className={`h-4 w-4 ${visibility === value ? (value === "public" ? "text-brand-500" : "text-blue-600") : "text-[var(--text-lo)]"}`}
             />
-            <span className="mt-2 block text-xs font-semibold text-[var(--text-hi)]">
+            <span className="mt-2 block text-sm font-semibold text-[var(--text-hi)]">
               {value === "public" ? "Shout-out" : "Private note"}
             </span>
-            <span className="mt-0.5 block text-[10px] leading-relaxed text-[var(--text-lo)]">
+            <span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-lo)]">
               {value === "public"
                 ? "Celebrate work with the team."
                 : "Share feedback just with them."}

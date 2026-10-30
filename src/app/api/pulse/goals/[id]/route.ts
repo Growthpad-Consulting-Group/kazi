@@ -1,31 +1,41 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOwnerGoals } from "@/lib/cache/invalidate";
-import type { GoalLevel } from "@/types/database";
+import { canManageGoal } from "@/lib/goal-permissions";
+import type { Goal, GoalLevel } from "@/types/database";
 
 const LEVELS: GoalLevel[] = ["company", "team", "individual"];
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-async function goalOwner(id: string) {
+async function goalForPermission(id: string) {
   const { data } = await supabaseAdmin
     .from("goals")
-    .select("owner_id")
+    .select("owner_id, level, created_by")
     .eq("id", id)
     .maybeSingle();
-  return (data as { owner_id: string | null } | null)?.owner_id ?? null;
+  return data as Pick<Goal, "owner_id" | "level" | "created_by"> | null;
 }
 
 export async function PATCH(req: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_checkins")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
+  const goal = await goalForPermission(id);
+  if (!goal)
+    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+  if (
+    !(await canManageGoal(
+      { id: session.user.id, role: session.user.role },
+      goal,
+    ))
+  )
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = (await req.json().catch(() => null)) as {
     title?: unknown;
     description?: unknown;
@@ -44,8 +54,12 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       { status: 400 },
     );
   }
+  if (body?.level !== undefined && body.level !== goal.level)
+    return NextResponse.json(
+      { error: "Goal scope cannot be changed after creation." },
+      { status: 400 },
+    );
 
-  const ownerId = await goalOwner(id);
   const { error } = await supabaseAdmin
     .from("goals")
     .update({
@@ -54,7 +68,6 @@ export async function PATCH(req: Request, { params }: RouteContext) {
         typeof body?.description === "string" && body.description.trim()
           ? body.description.trim()
           : null,
-      level: (body?.level as GoalLevel | undefined) ?? undefined,
       due_date:
         typeof body?.due_date === "string" && body.due_date
           ? body.due_date
@@ -64,22 +77,31 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
-  await invalidateOwnerGoals(ownerId ?? "");
+  await invalidateOwnerGoals(goal.owner_id ?? "");
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(_req: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_checkins")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
-  const ownerId = await goalOwner(id);
+  const goal = await goalForPermission(id);
+  if (!goal)
+    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+  if (
+    !(await canManageGoal(
+      { id: session.user.id, role: session.user.role },
+      goal,
+    ))
+  )
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { error } = await supabaseAdmin.from("goals").delete().eq("id", id);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
-  await invalidateOwnerGoals(ownerId ?? "");
+  await invalidateOwnerGoals(goal.owner_id ?? "");
   return NextResponse.json({ ok: true });
 }

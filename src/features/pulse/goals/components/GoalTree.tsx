@@ -9,7 +9,8 @@ import { GoalActions } from "./GoalActions";
 interface Props {
   goals: Goal[];
   childMap: Record<string, Goal[]>;
-  canEdit: boolean;
+  manageableGoalIds: string[];
+  viewerId: string;
   depth?: number;
 }
 
@@ -49,7 +50,13 @@ const STATUS: Record<
   },
 };
 
-export function GoalTree({ goals, childMap, canEdit, depth = 0 }: Props) {
+export function GoalTree({
+  goals,
+  childMap,
+  manageableGoalIds,
+  viewerId,
+  depth = 0,
+}: Props) {
   return (
     <div
       className={
@@ -64,7 +71,8 @@ export function GoalTree({ goals, childMap, canEdit, depth = 0 }: Props) {
           goal={goal}
           linkedGoals={childMap[goal.id] ?? []}
           childMap={childMap}
-          canEdit={canEdit}
+          manageableGoalIds={manageableGoalIds}
+          viewerId={viewerId}
           depth={depth}
         />
       ))}
@@ -76,17 +84,20 @@ function GoalCard({
   goal,
   linkedGoals,
   childMap,
-  canEdit,
+  manageableGoalIds,
+  viewerId,
   depth,
 }: {
   goal: Goal;
   linkedGoals: Goal[];
   childMap: Record<string, Goal[]>;
-  canEdit: boolean;
+  manageableGoalIds: string[];
+  viewerId: string;
   depth: number;
 }) {
   const router = useRouter();
   const [progress, setProgress] = useState(goal.progress);
+  const [currentValue, setCurrentValue] = useState(goal.current_value ?? 0);
   const [status, setStatus] = useState<GoalStatus>(goal.status);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -94,8 +105,15 @@ function GoalCard({
   const meta = STATUS[status];
   const due = dueLabel(goal.due_date);
   const overdue = due?.includes("overdue") ?? false;
+  const canManage = manageableGoalIds.includes(goal.id);
+  const canUpdate =
+    canManage || (goal.level === "individual" && goal.owner_id === viewerId);
 
-  async function save(nextProgress: number, nextStatus: GoalStatus) {
+  async function save(
+    nextProgress: number,
+    nextStatus: GoalStatus,
+    nextCurrentValue?: number,
+  ) {
     setSaving(true);
     setError("");
     try {
@@ -106,6 +124,9 @@ function GoalCard({
           id: goal.id,
           progress: nextProgress,
           status: nextStatus,
+          ...(nextCurrentValue !== undefined
+            ? { current_value: nextCurrentValue }
+            : {}),
         }),
       });
       if (!res.ok) throw new Error();
@@ -116,6 +137,10 @@ function GoalCard({
       setSaving(false);
     }
   }
+
+  const metricLabel = goal.target_value
+    ? `${formatMetric(currentValue)} / ${formatMetric(goal.target_value)}${goal.target_unit ? ` ${goal.target_unit}` : ""}`
+    : null;
 
   return (
     <div
@@ -140,7 +165,7 @@ function GoalCard({
                 <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                 {meta.label}
               </span>
-              {canEdit && <GoalActions goal={goal} />}
+              {canManage && <GoalActions goal={goal} />}
             </div>
 
             {goal.description && (
@@ -157,6 +182,15 @@ function GoalCard({
                 >
                   <Icon icon="solar:calendar-broken" className="h-3.5 w-3.5" />
                   {due}
+                </span>
+              )}
+              {overdue && status !== "completed" && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">
+                  <Icon
+                    icon="solar:danger-triangle-broken"
+                    className="h-3 w-3"
+                  />
+                  Past due
                 </span>
               )}
               {linkedGoals.length > 0 && (
@@ -189,7 +223,36 @@ function GoalCard({
                   {progress}%
                 </span>
               </div>
-              {canEdit ? (
+              {metricLabel ? (
+                <div className="space-y-2">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                    <div
+                      className={`h-full rounded-full transition-all ${meta.bar}`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-[var(--text-lo)]">
+                      {metricLabel}
+                    </span>
+                    {canUpdate && (
+                      <input
+                        aria-label={`Current value for ${goal.title}`}
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={currentValue}
+                        disabled={saving}
+                        onChange={(event) =>
+                          setCurrentValue(Number(event.target.value))
+                        }
+                        onBlur={() => save(progress, status, currentValue)}
+                        className="w-20 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1 text-right font-mono text-xs text-[var(--text-hi)] outline-none focus:border-brand-500/60"
+                      />
+                    )}
+                  </div>
+                </div>
+              ) : canUpdate ? (
                 <input
                   aria-label={`Progress for ${goal.title}`}
                   type="range"
@@ -224,7 +287,7 @@ function GoalCard({
             </div>
 
             {/* Status + saving row (manager only) */}
-            {canEdit && (
+            {canUpdate && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <select
                   value={status}
@@ -254,11 +317,6 @@ function GoalCard({
                 {error && (
                   <span className="text-[11px] text-red-500">{error}</span>
                 )}
-                {overdue && status !== "completed" && (
-                  <span className="rounded-md bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">
-                    Past due
-                  </span>
-                )}
               </div>
             )}
           </div>
@@ -271,7 +329,8 @@ function GoalCard({
           <GoalTree
             goals={linkedGoals}
             childMap={childMap}
-            canEdit={canEdit}
+            manageableGoalIds={manageableGoalIds}
+            viewerId={viewerId}
             depth={depth + 1}
           />
         </div>
@@ -291,4 +350,10 @@ function dueLabel(date: string | null) {
   if (days === 0) return "Due today";
   if (days <= 7) return `Due in ${days}d`;
   return `Due ${due.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`;
+}
+
+function formatMetric(value: number) {
+  return new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
