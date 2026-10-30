@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
+import {
+  ManageRecurringWorkButton,
+  RecurringWorkManager,
+} from "./RecurringWorkManager";
 import { TeamActivity } from "./TeamActivity";
 import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
 import {
@@ -22,6 +26,7 @@ import {
 } from "../constants";
 
 type Row = {
+  id: string;
   task: string;
   client: string;
   showRange: boolean;
@@ -29,12 +34,26 @@ type Row = {
   endTime: string;
   minutes: string;
   category: DailyLogCategory;
+  trackedSeconds?: number;
+};
+type ActiveTimer = {
+  rowId: string;
+  date: string;
+  startedAt: number;
+  accumulatedSeconds: number;
+  row: Row;
 };
 type AsanaTask = { id: string; name: string; project: string | null };
+const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
+const newRowId = () =>
+  globalThis.crypto?.randomUUID?.() ??
+  `row-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 const emptyRow = (): Row => ({
+  id: newRowId(),
   task: "",
   client: "",
   showRange: false,
@@ -43,6 +62,21 @@ const emptyRow = (): Row => ({
   minutes: "",
   category: "Projects",
 });
+
+function getStoredTimer(date: string): ActiveTimer | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const timer = JSON.parse(
+      window.localStorage.getItem(TIMER_STORAGE_KEY) ?? "null",
+    ) as ActiveTimer | null;
+    return timer?.date === date && timer.rowId && timer.startedAt && timer.row
+      ? timer
+      : null;
+  } catch {
+    window.localStorage.removeItem(TIMER_STORAGE_KEY);
+    return null;
+  }
+}
 
 function todayLocal() {
   const now = new Date();
@@ -57,6 +91,21 @@ function formatMinutes(total: number) {
     : hours
       ? `${hours}h`
       : `${minutes}m`;
+}
+
+function clockFromTimestamp(timestamp: number) {
+  const time = new Date(timestamp);
+  return `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}`;
+}
+
+function formatElapsed(milliseconds: number) {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+    : `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function rowMinutes(
@@ -112,6 +161,8 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const [notes, setNotes] = useState<
     { id: string; body: string; authorName: string | null; createdAt: string }[]
   >([]);
+  const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
+  const [timerNow, setTimerNow] = useState(() => Date.now());
 
   // Notes a manager left on the chosen day, shown read-only.
   useEffect(() => {
@@ -150,6 +201,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- date changes must show loading while the selected log is fetched.
     setLoading(true);
     fetch(`/api/pulse/daily-log?date=${date}`)
       .then((res) => res.json())
@@ -166,19 +218,23 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
           if (cancelled) return;
           if (json.error) throw new Error(json.error);
           const loaded = json.entries ?? [];
+          const restoredTimer = isReviewer ? null : getStoredTimer(date);
+          const loadedRows = loaded.length
+            ? loaded.map((entry) => ({
+                id: newRowId(),
+                task: entry.task,
+                client: entry.client ?? "",
+                showRange: !!(entry.startTime && entry.endTime),
+                startTime: entry.startTime ?? "",
+                endTime: entry.endTime ?? "",
+                minutes: formatMinutes(entry.minutes),
+                category: entry.category,
+              }))
+            : [emptyRow()];
           setRows(
-            loaded.length
-              ? loaded.map((entry) => ({
-                  task: entry.task,
-                  client: entry.client ?? "",
-                  showRange: !!(entry.startTime && entry.endTime),
-                  startTime: entry.startTime ?? "",
-                  endTime: entry.endTime ?? "",
-                  minutes: formatMinutes(entry.minutes),
-                  category: entry.category,
-                }))
-              : [emptyRow()],
+            restoredTimer ? [...loadedRows, restoredTimer.row] : loadedRows,
           );
+          setActiveTimer(restoredTimer);
           setSavedAt(json.updatedAt ?? null);
           setSavedEntries(loaded);
           setEdited(json.edited ?? false);
@@ -195,6 +251,12 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
       cancelled = true;
     };
   }, [date, isReviewer]);
+
+  useEffect(() => {
+    if (!activeTimer) return;
+    const interval = window.setInterval(() => setTimerNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [activeTimer]);
 
   useEffect(() => {
     if (isReviewer) return;
@@ -245,10 +307,97 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
   const weekComplete = activeWeek.every((day) => loggedDays.has(day.key));
 
   const updateRow = (index: number, patch: Partial<Row>) => {
+    const adjustedTime =
+      "minutes" in patch ||
+      "startTime" in patch ||
+      "endTime" in patch ||
+      "showRange" in patch;
     setRows((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+      prev.map((row, i) =>
+        i === index
+          ? {
+              ...row,
+              ...patch,
+              // A manual edit is intentional. On the next resume, calculate
+              // from the visible duration/range instead of stale timer seconds.
+              ...(adjustedTime && activeTimer?.rowId !== row.id
+                ? { trackedSeconds: undefined }
+                : {}),
+            }
+          : row,
+      ),
     );
   };
+
+  const startTimer = (index: number) => {
+    const row = rows[index];
+    if (!row.task.trim()) {
+      toast.error("Name the activity before starting a timer.");
+      return;
+    }
+    if (activeTimer) {
+      toast.error("Stop the current timer before starting another one.");
+      return;
+    }
+    const startedAt = Date.now();
+    const timer: ActiveTimer = {
+      rowId: row.id,
+      date,
+      startedAt,
+      accumulatedSeconds: row.trackedSeconds ?? (rowMinutes(row) ?? 0) * 60,
+      row: {
+        ...row,
+        showRange: true,
+        startTime: clockFromTimestamp(startedAt),
+        endTime: "",
+        minutes: "",
+      },
+    };
+    updateRow(index, timer.row);
+    window.localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    setActiveTimer(timer);
+    setTimerNow(startedAt);
+  };
+
+  const stopTimer = () => {
+    if (!activeTimer) return;
+    const stoppedAt = Date.now();
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((stoppedAt - activeTimer.startedAt) / 1000),
+    );
+    const totalSeconds = (activeTimer.accumulatedSeconds ?? 0) + elapsedSeconds;
+    const totalMinutes = Math.max(1, Math.floor(totalSeconds / 60));
+    const canKeepRange =
+      activeTimer.accumulatedSeconds === 0 && elapsedSeconds >= 60;
+    setRows((current) =>
+      current.map((row) =>
+        row.id === activeTimer.rowId
+          ? {
+              ...row,
+              // Multiple intervals cannot be represented by one time range.
+              showRange: canKeepRange,
+              startTime: canKeepRange
+                ? clockFromTimestamp(activeTimer.startedAt)
+                : "",
+              endTime: canKeepRange ? clockFromTimestamp(stoppedAt) : "",
+              minutes: formatMinutes(totalMinutes),
+              trackedSeconds: totalSeconds,
+            }
+          : row,
+      ),
+    );
+    window.localStorage.removeItem(TIMER_STORAGE_KEY);
+    setActiveTimer(null);
+    toast.success(`Timer stopped at ${formatElapsed(totalSeconds * 1000)}.`);
+  };
+
+  const addSavedClient = (name: string) =>
+    setClients((prev) =>
+      prev.includes(name)
+        ? prev
+        : [...prev, name].sort((a, b) => a.localeCompare(b)),
+    );
 
   const openAsana = async () => {
     setAsana((prev) => ({ ...prev, open: true, loading: true, selected: [] }));
@@ -298,7 +447,82 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
     setAsana((prev) => ({ ...prev, open: false }));
   };
 
+  const addRecurringWork = (entry: DailyLogEntry) => {
+    setRows((prev) => {
+      const base =
+        prev.length === 1 &&
+        !prev[0].task &&
+        !prev[0].minutes &&
+        !prev[0].startTime
+          ? []
+          : prev;
+      return [
+        ...base,
+        {
+          ...emptyRow(),
+          task: entry.task,
+          client: entry.client ?? "",
+          minutes: formatMinutes(entry.minutes),
+          category: entry.category,
+        },
+      ];
+    });
+    toast.success("Added to today’s log. Adjust it if needed before saving.");
+  };
+
+  const removeRow = (index: number) => {
+    const removed = rows[index];
+    if (!removed) return;
+    setRows((current) =>
+      current.length === 1
+        ? [emptyRow()]
+        : current.filter((_, rowIndex) => rowIndex !== index),
+    );
+    toast(
+      (notification) => (
+        <div className="flex items-center gap-3 text-sm text-[var(--text-hi)]">
+          <span>Activity removed</span>
+          <button
+            type="button"
+            onClick={() => {
+              setRows((current) => {
+                if (current.some((row) => row.id === removed.id))
+                  return current;
+                if (
+                  current.length === 1 &&
+                  !current[0].task &&
+                  !current[0].minutes &&
+                  !current[0].startTime
+                )
+                  return [removed];
+                const restored = [...current];
+                restored.splice(Math.min(index, restored.length), 0, removed);
+                return restored;
+              });
+              toast.dismiss(notification.id);
+            }}
+            className="font-semibold text-brand-500 hover:text-brand-600"
+          >
+            Undo
+          </button>
+        </div>
+      ),
+      {
+        duration: 5000,
+        style: {
+          background: "var(--surface)",
+          color: "var(--text-hi)",
+          border: "1px solid var(--border)",
+        },
+      },
+    );
+  };
+
   const save = async () => {
+    if (activeTimer?.date === date) {
+      toast.error("Stop the active timer before saving this daily log.");
+      return;
+    }
     const filled = rows.filter(
       (row) =>
         row.task.trim() || row.minutes.trim() || row.startTime || row.endTime,
@@ -502,6 +726,15 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
             canEdit={!locked}
             onEdit={() => setEditing(true)}
           />
+          <RecurringWorkManager
+            date={date}
+            clients={clients}
+            onClientCreated={addSavedClient}
+            onAdd={(entry) => {
+              addRecurringWork(entry);
+              setEditing(true);
+            }}
+          />
           {notes.length > 0 && (
             <div className="space-y-2 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">
@@ -555,8 +788,15 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
               <p className="text-sm text-[var(--text-lo)]">Loading…</p>
             ) : (
               <div className="space-y-3">
+                <RecurringWorkManager
+                  date={date}
+                  clients={clients}
+                  onClientCreated={addSavedClient}
+                  onAdd={addRecurringWork}
+                  showManageTrigger={false}
+                />
                 {rows.map((row, index) => (
-                  <div key={index} className="space-y-2">
+                  <div key={row.id} className="space-y-2">
                     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_170px_150px_130px_auto]">
                       <input
                         value={row.task}
@@ -564,6 +804,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                           updateRow(index, { task: e.target.value })
                         }
                         placeholder="What did you work on?"
+                        aria-label="Activity or task"
                         maxLength={200}
                         className={inputClass}
                       />
@@ -572,25 +813,25 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                           value={row.client}
                           onChange={(client) => updateRow(index, { client })}
                           clients={clients}
-                          onClientCreated={(name) =>
-                            setClients((prev) =>
-                              prev.includes(name)
-                                ? prev
-                                : [...prev, name].sort((a, b) =>
-                                    a.localeCompare(b),
-                                  ),
-                            )
-                          }
+                          onClientCreated={addSavedClient}
+                          ariaLabel="Client or project"
                         />
                       </div>
                       <input
                         value={
-                          row.showRange && row.startTime && row.endTime
-                            ? formatMinutes(rowMinutes(row) ?? 0)
-                            : row.minutes
+                          activeTimer?.rowId === row.id
+                            ? formatElapsed(
+                                activeTimer.accumulatedSeconds * 1000 +
+                                  timerNow -
+                                  activeTimer.startedAt,
+                              )
+                            : row.showRange && row.startTime && row.endTime
+                              ? formatMinutes(rowMinutes(row) ?? 0)
+                              : row.minutes
                         }
                         disabled={
-                          row.showRange && !!row.startTime && !!row.endTime
+                          activeTimer?.rowId === row.id ||
+                          (row.showRange && !!row.startTime && !!row.endTime)
                         }
                         onChange={(e) =>
                           updateRow(index, { minutes: e.target.value })
@@ -601,6 +842,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                       />
                       <select
                         value={row.category}
+                        aria-label="Activity category"
                         onChange={(e) =>
                           updateRow(index, {
                             category: e.target.value as DailyLogCategory,
@@ -614,23 +856,53 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                           </option>
                         ))}
                       </select>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRows((prev) =>
-                            prev.length === 1
-                              ? [emptyRow()]
-                              : prev.filter((_, i) => i !== index),
-                          )
-                        }
-                        className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-xl text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-red-500"
-                        aria-label="Remove task"
-                      >
-                        <Icon
-                          icon="solar:trash-bin-minimalistic-broken"
-                          className="h-4 w-4"
-                        />
-                      </button>
+                      <div className="flex items-center justify-self-end">
+                        {activeTimer?.rowId === row.id ? (
+                          <button
+                            type="button"
+                            onClick={stopTimer}
+                            className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-red-500/10 px-2 text-xs font-mono font-semibold text-red-500 hover:bg-red-500/15"
+                            aria-label="Stop timer"
+                            title="Stop timer"
+                          >
+                            <Icon
+                              icon="solar:stop-circle-broken"
+                              className="h-4 w-4"
+                            />
+                            {formatElapsed(
+                              activeTimer.accumulatedSeconds * 1000 +
+                                timerNow -
+                                activeTimer.startedAt,
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => startTimer(index)}
+                            disabled={Boolean(activeTimer) || !row.task.trim()}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-brand-500 hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                            aria-label={`Start timer for ${row.task || "activity"}`}
+                            title="Start timer"
+                          >
+                            <Icon
+                              icon="solar:play-circle-broken"
+                              className="h-4 w-4"
+                            />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={activeTimer?.rowId === row.id}
+                          onClick={() => removeRow(index)}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-35"
+                          aria-label="Remove task"
+                        >
+                          <Icon
+                            icon="solar:trash-bin-minimalistic-broken"
+                            className="h-4 w-4"
+                          />
+                        </button>
+                      </div>
                     </div>
                     {row.showRange ? (
                       <div className="flex flex-wrap items-center gap-2 pl-1 text-xs text-[var(--text-lo)]">
@@ -639,6 +911,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                           type="time"
                           aria-label="Start time"
                           value={row.startTime}
+                          disabled={activeTimer?.rowId === row.id}
                           onChange={(e) =>
                             updateRow(index, { startTime: e.target.value })
                           }
@@ -649,6 +922,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                           type="time"
                           aria-label="End time"
                           value={row.endTime}
+                          disabled={activeTimer?.rowId === row.id}
                           onChange={(e) =>
                             updateRow(index, { endTime: e.target.value })
                           }
@@ -656,6 +930,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                         />
                         <button
                           type="button"
+                          disabled={activeTimer?.rowId === row.id}
                           onClick={() =>
                             updateRow(index, {
                               showRange: false,
@@ -663,7 +938,7 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                               endTime: "",
                             })
                           }
-                          className="ml-1 hover:text-red-500"
+                          className="ml-1 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-35"
                         >
                           Remove time range
                         </button>
@@ -700,6 +975,11 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                       <Icon icon="solar:import-broken" className="h-4 w-4" />{" "}
                       Import from Asana
                     </button>
+                    <ManageRecurringWorkButton
+                      date={date}
+                      clients={clients}
+                      onClientCreated={addSavedClient}
+                    />
                   </div>
                   <p className="text-xs text-[var(--text-lo)]">
                     Total:{" "}

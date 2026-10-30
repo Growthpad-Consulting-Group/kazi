@@ -135,6 +135,8 @@ export default async function CheckinsPage({
             totalMinutes: 0,
             tasks: [],
             days: [],
+            wins: [],
+            blockers: [],
           })
         : getDailyWeekSummary(viewedUserId, weekStart),
     ]);

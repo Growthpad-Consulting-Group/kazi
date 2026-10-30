@@ -16,11 +16,13 @@ export function ClientSelect({
   onChange,
   clients,
   onClientCreated,
+  ariaLabel = "Client or project",
 }: {
   value: string;
   onChange: (name: string) => void;
   clients: string[];
   onClientCreated: (name: string) => void;
+  ariaLabel?: string;
 }) {
   const { resolvedMode } = useTheme();
   const [creating, setCreating] = useState(false);
@@ -58,6 +60,7 @@ export function ClientSelect({
       isSearchable
       isDisabled={creating}
       isLoading={creating}
+      aria-label={ariaLabel}
       placeholder="Client (optional)"
       formatCreateLabel={(input) => `+ Add client "${input}"`}
       noOptionsMessage={() => "No clients yet. Type to add one."}

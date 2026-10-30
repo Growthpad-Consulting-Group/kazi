@@ -553,7 +553,7 @@ function DailyWorkBreakdown({ summary }: { summary: DailyWeekSummary }) {
   return (
     <section className="mt-3 rounded-xl border border-brand-500/15 bg-brand-500/[0.04] p-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-hi)]">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-hi)]">
           <Icon
             icon="solar:notebook-broken"
             className="h-4 w-4 text-brand-500"
@@ -564,7 +564,7 @@ function DailyWorkBreakdown({ summary }: { summary: DailyWeekSummary }) {
           {summary.daysLogged}/5 · {formatMinutes(summary.totalMinutes)}
         </span>
       </div>
-      <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+      <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
         {summary.days.map((day, dayIndex) => (
           <Accordion
             key={day.date}
@@ -578,27 +578,30 @@ function DailyWorkBreakdown({ summary }: { summary: DailyWeekSummary }) {
               day.entries.reduce((total, entry) => total + entry.minutes, 0),
             )}
             defaultOpen={dayIndex === summary.days.length - 1}
+            className="transition-colors hover:border-brand-500/40"
           >
+            <div className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_3.5rem] gap-2 px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-lo)]">
+              <span>Task</span>
+              <span>Client</span>
+              <span>Type</span>
+              <span className="text-right">Time</span>
+            </div>
             {day.entries.map((entry, index) => (
               <div
                 key={`${entry.task}-${index}`}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] py-2 last:border-0 text-xs"
+                className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_3.5rem] items-center gap-2 rounded-lg border-b border-[var(--border)] px-2 py-2 text-sm transition-colors last:border-0 hover:bg-brand-500/[0.06]"
               >
-                <span className="min-w-0 flex-1 text-[var(--text-hi)]">
+                <span className="truncate text-[var(--text-hi)]">
                   {entry.task}
                 </span>
-                <span className="flex items-center gap-1.5 text-[var(--text-lo)]">
-                  {entry.client && (
-                    <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
-                      {entry.client}
-                    </span>
-                  )}
-                  <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
-                    {entry.category}
-                  </span>
-                  <span className="font-mono">
-                    {formatMinutes(entry.minutes)}
-                  </span>
+                <span className="truncate text-[var(--text-lo)]">
+                  {entry.client || "—"}
+                </span>
+                <span className="truncate text-[var(--text-lo)]">
+                  {entry.category}
+                </span>
+                <span className="text-right font-mono text-[var(--text-lo)]">
+                  {formatMinutes(entry.minutes)}
                 </span>
               </div>
             ))}

@@ -13,11 +13,14 @@ export type DailyWeekEntry = {
   category: string;
 };
 export type DailyWeekDay = { date: string; entries: DailyWeekEntry[] };
+export type DailyWeekNote = { date: string; text: string };
 export type DailyWeekSummary = {
   daysLogged: number;
   totalMinutes: number;
   tasks: string[];
   days: DailyWeekDay[];
+  wins: DailyWeekNote[];
+  blockers: DailyWeekNote[];
 };
 
 export type CheckinWithUser = Checkin & {
@@ -41,7 +44,7 @@ export async function getDailyWeekSummary(
   const weekEnd = end.toISOString().slice(0, 10);
   const { data: logs, error: logError } = await supabaseAdmin
     .from("daily_activity_logs")
-    .select("log_date, entries")
+    .select("log_date, entries, wins, blockers")
     .eq("user_id", userId)
     .gte("log_date", weekStart)
     .lte("log_date", weekEnd)
@@ -50,6 +53,8 @@ export async function getDailyWeekSummary(
   const rows = (logs ?? []) as unknown as {
     log_date: string;
     entries: DailyWeekEntry[];
+    wins: string | null;
+    blockers: string | null;
   }[];
   return {
     daysLogged: rows.filter((row) => row.entries?.length).length,
@@ -69,6 +74,14 @@ export async function getDailyWeekSummary(
     days: rows
       .filter((row) => row.entries?.length)
       .map((row) => ({ date: row.log_date, entries: row.entries })),
+    wins: rows.flatMap((row) =>
+      row.wins?.trim() ? [{ date: row.log_date, text: row.wins.trim() }] : [],
+    ),
+    blockers: rows.flatMap((row) =>
+      row.blockers?.trim()
+        ? [{ date: row.log_date, text: row.blockers.trim() }]
+        : [],
+    ),
   };
 }
 
@@ -139,6 +152,8 @@ export async function getTeamDailyLogSummary(
       totalMinutes: 0,
       tasks: [],
       days: [],
+      wins: [],
+      blockers: [],
     };
     summary.daysLogged += 1;
     summary.totalMinutes += row.entries.reduce(

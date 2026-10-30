@@ -7,7 +7,7 @@ import type { Checkin } from "@/types/database";
 import { Button } from "@/components/ui/Button";
 import { PlainTextEditor } from "@/components/ui/PlainTextEditor";
 import { Accordion } from "@/components/ui/Accordion";
-import type { DailyWeekSummary } from "../actions";
+import type { DailyWeekNote, DailyWeekSummary } from "../actions";
 
 interface Props {
   userId: string;
@@ -34,6 +34,20 @@ function formatMinutes(total: number) {
       : `${minutes}m`;
 }
 
+function dailyNotesToWeeklyText(notes: DailyWeekNote[]) {
+  return notes
+    .map((note) => {
+      const label = new Intl.DateTimeFormat("en-KE", {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      }).format(new Date(`${note.date}T12:00:00Z`));
+      return `${label}\n${note.text}`;
+    })
+    .join("\n\n");
+}
+
 export function CheckinForm({
   userId,
   weekStart,
@@ -41,9 +55,11 @@ export function CheckinForm({
   dailySummary,
 }: Props) {
   const router = useRouter();
-  const [wins, setWins] = useState(existing?.wins ?? "");
+  const dailyWins = dailyNotesToWeeklyText(dailySummary?.wins ?? []);
+  const dailyBlockers = dailyNotesToWeeklyText(dailySummary?.blockers ?? []);
+  const [wins, setWins] = useState(existing?.wins ?? dailyWins);
   const [priorities, setPriorities] = useState(existing?.priorities ?? "");
-  const [blockers, setBlockers] = useState(existing?.blockers ?? "");
+  const [blockers, setBlockers] = useState(existing?.blockers ?? dailyBlockers);
   const [mood, setMood] = useState<number>(existing?.mood ?? 3);
   const [saving, setSaving] = useState(false);
   const [savedAction, setSavedAction] = useState<"draft" | "submitted" | null>(

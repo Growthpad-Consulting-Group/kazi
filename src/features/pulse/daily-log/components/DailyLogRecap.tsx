@@ -79,17 +79,6 @@ export function DailyLogRecap({
           )}
         </div>
         <div className="flex items-stretch gap-3">
-          <div className="min-w-[10rem]">
-            <StatCard
-              variant="inline"
-              compact
-              title="Logged"
-              value={formatMinutes(total)}
-              icon="solar:stopwatch-broken"
-              color="orange"
-              subtitle={`${entries.length} task${entries.length === 1 ? "" : "s"}`}
-            />
-          </div>
           {canEdit ? (
             <div className="flex">
               <Button
@@ -108,6 +97,17 @@ export function DailyLogRecap({
               Locked
             </span>
           )}
+          <div className="min-w-[10rem]">
+            <StatCard
+              variant="inline"
+              compact
+              title="Logged"
+              value={formatMinutes(total)}
+              icon="solar:stopwatch-broken"
+              color="orange"
+              subtitle={`${entries.length} task${entries.length === 1 ? "" : "s"}`}
+            />
+          </div>
         </div>
       </div>
 
@@ -144,34 +144,38 @@ export function DailyLogRecap({
         </div>
       )}
 
-      <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
-        {entries.map((entry, index) => (
-          <li
-            key={index}
-            className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-          >
-            <span className="min-w-0 truncate text-sm text-[var(--text-hi)]">
-              {entry.task}
-              {entry.client && (
-                <span className="ml-2 rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] text-[var(--text-lo)]">
-                  {entry.client}
-                </span>
-              )}
-            </span>
-            <span className="flex shrink-0 items-center gap-2 text-[11px] text-[var(--text-lo)]">
-              <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
+      <div className="rounded-xl border border-[var(--border)]">
+        <div className="hidden gap-3 border-b border-[var(--border)] px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)] sm:grid sm:grid-cols-[minmax(0,1fr)_6rem_5rem_11rem]">
+          <span>Task</span>
+          <span>Client</span>
+          <span>Type</span>
+          <span className="text-right">Time</span>
+        </div>
+        <ul className="divide-y divide-[var(--border)]">
+          {entries.map((entry, index) => (
+            <li
+              key={index}
+              className="grid gap-1 px-4 py-3 transition-colors hover:bg-brand-500/[0.06] sm:grid-cols-[minmax(0,1fr)_6rem_5rem_11rem] sm:items-center sm:gap-3"
+            >
+              <span className="min-w-0 truncate text-sm text-[var(--text-hi)]">
+                {entry.task}
+              </span>
+              <span className="min-w-0 truncate text-xs text-[var(--text-lo)]">
+                {entry.client || "—"}
+              </span>
+              <span className="min-w-0 truncate text-xs text-[var(--text-lo)]">
                 {entry.category}
               </span>
-              <span className="font-mono">
+              <span className="text-[11px] font-mono text-[var(--text-lo)] sm:text-right">
                 {entry.startTime && entry.endTime
                   ? `${entry.startTime}–${entry.endTime} · `
                   : ""}
                 {formatMinutes(entry.minutes)}
               </span>
-            </span>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {(mood || blockers || wins) && (
         <div className="grid gap-3 sm:grid-cols-3">
