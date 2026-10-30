@@ -39,6 +39,7 @@ export function ApplyPage({
     email: "",
     phone: "",
     location: "",
+    linkedin_url: "",
     source: "direct",
     consented: false,
   });
@@ -344,6 +345,18 @@ export function ApplyPage({
                   />
                 </Field>
               </div>
+              <Field label="LinkedIn profile *">
+                <input
+                  type="url"
+                  required
+                  value={form.linkedin_url}
+                  onChange={(event) =>
+                    update("linkedin_url", event.target.value)
+                  }
+                  placeholder="https://www.linkedin.com/in/your-name"
+                  className={inputClass}
+                />
+              </Field>
               <Field label="How did you hear about this role?">
                 <select
                   value={form.source}
