@@ -29,12 +29,14 @@ interface Props {
   /** True when the person must choose a new password before using the rest of Kazi. */
   passwordRequired?: boolean;
   googleProfileConnected?: boolean;
+  passkeyCount?: number;
 }
 
 export default function ProfileClient({
   initial,
   passwordRequired = false,
   googleProfileConnected = false,
+  passkeyCount: initialPasskeyCount = 0,
 }: Props) {
   const router = useRouter();
   const { update: updateSession } = useSession();
@@ -52,6 +54,7 @@ export default function ProfileClient({
   const [confirmPw, setConfirmPw] = useState("");
   const [pwPending, startPwTransition] = useTransition();
   const [passkeyPending, setPasskeyPending] = useState(false);
+  const [passkeyCount, setPasskeyCount] = useState(initialPasskeyCount);
 
   async function addPasskey() {
     setPasskeyPending(true);
@@ -74,6 +77,7 @@ export default function ProfileClient({
       toast.success(
         "Passkey added. You can now use Face ID, Touch ID, or Windows Hello.",
       );
+      setPasskeyCount((count) => count + 1);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Passkey setup failed.",
@@ -235,16 +239,27 @@ export default function ProfileClient({
         icon="solar:shield-check-broken"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-xl text-sm text-[var(--text-lo)]">
-            Passkeys are encrypted on your device or password manager. Keep
-            Google and your password available for recovery.
-          </p>
+          <div>
+            <p className="max-w-xl text-sm text-[var(--text-lo)]">
+              Passkeys are encrypted on your device or password manager. Keep
+              Google and your password available for recovery.
+            </p>
+            {passkeyCount > 0 && (
+              <p className="mt-2 text-xs font-semibold text-emerald-600">
+                {passkeyCount} passkey{passkeyCount === 1 ? "" : "s"} active
+              </p>
+            )}
+          </div>
           <Button
             icon="solar:key-broken"
             loading={passkeyPending}
             onClick={addPasskey}
           >
-            {passkeyPending ? "Setting up…" : "Add a passkey"}
+            {passkeyPending
+              ? "Setting up…"
+              : passkeyCount
+                ? "Add another passkey"
+                : "Add a passkey"}
           </Button>
         </div>
       </SettingsSection>

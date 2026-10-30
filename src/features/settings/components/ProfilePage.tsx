@@ -30,7 +30,7 @@ export default async function ProfilePage() {
     };
   };
 
-  const [{ data: user }, sigResult, profileConnection] = await Promise.all([
+  const [{ data: user }, sigResult, profileConnection, passkeyResult] = await Promise.all([
     supabaseAdmin
       .from("users")
       .select("job_title, location, avatar_url")
@@ -46,6 +46,22 @@ export default async function ProfilePage() {
       .select("user_id")
       .eq("user_id", session.user.id)
       .maybeSingle(),
+    (supabaseAdmin as unknown as {
+      from: (table: string) => {
+        select: (
+          columns: string,
+          options: { count: "exact"; head: true },
+        ) => {
+          eq: (
+            column: string,
+            value: string,
+          ) => Promise<{ count: number | null }>;
+        };
+      };
+    })
+      .from("passkeys")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", session.user.id),
   ]);
 
   const passwordRequired = await mustChangePassword(session.user.id);
@@ -92,6 +108,7 @@ export default async function ProfilePage() {
           avatar_url: avatarUrl,
         }}
         googleProfileConnected={Boolean(profileConnection.data)}
+        passkeyCount={passkeyResult.count ?? 0}
       />
     </div>
   );
