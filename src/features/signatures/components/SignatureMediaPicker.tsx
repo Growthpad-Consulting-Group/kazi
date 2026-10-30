@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { SimpleModal } from "@/components/ui/SimpleModal";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type MediaAsset = {
   id: string;
@@ -79,6 +80,12 @@ export default function SignatureMediaPicker({
     }
   };
 
+  const { isDragging, dropProps } = useFileDrop({
+    accept: "image/*",
+    disabled: uploading,
+    onFiles: ([file]) => void upload(file),
+  });
+
   return (
     <SimpleModal
       open={isOpen}
@@ -88,13 +95,17 @@ export default function SignatureMediaPicker({
       maxWidth="max-w-3xl"
     >
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--surface-2)] p-3">
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--surface-2)] p-3 ring-2 transition-shadow ${isDragging ? "ring-brand-500" : "ring-transparent"}`}
+          {...dropProps}
+        >
           <div>
             <p className="text-sm font-semibold text-[var(--text-hi)]">
               Signature media library
             </p>
             <p className="text-xs text-[var(--text-lo)]">
-              Upload once, then reuse assets across templates.
+              Upload once, then reuse assets across templates. Drag an image
+              here or click Upload.
             </p>
           </div>
           <input

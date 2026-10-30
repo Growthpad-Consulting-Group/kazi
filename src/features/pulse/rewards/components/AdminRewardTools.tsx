@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import StatCard from "@/components/ui/StatCard";
+import { useFileDrop } from "@/lib/useFileDrop";
 import type { RewardCatalogue } from "@/types/database";
 
 type StaffOption = { id: string; name: string };
@@ -43,10 +44,13 @@ export function RewardForm({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function uploadImage(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  const { isDragging, dropProps } = useFileDrop({
+    accept: "image/*",
+    disabled: uploading,
+    onFiles: ([file]) => void uploadImage(file),
+  });
+
+  async function uploadImage(file: File) {
     setUploading(true);
     try {
       const form = new FormData();
@@ -106,7 +110,8 @@ export function RewardForm({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="group relative mt-1.5 flex h-32 w-full overflow-hidden rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] text-left transition-colors hover:border-brand-500/50 hover:bg-brand-500/5"
+            className={`group relative mt-1.5 flex h-32 w-full overflow-hidden rounded-xl border border-dashed bg-[var(--surface-2)] text-left transition-colors hover:border-brand-500/50 hover:bg-brand-500/5 ${isDragging ? "border-brand-500 bg-brand-500/5" : "border-[var(--border)]"}`}
+            {...dropProps}
           >
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- preview is an uploaded external reward image
@@ -122,7 +127,7 @@ export function RewardForm({
                   className="h-5 w-5 text-brand-500"
                 />
                 <span className="mt-2 text-[11px] font-medium">
-                  Upload image
+                  Upload or drop image
                 </span>
                 <span className="mt-0.5 text-[10px]">Optional</span>
               </span>
@@ -147,7 +152,11 @@ export function RewardForm({
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={uploadImage}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void uploadImage(file);
+            }}
           />
           {uploading && (
             <p className="mt-2 text-center text-[11px] text-brand-500">

@@ -16,6 +16,7 @@ import DateRangePicker, {
 import { Button } from "@/components/ui/Button";
 import { usePageHeader } from "@/shared/contexts/PageHeaderContext";
 import { publicJobUrl } from "@/lib/careers-url";
+import { useFileDrop } from "@/lib/useFileDrop";
 import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 
 interface Props {
@@ -208,6 +209,19 @@ export function JobForm({ job, departments = [] }: Props) {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const { setUnsaved, setCallbacks, confirmNavigation } = useUnsavedChanges();
+  const { isDragging: isDocumentDragging, dropProps: documentDropProps } =
+    useFileDrop({
+      accept:
+        ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      onFiles: ([file]) => {
+        const input = documentInputRef.current;
+        if (!input) return;
+        // Hand the dropped file to the input so the existing submit logic reads it unchanged.
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        input.files = transfer.files;
+      },
+    });
 
   // AI JD drafter
   const [brief, setBrief] = useState("");
@@ -541,12 +555,20 @@ export function JobForm({ job, departments = [] }: Props) {
         />
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
           <Field label="Job description file">
-            <input
-              ref={documentInputRef}
-              type="file"
-              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              className={`${inputCls} file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/10 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-brand-500`}
-            />
+            <div
+              className={`rounded-xl ring-2 transition-shadow ${isDocumentDragging ? "ring-brand-500" : "ring-transparent"}`}
+              {...documentDropProps}
+            >
+              <input
+                ref={documentInputRef}
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className={`${inputCls} file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/10 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-brand-500`}
+              />
+              <p className="mt-1.5 text-xs text-[var(--text-lo)]">
+                Choose a file or drag one onto this field.
+              </p>
+            </div>
           </Field>
           <p className="pb-2 text-center text-xs font-medium text-[var(--text-lo)]">
             or

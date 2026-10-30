@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import { DatePicker } from "@/components/ui/DatePicker";
 import DepartmentSelect from "@/components/ui/DepartmentSelect";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type Manager = { id: string; name: string; job_title: string | null };
 const ROLES = [
@@ -43,7 +44,7 @@ export function NewPersonButton({
     role: "employee",
     department: "",
     jobTitle: "",
-    location: "",
+    location: "Nairobi, Kenya",
     managerId: "",
     startDate: "",
   });
@@ -57,6 +58,11 @@ export function NewPersonButton({
       return file ? URL.createObjectURL(file) : null;
     });
   };
+  const { isDragging: isPhotoDragging, dropProps: photoDropProps } =
+    useFileDrop({
+      accept: "image/*",
+      onFiles: ([file]) => choosePhoto(file),
+    });
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -98,7 +104,7 @@ export function NewPersonButton({
         role: "employee",
         department: "",
         jobTitle: "",
-        location: "",
+        location: "Nairobi, Kenya",
         managerId: "",
         startDate: "",
       });
@@ -166,7 +172,10 @@ export function NewPersonButton({
             />
           </Field>
           <Field label="Profile photo">
-            <div className="flex items-center gap-3">
+            <div
+              className={`flex items-center gap-3 rounded-xl p-1 ring-2 transition-shadow ${isPhotoDragging ? "ring-brand-500" : "ring-transparent"}`}
+              {...photoDropProps}
+            >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--surface-2)] text-[var(--text-lo)]">
                 {photoPreview ? (
                   <img
@@ -187,6 +196,9 @@ export function NewPersonButton({
                 className="min-w-0 flex-1 text-xs text-[var(--text-lo)] file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-brand-500"
               />
             </div>
+            <p className="mt-1.5 text-xs text-[var(--text-lo)]">
+              Choose an image or drag one onto this field.
+            </p>
           </Field>
           <Field label="Role">
             <select
@@ -196,7 +208,9 @@ export function NewPersonButton({
             >
               {availableRoles.map((role) => (
                 <option key={role} value={role}>
-                  {role.replaceAll("_", " ")}
+                  {role
+                    .replaceAll("_", " ")
+                    .replace(/\b\w/g, (letter) => letter.toUpperCase())}
                 </option>
               ))}
             </select>
@@ -272,7 +286,7 @@ export function NewPersonButton({
 }
 
 const inputClass =
-  "w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] capitalize outline-none placeholder:text-[var(--text-lo)] focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10";
+  "w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10";
 
 function Field({
   label,

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { compressImageFile } from "@/lib/compressImageFile";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 interface Props {
   value: string;
@@ -41,9 +42,7 @@ export default function AvatarUpload({
     .join("")
     .toUpperCase();
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const upload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please choose an image file.");
       return;
@@ -77,11 +76,17 @@ export default function AvatarUpload({
     }
   };
 
+  const { isDragging, dropProps } = useFileDrop({
+    accept: "image/*",
+    disabled: uploading,
+    onFiles: ([file]) => void upload(file),
+  });
+
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4" {...dropProps}>
       {/* Avatar circle */}
       <div
-        className={`relative shrink-0 ${dim.wrap} overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500/20 to-violet-500/10`}
+        className={`relative shrink-0 ${dim.wrap} overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500/20 to-violet-500/10 ${isDragging ? "ring-2 ring-brand-500" : ""}`}
       >
         {value || previewUrl ? (
           <img
@@ -128,6 +133,9 @@ export default function AvatarUpload({
             Remove
           </button>
         )}
+        <p className="text-[10px] text-[var(--text-lo)]">
+          Or drag an image onto the photo.
+        </p>
       </div>
 
       <input
@@ -135,7 +143,10 @@ export default function AvatarUpload({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleFile}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void upload(file);
+        }}
       />
     </div>
   );

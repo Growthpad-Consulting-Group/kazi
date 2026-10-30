@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type Topic = "workplace" | "wellbeing" | "inclusion" | "leadership" | "other";
 
@@ -69,6 +70,12 @@ export function VoiceOutForm() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const attachmentsFull = attachments.length >= MAX_ATTACHMENTS;
+  const { isDragging, dropProps } = useFileDrop({
+    accept: "image/*",
+    disabled: uploading || attachmentsFull,
+    onFiles: ([file]) => void upload(file),
+  });
 
   async function upload(file: File) {
     if (attachments.length >= MAX_ATTACHMENTS) return;
@@ -265,7 +272,10 @@ export function VoiceOutForm() {
               Optional, up to {MAX_ATTACHMENTS}
             </span>
           </p>
-          <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          <div
+            className={`mt-2 grid gap-3 rounded-xl p-1 ring-2 transition-shadow sm:grid-cols-3 ${isDragging ? "ring-brand-500" : "ring-transparent"}`}
+            {...dropProps}
+          >
             {attachments.map((url, index) => (
               <div
                 key={url}
@@ -306,7 +316,7 @@ export function VoiceOutForm() {
                   className={`h-5 w-5 ${uploading ? "animate-spin" : ""}`}
                 />
                 <span className="text-[11px] font-medium">
-                  {uploading ? "Uploading…" : "Add image"}
+                  {uploading ? "Uploading…" : "Add or drop image"}
                 </span>
               </button>
             )}

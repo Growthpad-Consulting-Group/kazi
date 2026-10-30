@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
+import { useFileDrop } from "@/lib/useFileDrop";
 
 type PublicJob = {
   id: string;
@@ -48,6 +49,10 @@ export function ApplyPage({
     "form",
   );
   const [errorMsg, setErrorMsg] = useState("");
+  const { isDragging: isCvDragging, dropProps: cvDropProps } = useFileDrop({
+    accept: ".pdf,.docx",
+    onFiles: ([file]) => setCvFile(file),
+  });
 
   const mustHaves = job.requirements?.must_haves?.filter(Boolean) ?? [];
   const niceToHaves = job.requirements?.nice_to_haves?.filter(Boolean) ?? [];
@@ -371,7 +376,10 @@ export function ApplyPage({
                 </select>
               </Field>
               <Field label="CV or résumé">
-                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 transition hover:border-brand-500/50 hover:bg-orange-50/40">
+                <label
+                  className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-dashed bg-slate-50 px-4 py-3.5 transition hover:border-brand-500/50 hover:bg-orange-50/40 ${isCvDragging ? "border-brand-500 bg-orange-50/40" : "border-slate-300"}`}
+                  {...cvDropProps}
+                >
                   <span className="flex min-w-0 items-center gap-3">
                     <Icon
                       icon="solar:upload-minimalistic-broken"
@@ -379,7 +387,8 @@ export function ApplyPage({
                     />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-slate-700">
-                        {cvFile?.name ?? "Upload PDF or Word document"}
+                        {cvFile?.name ??
+                          "Upload or drop a PDF or Word document"}
                       </span>
                       <span className="mt-0.5 block text-xs text-slate-500">
                         Optional — it is securely parsed and automatically

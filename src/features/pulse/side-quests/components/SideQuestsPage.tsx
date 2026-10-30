@@ -371,7 +371,7 @@ export default async function SideQuestsPage() {
                 .map((quest) => (
                   <article
                     key={quest.id}
-                    className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/25 hover:shadow-lg hover:shadow-slate-200/40 dark:hover:shadow-black/20"
+                    className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/25 hover:shadow-2xl dark:shadow-black/20"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
