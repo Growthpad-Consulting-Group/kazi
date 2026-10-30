@@ -342,40 +342,56 @@ export default async function SideQuestsPage() {
           </section>
         )}
         {visibleQuests.some((quest) => quest.status !== "live") && (
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-            <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-              Planned and closed
-            </h2>
-            <div className="mt-3 divide-y divide-[var(--border)]">
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                  <Icon icon="solar:calendar-broken" className="h-4.5 w-4.5" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                    Quest schedule
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                    What is planned next and the challenges already wrapped up.
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-lg bg-[var(--surface-2)] px-2.5 py-1 font-mono text-[11px] font-semibold text-[var(--text-lo)]">
+                {
+                  visibleQuests.filter((quest) => quest.status !== "live")
+                    .length
+                }{" "}
+                quests
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
               {visibleQuests
                 .filter((quest) => quest.status !== "live")
                 .map((quest) => (
-                  <div
+                  <article
                     key={quest.id}
-                    className="flex items-center justify-between gap-3 py-3"
+                    className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/25 hover:shadow-lg hover:shadow-slate-200/40 dark:hover:shadow-black/20"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-[var(--text-hi)]">
-                        {quest.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-[var(--text-lo)]">
-                        {audienceLabels[quest.audience_type]} · {quest.status}
-                      </p>
-                      {canManage &&
-                        (completersByQuest.get(quest.id)?.length ?? 0) > 0 && (
-                          <p className="mt-3 text-xs text-[var(--text-lo)]">
-                            <span className="font-semibold text-[var(--text-hi)]">
-                              Completed by:
-                            </span>{" "}
-                            {completersByQuest.get(quest.id)?.join(", ")}
-                          </p>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-[var(--text-lo)]">
-                        {quest.points} pts ·{" "}
-                        {completionByQuest.get(quest.id)?.size ?? 0} completed
-                      </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${quest.status === "upcoming" ? "bg-blue-500/10 text-blue-700 dark:text-blue-400" : quest.status === "closed" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}
+                          >
+                            {quest.status}
+                          </span>
+                          <span className="text-xs text-[var(--text-lo)]">
+                            {audienceLabels[quest.audience_type]}
+                          </span>
+                        </div>
+                        <h3 className="mt-2 truncate text-sm font-semibold text-[var(--text-hi)]">
+                          {quest.title}
+                        </h3>
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text-lo)]">
+                          {quest.brief}
+                        </p>
+                      </div>
                       {canManage && (
                         <EditSideQuestButton
                           quest={quest}
@@ -383,7 +399,37 @@ export default async function SideQuestsPage() {
                         />
                       )}
                     </div>
-                  </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-lo)]">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Icon
+                          icon="solar:star-broken"
+                          className="h-3.5 w-3.5 text-brand-500"
+                        />
+                        {quest.points} pts
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Icon
+                          icon="solar:users-group-rounded-broken"
+                          className="h-3.5 w-3.5"
+                        />
+                        {completionByQuest.get(quest.id)?.size ?? 0}/
+                        {eligibleCount(quest)} completed
+                      </span>
+                      {(quest.starts_at || quest.ends_at) && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Icon
+                            icon="solar:calendar-broken"
+                            className="h-3.5 w-3.5"
+                          />
+                          {quest.status === "upcoming" && quest.starts_at
+                            ? `Starts ${new Date(quest.starts_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                            : quest.ends_at
+                              ? `Ended ${new Date(quest.ends_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                              : "Scheduled"}
+                        </span>
+                      )}
+                    </div>
+                  </article>
                 ))}
             </div>
           </section>
