@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
@@ -14,6 +14,9 @@ import DateRangePicker, {
   type DateRangeValue,
 } from "@/components/ui/DateRangePicker";
 import { Button } from "@/components/ui/Button";
+import { usePageHeader } from "@/shared/contexts/PageHeaderContext";
+import { publicJobUrl } from "@/lib/careers-url";
+import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 
 interface Props {
   job?: Job;
@@ -31,6 +34,46 @@ function toScheduleRange(job?: Job): DateRangeValue | undefined {
     startDate: new Date(job.published_at),
     endDate: new Date(job.closes_at),
     label: "Custom Range",
+  };
+}
+
+function matchExistingDepartment(value: string, departments: string[]) {
+  const clean = (name: string) =>
+    name
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  const source = clean(value);
+  const exact = departments.find((department) => clean(department) === source);
+  if (exact) return exact;
+
+  const sourceTokens = new Set(
+    source.split(" ").filter((token) => token && token !== "and"),
+  );
+  let best: { department: string; score: number; matches: number } | null =
+    null;
+  for (const department of departments) {
+    const targetTokens = new Set(
+      clean(department)
+        .split(" ")
+        .filter((token) => token && token !== "and"),
+    );
+    const matches = [...sourceTokens].filter((token) =>
+      targetTokens.has(token),
+    ).length;
+    const score = matches / Math.max(sourceTokens.size, targetTokens.size, 1);
+    if (!best || score > best.score) best = { department, score, matches };
+  }
+  return best && best.matches >= 2 && best.score >= 0.5
+    ? best.department
+    : null;
+}
+
+function scheduleSnapshot(value: DateRangeValue | undefined) {
+  return {
+    start: value?.startDate?.toISOString() ?? null,
+    end: value?.endDate?.toISOString() ?? null,
   };
 }
 
@@ -164,6 +207,7 @@ export function JobForm({ job, departments = [] }: Props) {
   const [googleDocUrl, setGoogleDocUrl] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
+  const { setUnsaved, setCallbacks, confirmNavigation } = useUnsavedChanges();
 
   // AI JD drafter
   const [brief, setBrief] = useState("");
@@ -181,6 +225,114 @@ export function JobForm({ job, departments = [] }: Props) {
     status === "open" &&
     !!schedule?.startDate &&
     schedule.startDate > new Date();
+
+  const initialForm = useMemo(
+    () =>
+      JSON.stringify({
+        title: job?.title ?? "",
+        department: job?.department ?? "",
+        location: job?.location ?? "",
+        description: job?.description ?? "",
+        mustHaves: job?.requirements?.must_haves ?? [""],
+        niceToHaves: job?.requirements?.nice_to_haves ?? [""],
+        rubric: job?.scoring_rubric?.length
+          ? job.scoring_rubric
+          : [{ ...EMPTY_RUBRIC }],
+        status: job?.status === "open" ? "open" : "draft",
+        schedule: scheduleSnapshot(toScheduleRange(job)),
+        employmentType: job?.employment_type ?? "",
+        workMode: job?.work_mode ?? "",
+        contractDuration: job?.contract_duration ?? "",
+        compensation: job?.compensation ?? "",
+        reportsTo: job?.reports_to ?? "",
+        benefits: job?.benefits ?? "",
+        applicationInstructions: job?.application_instructions ?? "",
+        selectionProcess: job?.selection_process ?? "",
+        sourceDocumentUrl: job?.source_document_url ?? "",
+      }),
+    [job],
+  );
+  const isDirty =
+    initialForm !==
+    JSON.stringify({
+      title,
+      department,
+      location,
+      description,
+      mustHaves,
+      niceToHaves,
+      rubric,
+      status,
+      schedule: scheduleSnapshot(schedule),
+      employmentType,
+      workMode,
+      contractDuration,
+      compensation,
+      reportsTo,
+      benefits,
+      applicationInstructions,
+      selectionProcess,
+      sourceDocumentUrl,
+    });
+
+  useEffect(() => {
+    setUnsaved(isDirty, job ? "Unsaved job changes" : "New job changes");
+  }, [isDirty, job, setUnsaved]);
+
+  useEffect(() => {
+    setCallbacks({
+      onSave: () => formRef.current?.requestSubmit(),
+      onDiscard: () => window.location.reload(),
+    });
+    return () => setCallbacks({});
+  }, [setCallbacks]);
+
+  const headerActions = [
+    {
+      label: "Back to Jobs",
+      icon: "solar:arrow-left-broken",
+      variant: "secondary" as const,
+      onClick: () => {
+        if (confirmNavigation()) router.push("/hire/jobs");
+      },
+    },
+    ...(job
+      ? [
+          {
+            label: "View Job",
+            icon: "solar:eye-broken",
+            variant: "secondary" as const,
+            onClick: () => {
+              if (confirmNavigation()) router.push(`/hire/jobs/${job.id}`);
+            },
+          },
+          ...(job.status === "open" &&
+          (!job.published_at || new Date(job.published_at) <= new Date()) &&
+          (!job.closes_at || new Date(job.closes_at) > new Date())
+            ? [
+                {
+                  label: "Careers page",
+                  icon: "solar:global-broken",
+                  variant: "secondary" as const,
+                  onClick: () =>
+                    window.open(
+                      publicJobUrl(job.slug),
+                      "_blank",
+                      "noopener,noreferrer",
+                    ),
+                },
+              ]
+            : []),
+        ]
+      : []),
+  ];
+
+  usePageHeader({
+    title: job ? "Edit Job" : "New Job",
+    description: job?.title ?? "Create a role and set up AI screening",
+    icon: "solar:case-minimalistic-broken",
+    actions: headerActions,
+  });
 
   async function draftDescription() {
     if (!title || !brief) return;
@@ -235,12 +387,24 @@ export function JobForm({ job, departments = [] }: Props) {
 
       const imported = data.job;
       if (imported.title) setTitle(imported.title);
-      if (imported.department) setDepartment(imported.department);
+      if (imported.department) {
+        const matchedDepartment = matchExistingDepartment(
+          imported.department,
+          departments,
+        );
+        setDepartment(matchedDepartment ?? "");
+        if (matchedDepartment && matchedDepartment !== imported.department) {
+          toast(`Mapped department to “${matchedDepartment}”.`);
+        } else if (!matchedDepartment) {
+          toast("Choose or add a department before saving.");
+        }
+      }
       if (imported.location) setLocation(imported.location);
       if (imported.description) setDescription(imported.description);
       if (imported.must_haves?.length) setMustHaves(imported.must_haves);
       if (imported.nice_to_haves?.length)
         setNiceToHaves(imported.nice_to_haves);
+      if (imported.scoring_rubric?.length) setRubric(imported.scoring_rubric);
       if (imported.employment_type) setEmploymentType(imported.employment_type);
       if (imported.work_mode) setWorkMode(imported.work_mode);
       if (imported.contract_duration)
@@ -355,9 +519,12 @@ export function JobForm({ job, departments = [] }: Props) {
   }
 
   const actionsProps = {
-    onCancel: () => router.back(),
+    onCancel: () => {
+      if (confirmNavigation()) router.back();
+    },
     onSave: () => formRef.current?.requestSubmit(),
     loading: isPending,
+    disabled: !isDirty,
     saveText: job ? "Save changes" : "Create job",
     saveIcon: job ? "solar:check-circle-broken" : "solar:add-circle-broken",
   };

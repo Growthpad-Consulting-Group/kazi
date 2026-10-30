@@ -26,7 +26,42 @@ type ImportedJob = {
   benefits: string;
   application_instructions: string;
   selection_process: string;
+  scoring_rubric: { criterion: string; weight: number; description: string }[];
 };
+
+type RawRubricItem = {
+  criterion: string;
+  weight?: unknown;
+  description?: unknown;
+};
+
+function normaliseRubric(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const rubric = value
+    .filter(
+      (item): item is RawRubricItem =>
+        !!item &&
+        typeof item === "object" &&
+        typeof item.criterion === "string",
+    )
+    .slice(0, 6)
+    .map((item) => ({
+      criterion: item.criterion.trim(),
+      weight: Math.max(0, Math.min(100, Number(item.weight) || 0)),
+      description:
+        typeof item.description === "string" ? item.description.trim() : "",
+    }))
+    .filter((item) => item.criterion);
+  const total = rubric.reduce((sum, item) => sum + item.weight, 0);
+  if (!rubric.length || total <= 0) return [];
+  const scaled = rubric.map((item) => ({
+    ...item,
+    weight: Math.round((item.weight / total) * 100),
+  }));
+  scaled[scaled.length - 1].weight +=
+    100 - scaled.reduce((sum, item) => sum + item.weight, 0);
+  return scaled;
+}
 
 function googleDocumentId(value: string) {
   let url: URL;
@@ -152,10 +187,11 @@ Return only valid JSON with this exact shape:
   "nice_to_haves": ["string"],
   "benefits": "string",
   "application_instructions": "string",
-  "selection_process": "string"
+  "selection_process": "string",
+  "scoring_rubric": [{"criterion": "string", "weight": 0, "description": "string"}]
 }
 
-For description, produce a clean, concise role overview, purpose, and key responsibilities in readable plain text. Keep qualifications in must_haves or nice_to_haves, not description.`;
+For description, produce a clean, concise role overview, purpose, and key responsibilities in readable plain text. Keep qualifications in must_haves or nice_to_haves, not description. Create 3–6 screening rubric criteria from the role's actual must-haves. Their weights must total 100, and each description must say what strong evidence looks like.`;
 
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
@@ -205,6 +241,7 @@ For description, produce a clean, concise role overview, purpose, and key respon
         typeof parsed.selection_process === "string"
           ? parsed.selection_process
           : "",
+      scoring_rubric: normaliseRubric(parsed.scoring_rubric),
     };
 
     return NextResponse.json({ job });

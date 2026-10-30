@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { navigationForRole } from "@/lib/nav";
 import { useCommandPalette } from "@/shared/contexts/CommandPaletteContext";
 import { SimpleModal } from "@/components/ui/SimpleModal";
+import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 
 type SearchResult = {
   id: string;
@@ -37,6 +38,7 @@ export default function CommandPalette() {
   const router = useRouter();
   const { data: session } = useSession();
   const navGroups = navigationForRole(session?.user?.allowedPaths ?? []);
+  const { confirmNavigation } = useUnsavedChanges();
 
   useEffect(() => {
     if (!open) {
@@ -80,6 +82,7 @@ export default function CommandPalette() {
   }, [query]);
 
   const go = (href: string) => {
+    if (!confirmNavigation()) return;
     router.push(href);
     close();
   };

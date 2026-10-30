@@ -11,6 +11,7 @@ import HeaderThemeDropdown from "./HeaderThemeDropdown";
 import HeaderProfileDropdown from "./HeaderProfileDropdown";
 import Notifications from "@/components/ui/Notifications";
 import TooltipIconButton from "@/components/ui/TooltipIconButton";
+import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 
 export default function KaziHeader({
   isSidebarOpen,
@@ -29,9 +30,26 @@ export default function KaziHeader({
     clearAllNotifications,
   } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const {
+    isUnsaved,
+    isSaving,
+    shakeNonce,
+    message: unsavedMessage,
+    onSave,
+    onDiscard,
+    setIsDiscarding,
+    clearUnsavedFlag,
+  } = useUnsavedChanges();
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const discardChanges = () => {
+    setIsDiscarding(true);
+    onDiscard?.();
+    clearUnsavedFlag();
+    window.setTimeout(() => setIsDiscarding(false), 250);
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -93,32 +111,71 @@ export default function KaziHeader({
                 )}
               </div>
 
-              {(pageHeader.content || pageHeader.actions?.length) && (
-                <div className="ml-auto flex items-center gap-2 shrink-0">
-                  {pageHeader.content}
-                  {pageHeader.actions?.map((action, i) => (
-                    <button
-                      key={i}
-                      onClick={action.onClick}
-                      disabled={action.disabled}
-                      title={action.title}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        action.variant === "primary" ||
-                        (!pageHeader.content &&
-                          pageHeader.actions?.length === 1)
-                          ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
-                          : mode === "dark"
-                            ? "border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
-                            : "border border-[var(--border)] bg-[var(--surface)] text-gray-700 hover:bg-[var(--surface-2)]"
-                      }`}
-                    >
-                      {action.icon && (
-                        <Icon icon={action.icon} className="h-3.5 w-3.5" />
-                      )}
-                      {action.label}
-                    </button>
-                  ))}
+              {isUnsaved ? (
+                <div
+                  key={shakeNonce}
+                  className={`ml-auto flex shrink-0 items-center gap-1.5 ${shakeNonce ? "animate-unsaved-shake" : ""}`}
+                >
+                  <span className="hidden items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-600 lg:inline-flex">
+                    <Icon
+                      icon="solar:pen-new-square-broken"
+                      className="h-3.5 w-3.5"
+                    />
+                    {unsavedMessage}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={discardChanges}
+                    disabled={isSaving}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] transition-all hover:bg-[var(--surface-2)] disabled:opacity-50"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void onSave?.()}
+                    disabled={isSaving || !onSave}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-brand-600 disabled:opacity-50"
+                  >
+                    <Icon
+                      icon={
+                        isSaving
+                          ? "solar:spinner-broken"
+                          : "solar:diskette-broken"
+                      }
+                      className={`h-3.5 w-3.5 ${isSaving ? "animate-spin" : ""}`}
+                    />
+                    Save
+                  </button>
                 </div>
+              ) : (
+                (pageHeader.content || pageHeader.actions?.length) && (
+                  <div className="ml-auto flex items-center gap-2 shrink-0">
+                    {pageHeader.content}
+                    {pageHeader.actions?.map((action, i) => (
+                      <button
+                        key={i}
+                        onClick={action.onClick}
+                        disabled={action.disabled}
+                        title={action.title}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          action.variant === "primary" ||
+                          (!pageHeader.content &&
+                            pageHeader.actions?.length === 1)
+                            ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
+                            : mode === "dark"
+                              ? "border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                              : "border border-[var(--border)] bg-[var(--surface)] text-gray-700 hover:bg-[var(--surface-2)]"
+                        }`}
+                      >
+                        {action.icon && (
+                          <Icon icon={action.icon} className="h-3.5 w-3.5" />
+                        )}
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           )}

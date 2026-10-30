@@ -10,6 +10,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useAvatar } from "@/shared/hooks/useAvatar";
 import { navigationForRole, sidebarNavGroups } from "@/lib/nav";
 import { useTheme } from "@/shared/contexts/ThemeContext";
+import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 
 export default function KaziSidebar({
   isOpen,
@@ -26,6 +27,7 @@ export default function KaziSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const { confirmNavigation } = useUnsavedChanges();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(sidebarNavGroups.map((g) => [g.category, true])),
@@ -70,6 +72,10 @@ export default function KaziSidebar({
       ? pathname === href
       : pathname.startsWith(href);
   const navGroups = navigationForRole(session?.user?.allowedPaths ?? []);
+  const guardedPush = (href: string) => {
+    if (!confirmNavigation()) return;
+    router.push(href);
+  };
 
   return (
     <div
@@ -90,7 +96,14 @@ export default function KaziSidebar({
         >
           {isOpen ? (
             <div className="flex flex-col">
-              <Link href="/dashboard" title="Dashboard">
+              <Link
+                href="/dashboard"
+                title="Dashboard"
+                onClick={(event) => {
+                  if (confirmNavigation()) return;
+                  event.preventDefault();
+                }}
+              >
                 <Image
                   src={
                     mode === "dark"
@@ -117,7 +130,14 @@ export default function KaziSidebar({
               </div>
             </div>
           ) : (
-            <Link href="/dashboard" title="Dashboard">
+            <Link
+              href="/dashboard"
+              title="Dashboard"
+              onClick={(event) => {
+                if (confirmNavigation()) return;
+                event.preventDefault();
+              }}
+            >
               <Image
                 src={mode === "dark" ? "/favicon-white.png" : "/favicon.png"}
                 alt="Growthpad"
@@ -197,7 +217,7 @@ export default function KaziSidebar({
                           >
                             <motion.div
                               onClick={() => {
-                                router.push(href);
+                                guardedPush(href);
                                 if (isMobile) toggleSidebar();
                               }}
                               onMouseEnter={() => {
@@ -306,7 +326,9 @@ export default function KaziSidebar({
               <div className="flex flex-col gap-1 p-1">
                 <div className="my-1 h-px bg-white/10 dark:bg-white/5" />
                 <button
-                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  onClick={() => {
+                    if (confirmNavigation()) signOut({ callbackUrl: "/login" });
+                  }}
                   className="flex items-center gap-3 w-full p-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-red-500 hover:bg-red-500/10"
                 >
                   <Icon icon="solar:logout-broken" className="h-5 w-5" />

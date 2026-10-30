@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useAvatar } from "@/shared/hooks/useAvatar";
+import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 
 export default function HeaderProfileDropdown() {
   const { data: session } = useSession();
@@ -41,6 +42,7 @@ export default function HeaderProfileDropdown() {
       .slice(0, 2)
       .join("") ?? "U";
   const avatarUrl = useAvatar();
+  const { confirmNavigation } = useUnsavedChanges();
 
   return (
     <div className="relative flex items-center">
@@ -110,7 +112,13 @@ export default function HeaderProfileDropdown() {
               <div className="p-2 space-y-0.5">
                 <Link
                   href="/settings/profile"
-                  onClick={() => setIsOpen(false)}
+                  onClick={(event) => {
+                    if (!confirmNavigation()) {
+                      event.preventDefault();
+                      return;
+                    }
+                    setIsOpen(false);
+                  }}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-hi)] transition-all hover:bg-[var(--surface-2)] active:scale-95"
                 >
                   <Icon
@@ -120,7 +128,9 @@ export default function HeaderProfileDropdown() {
                   Profile settings
                 </Link>
                 <button
-                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  onClick={() => {
+                    if (confirmNavigation()) signOut({ callbackUrl: "/login" });
+                  }}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition-all hover:bg-red-500/10 active:scale-95"
                 >
                   <Icon icon="solar:logout-broken" className="h-4 w-4" />
