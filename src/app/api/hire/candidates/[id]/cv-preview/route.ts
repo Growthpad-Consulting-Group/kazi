@@ -45,6 +45,19 @@ export async function GET(
   if (!response.ok)
     return NextResponse.json({ error: "Could not load CV" }, { status: 502 });
 
+  const extension = source.pathname.split(".").pop()?.toLowerCase();
+  if (extension === "pdf") {
+    return new NextResponse(response.body, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "inline; filename=\"candidate-cv.pdf\"",
+        "Cache-Control": "private, no-store",
+      },
+    });
+  }
+  if (extension !== "docx")
+    return NextResponse.json({ error: "Unsupported CV format" }, { status: 415 });
+
   try {
     const result = await mammoth.convertToHtml({
       buffer: Buffer.from(await response.arrayBuffer()),
@@ -58,7 +71,8 @@ export async function GET(
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Content-Disposition": "inline; filename=\"candidate-cv-preview.html\"",
-        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:;",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; frame-ancestors 'self'",
+        "Cache-Control": "private, no-store",
       },
     });
   } catch {

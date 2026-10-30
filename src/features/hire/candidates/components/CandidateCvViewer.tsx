@@ -4,14 +4,6 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 
-function isPdf(url: string) {
-  try {
-    return new URL(url).pathname.toLowerCase().endsWith(".pdf");
-  } catch {
-    return url.toLowerCase().includes(".pdf");
-  }
-}
-
 export function CandidateCvViewer({
   url,
   candidateId,
@@ -22,7 +14,6 @@ export function CandidateCvViewer({
   variant?: "button" | "inline";
 }) {
   const [open, setOpen] = useState(false);
-  const pdf = isPdf(url);
   const previewUrl = `/api/hire/candidates/${candidateId}/cv-preview`;
 
   if (variant === "inline") {
@@ -40,14 +31,10 @@ export function CandidateCvViewer({
         </div>
         <iframe
           title="Candidate CV document"
-          src={pdf ? url : previewUrl}
+          src={previewUrl}
           className="h-[580px] w-full bg-white"
         />
-        {!pdf && (
-          <p className="border-t border-[var(--border)] px-3.5 py-2 text-xs text-[var(--text-lo)]">
-            Word preview is rendered securely by Kazi. If it cannot load, open the original document.
-          </p>
-        )}
+        <p className="border-t border-[var(--border)] px-3.5 py-2 text-xs text-[var(--text-lo)]">Preview is rendered securely by Kazi. If it cannot load, open the original document.</p>
       </div>
     );
   }
@@ -69,17 +56,11 @@ export function CandidateCvViewer({
         open={open}
         onClose={() => setOpen(false)}
         title="Candidate CV"
-        subtitle={pdf ? "Review the original document without leaving Kazi." : "Open the original Word document to review it."}
+        subtitle="Review the original document without leaving Kazi."
         icon="solar:document-text-broken"
         maxWidth="max-w-5xl"
       >
-        {pdf ? (
-          <iframe
-            title="Candidate CV document"
-            src={url}
-            className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white"
-          />
-        ) : <iframe title="Candidate CV document" src={previewUrl} className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white" />}
+        <iframe title="Candidate CV document" src={previewUrl} className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white" />
       </SimpleModal>
     </>
   );

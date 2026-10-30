@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com https://*.ingest.de.sentry.io https://api.iconify.design",
-      "frame-src 'self' https://www.google.com https://*.r2.dev",
+      "frame-src 'self' https://www.google.com",
     ].join("; ");
     return [
       {
@@ -43,6 +43,22 @@ const nextConfig: NextConfig = {
                 },
               ]
             : []),
+        ],
+      },
+      // The authenticated CV preview is embedded only inside Kazi candidate
+      // pages. It must be frameable by the same origin, unlike every other
+      // application route.
+      {
+        source: "/api/hire/candidates/:id/cv-preview",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; frame-ancestors 'self'",
+          },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Cache-Control", value: "private, no-store" },
         ],
       },
     ];
