@@ -253,7 +253,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
               title="CV overview"
             />
           </div>
-          {candidate.cv_url && <CandidateCvViewer url={candidate.cv_url} variant="inline" />}
+          {candidate.cv_url && <CandidateCvViewer url={candidate.cv_url} candidateId={candidate.id} variant="inline" />}
           {cvParsed ? (
             <div className="space-y-5">
               {cvParsed.skills?.length ? (
@@ -421,7 +421,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             })}
           />
           {candidate.cv_url ? (
-            <CandidateCvViewer url={candidate.cv_url} />
+            <CandidateCvViewer url={candidate.cv_url} candidateId={candidate.id} />
           ) : candidate.cv_text ? (
             <div className="mt-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3.5 py-3">
               <p className="text-xs font-semibold text-emerald-600">

@@ -14,14 +14,16 @@ function isPdf(url: string) {
 
 export function CandidateCvViewer({
   url,
+  candidateId,
   variant = "button",
 }: {
   url: string;
+  candidateId: string;
   variant?: "button" | "inline";
 }) {
   const [open, setOpen] = useState(false);
   const pdf = isPdf(url);
-  const googleViewerUrl = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
+  const previewUrl = `/api/hire/candidates/${candidateId}/cv-preview`;
 
   if (variant === "inline") {
     return (
@@ -38,12 +40,12 @@ export function CandidateCvViewer({
         </div>
         <iframe
           title="Candidate CV document"
-          src={pdf ? url : googleViewerUrl}
+          src={pdf ? url : previewUrl}
           className="h-[580px] w-full bg-white"
         />
         {!pdf && (
           <p className="border-t border-[var(--border)] px-3.5 py-2 text-xs text-[var(--text-lo)]">
-            Word preview is provided by Google Docs Viewer. If it cannot load, open the original document.
+            Word preview is rendered securely by Kazi. If it cannot load, open the original document.
           </p>
         )}
       </div>
@@ -77,7 +79,7 @@ export function CandidateCvViewer({
             src={url}
             className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white"
           />
-        ) : <iframe title="Candidate CV document" src={googleViewerUrl} className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white" />}
+        ) : <iframe title="Candidate CV document" src={previewUrl} className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white" />}
       </SimpleModal>
     </>
   );

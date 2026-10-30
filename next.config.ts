@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com https://*.ingest.de.sentry.io https://api.iconify.design",
-      "frame-src https://www.google.com https://docs.google.com",
+      "frame-src https://www.google.com https://*.r2.dev",
     ].join("; ");
     return [
       {
@@ -57,6 +57,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.r2.dev" },
       { protocol: "https", hostname: "*.supabase.co" },
       { protocol: "https", hostname: "kazi.growthpad.africa" },
+      // Google profile photos imported from Google Workspace accounts.
+      { protocol: "https", hostname: "*.googleusercontent.com" },
     ],
   },
   turbopack: {
