@@ -490,7 +490,13 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                               { day: "numeric", month: "short" },
                             )}
                           </p>
-                          <span className={`mt-2 inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${r.status === "approved" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"}`}>{r.status === "approved" ? "Approved · awaiting fulfilment" : "Pending review"}</span>
+                          <span
+                            className={`mt-2 inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${r.status === "approved" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"}`}
+                          >
+                            {r.status === "approved"
+                              ? "Approved · awaiting fulfilment"
+                              : "Pending review"}
+                          </span>
                         </div>
                         {r.user_id === userId ||
                         (r.requester_role === "admin" &&
@@ -501,7 +507,10 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                               : "Waiting for HR"}
                           </span>
                         ) : (
-                          <RedemptionActions redemptionId={r.id} status={r.status as "pending" | "approved"} />
+                          <RedemptionActions
+                            redemptionId={r.id}
+                            status={r.status as "pending" | "approved"}
+                          />
                         )}
                       </div>
                     ))}

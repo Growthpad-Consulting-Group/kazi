@@ -72,18 +72,16 @@ export async function POST(req: Request) {
     const job = await assertCanApply(jobId, email);
     const readable = await readCv(cv);
 
-    const candidateId = await insertApplicant(
-      {
-        job_id: jobId,
-        full_name: fullName,
-        email,
-        phone: field("phone"),
-        linkedin_url: linkedinUrl,
-        portfolio_url: field("portfolio_url"),
-        cover_message: field("cover_message"),
-        source: field("source") ?? "website",
-      },
-    );
+    const candidateId = await insertApplicant({
+      job_id: jobId,
+      full_name: fullName,
+      email,
+      phone: field("phone"),
+      linkedin_url: linkedinUrl,
+      portfolio_url: field("portfolio_url"),
+      cover_message: field("cover_message"),
+      source: field("source") ?? "website",
+    });
 
     try {
       const stored = await attachCv(candidateId, jobId, readable);

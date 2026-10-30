@@ -11,6 +11,7 @@ import { updateProfile, changePassword } from "../actions";
 import SettingsSection from "./SettingsSection";
 import { Button } from "@/components/ui/Button";
 import AvatarUpload from "@/components/ui/AvatarUpload";
+import { startRegistration } from "@simplewebauthn/browser";
 
 const inputCls =
   "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
@@ -50,6 +51,37 @@ export default function ProfileClient({
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pwPending, startPwTransition] = useTransition();
+  const [passkeyPending, setPasskeyPending] = useState(false);
+
+  async function addPasskey() {
+    setPasskeyPending(true);
+    try {
+      const options = await fetch("/api/auth/passkeys/register/options", {
+        method: "POST",
+      }).then((res) =>
+        res.ok
+          ? res.json()
+          : Promise.reject(new Error("Could not start passkey setup.")),
+      );
+      const response = await startRegistration({ optionsJSON: options });
+      const result = await fetch("/api/auth/passkeys/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(response),
+      }).then(async (res) => ({ ok: res.ok, body: await res.json() }));
+      if (!result.ok)
+        throw new Error(result.body.error ?? "Passkey could not be saved.");
+      toast.success(
+        "Passkey added. You can now use Face ID, Touch ID, or Windows Hello.",
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Passkey setup failed.",
+      );
+    } finally {
+      setPasskeyPending(false);
+    }
+  }
 
   const profileDirty =
     name !== initial.name ||
@@ -193,6 +225,26 @@ export default function ProfileClient({
             onClick={saveProfile}
           >
             {isPending ? "Saving…" : "Save changes"}
+          </Button>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Passkey"
+        description="Use your device's Face ID, Touch ID, or Windows Hello to sign in."
+        icon="solar:shield-check-broken"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-xl text-sm text-[var(--text-lo)]">
+            Passkeys are encrypted on your device or password manager. Keep
+            Google and your password available for recovery.
+          </p>
+          <Button
+            icon="solar:key-broken"
+            loading={passkeyPending}
+            onClick={addPasskey}
+          >
+            {passkeyPending ? "Setting up…" : "Add a passkey"}
           </Button>
         </div>
       </SettingsSection>

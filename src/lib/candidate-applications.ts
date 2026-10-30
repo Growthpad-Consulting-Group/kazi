@@ -48,9 +48,7 @@ export async function assertCanApply(jobId: string, email: string) {
   return job;
 }
 
-export async function insertApplicant(
-  input: ApplicationInput,
-) {
+export async function insertApplicant(input: ApplicationInput) {
   const { data: candidate, error } = await supabaseAdmin
     .from("candidates")
     .insert({

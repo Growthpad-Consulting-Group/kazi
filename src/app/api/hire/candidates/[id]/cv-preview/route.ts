@@ -41,7 +41,10 @@ export async function GET(
     return NextResponse.json({ error: "Invalid CV source" }, { status: 400 });
   }
   if (!source.hostname.endsWith(".r2.dev"))
-    return NextResponse.json({ error: "Unsupported CV source" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Unsupported CV source" },
+      { status: 400 },
+    );
 
   const response = await fetch(source, { signal: AbortSignal.timeout(15_000) });
   if (!response.ok)
@@ -52,13 +55,16 @@ export async function GET(
     return new NextResponse(response.body, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "inline; filename=\"candidate-cv.pdf\"",
+        "Content-Disposition": 'inline; filename="candidate-cv.pdf"',
         "Cache-Control": "private, no-store",
       },
     });
   }
   if (extension !== "docx")
-    return NextResponse.json({ error: "Unsupported CV format" }, { status: 415 });
+    return NextResponse.json(
+      { error: "Unsupported CV format" },
+      { status: 415 },
+    );
 
   try {
     const result = await mammoth.convertToHtml({
@@ -72,12 +78,16 @@ export async function GET(
     return new NextResponse(documentHtml(safe), {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Content-Disposition": "inline; filename=\"candidate-cv-preview.html\"",
-        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; frame-ancestors 'self'",
+        "Content-Disposition": 'inline; filename="candidate-cv-preview.html"',
+        "Content-Security-Policy":
+          "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; frame-ancestors 'self'",
         "Cache-Control": "private, no-store",
       },
     });
   } catch {
-    return NextResponse.json({ error: "Could not preview this Word document" }, { status: 422 });
+    return NextResponse.json(
+      { error: "Could not preview this Word document" },
+      { status: 422 },
+    );
   }
 }

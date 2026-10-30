@@ -100,29 +100,43 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       localStorage.removeItem(CACHE_KEY);
     } catch (error: unknown) {
-      toast.error("Failed to mark notifications as read: " + (error as Error).message);
+      toast.error(
+        "Failed to mark notifications as read: " + (error as Error).message,
+      );
     }
   };
 
   const dismissNotification = async (id: string) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, { method: "DELETE" });
+      const res = await fetch(`/api/notifications/${id}/read`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
-      setNotifications((prev) => prev.filter((notification) => notification.id !== id));
+      setNotifications((prev) =>
+        prev.filter((notification) => notification.id !== id),
+      );
       localStorage.removeItem(CACHE_KEY);
     } catch (error: unknown) {
-      toast.error("Failed to dismiss notification: " + (error as Error).message);
+      toast.error(
+        "Failed to dismiss notification: " + (error as Error).message,
+      );
     }
   };
 
   const clearReadNotifications = async () => {
     try {
-      const res = await fetch("/api/notifications/read-all", { method: "DELETE" });
+      const res = await fetch("/api/notifications/read-all", {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
-      setNotifications((prev) => prev.filter((notification) => !notification.read));
+      setNotifications((prev) =>
+        prev.filter((notification) => !notification.read),
+      );
       localStorage.removeItem(CACHE_KEY);
     } catch (error: unknown) {
-      toast.error("Failed to clear read notifications: " + (error as Error).message);
+      toast.error(
+        "Failed to clear read notifications: " + (error as Error).message,
+      );
     }
   };
 

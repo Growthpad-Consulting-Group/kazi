@@ -115,7 +115,10 @@ export async function attachCv(candidateId: string, jobId: string, cv: ReadCv) {
     try {
       await deleteFromR2(key);
     } catch (cleanupError) {
-      console.error("Could not remove orphaned CV after database failure", cleanupError);
+      console.error(
+        "Could not remove orphaned CV after database failure",
+        cleanupError,
+      );
     }
     throw new ApplicationError("Could not attach the uploaded CV", 500);
   }

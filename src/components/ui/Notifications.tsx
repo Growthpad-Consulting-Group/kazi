@@ -34,8 +34,22 @@ export default function Notifications({
           Notifications
         </h3>
         <div className="flex items-center gap-3">
-          {hasRead && <button onClick={onClearRead} className="font-mono text-[11px] uppercase tracking-wide text-[var(--text-lo)] hover:text-[var(--text-hi)]">Clear read</button>}
-          {hasUnread && <button onClick={onMarkAllAsRead} className="font-mono text-[11px] uppercase tracking-wide text-brand-500 hover:text-brand-600">Mark all read</button>}
+          {hasRead && (
+            <button
+              onClick={onClearRead}
+              className="font-mono text-[11px] uppercase tracking-wide text-[var(--text-lo)] hover:text-[var(--text-hi)]"
+            >
+              Clear read
+            </button>
+          )}
+          {hasUnread && (
+            <button
+              onClick={onMarkAllAsRead}
+              className="font-mono text-[11px] uppercase tracking-wide text-brand-500 hover:text-brand-600"
+            >
+              Mark all read
+            </button>
+          )}
         </div>
       </div>
       {isLoading ? (

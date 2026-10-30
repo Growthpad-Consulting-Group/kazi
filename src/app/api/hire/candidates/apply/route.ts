@@ -65,19 +65,17 @@ export async function POST(req: Request) {
 
   try {
     const job = await assertCanApply(job_id, email);
-    const candidateId = await insertApplicant(
-      {
-        job_id,
-        full_name,
-        email,
-        phone,
-        location,
-        linkedin_url,
-        portfolio_url,
-        cover_message,
-        source,
-      },
-    );
+    const candidateId = await insertApplicant({
+      job_id,
+      full_name,
+      email,
+      phone,
+      location,
+      linkedin_url,
+      portfolio_url,
+      cover_message,
+      source,
+    });
     await notifyNewApplicant(candidateId, { full_name }, job);
     await sendApplicationConfirmation({
       email,

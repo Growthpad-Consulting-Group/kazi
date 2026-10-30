@@ -153,7 +153,11 @@ export default async function InterviewPage({
         />
         <StatCard
           title="AI CV screen"
-          value={candidate.ai_score === null ? "Pending" : `${candidate.ai_score}/100`}
+          value={
+            candidate.ai_score === null
+              ? "Pending"
+              : `${candidate.ai_score}/100`
+          }
           icon="solar:cpu-bolt-broken"
           color={
             candidate.ai_score === null
@@ -195,7 +199,9 @@ export default async function InterviewPage({
           }
           color={isSubmitted ? "green" : "amber"}
           compact
-          subtitle={isSubmitted ? "Feedback submitted" : "Your interview evaluation"}
+          subtitle={
+            isSubmitted ? "Feedback submitted" : "Your interview evaluation"
+          }
         />
       </section>
       <InterviewKit

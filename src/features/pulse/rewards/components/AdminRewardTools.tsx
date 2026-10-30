@@ -42,9 +42,15 @@ export function RewardForm({
   const [imageUrl, setImageUrl] = useState(item?.image_url ?? "");
   const [category, setCategory] = useState(item?.category ?? "");
   const [vendorName, setVendorName] = useState(item?.vendor_name ?? "");
-  const [stockQuantity, setStockQuantity] = useState(item?.stock_quantity?.toString() ?? "");
-  const [redemptionLimit, setRedemptionLimit] = useState(item?.redemption_limit_per_user?.toString() ?? "");
-  const [fulfilmentInstructions, setFulfilmentInstructions] = useState(item?.fulfilment_instructions ?? "");
+  const [stockQuantity, setStockQuantity] = useState(
+    item?.stock_quantity?.toString() ?? "",
+  );
+  const [redemptionLimit, setRedemptionLimit] = useState(
+    item?.redemption_limit_per_user?.toString() ?? "",
+  );
+  const [fulfilmentInstructions, setFulfilmentInstructions] = useState(
+    item?.fulfilment_instructions ?? "",
+  );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -91,7 +97,9 @@ export function RewardForm({
         category,
         vendor_name: vendorName,
         stock_quantity: stockQuantity.trim() ? Number(stockQuantity) : null,
-        redemption_limit_per_user: redemptionLimit.trim() ? Number(redemptionLimit) : null,
+        redemption_limit_per_user: redemptionLimit.trim()
+          ? Number(redemptionLimit)
+          : null,
         fulfilment_instructions: fulfilmentInstructions,
       };
       if (item)
@@ -211,14 +219,69 @@ export function RewardForm({
             />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className={labelClass}>Category<input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Experience" className={inputClass} /></label>
-            <label className={labelClass}>Vendor or partner <span className="font-normal text-[var(--text-lo)]">Optional</span><input value={vendorName} onChange={(e) => setVendorName(e.target.value)} placeholder="e.g. Carrefour" className={inputClass} /></label>
+            <label className={labelClass}>
+              Category
+              <input
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="e.g. Experience"
+                className={inputClass}
+              />
+            </label>
+            <label className={labelClass}>
+              Vendor or partner{" "}
+              <span className="font-normal text-[var(--text-lo)]">
+                Optional
+              </span>
+              <input
+                value={vendorName}
+                onChange={(e) => setVendorName(e.target.value)}
+                placeholder="e.g. Carrefour"
+                className={inputClass}
+              />
+            </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className={labelClass}>Stock <span className="font-normal text-[var(--text-lo)]">Blank = unlimited</span><input type="number" min={0} value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} placeholder="Unlimited" className={inputClass} /></label>
-            <label className={labelClass}>Per-person limit <span className="font-normal text-[var(--text-lo)]">Blank = none</span><input type="number" min={1} value={redemptionLimit} onChange={(e) => setRedemptionLimit(e.target.value)} placeholder="No limit" className={inputClass} /></label>
+            <label className={labelClass}>
+              Stock{" "}
+              <span className="font-normal text-[var(--text-lo)]">
+                Blank = unlimited
+              </span>
+              <input
+                type="number"
+                min={0}
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
+                placeholder="Unlimited"
+                className={inputClass}
+              />
+            </label>
+            <label className={labelClass}>
+              Per-person limit{" "}
+              <span className="font-normal text-[var(--text-lo)]">
+                Blank = none
+              </span>
+              <input
+                type="number"
+                min={1}
+                value={redemptionLimit}
+                onChange={(e) => setRedemptionLimit(e.target.value)}
+                placeholder="No limit"
+                className={inputClass}
+              />
+            </label>
           </div>
-          <label className={labelClass}>Fulfilment instructions <span className="font-normal text-[var(--text-lo)]">Optional</span><textarea rows={2} value={fulfilmentInstructions} onChange={(e) => setFulfilmentInstructions(e.target.value)} placeholder="How the team should fulfil this reward after approval." className={`${inputClass} resize-y`} /></label>
+          <label className={labelClass}>
+            Fulfilment instructions{" "}
+            <span className="font-normal text-[var(--text-lo)]">Optional</span>
+            <textarea
+              rows={2}
+              value={fulfilmentInstructions}
+              onChange={(e) => setFulfilmentInstructions(e.target.value)}
+              placeholder="How the team should fulfil this reward after approval."
+              className={`${inputClass} resize-y`}
+            />
+          </label>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">

@@ -21,10 +21,18 @@ export function CandidateCvViewer({
       <div className="mb-5 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]">
         <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-hi)]">
-            <Icon icon="solar:document-text-broken" className="h-4 w-4 text-brand-500" />
+            <Icon
+              icon="solar:document-text-broken"
+              className="h-4 w-4 text-brand-500"
+            />
             Original CV
           </span>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
+          >
             Download CV
             <Icon icon="solar:arrow-right-up-broken" className="h-3.5 w-3.5" />
           </a>
@@ -34,33 +42,37 @@ export function CandidateCvViewer({
           src={previewUrl}
           className="h-[580px] w-full bg-white"
         />
-        <p className="border-t border-[var(--border)] px-3.5 py-2 text-xs text-[var(--text-lo)]">Preview is rendered securely by Kazi. If it cannot load, open the original document.</p>
+        <p className="border-t border-[var(--border)] px-3.5 py-2 text-xs text-[var(--text-lo)]">
+          Preview is rendered securely by Kazi. If it cannot load, open the
+          original document.
+        </p>
       </div>
     );
   }
 
-  const trigger = variant === "compact" ? (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
-    >
-      <Icon icon="solar:document-text-broken" className="h-4 w-4" />
-      View CV
-    </button>
-  ) : (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      className="mt-3 flex w-full items-center justify-between rounded-xl bg-brand-500 px-3.5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-    >
-      <span className="inline-flex items-center gap-2">
+  const trigger =
+    variant === "compact" ? (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
+      >
         <Icon icon="solar:document-text-broken" className="h-4 w-4" />
-        View candidate CV
-      </span>
-      <Icon icon="solar:eye-broken" className="h-4 w-4" />
-    </button>
-  );
+        View CV
+      </button>
+    ) : (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-3 flex w-full items-center justify-between rounded-xl bg-brand-500 px-3.5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+      >
+        <span className="inline-flex items-center gap-2">
+          <Icon icon="solar:document-text-broken" className="h-4 w-4" />
+          View candidate CV
+        </span>
+        <Icon icon="solar:eye-broken" className="h-4 w-4" />
+      </button>
+    );
 
   return (
     <>
@@ -73,7 +85,11 @@ export function CandidateCvViewer({
         icon="solar:document-text-broken"
         maxWidth="max-w-5xl"
       >
-        <iframe title="Candidate CV document" src={previewUrl} className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white" />
+        <iframe
+          title="Candidate CV document"
+          src={previewUrl}
+          className="h-[52vh] w-full rounded-xl border border-[var(--border)] bg-white"
+        />
       </SimpleModal>
     </>
   );

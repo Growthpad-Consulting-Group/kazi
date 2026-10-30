@@ -1097,7 +1097,18 @@ export interface Database {
         };
         Insert: Omit<
           Database["public"]["Tables"]["reward_catalogue"]["Row"],
-          "id" | "created_at" | "description" | "image_url" | "is_active" | "category" | "vendor_name" | "fulfilment_instructions" | "stock_quantity" | "redemption_limit_per_user" | "available_from" | "expires_at"
+          | "id"
+          | "created_at"
+          | "description"
+          | "image_url"
+          | "is_active"
+          | "category"
+          | "vendor_name"
+          | "fulfilment_instructions"
+          | "stock_quantity"
+          | "redemption_limit_per_user"
+          | "available_from"
+          | "expires_at"
         > & {
           description?: string | null;
           image_url?: string | null;

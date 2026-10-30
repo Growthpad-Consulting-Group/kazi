@@ -1,6 +1,10 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import {
+  verifyAuthenticationResponse,
+  type AuthenticationResponseJSON,
+} from "@simplewebauthn/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { encryptGoogleToken } from "@/lib/google-calendar";
@@ -10,6 +14,11 @@ import { getExtraPermissions } from "@/lib/user-permissions";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { verifyRecaptcha } from "@/lib/recaptcha";
 import type { UserRole } from "@/types/database";
+import {
+  PASSKEY_AUTHENTICATION_COOKIE,
+  consumePasskeyChallenge,
+  passkeyConfigFromOrigin,
+} from "@/lib/passkeys";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -154,6 +163,95 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    CredentialsProvider({
+      id: "passkey",
+      name: "Passkey",
+      credentials: { response: { label: "Passkey response", type: "text" } },
+      async authorize(credentials, request) {
+        if (!credentials?.response || !request) return null;
+        const challenge = await consumePasskeyChallenge(
+          PASSKEY_AUTHENTICATION_COOKIE,
+        );
+        if (!challenge) return null;
+        try {
+          const response = JSON.parse(
+            credentials.response,
+          ) as AuthenticationResponseJSON;
+          const db = supabaseAdmin as unknown as {
+            from: (table: string) => {
+              select: (columns: string) => {
+                eq: (
+                  column: string,
+                  value: string,
+                ) => {
+                  maybeSingle: () => Promise<{
+                    data: {
+                      user_id: string;
+                      credential_id: string;
+                      public_key: string;
+                      counter: number;
+                      transports: string[];
+                    } | null;
+                  }>;
+                };
+              };
+              update: (value: Record<string, unknown>) => {
+                eq: (column: string, value: string) => Promise<unknown>;
+              };
+            };
+          };
+          const { data: passkey } = await db
+            .from("passkeys")
+            .select("user_id, credential_id, public_key, counter, transports")
+            .eq("credential_id", response.id)
+            .maybeSingle();
+          if (!passkey) return null;
+          const host = request.headers?.host ?? "localhost:3000";
+          const proto = request.headers?.["x-forwarded-proto"] ?? "http";
+          const config = passkeyConfigFromOrigin(
+            process.env.NEXTAUTH_URL ?? `${proto}://${host}`,
+          );
+          const verification = await verifyAuthenticationResponse({
+            response,
+            expectedChallenge: challenge,
+            expectedOrigin: config.origin,
+            expectedRPID: config.rpID,
+            credential: {
+              id: passkey.credential_id,
+              publicKey: Buffer.from(passkey.public_key, "base64url"),
+              counter: passkey.counter,
+              transports: passkey.transports,
+            },
+            requireUserVerification: true,
+          });
+          if (!verification.verified) return null;
+          await db
+            .from("passkeys")
+            .update({
+              counter: verification.authenticationInfo.newCounter,
+              last_used_at: new Date().toISOString(),
+            })
+            .eq("credential_id", passkey.credential_id);
+          const { data: user } = await supabaseAdmin
+            .from("users")
+            .select("id, email, name, role, department, avatar_url, is_active")
+            .eq("id", passkey.user_id)
+            .maybeSingle();
+          if (!user?.is_active) return null;
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            department: user.department,
+            image: user.avatar_url,
+          };
+        } catch (error) {
+          console.error("Passkey sign-in failed", error);
+          return null;
+        }
+      },
+    }),
     ...(googleWorkspaceLoginEnabled
       ? [
           GoogleProvider({
@@ -206,7 +304,10 @@ export const authOptions: NextAuthOptions = {
         });
         return true;
       } catch (error) {
-        console.error("Google work-account sign-in could not be provisioned", error);
+        console.error(
+          "Google work-account sign-in could not be provisioned",
+          error,
+        );
         return false;
       }
     },

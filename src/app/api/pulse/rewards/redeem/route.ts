@@ -11,10 +11,13 @@ export async function POST(req: Request) {
   const { catalogue_item_id } = await req.json();
   if (!catalogue_item_id)
     return NextResponse.json({ error: "Choose a reward." }, { status: 400 });
-  const { data, error } = await supabaseAdmin.rpc("redeem_reward" as never, {
-    p_user_id: session.user.id,
-    p_catalogue_item_id: catalogue_item_id,
-  } as never);
+  const { data, error } = await supabaseAdmin.rpc(
+    "redeem_reward" as never,
+    {
+      p_user_id: session.user.id,
+      p_catalogue_item_id: catalogue_item_id,
+    } as never,
+  );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
   const redemptionId = data as string;

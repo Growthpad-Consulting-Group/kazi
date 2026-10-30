@@ -208,9 +208,17 @@ export function InterviewKit({
               </p>
               {aiScore !== null && (
                 <div className="mt-4 flex max-w-xl items-start gap-2.5 rounded-xl bg-[var(--surface-2)] px-3.5 py-3 text-xs leading-5 text-[var(--text-lo)]">
-                  <Icon icon="solar:cpu-bolt-broken" className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                  <Icon
+                    icon="solar:cpu-bolt-broken"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-brand-500"
+                  />
                   <p>
-                    AI screened the CV at <span className="font-semibold text-[var(--text-hi)]">{aiScore}/100</span>. Use it as context, then record your own interview evidence and recommendation.
+                    AI screened the CV at{" "}
+                    <span className="font-semibold text-[var(--text-hi)]">
+                      {aiScore}/100
+                    </span>
+                    . Use it as context, then record your own interview evidence
+                    and recommendation.
                   </p>
                 </div>
               )}

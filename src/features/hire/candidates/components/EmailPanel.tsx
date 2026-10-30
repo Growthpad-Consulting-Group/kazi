@@ -31,13 +31,21 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
     setResending(true);
     setError("");
     try {
-      const res = await fetch(`/api/hire/candidates/${candidateId}/resend-confirmation`, { method: "POST" });
+      const res = await fetch(
+        `/api/hire/candidates/${candidateId}/resend-confirmation`,
+        { method: "POST" },
+      );
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Could not resend confirmation.");
+      if (!res.ok)
+        throw new Error(data.error ?? "Could not resend confirmation.");
       setSentMessage("Application confirmation resent successfully.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not resend confirmation.");
-    } finally { setResending(false); }
+      setError(
+        e instanceof Error ? e.message : "Could not resend confirmation.",
+      );
+    } finally {
+      setResending(false);
+    }
   }
 
   async function draftEmail() {
@@ -148,8 +156,19 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3">
-        <p className="text-xs text-[var(--text-lo)]">The application confirmation is sent automatically. Resend it only if delivery failed or the candidate asks.</p>
-        <Button size="sm" variant="secondary" loading={resending} icon="solar:refresh-broken" onClick={resendConfirmation}>Resend confirmation</Button>
+        <p className="text-xs text-[var(--text-lo)]">
+          The application confirmation is sent automatically. Resend it only if
+          delivery failed or the candidate asks.
+        </p>
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={resending}
+          icon="solar:refresh-broken"
+          onClick={resendConfirmation}
+        >
+          Resend confirmation
+        </Button>
       </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}

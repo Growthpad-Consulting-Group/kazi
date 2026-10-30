@@ -429,11 +429,14 @@ function DailyActivityBreakdown({ summary }: { summary: DailyWeekSummary }) {
         {summary.days.map((day, dayIndex) => (
           <Accordion
             key={day.date}
-            title={new Date(`${day.date}T12:00:00`).toLocaleDateString("en-KE", {
-              weekday: "long",
-              day: "numeric",
-              month: "short",
-            })}
+            title={new Date(`${day.date}T12:00:00`).toLocaleDateString(
+              "en-KE",
+              {
+                weekday: "long",
+                day: "numeric",
+                month: "short",
+              },
+            )}
             subtitle={`${day.entries.length} logged task${day.entries.length === 1 ? "" : "s"}`}
             icon="solar:calendar-broken"
             badge={formatMinutes(

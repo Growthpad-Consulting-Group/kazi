@@ -56,11 +56,7 @@ function applicationRequest() {
   form.set("email", "amina@example.com");
   form.set("linkedin_url", "https://www.linkedin.com/in/amina-wanjiku");
   form.set("consented", "true");
-  form.set(
-    "cv",
-    new Blob(["cv"], { type: "application/pdf" }),
-    "amina-cv.pdf",
-  );
+  form.set("cv", new Blob(["cv"], { type: "application/pdf" }), "amina-cv.pdf");
   return new Request("http://localhost/api/hire/candidates/apply-with-cv", {
     method: "POST",
     body: form,
@@ -84,9 +80,9 @@ describe("POST /api/hire/candidates/apply-with-cv", () => {
       { full_name: "Amina Wanjiku" },
       job,
     );
-    expect(
-      mocks.attachCv.mock.invocationCallOrder[0],
-    ).toBeLessThan(mocks.notifyNewApplicant.mock.invocationCallOrder[0]);
+    expect(mocks.attachCv.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.notifyNewApplicant.mock.invocationCallOrder[0],
+    );
   });
 
   it("rolls back a failed upload without notifying recruiters", async () => {

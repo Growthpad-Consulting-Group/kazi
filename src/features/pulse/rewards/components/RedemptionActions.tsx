@@ -15,9 +15,13 @@ export default function RedemptionActions({
   status,
 }: RedemptionActionsProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState<"approved" | "fulfilled" | "rejected" | null>(null);
+  const [loading, setLoading] = useState<
+    "approved" | "fulfilled" | "rejected" | null
+  >(null);
 
-  async function handleAction(nextStatus: "approved" | "fulfilled" | "rejected") {
+  async function handleAction(
+    nextStatus: "approved" | "fulfilled" | "rejected",
+  ) {
     setLoading(nextStatus);
     try {
       const res = await fetch(
@@ -34,7 +38,11 @@ export default function RedemptionActions({
         return;
       }
       toast.success(
-        nextStatus === "approved" ? "Redemption approved." : nextStatus === "fulfilled" ? "Reward marked fulfilled." : "Redemption rejected and points refunded.",
+        nextStatus === "approved"
+          ? "Redemption approved."
+          : nextStatus === "fulfilled"
+            ? "Reward marked fulfilled."
+            : "Redemption rejected and points refunded.",
       );
       router.refresh();
     } catch {
@@ -46,7 +54,27 @@ export default function RedemptionActions({
 
   return (
     <div className="flex gap-2">
-      {status === "pending" ? <Button size="sm" variant="primary" loading={loading === "approved"} disabled={loading !== null} onClick={() => handleAction("approved")}>Approve</Button> : <Button size="sm" variant="primary" loading={loading === "fulfilled"} disabled={loading !== null} onClick={() => handleAction("fulfilled")}>Fulfil</Button>}
+      {status === "pending" ? (
+        <Button
+          size="sm"
+          variant="primary"
+          loading={loading === "approved"}
+          disabled={loading !== null}
+          onClick={() => handleAction("approved")}
+        >
+          Approve
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="primary"
+          loading={loading === "fulfilled"}
+          disabled={loading !== null}
+          onClick={() => handleAction("fulfilled")}
+        >
+          Fulfil
+        </Button>
+      )}
       <Button
         size="sm"
         variant="danger"

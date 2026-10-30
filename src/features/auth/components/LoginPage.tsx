@@ -7,6 +7,7 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import ReCAPTCHA from "react-google-recaptcha";
+import { startAuthentication } from "@simplewebauthn/browser";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 
 const SUPPORT_EMAIL = "njue.duncan@growthpad.net";
@@ -23,6 +24,7 @@ export default function LoginPage({
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [signInHelpOpen, setSignInHelpOpen] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
@@ -84,6 +86,37 @@ export default function LoginPage({
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     await signIn("google", { callbackUrl: "/" });
+  }
+
+  async function handlePasskeySignIn() {
+    setPasskeyLoading(true);
+    try {
+      const options = await fetch("/api/auth/passkeys/authenticate/options", {
+        method: "POST",
+      }).then(async (res) => {
+        const body = await res.json();
+        if (!res.ok)
+          throw new Error(body.error ?? "Could not start passkey sign-in.");
+        return body;
+      });
+      const response = await startAuthentication({ optionsJSON: options });
+      const result = await signIn("passkey", {
+        response: JSON.stringify(response),
+        redirect: false,
+      });
+      if (result?.error)
+        throw new Error(
+          "Passkey was not recognised. Try Google or your password.",
+        );
+      const session = await getSession();
+      router.push(session?.user?.role === "employee" ? "/pulse" : "/dashboard");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Passkey sign-in failed.",
+      );
+    } finally {
+      setPasskeyLoading(false);
+    }
   }
 
   return (
@@ -222,33 +255,69 @@ export default function LoginPage({
 
             {googleWorkspaceLoginEnabled && (
               <>
-                <div className="my-6 flex items-center gap-3 text-xs font-medium text-gray-400">
+                <div className="my-5 flex items-center gap-3 text-xs font-medium text-gray-400">
                   <span className="h-px flex-1 bg-gray-200" />
-                  or
+                  passwordless sign-in
                   <span className="h-px flex-1 bg-gray-200" />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={loading || googleLoading}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-[#231812] shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {googleLoading ? (
-                    <Icon icon="solar:wheel-angle-broken" className="h-5 w-5 animate-spin text-brand-500" />
-                  ) : (
-                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-                      <path fill="#4285F4" d="M21.35 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h5.23a4.47 4.47 0 0 1-1.94 2.93v2.79h3.14c1.84-1.69 2.92-4.18 2.92-7.75Z" />
-                      <path fill="#34A853" d="M12 21.75c2.62 0 4.82-.87 6.43-2.35l-3.14-2.79c-.87.58-1.99.92-3.29.92-2.53 0-4.67-1.71-5.44-4.01H3.32v2.88A9.75 9.75 0 0 0 12 21.75Z" />
-                      <path fill="#FBBC05" d="M6.56 13.52A5.87 5.87 0 0 1 6.25 12c0-.53.1-1.04.31-1.52V7.6H3.32A9.75 9.75 0 0 0 2.25 12c0 1.58.38 3.08 1.07 4.4l3.24-2.88Z" />
-                      <path fill="#EA4335" d="M12 6.47c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.82 3.53 14.62 2.25 12 2.25A9.75 9.75 0 0 0 3.32 7.6l3.24 2.88C7.33 8.18 9.47 6.47 12 6.47Z" />
-                    </svg>
-                  )}
-                  {googleLoading
-                    ? "Opening Google…"
-                    : "Continue with your Growthpad Google account"}
-                </button>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={handlePasskeySignIn}
+                    disabled={loading || googleLoading || passkeyLoading}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-[#231812] shadow-sm transition-colors hover:border-brand-500 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Icon
+                      icon={
+                        passkeyLoading
+                          ? "solar:wheel-angle-broken"
+                          : "solar:shield-keyhole-broken"
+                      }
+                      className={`h-5 w-5 shrink-0 text-brand-500 ${passkeyLoading ? "animate-spin" : ""}`}
+                    />
+                    {passkeyLoading ? "Checking…" : "Use passkey"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading || passkeyLoading || googleLoading}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-[#231812] shadow-sm transition-colors hover:border-brand-500 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {googleLoading ? (
+                      <Icon
+                        icon="solar:wheel-angle-broken"
+                        className="h-5 w-5 animate-spin text-brand-500"
+                      />
+                    ) : (
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        className="h-5 w-5 shrink-0"
+                      >
+                        <path
+                          fill="#4285F4"
+                          d="M21.35 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h5.23a4.47 4.47 0 0 1-1.94 2.93v2.79h3.14c1.84-1.69 2.92-4.18 2.92-7.75Z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 21.75c2.62 0 4.82-.87 6.43-2.35l-3.14-2.79c-.87.58-1.99.92-3.29.92-2.53 0-4.67-1.71-5.44-4.01H3.32v2.88A9.75 9.75 0 0 0 12 21.75Z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M6.56 13.52A5.87 5.87 0 0 1 6.25 12c0-.53.1-1.04.31-1.52V7.6H3.32A9.75 9.75 0 0 0 2.25 12c0 1.58.38 3.08 1.07 4.4l3.24-2.88Z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 6.47c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.82 3.53 14.62 2.25 12 2.25A9.75 9.75 0 0 0 3.32 7.6l3.24 2.88C7.33 8.18 9.47 6.47 12 6.47Z"
+                        />
+                      </svg>
+                    )}
+                    {googleLoading ? "Opening…" : "Use work account"}
+                  </button>
+                </div>
                 <p className="mt-2 text-center text-xs leading-5 text-gray-500">
-                  Your verified work account is connected for Calendar and shared Google Docs.
+                  Your verified work account is connected for Calendar and
+                  shared Google Docs.
                 </p>
               </>
             )}

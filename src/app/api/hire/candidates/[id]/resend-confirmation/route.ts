@@ -24,13 +24,19 @@ export async function POST(
     jobs: { title: string } | null;
   } | null;
   if (!candidateWithJob?.email || !candidateWithJob.jobs?.title)
-    return NextResponse.json({ error: "Candidate or role not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Candidate or role not found" },
+      { status: 404 },
+    );
   const sent = await sendApplicationConfirmation({
     email: candidateWithJob.email,
     fullName: candidateWithJob.full_name,
     jobTitle: candidateWithJob.jobs.title,
   });
   if (!sent)
-    return NextResponse.json({ error: "Confirmation could not be sent" }, { status: 502 });
+    return NextResponse.json(
+      { error: "Confirmation could not be sent" },
+      { status: 502 },
+    );
   return NextResponse.json({ ok: true });
 }
