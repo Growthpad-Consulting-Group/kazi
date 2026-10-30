@@ -57,6 +57,7 @@ export async function GET(
     return new NextResponse(documentHtml(safe), {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
+        "Content-Disposition": "inline; filename=\"candidate-cv-preview.html\"",
         "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:;",
       },
     });
