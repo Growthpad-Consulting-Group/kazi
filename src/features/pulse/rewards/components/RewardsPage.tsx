@@ -34,6 +34,10 @@ type RewardCostReport = {
   fulfilledCount: number;
   pendingCount: number;
 };
+type RewardLiabilityReport = {
+  unspentPoints: number;
+  expiringPoints: number;
+};
 
 const STATUS_STYLES: Record<RedemptionStatus, string> = {
   pending: "bg-amber-500/10 text-amber-600",
@@ -64,6 +68,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
     manageCatalogueResult,
     xpWalletResult,
     costRedemptionsResult,
+    pointLotsResult,
   ] = await Promise.all([
     supabaseAdmin
       .from("reward_wallets")
@@ -118,6 +123,15 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
           .select("catalogue_item_id, status")
           .in("status", ["approved", "fulfilled"])
       : Promise.resolve({ data: [] }),
+    /* eslint-disable @typescript-eslint/no-explicit-any -- expiry lots are migration-backed and await generated types */
+    showingManage
+      ? (supabaseAdmin as any)
+          .from("reward_point_lots")
+          .select("remaining_points, expires_at")
+          .gt("remaining_points", 0)
+          .is("expired_at", null)
+      : Promise.resolve({ data: [] }),
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   ]);
   const staffOptions = (staffResult.data ?? []) as {
     id: string;
@@ -158,6 +172,22 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
       return report;
     },
     { fulfilledCost: 0, committedCost: 0, fulfilledCount: 0, pendingCount: 0 },
+  );
+  // eslint-disable-next-line react-hooks/purity -- server component: liability is calculated for this request
+  const expiryHorizon = Date.now() + 30 * 86_400_000;
+  const liabilityReport = (
+    (pointLotsResult.data ?? []) as {
+      remaining_points: number;
+      expires_at: string;
+    }[]
+  ).reduce<RewardLiabilityReport>(
+    (report, lot) => {
+      report.unspentPoints += lot.remaining_points;
+      if (new Date(lot.expires_at).getTime() <= expiryHorizon)
+        report.expiringPoints += lot.remaining_points;
+      return report;
+    },
+    { unspentPoints: 0, expiringPoints: 0 },
   );
 
   // Enrich my redemptions with catalogue names
@@ -237,7 +267,11 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
           </Suspense>
         )}
         {showingManage ? (
-          <CatalogueManager items={manageCatalogue} costReport={costReport} />
+          <CatalogueManager
+            items={manageCatalogue}
+            costReport={costReport}
+            liabilityReport={liabilityReport}
+          />
         ) : (
           <>
             {/* Balance */}

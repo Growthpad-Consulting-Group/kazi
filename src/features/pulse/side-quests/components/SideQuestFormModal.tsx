@@ -17,40 +17,90 @@ const audiences = [
   { value: "location", label: "Location" },
   { value: "manager_group", label: "Manager group" },
   { value: "staff", label: "Selected staff" },
-];
+] as const;
 
 const questTemplates = [
   {
-    id: "knowledge",
-    label: "Knowledge swap",
-    title: "Run a knowledge swap",
-    brief: "Share one practical skill, tool, or lesson with a colleague.",
-    criteria: "Host or contribute to a 15-minute knowledge exchange.",
-    points: 20,
-  },
-  {
-    id: "client",
-    label: "Client learning",
-    title: "Share a client learning",
-    brief: "Turn a useful client insight into something the team can reuse.",
-    criteria: "Post a clear client learning with a suggested next step.",
+    id: "asana-clean-up",
+    label: "Asana clean-up",
+    title: "Asana clean-up sprint",
+    brief: "Keep project work accurate, owned, and ready for the week ahead.",
+    criteria:
+      "Update assigned tasks, owners, due dates and statuses; attach a screenshot or task link for approval.",
     points: 15,
+    xp: 10,
+    frequency: "weekly",
+    cap: 1,
+    completionMode: "evidence_required",
   },
   {
-    id: "wellbeing",
-    label: "Wellbeing",
-    title: "Take a wellbeing reset",
-    brief: "Make space for one deliberate wellbeing activity this week.",
-    criteria: "Complete the activity and share a short reflection.",
+    id: "digital-watercooler",
+    label: "Digital Watercooler",
+    title: "Spark the Digital Watercooler",
+    brief:
+      "Start a useful, inclusive conversation that helps the team connect or learn.",
+    criteria:
+      "Post the prompt or contribution and share the message link for review.",
     points: 10,
+    xp: 8,
+    frequency: "weekly",
+    cap: 1,
+    completionMode: "evidence_required",
   },
   {
-    id: "culture",
-    label: "Culture connector",
-    title: "Make a culture connection",
-    brief: "Help a teammate feel seen, supported, or better connected.",
-    criteria: "Complete one thoughtful peer-support action.",
+    id: "productivity-hack",
+    label: "Productivity Hack Share",
+    title: "Share a productivity hack",
+    brief:
+      "Give the team one practical shortcut, workflow, or tool they can reuse.",
+    criteria:
+      "Share the hack with a short how-to and evidence of where it was posted.",
     points: 15,
+    xp: 12,
+    frequency: "monthly",
+    cap: 1,
+    completionMode: "evidence_required",
+  },
+  {
+    id: "masterclass",
+    label: "Masterclass",
+    title: "Host a Growthpad Masterclass",
+    brief:
+      "Train the team on a tool, framework, or hard skill they can apply in their work.",
+    criteria:
+      "Run the session and submit the slide, recording, or meeting link for approval.",
+    points: 30,
+    xp: 25,
+    frequency: "monthly",
+    cap: 1,
+    completionMode: "manager_approval",
+  },
+  {
+    id: "framework-sharer",
+    label: "Framework Sharer",
+    title: "Share a reusable framework",
+    brief:
+      "Turn a useful approach into a template or framework the team can adopt.",
+    criteria:
+      "Submit the framework link and a short note on when colleagues should use it.",
+    points: 20,
+    xp: 18,
+    frequency: "monthly",
+    cap: 1,
+    completionMode: "manager_approval",
+  },
+  {
+    id: "client-hero",
+    label: "Client Hero Spotlight",
+    title: "Capture a Client Hero story",
+    brief: "Document exceptional work that created a tangible client outcome.",
+    criteria:
+      "Submit the client context, outcome, evidence and permission to share where required.",
+    points: 25,
+    xp: 20,
+    frequency: "monthly",
+    cap: 1,
+    completionMode: "manager_approval",
   },
 ];
 
@@ -126,6 +176,13 @@ function SideQuestForm({
     setBrief(template.brief);
     setCriteria(template.criteria);
     setPoints(String(template.points));
+    setXpPoints(String(template.xp));
+    setRepeatFrequency(template.frequency as "once" | "weekly" | "monthly");
+    setCompletionCap(String(template.cap));
+    setCompletionMode(
+      template.completionMode as
+        "self_confirm" | "evidence_required" | "manager_approval",
+    );
   }
 
   const targets =
@@ -566,26 +623,50 @@ export function EditSideQuestButton({
 }) {
   const [open, setOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Edit Side Quest"
-        title="Edit Side Quest"
-        className="rounded-lg p-1.5 text-[var(--text-lo)] transition-colors hover:bg-[var(--surface-2)] hover:text-brand-500"
-      >
-        <Icon icon="solar:pen-broken" className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setConfirmingDelete(true)}
-        aria-label="Delete Side Quest"
-        title="Delete Side Quest"
-        className="rounded-lg p-1.5 text-[var(--text-lo)] transition-colors hover:bg-red-500/10 hover:text-red-500"
-      >
-        <Icon icon="solar:trash-bin-minimalistic-broken" className="h-4 w-4" />
-      </button>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setActionsOpen((current) => !current)}
+          aria-label="Side Quest actions"
+          aria-expanded={actionsOpen}
+          title="Side Quest actions"
+          className="rounded-lg p-1.5 text-[var(--text-lo)] transition-colors hover:bg-[var(--surface-2)] hover:text-brand-500"
+        >
+          <Icon icon="solar:menu-dots-broken" className="h-4 w-4" />
+        </button>
+        {actionsOpen && (
+          <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl shadow-slate-200/30 dark:shadow-black/30">
+            <button
+              type="button"
+              onClick={() => {
+                setActionsOpen(false);
+                setOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)]"
+            >
+              <Icon icon="solar:pen-broken" className="h-3.5 w-3.5" />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActionsOpen(false);
+                setConfirmingDelete(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-red-500 transition-colors hover:bg-red-500/10"
+            >
+              <Icon
+                icon="solar:trash-bin-minimalistic-broken"
+                className="h-3.5 w-3.5"
+              />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
       <SimpleModal
         open={open}
         onClose={() => setOpen(false)}

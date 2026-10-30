@@ -8,6 +8,7 @@ import StatCard from "@/components/ui/StatCard";
 import { EditSideQuestButton, NewSideQuestButton } from "./SideQuestFormModal";
 import { QuestCompletionButton } from "./QuestCompletionButton";
 import { QuestCompletionReviewButton } from "./QuestCompletionReviewButton";
+import { effectiveSideQuestStatus } from "@/lib/side-quest-lifecycle";
 
 const audienceLabels: Record<string, string> = {
   company: "Company-wide",
@@ -35,7 +36,7 @@ export default async function SideQuestsPage() {
     supabaseAdmin
       .from("side_quest_completions")
       .select(
-        "side_quest_id, user_id, status, evidence_note, evidence_url, completed_at",
+        "side_quest_id, user_id, status, evidence_note, evidence_url, evidence_file_url, completed_at",
       ),
     supabaseAdmin
       .from("users")
@@ -65,6 +66,10 @@ export default async function SideQuestsPage() {
   )
     .toISOString()
     .slice(0, 10);
+  const questsWithLifecycle = (quests ?? []).map((quest) => ({
+    ...quest,
+    status: effectiveSideQuestStatus(quest),
+  }));
   const completionByQuest = new Map<string, Set<string>>();
   for (const completion of completions ?? []) {
     if (completion.status !== "approved") continue;
@@ -137,7 +142,7 @@ export default async function SideQuestsPage() {
         (quest.audience_type === "staff" &&
           quest.audience_filters.includes(user.id)),
     ).length;
-  const visibleQuests = (quests ?? []).filter(
+  const visibleQuests = questsWithLifecycle.filter(
     (quest) => canManage || isEligible(quest),
   );
   const now = new Date();
@@ -183,7 +188,21 @@ export default async function SideQuestsPage() {
   const pendingReviews = canManage
     ? (completions ?? []).filter((item) => item.status === "pending")
     : [];
-  const questById = new Map((quests ?? []).map((quest) => [quest.id, quest]));
+  const approvedCompletions = canManage
+    ? (completions ?? []).filter((item) => item.status === "approved")
+    : [];
+  const rejectedCompletions = canManage
+    ? (completions ?? []).filter((item) => item.status === "rejected")
+    : [];
+  const evidenceSubmitted = canManage
+    ? (completions ?? []).filter(
+        (item) =>
+          item.evidence_note || item.evidence_url || item.evidence_file_url,
+      )
+    : [];
+  const questById = new Map(
+    questsWithLifecycle.map((quest) => [quest.id, quest]),
+  );
   return (
     <>
       <SetPageHeader
@@ -273,6 +292,65 @@ export default async function SideQuestsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+        {canManage && (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+            <div className="mb-4 flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                <Icon
+                  icon="solar:graph-new-up-broken"
+                  className="h-4.5 w-4.5"
+                />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                  Approval and evidence report
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                  Track verification workload and the quality of submitted quest
+                  evidence.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatCard
+                compact
+                variant="inline"
+                title="Awaiting review"
+                value={pendingReviews.length}
+                icon="solar:hourglass-broken"
+                color="amber"
+                subtitle="Needs an approver"
+              />
+              <StatCard
+                compact
+                variant="inline"
+                title="Approved"
+                value={approvedCompletions.length}
+                icon="solar:check-circle-broken"
+                color="green"
+                subtitle="Verified completions"
+              />
+              <StatCard
+                compact
+                variant="inline"
+                title="Evidence attached"
+                value={evidenceSubmitted.length}
+                icon="solar:paperclip-broken"
+                color="blue"
+                subtitle="Notes, links or files"
+              />
+              <StatCard
+                compact
+                variant="inline"
+                title="Rejected"
+                value={rejectedCompletions.length}
+                icon="solar:close-circle-broken"
+                color="red"
+                subtitle="Need a retry"
+              />
             </div>
           </section>
         )}
@@ -404,18 +482,18 @@ export default async function SideQuestsPage() {
                       <Icon icon="solar:cup-star-broken" className="h-5 w-5" />
                     </span>
                     <div className="flex items-center gap-1.5">
-                      {canManage && (
-                        <EditSideQuestButton
-                          quest={quest}
-                          options={audienceOptions}
-                        />
-                      )}
                       <span className="rounded-md bg-brand-500/10 px-2 py-1 font-mono text-[10px] font-bold text-brand-600">
                         {quest.points} pts
                       </span>
                       <span className="rounded-md bg-brand-500/10 px-2 py-1 text-[10px] font-semibold text-brand-600">
                         Live
                       </span>
+                      {canManage && (
+                        <EditSideQuestButton
+                          quest={quest}
+                          options={audienceOptions}
+                        />
+                      )}
                     </div>
                   </div>
                   <h2 className="mt-4 text-base font-semibold text-[var(--text-hi)]">

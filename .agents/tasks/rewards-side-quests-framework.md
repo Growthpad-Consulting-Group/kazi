@@ -33,6 +33,6 @@ Source: Corporate Gifting and Side Quests Program Framework
 
 ## P2 Operations and reporting
 
-- [ ] Add quest templates matching all framework activities and their approved criteria and point values.
-- [ ] Add approval and evidence reporting for managers.
-- [ ] Add reward liability reporting for unspent wallet points and impending expiry.
+- [x] Add quest templates matching all framework activities and their approved criteria and point values.
+- [x] Add approval and evidence reporting for managers.
+- [x] Add reward liability reporting for unspent wallet points and impending expiry.

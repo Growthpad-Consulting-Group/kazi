@@ -380,6 +380,7 @@ export function NewRewardButton() {
 export function CatalogueManager({
   items,
   costReport,
+  liabilityReport,
 }: {
   items: RewardCatalogue[];
   costReport: {
@@ -387,6 +388,10 @@ export function CatalogueManager({
     committedCost: number;
     fulfilledCount: number;
     pendingCount: number;
+  };
+  liabilityReport: {
+    unspentPoints: number;
+    expiringPoints: number;
   };
 }) {
   const router = useRouter();
@@ -489,7 +494,7 @@ export function CatalogueManager({
             </p>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             title="Fulfilled cost"
             value={`KES ${costReport.fulfilledCost.toLocaleString()}`}
@@ -507,6 +512,24 @@ export function CatalogueManager({
             variant="inline"
             compact
             subtitle={`${costReport.pendingCount} approved redemption${costReport.pendingCount === 1 ? "" : "s"}`}
+          />
+          <StatCard
+            title="Unspent liability"
+            value={`${liabilityReport.unspentPoints.toLocaleString()} pts`}
+            icon="solar:star-broken"
+            color="blue"
+            variant="inline"
+            compact
+            subtitle="Available across staff wallets"
+          />
+          <StatCard
+            title="Expiring in 30 days"
+            value={`${liabilityReport.expiringPoints.toLocaleString()} pts`}
+            icon="solar:bell-bing-broken"
+            color="amber"
+            variant="inline"
+            compact
+            subtitle="Staff have been notified"
           />
         </div>
       </section>

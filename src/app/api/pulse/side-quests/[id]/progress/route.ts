@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { awardPoints } from "@/lib/award-points";
 import { awardQuarterlyXp } from "@/lib/award-xp";
 import { refreshSideQuestAchievements } from "@/lib/side-quest-achievements";
+import { isSideQuestOpen } from "@/lib/side-quest-lifecycle";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -27,7 +28,7 @@ export async function POST(req: Request, context: RouteContext) {
       .eq("id", session.user.id)
       .maybeSingle(),
   ]);
-  if (!quest || quest.status !== "live")
+  if (!quest || !isSideQuestOpen(quest))
     return NextResponse.json(
       { error: "This Side Quest is not accepting completions." },
       { status: 400 },
