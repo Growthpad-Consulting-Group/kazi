@@ -151,6 +151,13 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
   const pendingRedemptions = (pendingResult.data ?? []) as RewardRedemption[];
   const manageCatalogue = (manageCatalogueResult.data ??
     []) as RewardCatalogue[];
+  const rewardCategories = Array.from(
+    new Set(
+      manageCatalogue
+        .map((item) => item.category?.trim())
+        .filter((category): category is string => Boolean(category)),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
   const costCatalogue = new Map(
     manageCatalogue.map((item) => [item.id, item.cash_cost_kes ?? 0]),
   );
@@ -242,7 +249,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
         trailing={
           canManage ? (
             showingManage ? (
-              <NewRewardButton />
+              <NewRewardButton categories={rewardCategories} />
             ) : (
               <AdminRewardTools staff={staffOptions} />
             )
@@ -269,6 +276,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
         {showingManage ? (
           <CatalogueManager
             items={manageCatalogue}
+            categories={rewardCategories}
             costReport={costReport}
             liabilityReport={liabilityReport}
           />

@@ -4,10 +4,16 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
+import CreatableSelect from "react-select/creatable";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import StatCard from "@/components/ui/StatCard";
 import { useFileDrop } from "@/lib/useFileDrop";
+import {
+  getSelectStyles,
+  type SelectOption,
+} from "@/components/ui/export/selectStyles";
+import { useTheme } from "@/shared/contexts/ThemeContext";
 import type { RewardCatalogue } from "@/types/database";
 
 type StaffOption = { id: string; name: string };
@@ -15,6 +21,11 @@ type StaffOption = { id: string; name: string };
 const inputClass =
   "mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60";
 const labelClass = "block text-xs font-semibold text-[var(--text-hi)]";
+
+const toOption = (category: string): SelectOption => ({
+  value: category,
+  label: category,
+});
 
 async function send(url: string, method: string, body: unknown) {
   const response = await fetch(url, {
@@ -31,16 +42,20 @@ async function send(url: string, method: string, body: unknown) {
 export function RewardForm({
   item,
   onDone,
+  categories,
 }: {
   item?: RewardCatalogue;
   onDone: () => void;
+  categories: string[];
 }) {
   const router = useRouter();
+  const { resolvedMode } = useTheme();
   const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [pointsCost, setPointsCost] = useState(String(item?.points_cost ?? ""));
   const [imageUrl, setImageUrl] = useState(item?.image_url ?? "");
   const [category, setCategory] = useState(item?.category ?? "");
+  const [createdCategories, setCreatedCategories] = useState<string[]>([]);
   const [rewardType, setRewardType] = useState(item?.reward_type ?? "reward");
   const [charityName, setCharityName] = useState(item?.charity_name ?? "");
   const [cashCostKes, setCashCostKes] = useState(
@@ -124,6 +139,16 @@ export function RewardForm({
       setSaving(false);
     }
   }
+
+  const categoryOptions = Array.from(
+    new Set([
+      ...categories,
+      ...createdCategories,
+      ...(category ? [category] : []),
+    ]),
+  )
+    .sort((a, b) => a.localeCompare(b))
+    .map(toOption);
 
   return (
     <div className="space-y-5">
@@ -241,7 +266,7 @@ export function RewardForm({
               </select>
             </label>
             <label className={labelClass}>
-              Programme cost (KES)
+              Fulfilment cost (KES)
               <input
                 type="number"
                 min={0}
@@ -266,11 +291,33 @@ export function RewardForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={labelClass}>
               Category
-              <input
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Experience"
-                className={inputClass}
+              <CreatableSelect<SelectOption, false>
+                value={category ? toOption(category) : null}
+                onChange={(option) =>
+                  setCategory(option ? String(option.value) : "")
+                }
+                onCreateOption={(input) => {
+                  const next = input.trim();
+                  if (!next) return;
+                  setCreatedCategories((current) => [...current, next]);
+                  setCategory(next);
+                }}
+                options={categoryOptions}
+                isClearable
+                isSearchable
+                placeholder="Select or create a category…"
+                formatCreateLabel={(input) => `+ Create “${input}”`}
+                noOptionsMessage={() => "Type to create a category"}
+                className="mt-1.5"
+                classNamePrefix="react-select"
+                styles={{
+                  ...getSelectStyles<SelectOption>(resolvedMode),
+                  menuPortal: (base) => ({ ...base, zIndex: 99999 }),
+                }}
+                menuPortalTarget={
+                  typeof document !== "undefined" ? document.body : undefined
+                }
+                menuPosition="fixed"
               />
             </label>
             <label className={labelClass}>
@@ -353,7 +400,7 @@ export function RewardForm({
   );
 }
 
-export function NewRewardButton() {
+export function NewRewardButton({ categories }: { categories: string[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -371,7 +418,9 @@ export function NewRewardButton() {
         icon="solar:add-circle-broken"
         maxWidth="max-w-2xl"
       >
-        {open && <RewardForm onDone={() => setOpen(false)} />}
+        {open && (
+          <RewardForm categories={categories} onDone={() => setOpen(false)} />
+        )}
       </SimpleModal>
     </>
   );
@@ -379,10 +428,12 @@ export function NewRewardButton() {
 
 export function CatalogueManager({
   items,
+  categories,
   costReport,
   liabilityReport,
 }: {
   items: RewardCatalogue[];
+  categories: string[];
   costReport: {
     fulfilledCost: number;
     committedCost: number;
@@ -694,7 +745,11 @@ export function CatalogueManager({
         maxWidth="max-w-2xl"
       >
         {editing && (
-          <RewardForm item={editing} onDone={() => setEditing(null)} />
+          <RewardForm
+            item={editing}
+            categories={categories}
+            onDone={() => setEditing(null)}
+          />
         )}
       </SimpleModal>
       <SimpleModal
