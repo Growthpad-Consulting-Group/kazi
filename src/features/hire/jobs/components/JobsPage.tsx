@@ -1,4 +1,4 @@
-import { getJobs } from "../actions";
+import { getJobApplicantCounts, getJobs } from "../actions";
 import { getDepartments } from "@/features/departments/actions";
 import JobsClientView from "./JobsClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -9,7 +9,15 @@ export default async function JobsPage({
 }: {
   initialStatus?: string;
 }) {
-  const jobs = await getJobs();
+  const [jobRows, applicantCounts] = await Promise.all([
+    getJobs(),
+    getJobApplicantCounts(),
+  ]);
+  const jobs = jobRows.map((job) => ({
+    ...job,
+    applicants: applicantCounts[job.id]?.applicants ?? 0,
+    shortlisted: applicantCounts[job.id]?.shortlisted ?? 0,
+  }));
   const listed = await getDepartments().catch(() => [] as string[]);
   const departments = Array.from(
     new Set([

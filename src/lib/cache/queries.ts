@@ -85,6 +85,39 @@ export async function getCachedStaff(): Promise<CachedUserRow[]> {
 /* ── Jobs ────────────────────────────────────────────────────────────────── */
 
 /** All job postings, newest first. */
+/** Applicant totals per job. Only the two columns the jobs table needs are read. */
+export async function getCachedApplicantCounts(): Promise<
+  Record<string, { applicants: number; shortlisted: number }>
+> {
+  return cached(
+    "candidates",
+    cacheKey("candidates", "applicant-counts"),
+    "dynamic",
+    async () => {
+      const { data, error } = await supabaseAdmin
+        .from("candidates")
+        .select("job_id, shortlisted");
+      if (error) throw new Error(error.message);
+      const counts: Record<
+        string,
+        { applicants: number; shortlisted: number }
+      > = {};
+      for (const row of (data ?? []) as Array<{
+        job_id: string;
+        shortlisted: boolean;
+      }>) {
+        const entry = (counts[row.job_id] ??= {
+          applicants: 0,
+          shortlisted: 0,
+        });
+        entry.applicants += 1;
+        if (row.shortlisted) entry.shortlisted += 1;
+      }
+      return counts;
+    },
+  );
+}
+
 export async function getCachedJobs(): Promise<Job[]> {
   return cached("jobs", cacheKey("jobs", "list"), "dynamic", async () => {
     const { data, error } = await supabaseAdmin

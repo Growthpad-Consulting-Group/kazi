@@ -9,7 +9,11 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { canonicalDepartment } from "@/lib/departments";
-import { getCachedJob, getCachedJobs } from "@/lib/cache/queries";
+import {
+  getCachedApplicantCounts,
+  getCachedJob,
+  getCachedJobs,
+} from "@/lib/cache/queries";
 import type { Database } from "@/types/database";
 import type { JobFormData } from "./types";
 
@@ -86,6 +90,13 @@ export async function getJobs() {
   if (!session) throw new Error("Unauthenticated");
 
   return getCachedJobs();
+}
+
+export async function getJobApplicantCounts() {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Unauthenticated");
+
+  return getCachedApplicantCounts();
 }
 
 export async function getJob(id: string) {

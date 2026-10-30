@@ -25,6 +25,8 @@ interface Job extends Record<string, unknown> {
   created_at: string;
   published_at: string | null;
   closes_at: string | null;
+  applicants: number;
+  shortlisted: number;
 }
 
 const FILTER_CATEGORIES: FilterCategoryDef[] = [
@@ -258,6 +260,21 @@ export default function JobsClientView({
       accessor: "status",
       sortable: true,
       render: (row) => <StatusPill context="stage" value={row.status} />,
+    },
+    {
+      header: "Applicants",
+      accessor: "applicants",
+      sortable: true,
+      render: (row) => (
+        <div>
+          <span className="font-medium text-[var(--text-hi)]">
+            {row.applicants}
+          </span>
+          <p className="text-xs text-[var(--text-lo)]">
+            {row.shortlisted} shortlisted
+          </p>
+        </div>
+      ),
     },
     {
       header: "Deadline",

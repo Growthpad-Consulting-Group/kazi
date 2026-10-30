@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com https://*.ingest.de.sentry.io https://api.iconify.design",
-      "frame-src https://www.google.com https://*.r2.dev",
+      "frame-src 'self' https://www.google.com https://*.r2.dev",
     ].join("; ");
     return [
       {
