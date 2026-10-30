@@ -12,6 +12,7 @@ import {
 import toast from "react-hot-toast";
 import { BulkEmailModal } from "./BulkEmailModal";
 import { BulkInterviewModal } from "./BulkInterviewModal";
+import { SimpleModal } from "@/components/ui/SimpleModal";
 import { type InterviewerOption } from "./InterviewerPicker";
 import UnifiedSearchFilter, {
   type ActiveFilter,
@@ -116,6 +117,38 @@ export default function CandidatesClientView({
   const [bulkInterviewRecipients, setBulkInterviewRecipients] = useState<
     { id: string; full_name: string }[] | null
   >(null);
+  const [deleteTargets, setDeleteTargets] = useState<CandidateWithJob[] | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteCandidates() {
+    if (!deleteTargets) return;
+    setDeleting(true);
+    try {
+      const response = await fetch("/api/hire/candidates/delete-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: deleteTargets.map((row) => row.id) }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(body.error ?? "Could not delete candidates.");
+      toast.success(
+        deleteTargets.length === 1
+          ? "Candidate deleted"
+          : `${deleteTargets.length} candidates deleted`,
+      );
+      setDeleteTargets(null);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not delete candidates.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const categoryOptions = useMemo<Record<string, FilterOption[]>>(() => {
     const unique = (values: (string | null | undefined)[]) =>
@@ -458,6 +491,12 @@ export default function CandidatesClientView({
       variant: "info",
       onClick: (row) => router.push(`/hire/candidates/${row.id}`),
     },
+    {
+      icon: "solar:trash-bin-trash-broken",
+      label: "Delete",
+      variant: "danger",
+      onClick: (row) => setDeleteTargets([row]),
+    },
   ];
 
   const bulkActions: BulkAction<CandidateWithJob>[] = [
@@ -489,6 +528,12 @@ export default function CandidatesClientView({
           eligible.map((row) => ({ id: row.id, full_name: row.full_name })),
         );
       },
+    },
+    {
+      icon: "solar:trash-bin-trash-broken",
+      label: "Delete",
+      variant: "danger",
+      onClick: (rows) => setDeleteTargets(rows),
     },
   ];
 
@@ -522,6 +567,54 @@ export default function CandidatesClientView({
           onClose={() => setBulkInterviewRecipients(null)}
         />
       )}
+      <SimpleModal
+        open={!!deleteTargets}
+        onClose={() => {
+          if (!deleting) setDeleteTargets(null);
+        }}
+        title={
+          deleteTargets?.length === 1
+            ? "Delete candidate"
+            : `Delete ${deleteTargets?.length ?? 0} candidates`
+        }
+        icon="solar:trash-bin-trash-broken"
+        maxWidth="max-w-md"
+      >
+        <p className="text-sm leading-6 text-[var(--text-lo)]">
+          {deleteTargets?.length === 1 ? (
+            <>
+              Delete{" "}
+              <span className="font-semibold text-[var(--text-hi)]">
+                {deleteTargets[0].full_name}
+              </span>
+              ?
+            </>
+          ) : (
+            <>Delete the selected candidates?</>
+          )}{" "}
+          This removes their applications, CVs, notes and scorecards and cannot
+          be undone.
+        </p>
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={() => setDeleteTargets(null)}
+            className="rounded-xl px-3.5 py-2 text-sm font-semibold text-[var(--text-lo)] hover:bg-[var(--surface-2)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={deleteCandidates}
+            className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            <Icon icon="solar:trash-bin-trash-broken" className="h-4 w-4" />
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      </SimpleModal>
       <GenericTable
         data={filtered}
         columns={columns}

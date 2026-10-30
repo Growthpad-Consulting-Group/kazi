@@ -7,6 +7,7 @@ import { StageAdvancer } from "./StageAdvancer";
 import { NoteForm } from "./NoteForm";
 import { EmailPanel } from "./EmailPanel";
 import OnboardCandidateButton from "./OnboardCandidateButton";
+import DeleteCandidateButton from "./DeleteCandidateButton";
 import {
   BookInterviewButton,
   InterviewActions,
@@ -51,6 +52,8 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
     candidate.cv_parsed ||
     candidate.cv_url
   );
+  const screeningRubric = job?.scoring_rubric ?? [];
+  const shortlistThreshold = 65;
   const { data: managersData } =
     candidate.stage === "hired" && !candidate.hired_user_id
       ? await supabaseAdmin
@@ -70,13 +73,12 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           .order("scheduled_at")
       : { data: [] };
   const interviews = (upcomingInterviews ?? []) as ScheduledInterview[];
-  const session =
-    candidate.stage === "interview"
-      ? await getServerSession(authOptions)
-      : null;
-  const canManageInterviews = Boolean(
+  const session = await getServerSession(authOptions);
+  const canManageHiring = Boolean(
     session && can(session.user.role, "manage_hiring"),
   );
+  const canManageInterviews =
+    candidate.stage === "interview" && canManageHiring;
   const { data: interviewerData } =
     candidate.stage === "interview"
       ? await supabaseAdmin
@@ -209,30 +211,123 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
       </section>
 
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-        <SectionHeader icon="solar:magic-stick-3-broken" title="AI screening" />
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <SectionHeader
+              icon="solar:magic-stick-3-broken"
+              title="AI screening scorecard"
+            />
+            <p className="mt-1 text-xs text-[var(--text-lo)]">
+              Evidence from the CV, evaluated against this role&apos;s rubric.
+            </p>
+          </div>
+          {candidate.ai_score !== null && (
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${candidate.ai_score >= shortlistThreshold ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}
+            >
+              {candidate.ai_score >= shortlistThreshold
+                ? "Meets shortlist threshold"
+                : `Below ${shortlistThreshold}-point threshold`}
+            </span>
+          )}
+        </div>
         {candidate.ai_score !== null ? (
-          <div className="rounded-xl bg-[var(--surface-2)] p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className={`font-mono text-3xl font-bold ${candidate.ai_score >= 65 ? "text-green-600" : "text-amber-600"}`}
-              >
-                {candidate.ai_score}
-                <span className="text-base font-medium text-[var(--text-lo)]">
-                  /100
-                </span>
-              </span>
-              {candidate.shortlisted && (
-                <span className="rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600">
-                  Shortlisted
-                </span>
-              )}
+          <div className="space-y-4">
+            <div className="grid gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
+              <div className="rounded-2xl bg-[var(--surface-2)] p-4">
+                <p className="text-sm capitalize font-semibold text-[var(--text-lo)]">
+                  Overall fit
+                </p>
+                <div className="mt-2 flex items-end gap-2">
+                  <span
+                    className={`font-mono text-4xl font-bold ${candidate.ai_score >= shortlistThreshold ? "text-emerald-600" : "text-amber-600"}`}
+                  >
+                    {candidate.ai_score}
+                  </span>
+                  <span className="mb-1 text-sm font-medium text-[var(--text-lo)]">
+                    /100
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+                  <div
+                    className={`h-full rounded-full ${candidate.ai_score >= shortlistThreshold ? "bg-emerald-500" : "bg-amber-500"}`}
+                    style={{
+                      width: `${Math.min(100, Math.max(0, candidate.ai_score))}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-[var(--text-lo)]">
+                  Shortlist threshold: {shortlistThreshold}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[var(--border)] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-[var(--text-hi)]">
+                    AI recommendation
+                  </p>
+                  {candidate.shortlisted && (
+                    <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-600">
+                      Shortlisted
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--text-lo)]">
+                  {candidate.ai_score >= shortlistThreshold
+                    ? "The score clears the suggested threshold. Review the evidence below before advancing the candidate."
+                    : "The score is below the suggested threshold. A recruiter can still advance the candidate after reviewing the CV and rationale."}
+                </p>
+                <p className="mt-3 text-xs font-medium text-[var(--text-hi)]">
+                  Human review is required before any hiring decision.
+                </p>
+              </div>
             </div>
-            {candidate.ai_justification && (
-              <p className="mt-3 text-sm leading-relaxed text-[var(--text-hi)]">
-                {candidate.ai_justification}
-              </p>
+            {screeningRubric.length > 0 && (
+              <div className="rounded-2xl border border-[var(--border)]">
+                <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+                  <p className="text-sm font-semibold text-[var(--text-hi)]">
+                    Assessment rubric
+                  </p>
+                  <span className="text-xs text-[var(--text-lo)]">
+                    {screeningRubric.length} criteria · 100 points
+                  </span>
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {screeningRubric.map((criterion) => (
+                    <div
+                      key={criterion.criterion}
+                      className="flex gap-3 px-4 py-3"
+                    >
+                      <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-brand-500/10 px-1.5 text-xs font-bold text-brand-600">
+                        {criterion.weight}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[var(--text-hi)]">
+                          {criterion.criterion}
+                        </p>
+                        <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-lo)]">
+                          {criterion.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-            <p className="mt-3 text-[11px] text-[var(--text-lo)]">
+            {candidate.ai_justification && (
+              <details className="group rounded-2xl bg-[var(--surface-2)] px-4 py-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text-hi)]">
+                  Read assessment rationale
+                  <Icon
+                    icon="solar:alt-arrow-down-broken"
+                    className="h-4 w-4 text-[var(--text-lo)] transition-transform group-open:rotate-180"
+                  />
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--text-lo)]">
+                  {candidate.ai_justification}
+                </p>
+              </details>
+            )}
+            <p className="text-[11px] text-[var(--text-lo)]">
               AI supports review—your team makes every hiring decision.
             </p>
           </div>
@@ -253,7 +348,13 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
               title="CV overview"
             />
           </div>
-          {candidate.cv_url && <CandidateCvViewer url={candidate.cv_url} candidateId={candidate.id} variant="inline" />}
+          {candidate.cv_url && (
+            <CandidateCvViewer
+              url={candidate.cv_url}
+              candidateId={candidate.id}
+              variant="inline"
+            />
+          )}
           {cvParsed ? (
             <div className="space-y-5">
               {cvParsed.skills?.length ? (
@@ -265,7 +366,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
                     {cvParsed.skills.map((skill, index) => (
                       <span
                         key={`${skill}-${index}`}
-                        className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--text-hi)]"
+                        className="rounded-full border border-transparent bg-[var(--surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--text-hi)] transition-colors hover:border-brand-500"
                       >
                         {skill}
                       </span>
@@ -421,7 +522,10 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             })}
           />
           {candidate.cv_url ? (
-            <CandidateCvViewer url={candidate.cv_url} candidateId={candidate.id} />
+            <CandidateCvViewer
+              url={candidate.cv_url}
+              candidateId={candidate.id}
+            />
           ) : candidate.cv_text ? (
             <div className="mt-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3.5 py-3">
               <p className="text-xs font-semibold text-emerald-600">
@@ -545,6 +649,21 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           </div>
         )}
       </SidebarWidget>
+      {canManageHiring && (
+        <SidebarWidget
+          title="Danger zone"
+          icon="solar:trash-bin-trash-broken"
+          iconClass="bg-red-500/10 text-red-500"
+        >
+          <p className="mb-3 text-xs leading-5 text-[var(--text-lo)]">
+            Removes this application, its CV, notes and scorecards permanently.
+          </p>
+          <DeleteCandidateButton
+            candidateId={candidate.id}
+            candidateName={candidate.full_name}
+          />
+        </SidebarWidget>
+      )}
     </>
   );
 

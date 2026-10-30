@@ -14,6 +14,11 @@ export type CandidateWithJob = Candidate & {
     title: string;
     department: string | null;
     location: string | null;
+    scoring_rubric: {
+      criterion: string;
+      weight: number;
+      description: string;
+    }[];
   } | null;
 };
 
@@ -41,7 +46,7 @@ export async function getCandidate(id: string): Promise<CandidateWithJob> {
 
   const { data, error } = await supabaseAdmin
     .from("candidates")
-    .select("*, jobs(title, department, location)")
+    .select("*, jobs(title, department, location, scoring_rubric)")
     .eq("id", id)
     .single();
 
