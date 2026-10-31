@@ -415,7 +415,7 @@ function ReadOnlyCheckin({
       <div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5">
         <span className="text-lg">{mood?.emoji ?? "—"}</span>
         <span className="text-sm font-medium text-[var(--text-hi)]">
-          {mood?.label ?? "Mood not recorded"}
+          Mood: {mood?.label ?? "not recorded"}
         </span>
       </div>
       {checkin.manager_comment && (

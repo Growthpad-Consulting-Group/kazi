@@ -313,6 +313,7 @@ export function DailyLogPage({
     weeklyLogs.filter((log) => log.entries.length > 0).map((log) => log.date),
   );
   const weekComplete = activeWeek.every((day) => loggedDays.has(day.key));
+  const weekShared = weeklyCheckinSubmitted;
 
   const updateRow = (index: number, patch: Partial<Row>) => {
     const adjustedTime =
@@ -630,11 +631,11 @@ export function DailyLogPage({
             <div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-xl ${weekComplete ? "bg-emerald-500/10 text-emerald-600" : "bg-brand-500/10 text-brand-500"}`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-xl ${weekComplete || weekShared ? "bg-emerald-500/10 text-emerald-600" : "bg-brand-500/10 text-brand-500"}`}
                 >
                   <Icon
                     icon={
-                      weekComplete
+                      weekComplete || weekShared
                         ? "solar:check-circle-broken"
                         : "solar:calendar-mark-broken"
                     }
@@ -643,20 +644,24 @@ export function DailyLogPage({
                 </span>
                 <div>
                   <h2 className="text-md font-semibold text-[var(--text-hi)]">
-                    {weekComplete
-                      ? "Your week is ready to review"
-                      : "This week's report"}
+                    {weekShared
+                      ? "Your weekly report is shared"
+                      : weekComplete
+                        ? "Your week is ready to review"
+                        : "This week's report"}
                   </h2>
                   <p className="mt-0.5 text-xs text-[var(--text-lo)]">
-                    {weekComplete
-                      ? "Your daily work is shared. Add your reflection, then submit when you are ready."
-                      : "Log work each day, then complete your reflection by Friday."}
+                    {weekShared
+                      ? "Your weekly check-in is with your manager. Review daily activity whenever you need it."
+                      : weekComplete
+                        ? "Your daily work is shared. Add your reflection, then submit when you are ready."
+                        : "Log work each day, then complete your reflection by Friday."}
                   </p>
                 </div>
               </div>
               <p className="mt-3 text-xs text-[var(--text-lo)]">
                 <span
-                  className={`font-semibold ${weekComplete ? "text-emerald-600" : "text-brand-500"}`}
+                  className={`font-semibold ${weekComplete || weekShared ? "text-emerald-600" : "text-brand-500"}`}
                 >
                   {loggedDays.size}/5 days logged
                 </span>{" "}
@@ -702,10 +707,10 @@ export function DailyLogPage({
                   icon="solar:check-circle-broken"
                   className="h-3.5 w-3.5"
                 />
-                {weekComplete && !weeklyCheckinSubmitted
-                  ? "Complete weekly check-in"
+                {weekShared
+                  ? "View submitted check-in"
                   : weekComplete
-                    ? "View weekly check-in"
+                    ? "Complete weekly check-in"
                     : "Weekly reflection"}
               </Link>
             </div>

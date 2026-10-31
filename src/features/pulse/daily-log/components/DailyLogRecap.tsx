@@ -252,7 +252,7 @@ export function DailyLogHistory({
                   value={total ? formatMinutes(total) : "—"}
                   subtitle={
                     log.mood
-                      ? MOODS[log.mood - 1]
+                      ? `${MOODS[log.mood - 1]} ${MOOD_LABELS[log.mood - 1]}`
                       : log.entries.length
                         ? "Logged"
                         : "Not logged"

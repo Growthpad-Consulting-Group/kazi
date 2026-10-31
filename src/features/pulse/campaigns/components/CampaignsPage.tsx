@@ -2,7 +2,7 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can, userCan } from "@/lib/rbac";
+import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { EditCampaignButton, NewCampaignButton } from "./CampaignFormModal";
@@ -79,7 +79,7 @@ export default async function CampaignsPage() {
     }
   const { data: staffRows } = await supabaseAdmin
     .from("users")
-    .select("id, name, role, department, location")
+    .select("id, name, role, department, location, manager_id")
     .eq("is_active", true)
     .order("name");
   const staffList = (staffRows ?? []) as {
@@ -88,6 +88,7 @@ export default async function CampaignsPage() {
     role: string;
     department: string | null;
     location: string | null;
+    manager_id: string | null;
   }[];
   const audienceOptions = {
     departments: [
@@ -112,8 +113,36 @@ export default async function CampaignsPage() {
   const valueNames = new Map(
     (values ?? []).map((value) => [value.id, value.name]),
   );
-  const live =
-    campaigns?.filter((campaign) => campaign.status === "live") ?? [];
+  const currentStaff = staffList.find((staff) => staff.id === session.user.id);
+  const isEligibleForCampaign = (campaign: {
+    audience_type: string;
+    audience_filters: string[];
+  }) => {
+    if (campaign.audience_type === "company") return true;
+    const filters = campaign.audience_filters ?? [];
+    if (campaign.audience_type === "department")
+      return Boolean(
+        currentStaff?.department && filters.includes(currentStaff.department),
+      );
+    if (campaign.audience_type === "location")
+      return Boolean(
+        currentStaff?.location && filters.includes(currentStaff.location),
+      );
+    if (campaign.audience_type === "manager_group")
+      return Boolean(
+        currentStaff?.manager_id && filters.includes(currentStaff.manager_id),
+      );
+    return filters.includes(session.user.id);
+  };
+  const visibleCampaigns = canManage
+    ? (campaigns ?? [])
+    : (campaigns ?? []).filter(
+        (campaign) =>
+          campaign.status === "live" && isEligibleForCampaign(campaign),
+      );
+  const live = visibleCampaigns.filter(
+    (campaign) => campaign.status === "live",
+  );
   const recentRecognitions = campaignRecognitions
     .filter((recognition) =>
       live.some((campaign) => campaign.id === recognition.campaign_id),
@@ -123,7 +152,11 @@ export default async function CampaignsPage() {
     <>
       <SetPageHeader
         title="Recognition campaigns"
-        description="Focus appreciation around the behaviours and moments that matter."
+        description={
+          canManage
+            ? "Focus appreciation around the behaviours and moments that matter."
+            : "Take part in live recognition drives and celebrate great work."
+        }
         icon="solar:flag-2-broken"
         trailing={
           canManage ? (
@@ -208,9 +241,9 @@ export default async function CampaignsPage() {
           </section>
         )}
         <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-          {campaigns?.length ? (
+          {visibleCampaigns.length ? (
             <div className="divide-y divide-[var(--border)]">
-              {campaigns.map((campaign) => {
+              {visibleCampaigns.map((campaign) => {
                 const stats = participation.get(campaign.id) ?? {
                   total: 0,
                   senders: new Set<string>(),
@@ -293,11 +326,14 @@ export default async function CampaignsPage() {
                 <Icon icon="solar:flag-2-broken" className="h-6 w-6" />
               </span>
               <h2 className="mt-3 text-base font-semibold text-[var(--text-hi)]">
-                No campaigns yet
+                {canManage
+                  ? "No campaigns yet"
+                  : "No recognition campaigns are live right now"}
               </h2>
               <p className="mt-1 max-w-sm text-sm leading-relaxed text-[var(--text-lo)]">
-                Create a focused recognition drive for a company priority, team
-                moment or value.
+                {canManage
+                  ? "Create a focused recognition drive for a company priority, team moment or value."
+                  : "When a campaign opens for you, you can recognise colleagues and take part here."}
               </p>
             </div>
           )}

@@ -180,6 +180,7 @@ export default function HallOfFameClient({
   );
 
   const selected = staff.find((member) => member.id === selectedId) ?? null;
+  const isSelfNomination = selected?.id === currentUserId;
   const selectedNominations = selected
     ? (nominationsByNominee[selected.id] ?? [])
     : [];
@@ -258,7 +259,11 @@ export default function HallOfFameClient({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      toast.success(`Nominated ${selected.name}.`);
+      toast.success(
+        isSelfNomination
+          ? "Your monthly project entry has been submitted."
+          : `Nominated ${selected.name}.`,
+      );
       setSelectedId(null);
       setImpact("");
       router.refresh();
@@ -802,13 +807,21 @@ export default function HallOfFameClient({
       <SlideOver
         open={selected !== null}
         onClose={() => setSelectedId(null)}
-        title={selected ? `Nominate ${selected.name}` : "Nominate"}
-        subtitle={
+        title={
           selected
-            ? [selected.job_title, selected.department]
-                .filter(Boolean)
-                .join(" · ") || "Team member"
-            : undefined
+            ? isSelfNomination
+              ? "Your monthly project entry"
+              : `Nominate ${selected.name}`
+            : "Nominate"
+        }
+        subtitle={
+          isSelfNomination
+            ? "Choose an award and describe the work you delivered this month."
+            : selected
+              ? [selected.job_title, selected.department]
+                  .filter(Boolean)
+                  .join(" · ") || "Team member"
+              : undefined
         }
         icon="solar:star-fall-broken"
       >
@@ -831,20 +844,39 @@ export default function HallOfFameClient({
 
         {selected && isOpen && (
           <div className="space-y-5">
-            <div className="flex flex-col items-center text-center">
-              <Avatar
-                name={selected.name}
-                src={selected.avatar_url}
-                size="xl"
-              />
-              <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
-                {selected.name}
-              </p>
-              <p className="text-xs text-[var(--text-lo)]">
-                {selected.job_title ?? "Team member"}
-                {selected.department ? ` · ${selected.department}` : ""}
-              </p>
-            </div>
+            {isSelfNomination ? (
+              <div className="flex items-center gap-3 rounded-xl border border-brand-500/15 bg-brand-500/[0.05] p-3">
+                <Avatar
+                  name={selected.name}
+                  src={selected.avatar_url}
+                  size="md"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--text-hi)]">
+                    Submitting as {selected.name}
+                  </p>
+                  <p className="truncate text-xs text-[var(--text-lo)]">
+                    {selected.job_title ?? "Team member"}
+                    {selected.department ? ` · ${selected.department}` : ""}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-center">
+                <Avatar
+                  name={selected.name}
+                  src={selected.avatar_url}
+                  size="xl"
+                />
+                <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
+                  {selected.name}
+                </p>
+                <p className="text-xs text-[var(--text-lo)]">
+                  {selected.job_title ?? "Team member"}
+                  {selected.department ? ` · ${selected.department}` : ""}
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               {CATEGORY_OPTIONS.map((option) => (
                 <button
@@ -869,19 +901,26 @@ export default function HallOfFameClient({
             </div>
 
             <label className="block text-sm font-semibold text-[var(--text-hi)]">
-              Impactful work or project
+              {isSelfNomination
+                ? "Your impactful work or project"
+                : "Impactful work or project"}
               <textarea
                 rows={6}
                 value={impact}
                 onChange={(event) => setImpact(event.target.value)}
                 maxLength={1200}
-                placeholder="What did they deliver, and what made the client experience exceptional?"
+                placeholder={
+                  isSelfNomination
+                    ? "What did you deliver, and what made the client experience exceptional?"
+                    : "What did they deliver, and what made the client experience exceptional?"
+                }
                 className="mt-1.5 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm font-normal leading-relaxed text-[var(--text-hi)] outline-none focus:border-brand-500"
               />
             </label>
             <p className="text-xs leading-relaxed text-[var(--text-lo)]">
-              You can nominate yourself, but only once per cycle across both
-              awards. Please make the impact specific.
+              {isSelfNomination
+                ? "You can submit one entry across both awards this cycle. Make the impact specific."
+                : "You can nominate yourself, but only once per cycle across both awards. Please make the impact specific."}
             </p>
             <Button
               className="w-full"
@@ -890,7 +929,7 @@ export default function HallOfFameClient({
               disabled={impact.trim().length < 20}
               onClick={nominate}
             >
-              Submit nomination
+              {isSelfNomination ? "Submit your entry" : "Submit nomination"}
             </Button>
 
             {selectedNominations.length > 0 && (
