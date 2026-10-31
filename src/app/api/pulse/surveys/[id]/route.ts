@@ -18,8 +18,41 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { status } = (await req.json()) as { status?: SurveyStatus };
-  if (!status || !["draft", "active", "closed"].includes(status))
+  const body = (await req.json()) as {
+    status?: SurveyStatus;
+    title?: unknown;
+    description?: unknown;
+  };
+  const { status } = body;
+  if (status === undefined) {
+    const { data: draft } = await supabaseAdmin
+      .from("surveys")
+      .select("status")
+      .eq("id", id)
+      .maybeSingle();
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    const description =
+      typeof body.description === "string" ? body.description.trim() : "";
+    if (!draft || draft.status !== "draft")
+      return NextResponse.json(
+        { error: "Only draft surveys can be edited." },
+        { status: 409 },
+      );
+    if (!title || title.length > 160 || description.length > 1000)
+      return NextResponse.json(
+        { error: "Provide a valid title and description." },
+        { status: 400 },
+      );
+    const { error } = await supabaseAdmin
+      .from("surveys")
+      .update({ title, description })
+      .eq("id", id);
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    await invalidateTables("surveys");
+    return NextResponse.json({ ok: true });
+  }
+  if (!["draft", "active", "closed", "archived"].includes(status))
     return NextResponse.json(
       { error: "Choose a valid survey status." },
       { status: 400 },
@@ -54,6 +87,68 @@ export async function PATCH(
     for (const userId of await audienceUserIds(id))
       await notifySurveyPublished(userId, existing.title, id);
   }
+  await invalidateTables("surveys");
+  return NextResponse.json({ ok: true });
+}
+
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !can(session.user.role, "manage_surveys"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { id } = await params;
+  const { data: source } = await supabaseAdmin
+    .from("surveys")
+    .select("title,description,questions,anonymous")
+    .eq("id", id)
+    .maybeSingle();
+  if (!source)
+    return NextResponse.json({ error: "Survey not found." }, { status: 404 });
+  const { data: copy, error } = await supabaseAdmin
+    .from("surveys")
+    .insert({
+      title: `${source.title} (copy)`,
+      description: source.description,
+      questions: source.questions,
+      anonymous: source.anonymous,
+      status: "draft",
+      created_by: session.user.id,
+    })
+    .select("id")
+    .single();
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  await invalidateTables("surveys");
+  return NextResponse.json(copy, { status: 201 });
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !can(session.user.role, "manage_surveys"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { id } = await params;
+  const [{ data: survey }, { count }] = await Promise.all([
+    supabaseAdmin.from("surveys").select("status").eq("id", id).maybeSingle(),
+    supabaseAdmin
+      .from("survey_responses")
+      .select("id", { count: "exact", head: true })
+      .eq("survey_id", id),
+  ]);
+  if (!survey)
+    return NextResponse.json({ error: "Survey not found." }, { status: 404 });
+  if (survey.status !== "draft" || (count ?? 0) > 0)
+    return NextResponse.json(
+      { error: "Only unused draft surveys can be deleted." },
+      { status: 409 },
+    );
+  const { error } = await supabaseAdmin.from("surveys").delete().eq("id", id);
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   await invalidateTables("surveys");
   return NextResponse.json({ ok: true });
 }

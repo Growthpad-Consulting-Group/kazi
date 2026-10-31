@@ -14,12 +14,14 @@ interface Props {
   survey: Survey;
   responses: SurveyResponse[];
   showTextResponses?: boolean;
+  segments?: { department: string; count: number }[];
 }
 
 export function SurveyResults({
   survey,
   responses,
   showTextResponses = false,
+  segments = [],
 }: Props) {
   if (!responses.length) return null;
 
@@ -39,6 +41,26 @@ export function SurveyResults({
           {responses.length}
         </span>
       </div>
+      {segments.length > 0 && (
+        <div className="rounded-xl bg-[var(--surface-2)] p-3">
+          <p className="text-xs font-semibold text-[var(--text-hi)]">
+            Anonymous participation by department
+          </p>
+          <p className="mt-1 text-[11px] text-[var(--text-lo)]">
+            Only groups with at least five responses are shown.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {segments.map((segment) => (
+              <span
+                key={segment.department}
+                className="rounded-lg bg-[var(--surface)] px-2 py-1 text-xs"
+              >
+                {segment.department} · {segment.count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {survey.questions.map((q) => {
         const qAnswers = responses

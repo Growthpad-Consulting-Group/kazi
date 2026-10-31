@@ -63,6 +63,7 @@ export async function POST(req: Request) {
       questions: {
         id: string;
         type: "scale" | "text" | "choice" | "quiz";
+        required?: boolean;
         options?: string[];
         correct_answer?: string;
       }[];
@@ -70,7 +71,8 @@ export async function POST(req: Request) {
   ).questions;
   const validAnswers = questions.every((question) => {
     const answer = answers[question.id];
-    if (answer === undefined || answer === "") return false;
+    if (answer === undefined || answer === "")
+      return question.required === false;
     if (question.type === "scale")
       return typeof answer === "number" && answer >= 1 && answer <= 5;
     if (question.type === "choice" || question.type === "quiz")
@@ -107,18 +109,29 @@ export async function POST(req: Request) {
         0,
       )
     : null;
-  const { error } = await supabaseAdmin.from("survey_responses").insert({
-    survey_id: surveyId,
-    respondent_id: (survey as unknown as { anonymous: boolean }).anonymous
-      ? null
-      : session.user.id,
-    answers: {
-      ...answers,
-      ...(score === null
-        ? {}
-        : { _quiz_score: score, _quiz_total: quizQuestions.length }),
-    },
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed department snapshot
+  const { error } = await (supabaseAdmin as any)
+    .from("survey_responses")
+    .insert({
+      survey_id: surveyId,
+      respondent_id: (survey as unknown as { anonymous: boolean }).anonymous
+        ? null
+        : session.user.id,
+      answers: {
+        ...answers,
+        ...(score === null
+          ? {}
+          : { _quiz_score: score, _quiz_total: quizQuestions.length }),
+      },
+      department_snapshot:
+        (
+          await supabaseAdmin
+            .from("users")
+            .select("department")
+            .eq("id", session.user.id)
+            .maybeSingle()
+        ).data?.department ?? null,
+    });
 
   if (error) {
     await supabaseAdmin
@@ -128,6 +141,12 @@ export async function POST(req: Request) {
       .eq("user_id", session.user.id);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed drafts table
+  await (supabaseAdmin as any)
+    .from("survey_response_drafts")
+    .delete()
+    .eq("survey_id", surveyId)
+    .eq("user_id", session.user.id);
   await invalidateTables("survey_responses", "survey_participants");
   return NextResponse.json({ ok: true, score, total: quizQuestions.length });
 }

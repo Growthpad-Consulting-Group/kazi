@@ -19,6 +19,8 @@ export async function POST(req: Request) {
     title,
     description,
     anonymous,
+    randomize_questions,
+    follow_up_prompt,
     questions,
     opensAt,
     closesAt,
@@ -85,7 +87,8 @@ export async function POST(req: Request) {
       { status: 400 },
     );
 
-  const { data, error } = await supabaseAdmin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed survey controls
+  const { data, error } = await (supabaseAdmin as any)
     .from("surveys")
     .insert({
       title: title.trim(),
@@ -96,6 +99,11 @@ export async function POST(req: Request) {
       created_by: session.user.id,
       opens_at: opensAtDate?.toISOString() ?? null,
       closes_at: closesAtDate?.toISOString() ?? null,
+      randomize_questions: randomize_questions === true,
+      follow_up_prompt:
+        typeof follow_up_prompt === "string" && follow_up_prompt.trim()
+          ? follow_up_prompt.trim().slice(0, 500)
+          : null,
     })
     .select("id")
     .single();

@@ -49,6 +49,17 @@ export function SurveyStatusToggle({
           Close survey
         </Button>
       )}
+      {currentStatus === "closed" && (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon="solar:archive-down-minimalistic-broken"
+          loading={saving}
+          onClick={() => setStatus("archived")}
+        >
+          Archive survey
+        </Button>
+      )}
     </div>
   );
 }

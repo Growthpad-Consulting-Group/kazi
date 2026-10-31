@@ -95,7 +95,29 @@ export async function POST(req: Request): Promise<Response> {
     .lte("closes_at", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString());
 
   for (const survey of closingSurveys ?? []) {
+    const [{ data: participants }, { data: recentNotifications }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("survey_participants")
+          .select("user_id")
+          .eq("survey_id", survey.id),
+        supabaseAdmin
+          .from("notifications")
+          .select("user_id")
+          .like("message", `%${survey.title}%`)
+          .gte(
+            "created_at",
+            new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
+          ),
+      ]);
+    const responded = new Set(
+      (participants ?? []).map((participant) => participant.user_id),
+    );
+    const remindedRecently = new Set(
+      (recentNotifications ?? []).map((notification) => notification.user_id),
+    );
     for (const userId of await audienceUserIds(survey.id)) {
+      if (responded.has(userId) || remindedRecently.has(userId)) continue;
       await notifySurveyClosingSoon(userId, survey.title, survey.closes_at!);
       sent++;
     }

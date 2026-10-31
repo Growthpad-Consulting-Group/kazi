@@ -15,6 +15,7 @@ type Question = {
   options?: string[];
   correct_answer?: string;
   time_limit_seconds?: number;
+  required?: boolean;
 };
 type Audience =
   "all" | "staff" | "staff_group" | "department" | "manager_group";
@@ -29,6 +30,66 @@ const EMPTY_RANGE: DateRangeValue = {
   endDate: null,
   label: "Custom Range",
 };
+const SURVEY_TEMPLATES = [
+  {
+    id: "pulse",
+    label: "Weekly pulse",
+    description: "A short sentiment and support check-in",
+    questions: [
+      {
+        text: "How would you describe your week overall?",
+        type: "scale" as const,
+      },
+      {
+        text: "I have the support I need to do my best work.",
+        type: "scale" as const,
+      },
+      {
+        text: "What would make next week better?",
+        type: "text" as const,
+        required: false,
+      },
+    ],
+  },
+  {
+    id: "engagement",
+    label: "Engagement pulse",
+    description: "Understand belonging, growth and team health",
+    questions: [
+      {
+        text: "I would recommend Growthpad as a great place to work.",
+        type: "scale" as const,
+      },
+      { text: "My manager supports my growth.", type: "scale" as const },
+      {
+        text: "I can see how my work contributes to our goals.",
+        type: "scale" as const,
+      },
+      {
+        text: "What should we keep doing or improve?",
+        type: "text" as const,
+        required: false,
+      },
+    ],
+  },
+  {
+    id: "manager",
+    label: "Manager feedback",
+    description: "Structured feedback on manager support",
+    questions: [
+      {
+        text: "My manager communicates priorities clearly.",
+        type: "scale" as const,
+      },
+      { text: "My manager gives useful feedback.", type: "scale" as const },
+      {
+        text: "What is one thing your manager could do differently?",
+        type: "text" as const,
+        required: false,
+      },
+    ],
+  },
+];
 const field =
   "mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10";
 
@@ -44,8 +105,10 @@ export function NewSurveyButton({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [anonymous, setAnonymous] = useState(true);
+  const [randomizeQuestions, setRandomizeQuestions] = useState(false);
+  const [followUpPrompt, setFollowUpPrompt] = useState("");
   const [questions, setQuestions] = useState<Question[]>([
-    { id: "1", text: "", type: "scale" },
+    { id: "1", text: "", type: "scale", required: true },
   ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -62,8 +125,22 @@ export function NewSurveyButton({
   function addQuestion() {
     setQuestions([
       ...questions,
-      { id: String(Date.now()), text: "", type: "scale" },
+      { id: String(Date.now()), text: "", type: "scale", required: true },
     ]);
+  }
+
+  function applyTemplate(templateId: string) {
+    const template = SURVEY_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return;
+    setTitle((current) => current || template.label);
+    setDescription((current) => current || template.description);
+    setQuestions(
+      template.questions.map((question, index) => ({
+        id: `${template.id}-${Date.now()}-${index}`,
+        required: true,
+        ...question,
+      })),
+    );
   }
 
   function removeQuestion(id: string) {
@@ -116,6 +193,8 @@ export function NewSurveyButton({
           title,
           description,
           anonymous,
+          randomize_questions: randomizeQuestions,
+          follow_up_prompt: followUpPrompt || null,
           questions: valid,
           audienceType: audience,
           audienceIds,
@@ -201,6 +280,25 @@ export function NewSurveyButton({
             <span className="text-xs text-[var(--text-lo)]">
               (results hidden if &lt; 5 respondents)
             </span>
+          </label>
+
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-hi)]">
+            <input
+              type="checkbox"
+              checked={randomizeQuestions}
+              onChange={(event) => setRandomizeQuestions(event.target.checked)}
+              className="rounded"
+            />
+            Randomise question order for each respondent
+          </label>
+          <label className="block text-xs font-medium text-[var(--text-lo)]">
+            Optional follow-up prompt
+            <input
+              value={followUpPrompt}
+              onChange={(event) => setFollowUpPrompt(event.target.value)}
+              placeholder="Anything else you would like to share?"
+              className={field}
+            />
           </label>
 
           <div className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/35 p-3 sm:grid-cols-2">
@@ -349,6 +447,21 @@ export function NewSurveyButton({
             <label className="block text-xs font-medium text-[var(--text-lo)]">
               Questions *
             </label>
+            <label className="block text-xs font-medium text-[var(--text-lo)]">
+              Start from a template
+              <select
+                defaultValue=""
+                onChange={(event) => applyTemplate(event.target.value)}
+                className={field}
+              >
+                <option value="">Build a custom survey</option>
+                {SURVEY_TEMPLATES.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.label} — {template.description}
+                  </option>
+                ))}
+              </select>
+            </label>
             {questions.map((q, i) => (
               <div
                 key={q.id}
@@ -411,6 +524,22 @@ export function NewSurveyButton({
                     </button>
                   )}
                 </div>
+                <label className="mt-2 flex items-center gap-2 text-[11px] font-medium text-[var(--text-lo)]">
+                  <input
+                    type="checkbox"
+                    checked={q.required !== false}
+                    onChange={(event) =>
+                      setQuestions(
+                        questions.map((x) =>
+                          x.id === q.id
+                            ? { ...x, required: event.target.checked }
+                            : x,
+                        ),
+                      )
+                    }
+                  />
+                  Required response
+                </label>
                 {(q.type === "choice" || q.type === "quiz") && (
                   <>
                     <textarea

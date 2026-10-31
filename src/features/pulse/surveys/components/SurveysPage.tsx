@@ -32,6 +32,12 @@ const STATUS: Record<
     icon: "solar:lock-keyhole-broken",
     accent: "bg-slate-400",
   },
+  archived: {
+    label: "Archived",
+    badge: "bg-slate-500/10 text-slate-500",
+    icon: "solar:archive-down-minimalistic-broken",
+    accent: "bg-slate-300",
+  },
 };
 
 function formattedDate(value: string) {
@@ -69,7 +75,10 @@ export default async function SurveysPage() {
     : (
         await Promise.all(
           allSurveys
-            .filter((survey) => survey.status !== "draft")
+            .filter(
+              (survey) =>
+                survey.status !== "draft" && survey.status !== "archived",
+            )
             .map(async (survey) =>
               (await isSurveyAudienceMember(survey.id, session.user.id))
                 ? survey
@@ -114,6 +123,28 @@ export default async function SurveysPage() {
     (total, survey) => total + survey.questions.length,
     0,
   );
+  const { data: trendResponses } = isAdmin
+    ? await supabaseAdmin.from("survey_responses").select("survey_id,answers")
+    : { data: [] };
+  const trend = closed
+    .slice(0, 6)
+    .map((survey) => {
+      const values = (trendResponses ?? [])
+        .filter((row) => row.survey_id === survey.id)
+        .flatMap((row) =>
+          survey.questions
+            .filter((question) => question.type === "scale")
+            .map((question) => Number(row.answers[question.id]))
+            .filter((value) => value >= 1 && value <= 5),
+        );
+      return {
+        title: survey.title,
+        value: values.length
+          ? values.reduce((sum, value) => sum + value, 0) / values.length
+          : null,
+      };
+    })
+    .filter((item) => item.value !== null);
 
   return (
     <>
@@ -171,6 +202,32 @@ export default async function SurveysPage() {
             subtitle="Across all surveys"
           />
         </section>
+        {isAdmin && trend.length > 1 && (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+            <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+              Survey trend
+            </h2>
+            <p className="mt-1 text-xs text-[var(--text-lo)]">
+              Average scale score across recent closed surveys.
+            </p>
+            <div className="mt-4 flex items-end gap-3">
+              {trend.map((item) => (
+                <div key={item.title} className="min-w-0 flex-1 text-center">
+                  <div
+                    className="mx-auto w-full rounded-t-lg bg-gradient-to-t from-brand-500 to-orange-400"
+                    style={{ height: `${(item.value ?? 0) * 24}px` }}
+                  />
+                  <p className="mt-2 font-mono text-sm font-bold text-brand-500">
+                    {item.value?.toFixed(1)}
+                  </p>
+                  <p className="truncate text-[10px] text-[var(--text-lo)]">
+                    {item.title}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4 sm:px-6">

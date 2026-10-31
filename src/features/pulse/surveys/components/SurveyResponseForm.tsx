@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
@@ -12,16 +12,73 @@ interface Props {
     type: "scale" | "text" | "choice" | "quiz";
     options?: string[];
     time_limit_seconds?: number;
+    required?: boolean;
   }[];
 }
 
-export function SurveyResponseForm({ surveyId, questions }: Props) {
+export function SurveyResponseForm({
+  surveyId,
+  questions,
+  randomizeQuestions = false,
+  followUpPrompt,
+}: Props & { randomizeQuestions?: boolean; followUpPrompt?: string | null }) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const displayQuestions = useMemo(
+    () =>
+      randomizeQuestions
+        ? [...questions].sort(() => Math.random() - 0.5)
+        : questions,
+    [questions, randomizeQuestions],
+  );
+  const quizLimit = questions
+    .filter((question) => question.type === "quiz")
+    .reduce((sum, question) => sum + (question.time_limit_seconds ?? 60), 0);
+  const [secondsLeft, setSecondsLeft] = useState(quizLimit);
+
+  useEffect(() => {
+    fetch(`/api/pulse/surveys/draft?surveyId=${encodeURIComponent(surveyId)}`)
+      .then((response) => (response.ok ? response.json() : { answers: {} }))
+      .then((data) => {
+        setAnswers(data.answers ?? {});
+        setDraftLoaded(true);
+      })
+      .catch(() => setDraftLoaded(true));
+  }, [surveyId]);
+  useEffect(() => {
+    if (!quizLimit || secondsLeft <= 0) return;
+    const timer = window.setInterval(
+      () => setSecondsLeft((current) => Math.max(0, current - 1)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [quizLimit, secondsLeft]);
+
+  async function saveDraft() {
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/pulse/surveys/draft", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ surveyId, answers }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save draft");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function submit() {
+    if (quizLimit && secondsLeft <= 0) {
+      setError("The quiz time has ended. Your response cannot be submitted.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -41,10 +98,15 @@ export function SurveyResponseForm({ surveyId, questions }: Props) {
 
   return (
     <div className="space-y-5">
-      {questions.map((q) => (
+      {displayQuestions.map((q) => (
         <div key={q.id}>
           <p className="mb-2 text-sm font-medium text-[var(--text-hi)]">
-            {q.text}
+            {q.text}{" "}
+            {q.required === false && (
+              <span className="font-normal text-[var(--text-lo)]">
+                Optional
+              </span>
+            )}
           </p>
           {q.type === "scale" ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -97,17 +159,52 @@ export function SurveyResponseForm({ surveyId, questions }: Props) {
           )}
         </div>
       ))}
+      {followUpPrompt && (
+        <div>
+          <p className="mb-2 text-sm font-medium text-[var(--text-hi)]">
+            {followUpPrompt}{" "}
+            <span className="font-normal text-[var(--text-lo)]">Optional</span>
+          </p>
+          <textarea
+            rows={3}
+            value={(answers._follow_up as string) ?? ""}
+            onChange={(event) =>
+              setAnswers({ ...answers, _follow_up: event.target.value })
+            }
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm"
+          />
+        </div>
+      )}
 
       {error && <p className="text-xs text-red-500">{error}</p>}
 
-      <div className="border-t border-[var(--border)] pt-4">
-        <Button
-          icon="solar:check-circle-broken"
-          loading={saving}
-          onClick={submit}
+      {quizLimit > 0 && (
+        <p
+          className={`rounded-xl px-3 py-2 text-xs font-semibold ${secondsLeft <= 60 ? "bg-red-500/10 text-red-600" : "bg-sky-500/10 text-sky-700"}`}
         >
-          {saving ? "Submitting" : "Submit response"}
-        </Button>
+          Quiz time remaining: {Math.floor(secondsLeft / 60)}:
+          {String(secondsLeft % 60).padStart(2, "0")}
+        </p>
+      )}
+
+      <div className="border-t border-[var(--border)] pt-4">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            loading={saving}
+            disabled={!draftLoaded}
+            onClick={saveDraft}
+          >
+            Save draft
+          </Button>
+          <Button
+            icon="solar:check-circle-broken"
+            loading={saving}
+            onClick={submit}
+          >
+            {saving ? "Submitting" : "Submit response"}
+          </Button>
+        </div>
       </div>
     </div>
   );

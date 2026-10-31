@@ -14,7 +14,7 @@ export type ReviewCycle = "quarterly" | "biannual" | "annual";
 export type ReviewStatus =
   "pending" | "self_review" | "manager_review" | "peer_review" | "completed";
 export type ReviewType = "self" | "manager" | "peer";
-export type SurveyStatus = "draft" | "active" | "closed";
+export type SurveyStatus = "draft" | "active" | "closed" | "archived";
 export type SurveyAudienceType =
   "staff" | "staff_group" | "department" | "manager_group";
 export type IdpStatus = "active" | "completed" | "cancelled";

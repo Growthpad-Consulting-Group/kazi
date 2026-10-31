@@ -10,6 +10,8 @@ import StatCard from "@/components/ui/StatCard";
 import { SurveyResponseForm } from "./SurveyResponseForm";
 import { SurveyResults } from "./SurveyResults";
 import { SurveyStatusToggle } from "./SurveyStatusToggle";
+import { SurveyLifecycleActions } from "./SurveyLifecycleActions";
+import { EditSurveyDetailsButton } from "./EditSurveyDetailsButton";
 import type { Survey, SurveyResponse, SurveyStatus } from "@/types/database";
 import { audienceUserIds, isSurveyAudienceMember } from "../audience";
 
@@ -31,6 +33,11 @@ const STATUS: Record<
     label: "Closed",
     tone: "bg-slate-500/10 text-slate-600",
     icon: "solar:lock-keyhole-broken",
+  },
+  archived: {
+    label: "Archived",
+    tone: "bg-slate-500/10 text-slate-500",
+    icon: "solar:archive-down-minimalistic-broken",
   },
 };
 
@@ -61,6 +68,7 @@ export default async function SurveyDetailPage({
   if (
     !isAdmin &&
     (survey.status === "draft" ||
+      survey.status === "archived" ||
       !(await isSurveyAudienceMember(surveyId, session.user.id)))
   )
     notFound();
@@ -87,7 +95,8 @@ export default async function SurveyDetailPage({
   let responses: SurveyResponse[] = [];
   const minimumResponses = 5;
   const showResults = survey.anonymous
-    ? survey.status === "closed" && participantCount >= minimumResponses
+    ? (survey.status === "closed" || survey.status === "archived") &&
+      participantCount >= minimumResponses
     : isAdmin;
   if (showResults) {
     const { data: responseData } = await supabaseAdmin
@@ -96,11 +105,29 @@ export default async function SurveyDetailPage({
       .eq("survey_id", surveyId);
     responses = (responseData ?? []) as unknown as SurveyResponse[];
   }
+  const safeSegments = isAdmin
+    ? Array.from(
+        responses.reduce((groups, response) => {
+          const department = (
+            response as SurveyResponse & { department_snapshot?: string | null }
+          ).department_snapshot;
+          if (department)
+            groups.set(department, (groups.get(department) ?? 0) + 1);
+          return groups;
+        }, new Map<string, number>()),
+      )
+        .filter(([, count]) => count >= minimumResponses)
+        .map(([department, count]) => ({ department, count }))
+    : [];
 
   const status = STATUS[survey.status];
   const responseLabel = survey.anonymous
     ? "Responses are anonymous"
     : "Responses are identifiable";
+  const controls = survey as Survey & {
+    randomize_questions?: boolean;
+    follow_up_prompt?: string | null;
+  };
   const responseQuestions = survey.questions.map((question) => ({
     id: question.id,
     text: question.text,
@@ -144,15 +171,25 @@ export default async function SurveyDetailPage({
           />
           <StatCard
             compact
-            title="Privacy"
-            value={survey.anonymous ? "Anonymous" : "Named"}
+            title={isAdmin ? "Completion" : "Privacy"}
+            value={
+              isAdmin && invitedCount
+                ? `${Math.round((participantCount / invitedCount) * 100)}%`
+                : survey.anonymous
+                  ? "Anonymous"
+                  : "Named"
+            }
             icon={
               survey.anonymous
                 ? "solar:incognito-broken"
                 : "solar:user-id-broken"
             }
             color="blue"
-            subtitle="Response identity"
+            subtitle={
+              isAdmin && invitedCount
+                ? `${participantCount} of ${invitedCount} invited`
+                : "Response identity"
+            }
           />
         </section>
         <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:px-6">
@@ -225,6 +262,27 @@ export default async function SurveyDetailPage({
                   surveyId={survey.id}
                   currentStatus={survey.status}
                 />
+                <SurveyLifecycleActions
+                  surveyId={survey.id}
+                  status={survey.status}
+                />
+                {survey.status === "draft" && (
+                  <EditSurveyDetailsButton
+                    surveyId={survey.id}
+                    initialTitle={survey.title}
+                    initialDescription={survey.description}
+                  />
+                )}
+                <a
+                  href={`/api/pulse/surveys/${survey.id}/export`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--border)]"
+                >
+                  <Icon
+                    icon="solar:download-minimalistic-broken"
+                    className="h-4 w-4"
+                  />
+                  Export results
+                </a>
               </section>
             )}
 
@@ -253,6 +311,8 @@ export default async function SurveyDetailPage({
                   <SurveyResponseForm
                     surveyId={surveyId}
                     questions={responseQuestions}
+                    randomizeQuestions={controls.randomize_questions}
+                    followUpPrompt={controls.follow_up_prompt}
                   />
                 </div>
               </section>
@@ -298,9 +358,10 @@ export default async function SurveyDetailPage({
                   survey={survey}
                   responses={responses}
                   showTextResponses={isAdmin}
+                  segments={safeSegments}
                 />
               </section>
-            ) : survey.status === "closed" &&
+            ) : (survey.status === "closed" || survey.status === "archived") &&
               survey.anonymous &&
               participantCount < minimumResponses ? (
               <section className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
