@@ -133,7 +133,12 @@ export default async function PulseDashboard() {
   const upcomingOneOnOnes = oneOnOnes.filter(
     (meeting) => meeting.scheduled_at && new Date(meeting.scheduled_at) >= now,
   );
-  const upcomingOneOnOne = upcomingOneOnOnes[0] ?? oneOnOnes[0];
+  const upcomingOneOnOne = upcomingOneOnOnes[0];
+  const mostRecentOneOnOne = oneOnOnes
+    .filter(
+      (meeting) => meeting.scheduled_at && new Date(meeting.scheduled_at) < now,
+    )
+    .at(-1);
 
   const senders = feedback.length
     ? await supabaseAdmin
@@ -437,7 +442,13 @@ export default async function PulseDashboard() {
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle
               icon="solar:chat-round-dots-broken"
-              title="Your next conversation"
+              title={
+                upcomingOneOnOne
+                  ? "Your next conversation"
+                  : mostRecentOneOnOne
+                    ? "Last conversation"
+                    : "Your next conversation"
+              }
               href="/pulse/one-on-ones"
               action="All 1-on-1s"
             />
@@ -476,10 +487,46 @@ export default async function PulseDashboard() {
                   />
                 </div>
               </Link>
+            ) : mostRecentOneOnOne ? (
+              <Link
+                href={`/pulse/one-on-ones/${mostRecentOneOnOne.id}`}
+                className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface)]"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--text-lo)]">
+                    <Icon
+                      icon="solar:clock-circle-broken"
+                      className="h-5 w-5"
+                    />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[var(--text-hi)]">
+                      {new Date(
+                        mostRecentOneOnOne.scheduled_at!,
+                      ).toLocaleDateString("en-KE", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-lo)]">
+                      {mostRecentOneOnOne.action_items.filter(
+                        (item) => !item.done,
+                      ).length
+                        ? `${mostRecentOneOnOne.action_items.filter((item) => !item.done).length} open action item${mostRecentOneOnOne.action_items.filter((item) => !item.done).length === 1 ? "" : "s"}`
+                        : "Review notes and follow-ups from this conversation."}
+                    </p>
+                  </div>
+                  <Icon
+                    icon="solar:arrow-right-broken"
+                    className="mt-1 h-4 w-4 text-[var(--text-lo)] transition-transform group-hover:translate-x-0.5"
+                  />
+                </div>
+              </Link>
             ) : (
               <EmptyState
                 icon="solar:calendar-broken"
-                text="No 1-on-1 is scheduled."
+                text="No upcoming 1-on-1 is scheduled."
                 href="/pulse/one-on-ones"
                 action="Open 1-on-1s"
               />

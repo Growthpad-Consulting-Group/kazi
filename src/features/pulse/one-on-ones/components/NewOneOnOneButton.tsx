@@ -136,6 +136,7 @@ export function NewOneOnOneButton({
         open={open}
         onClose={() => setOpen(false)}
         title="Schedule 1-on-1"
+        subtitle="Write an outcome, then give it a clear finish line."
         icon="solar:calendar-add-broken"
         maxWidth="max-w-sm"
       >
@@ -177,7 +178,7 @@ export function NewOneOnOneButton({
               />
             </div>
             {date && !time && (
-              <p className="mt-1.5 text-[11px] text-[var(--text-lo)]">
+              <p className="mt-1.5 text-xs text-[var(--text-lo)]">
                 Defaults to 9:00 AM if no time is selected.
               </p>
             )}

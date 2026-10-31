@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
+import { supabaseAdmin } from "@/lib/supabase";
 import CheckinsPage from "@/features/pulse/checkins/components/CheckinsPage";
 import GoalsPage from "@/features/pulse/goals/components/GoalsPage";
 import StaffGoalsPage from "@/features/pulse/goals/components/StaffGoalsPage";
@@ -10,6 +11,13 @@ import TabBar from "@/components/ui/TabBar";
 import { DailyLogPage } from "@/features/pulse/daily-log/components/DailyLogPage";
 
 export const dynamic = "force-dynamic";
+
+function currentWeekStart() {
+  const date = new Date();
+  const day = date.getDay();
+  date.setDate(date.getDate() + (day === 0 ? -6 : 1 - day));
+  return date.toISOString().slice(0, 10);
+}
 
 export default async function Page({
   searchParams,
@@ -26,6 +34,18 @@ export default async function Page({
 
   const { tab, user, report, view } = await searchParams;
   const activeTab = tab ?? (user ? "checkins" : isManager ? "team" : "daily");
+  const weeklyCheckin =
+    session && !isManager && activeTab === "daily"
+      ? await supabaseAdmin
+          .from("checkins")
+          .select("status")
+          .eq("user_id", session.user.id)
+          .eq("week_start", currentWeekStart())
+          .maybeSingle()
+      : { data: null };
+  const weeklyCheckinSubmitted =
+    weeklyCheckin.data?.status === "submitted" ||
+    weeklyCheckin.data?.status === "reviewed";
 
   const TABS = [
     { id: "daily", label: "Daily log", icon: "solar:notebook-broken" },
@@ -70,7 +90,12 @@ export default async function Page({
         />
       )}
       {activeTab === "team" && <CheckinsPage userId={user} teamOnly />}
-      {activeTab === "daily" && <DailyLogPage isReviewer={isManager} />}
+      {activeTab === "daily" && (
+        <DailyLogPage
+          isReviewer={isManager}
+          weeklyCheckinSubmitted={weeklyCheckinSubmitted}
+        />
+      )}
       {(activeTab === "checkins" ||
         !["goals", "one-on-ones", "team", "daily"].includes(activeTab)) && (
         <CheckinsPage userId={user} />

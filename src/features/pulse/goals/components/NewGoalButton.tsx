@@ -256,7 +256,7 @@ export function NewGoalButton({
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] disabled:cursor-not-allowed disabled:opacity-50 focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/10"
               />
             </div>
-            <p className="mt-1.5 text-[11px] text-[var(--text-lo)]">
+            <p className="mt-1.5 text-xs text-[var(--text-lo)]">
               Progress is calculated from the current value and target.
             </p>
           </div>

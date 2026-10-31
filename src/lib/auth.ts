@@ -75,8 +75,8 @@ async function provisionGoogleWorkspaceConnection({
     ? encryptGoogleToken(refreshToken)
     : existing?.refresh_token_ciphertext;
 
-  // Google grants a refresh token on the consent flow. Preserve a previously
-  // stored one if Google omits it on a later sign-in.
+  // Google may omit a refresh token on later sign-ins. Preserve the stored
+  // connection so returning staff do not need to grant access again.
   if (!encryptedRefreshToken) return;
   await supabaseAdmin.from("google_calendar_connections").upsert(
     {
@@ -260,7 +260,6 @@ export const authOptions: NextAuthOptions = {
             clientSecret: googleClientSecret!,
             authorization: {
               params: {
-                prompt: "consent",
                 access_type: "offline",
                 response_type: "code",
                 // A work-account sign-in also creates the connection Kazi uses

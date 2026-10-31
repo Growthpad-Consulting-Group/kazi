@@ -97,7 +97,7 @@ export default function RootLayout({
           position="top-right"
           toastOptions={{
             style: {
-              background: "rgb(255 255 255 / 0.85)",
+              background: "rgb(255 255 255 / 0.90)",
               borderRadius: "16px",
             },
           }}

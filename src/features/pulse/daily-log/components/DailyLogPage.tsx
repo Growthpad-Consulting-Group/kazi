@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
@@ -142,7 +143,14 @@ function weekDays(date: string) {
   });
 }
 
-export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
+export function DailyLogPage({
+  isReviewer,
+  weeklyCheckinSubmitted = false,
+}: {
+  isReviewer: boolean;
+  weeklyCheckinSubmitted?: boolean;
+}) {
+  const router = useRouter();
   const [date, setDate] = useState(todayLocal);
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [loading, setLoading] = useState(true);
@@ -580,9 +588,14 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
       const completedAfterSave = activeWeek.every((day) =>
         daysAfterSave.has(day.key),
       );
+      if (completedAfterSave && !weeklyCheckinSubmitted) {
+        toast.success("Your daily week is ready to review.");
+        router.push("/pulse/checkins?tab=checkins");
+        return;
+      }
       toast.success(
         completedAfterSave
-          ? "Week complete. Review your weekly report before submitting."
+          ? "Daily work saved for this week."
           : "Daily log shared with your manager.",
       );
     } catch (err) {
@@ -689,7 +702,11 @@ export function DailyLogPage({ isReviewer }: { isReviewer: boolean }) {
                   icon="solar:check-circle-broken"
                   className="h-3.5 w-3.5"
                 />
-                {weekComplete ? "Review weekly report" : "Weekly reflection"}
+                {weekComplete && !weeklyCheckinSubmitted
+                  ? "Complete weekly check-in"
+                  : weekComplete
+                    ? "View weekly check-in"
+                    : "Weekly reflection"}
               </Link>
             </div>
           </div>

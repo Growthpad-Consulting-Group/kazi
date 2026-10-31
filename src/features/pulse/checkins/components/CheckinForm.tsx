@@ -460,29 +460,59 @@ function DailyActivityBreakdown({ summary }: { summary: DailyWeekSummary }) {
             )}
             defaultOpen={dayIndex === summary.days.length - 1}
           >
-            {day.entries.map((entry, index) => (
-              <div
-                key={`${entry.task}-${index}`}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] py-2 last:border-0 text-xs"
-              >
-                <span className="min-w-0 flex-1 text-[var(--text-hi)]">
-                  {entry.task}
-                </span>
-                <span className="flex items-center gap-1.5 text-[var(--text-lo)]">
-                  {entry.client && (
-                    <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
-                      {entry.client}
+            <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+              <div className="hidden min-w-[600px] grid-cols-[minmax(220px,1fr)_minmax(130px,.65fr)_120px_80px] gap-3 border-b border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 sm:grid">
+                {["Activity", "Client / project", "Category", "Time"].map(
+                  (label) => (
+                    <span
+                      key={label}
+                      className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)]"
+                    >
+                      {label}
                     </span>
-                  )}
-                  <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5">
-                    {entry.category}
-                  </span>
-                  <span className="font-mono">
-                    {formatMinutes(entry.minutes)}
-                  </span>
-                </span>
+                  ),
+                )}
               </div>
-            ))}
+              {day.entries.map((entry, index) => (
+                <div
+                  key={`${entry.task}-${index}`}
+                  className="grid gap-x-3 gap-y-2 border-b border-[var(--border)] px-3 py-3 last:border-0 sm:grid-cols-[minmax(220px,1fr)_minmax(130px,.65fr)_120px_80px] sm:items-center sm:py-2.5"
+                >
+                  <div className="min-w-0">
+                    <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)] sm:hidden">
+                      Activity
+                    </span>
+                    <p className="truncate text-xs font-medium text-[var(--text-hi)]">
+                      {entry.task}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)] sm:hidden">
+                      Client / project
+                    </span>
+                    <p className="truncate text-xs text-[var(--text-lo)]">
+                      {entry.client || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)] sm:hidden">
+                      Category
+                    </span>
+                    <span className="inline-flex rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-lo)]">
+                      {entry.category}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)] sm:hidden">
+                      Time
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-[var(--text-hi)]">
+                      {formatMinutes(entry.minutes)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </Accordion>
         ))}
       </div>

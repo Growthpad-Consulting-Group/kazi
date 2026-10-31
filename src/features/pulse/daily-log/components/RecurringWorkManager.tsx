@@ -219,7 +219,7 @@ export function RecurringWorkManager({
           <button
             type="button"
             onClick={openNew}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--text-lo)] transition-colors hover:text-[var(--text-hi)]"
+            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--text-lo)] transition-colors hover:text-[var(--text-hi)]"
           >
             <Icon icon="solar:repeat-broken" className="h-3.5 w-3.5" />
             Manage routines
