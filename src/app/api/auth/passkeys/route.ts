@@ -10,7 +10,7 @@ export async function GET() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- passkeys table is migration-backed and awaits generated types
   const { data, error } = await (supabaseAdmin as any)
     .from("passkeys")
-    .select("id, device_type, backed_up, transports, created_at, last_used_at")
+    .select("id, device_type, backed_up, transports, device_label, created_at, last_used_at")
     .eq("user_id", session.user.id)
     .order("created_at", { ascending: false });
   if (error)

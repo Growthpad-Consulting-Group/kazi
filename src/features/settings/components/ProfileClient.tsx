@@ -36,9 +36,18 @@ type Passkey = {
   device_type: "singleDevice" | "multiDevice";
   backed_up: boolean;
   transports: string[];
+  device_label?: string | null;
   created_at: string;
   last_used_at: string | null;
 };
+function deviceLabel() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/i.test(ua)) return "iPhone or iPad";
+  if (/Macintosh/i.test(ua)) return "Mac";
+  if (/Android/i.test(ua)) return "Android device";
+  if (/Windows/i.test(ua)) return "Windows device";
+  return "This device";
+}
 
 export default function ProfileClient({
   initial,
@@ -89,7 +98,7 @@ export default function ProfileClient({
       const result = await fetch("/api/auth/passkeys/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(response),
+        body: JSON.stringify({ ...response, deviceLabel: deviceLabel() }),
       }).then(async (res) => ({ ok: res.ok, body: await res.json() }));
       if (!result.ok)
         throw new Error(result.body.error ?? "Passkey could not be saved.");
@@ -317,9 +326,10 @@ export default function ProfileClient({
                 </span>
                 <div className="min-w-[12rem] flex-1">
                   <p className="text-sm font-semibold text-[var(--text-hi)]">
-                    {passkey.device_type === "multiDevice"
-                      ? "Synced passkey"
-                      : "This device"}
+                    {passkey.device_label ??
+                      (passkey.device_type === "multiDevice"
+                        ? "Synced passkey"
+                        : "This device")}
                   </p>
                   <p className="mt-0.5 text-xs text-[var(--text-lo)]">
                     Added{" "}

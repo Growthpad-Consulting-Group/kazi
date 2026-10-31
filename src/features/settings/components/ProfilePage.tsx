@@ -66,7 +66,7 @@ export default async function ProfilePage() {
       )
         .from("passkeys")
         .select(
-          "id, device_type, backed_up, transports, created_at, last_used_at",
+          "id, device_type, backed_up, transports, device_label, created_at, last_used_at",
         )
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false }),

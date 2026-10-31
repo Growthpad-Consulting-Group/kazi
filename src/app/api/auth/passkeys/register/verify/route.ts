@@ -21,7 +21,10 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   try {
-    const response = (await request.json()) as RegistrationResponseJSON;
+    const body = (await request.json()) as RegistrationResponseJSON & {
+      deviceLabel?: unknown;
+    };
+    const { deviceLabel, ...response } = body;
     const config = passkeyConfig(request);
     const verification = await verifyRegistrationResponse({
       response,
@@ -50,6 +53,8 @@ export async function POST(request: Request) {
         transports: response.response.transports ?? [],
         device_type: verification.registrationInfo.credentialDeviceType,
         backed_up: verification.registrationInfo.credentialBackedUp,
+        device_label:
+          typeof deviceLabel === "string" ? deviceLabel.slice(0, 80) : null,
       },
       { onConflict: "credential_id" },
     );
