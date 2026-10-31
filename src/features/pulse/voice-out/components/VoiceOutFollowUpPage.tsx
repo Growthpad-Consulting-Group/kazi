@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { Button } from "@/components/ui/Button";
+import {
+  getActiveVoiceOutConversation,
+  markVoiceOutRepliesSeen,
+} from "@/lib/voice-out-inbox";
 
 type Thread = {
   report: {
@@ -27,16 +31,23 @@ export default function VoiceOutFollowUpPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  async function load() {
+  async function load(codeToLoad = code) {
     setLoading(true);
     setError("");
     try {
       const response = await fetch(
-        `/api/pulse/voice-out/thread?code=${encodeURIComponent(code)}`,
+        `/api/pulse/voice-out/thread?code=${encodeURIComponent(codeToLoad)}`,
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setThread(data);
+      setCode(codeToLoad);
+      markVoiceOutRepliesSeen(
+        codeToLoad,
+        data.messages.filter(
+          (item: { author_role: "staff" | "hr" }) => item.author_role === "hr",
+        ).length,
+      );
     } catch (reason) {
       setThread(null);
       setError(
@@ -48,6 +59,12 @@ export default function VoiceOutFollowUpPage() {
       setLoading(false);
     }
   }
+  useEffect(() => {
+    const savedCode = getActiveVoiceOutConversation();
+    if (savedCode) void Promise.resolve().then(() => load(savedCode));
+    // The selected code is intentionally browser-only; it is never placed in a URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   async function send() {
     setLoading(true);
     setError("");
@@ -98,6 +115,10 @@ export default function VoiceOutFollowUpPage() {
               Open conversation
             </Button>
           </div>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--text-lo)]">
+            This browser can remember codes you chose to save. The HR team
+            cannot see who owns this conversation.
+          </p>
           {error && (
             <p role="alert" className="mt-3 text-xs font-medium text-red-500">
               {error}

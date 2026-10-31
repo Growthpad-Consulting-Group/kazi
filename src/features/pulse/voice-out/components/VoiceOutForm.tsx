@@ -1,11 +1,17 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- attachments are dynamic R2 images. */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { useFileDrop } from "@/lib/useFileDrop";
+import {
+  getSavedVoiceOutConversations,
+  saveVoiceOutConversation,
+  setActiveVoiceOutConversation,
+} from "@/lib/voice-out-inbox";
 
 type Topic = "workplace" | "wellbeing" | "inclusion" | "leadership" | "other";
 
@@ -57,7 +63,19 @@ const MAX_ATTACHMENTS = 3;
 const MIN_MESSAGE = 20;
 const MAX_MESSAGE = 2000;
 
+type PrivateConversation = {
+  code: string;
+  topic: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  hrReplies: number;
+  unreadReplies: number;
+  lastReply: string | null;
+};
+
 export function VoiceOutForm() {
+  const router = useRouter();
   const [topic, setTopic] = useState<Topic>("workplace");
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
@@ -69,6 +87,10 @@ export function VoiceOutForm() {
   const [uploading, setUploading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [unreadReplies, setUnreadReplies] = useState(0);
+  const [privateConversations, setPrivateConversations] = useState<
+    PrivateConversation[]
+  >([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const attachmentsFull = attachments.length >= MAX_ATTACHMENTS;
   const { isDragging, dropProps } = useFileDrop({
@@ -76,6 +98,65 @@ export function VoiceOutForm() {
     disabled: uploading || attachmentsFull,
     onFiles: ([file]) => void upload(file),
   });
+
+  useEffect(() => {
+    const conversations = getSavedVoiceOutConversations();
+    if (!conversations.length) return;
+    let cancelled = false;
+    void Promise.all(
+      conversations.map(async (conversation) => {
+        const response = await fetch(
+          `/api/pulse/voice-out/thread?code=${encodeURIComponent(conversation.code)}`,
+        );
+        if (!response.ok) return null;
+        const data = (await response.json()) as {
+          report: {
+            topic: string;
+            message: string;
+            status: string;
+            created_at: string;
+          };
+          messages?: {
+            author_role: "staff" | "hr";
+            message: string;
+            created_at: string;
+          }[];
+        };
+        const hrMessages = (data.messages ?? []).filter(
+          (message) => message.author_role === "hr",
+        );
+        return {
+          code: conversation.code,
+          topic: data.report.topic,
+          message: data.report.message,
+          status: data.report.status,
+          createdAt: data.report.created_at,
+          hrReplies: hrMessages.length,
+          unreadReplies: Math.max(
+            0,
+            hrMessages.length - conversation.seenHrReplies,
+          ),
+          lastReply: hrMessages.at(-1)?.message ?? null,
+        } satisfies PrivateConversation;
+      }),
+    ).then((updates) => {
+      if (cancelled) return;
+      const active = updates.filter(
+        (conversation): conversation is PrivateConversation =>
+          conversation !== null,
+      );
+      setPrivateConversations(active);
+      setUnreadReplies(
+        active.reduce(
+          (total, conversation) => total + conversation.unreadReplies,
+          0,
+        ),
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function upload(file: File) {
     if (attachments.length >= MAX_ATTACHMENTS) return;
@@ -125,6 +206,7 @@ export function VoiceOutForm() {
       setAttachments([]);
       setSent(true);
       setAccessCode(data?.accessCode ?? null);
+      if (data?.accessCode) saveVoiceOutConversation(data.accessCode);
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -144,11 +226,16 @@ export function VoiceOutForm() {
     setAllowsFollowUp(false);
   }
 
+  function openPrivateConversation(code: string) {
+    setActiveVoiceOutConversation(code);
+    router.push("/pulse/voice-out/follow-up");
+  }
+
   if (sent) {
     return (
       <section className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-        <div className="bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent p-6 sm:p-8">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
+        <div className="bg-gradient-to-br from-brand-500/15 via-brand-500/5 to-transparent p-6 sm:p-8">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-orange-400 text-white shadow-lg shadow-brand-500/25">
             <Icon icon="solar:check-circle-broken" className="h-6 w-6" />
           </span>
           <h2 className="mt-4 text-lg font-semibold text-[var(--text-hi)]">
@@ -183,6 +270,13 @@ export function VoiceOutForm() {
                 Copy code
               </Button>
             </div>
+            <Button
+              className="w-full sm:w-auto"
+              icon="solar:chat-round-dots-broken"
+              onClick={() => openPrivateConversation(accessCode)}
+            >
+              Open private conversation
+            </Button>
           </div>
         )}
         <div className="border-t border-[var(--border)] p-6 sm:p-8">
@@ -202,6 +296,74 @@ export function VoiceOutForm() {
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 dark:shadow-black/20">
+      {unreadReplies > 0 && (
+        <div className="flex items-center justify-between gap-3 border-b border-blue-500/15 bg-blue-500/[0.05] px-6 py-3">
+          <p className="text-xs font-semibold text-[var(--text-hi)]">
+            HR has replied to {unreadReplies} private{" "}
+            {unreadReplies === 1 ? "conversation" : "conversations"}.
+          </p>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => router.push("/pulse/voice-out/follow-up")}
+          >
+            Open inbox
+          </Button>
+        </div>
+      )}
+      {privateConversations.length > 0 && (
+        <div className="border-b border-[var(--border)] bg-[var(--surface-2)]/50 px-6 py-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-hi)]">
+                Your private conversations
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+                Saved anonymously in this browser. HR cannot see who owns them.
+              </p>
+            </div>
+            <span className="rounded-lg bg-[var(--surface)] px-2 py-1 text-xs font-semibold text-[var(--text-lo)]">
+              {privateConversations.length}
+            </span>
+          </div>
+          <div className="mt-3 space-y-2">
+            {privateConversations.map((conversation) => (
+              <button
+                key={conversation.code}
+                type="button"
+                onClick={() => openPrivateConversation(conversation.code)}
+                className="flex w-full items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-left transition-colors hover:border-brand-500/30"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                  <Icon
+                    icon="solar:chat-round-dots-broken"
+                    className="h-4 w-4"
+                  />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="text-xs font-semibold capitalize text-[var(--text-hi)]">
+                      {conversation.topic}
+                    </span>
+                    {conversation.unreadReplies > 0 && (
+                      <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-600">
+                        HR replied
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-[var(--text-lo)]">
+                    {conversation.lastReply ?? conversation.message}
+                  </span>
+                </span>
+                <Icon
+                  icon="solar:alt-arrow-right-broken"
+                  className="h-4 w-4 text-[var(--text-lo)]"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="space-y-7 p-6">
         <fieldset>
           <legend className="text-sm font-semibold text-[var(--text-hi)]">
