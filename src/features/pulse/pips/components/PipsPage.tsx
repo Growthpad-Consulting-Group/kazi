@@ -21,6 +21,7 @@ export default async function PipsPage() {
   const { id: userId, role } = session.user;
   const isManager = can(role, "manage_pips");
   const isHr = role === "admin" || role === "hr";
+  const isEmployee = role === "employee";
   const [pipsResult, reportsResult] = await Promise.all([
     isHr
       ? supabaseAdmin
@@ -82,7 +83,7 @@ export default async function PipsPage() {
   return (
     <>
       <SetPageHeader
-        title="Performance support plans"
+        title={isEmployee ? "My support plan" : "Performance support plans"}
         description={`${active.length} active plan${active.length === 1 ? "" : "s"}${awaitingAcknowledgement.length ? ` · ${awaitingAcknowledgement.length} awaiting acknowledgement` : ""} · structured support and clear follow-through`}
         icon="solar:heart-pulse-broken"
         trailing={

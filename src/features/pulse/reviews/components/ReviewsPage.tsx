@@ -55,6 +55,7 @@ export default async function ReviewsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
   const isAdmin = can(session.user.role, "manage_reviews");
+  const isEmployee = session.user.role === "employee";
   const [{ data: cyclesData }, { data: myReviews }] = await Promise.all([
     supabaseAdmin
       .from("review_cycles")
@@ -77,11 +78,13 @@ export default async function ReviewsPage() {
   return (
     <>
       <SetPageHeader
-        title="Performance reviews"
+        title={isEmployee ? "My growth" : "Performance reviews"}
         description={
           pendingCount
             ? `${pendingCount} review${pendingCount === 1 ? "" : "s"} awaiting your input`
-            : "Your review work is up to date"
+            : isEmployee
+              ? "Your feedback and development are up to date"
+              : "Your review work is up to date"
         }
         icon="solar:clipboard-list-broken"
         trailing={

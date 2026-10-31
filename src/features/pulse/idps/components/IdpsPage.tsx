@@ -23,6 +23,7 @@ export default async function IdpsPage() {
   if (!session) return null;
   const isManager = can(session.user.role, "manage_idps");
   const isHr = session.user.role === "admin" || session.user.role === "hr";
+  const isEmployee = session.user.role === "employee";
   const filters = [
     `user_id.eq.${session.user.id}`,
     ...(isManager ? [`manager_id.eq.${session.user.id}`] : []),
@@ -70,7 +71,7 @@ export default async function IdpsPage() {
   return (
     <>
       <SetPageHeader
-        title="Development plans"
+        title={isEmployee ? "My development plan" : "Development plans"}
         description={`${active.length} active plan${active.length === 1 ? "" : "s"} · ${openActions} open action item${openActions === 1 ? "" : "s"}`}
         icon="solar:book-broken"
         trailing={
