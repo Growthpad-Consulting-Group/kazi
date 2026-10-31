@@ -17,15 +17,37 @@ export async function POST(req: Request) {
     month?: string;
     opensAt?: string | null;
     closesAt?: string | null;
+    teamVotingOpensAt?: string | null;
+    teamVotingClosesAt?: string | null;
+    managementVotingOpensAt?: string | null;
+    managementVotingClosesAt?: string | null;
   } | null;
   if (
     !validDate(body?.month) ||
     (body?.opensAt && !validDate(body.opensAt)) ||
     (body?.closesAt && !validDate(body.closesAt)) ||
-    (body?.opensAt && body?.closesAt && body.closesAt < body.opensAt)
+    (body?.teamVotingOpensAt && !validDate(body.teamVotingOpensAt)) ||
+    (body?.teamVotingClosesAt && !validDate(body.teamVotingClosesAt)) ||
+    (body?.managementVotingOpensAt &&
+      !validDate(body.managementVotingOpensAt)) ||
+    (body?.managementVotingClosesAt &&
+      !validDate(body.managementVotingClosesAt)) ||
+    (body?.opensAt && body?.closesAt && body.closesAt < body.opensAt) ||
+    (body?.teamVotingOpensAt &&
+      body?.teamVotingClosesAt &&
+      body.teamVotingClosesAt < body.teamVotingOpensAt) ||
+    (body?.managementVotingOpensAt &&
+      body?.managementVotingClosesAt &&
+      body.managementVotingClosesAt < body.managementVotingOpensAt) ||
+    (body?.closesAt &&
+      body?.teamVotingOpensAt &&
+      body.closesAt >= body.teamVotingOpensAt) ||
+    (body?.teamVotingClosesAt &&
+      body?.managementVotingOpensAt &&
+      body.teamVotingClosesAt >= body.managementVotingOpensAt)
   )
     return NextResponse.json(
-      { error: "Choose a valid nomination period." },
+      { error: "Choose ordered, non-overlapping award windows." },
       { status: 400 },
     );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
@@ -36,6 +58,10 @@ export async function POST(req: Request) {
       month: `${body.month.slice(0, 7)}-01`,
       opens_at: body.opensAt ?? null,
       closes_at: body.closesAt ?? null,
+      team_voting_opens_at: body.teamVotingOpensAt ?? null,
+      team_voting_closes_at: body.teamVotingClosesAt ?? null,
+      management_voting_opens_at: body.managementVotingOpensAt ?? null,
+      management_voting_closes_at: body.managementVotingClosesAt ?? null,
       status: "open",
       created_by: session.user.id,
     })
@@ -60,19 +86,65 @@ export async function PATCH(req: Request) {
     id?: string;
     status?:
       "open" | "team_voting" | "management_voting" | "published" | "closed";
+    opensAt?: string | null;
+    closesAt?: string | null;
+    teamVotingOpensAt?: string | null;
+    teamVotingClosesAt?: string | null;
+    managementVotingOpensAt?: string | null;
+    managementVotingClosesAt?: string | null;
   } | null;
+  const hasScheduleUpdate =
+    body &&
+    [
+      body.opensAt,
+      body.closesAt,
+      body.teamVotingOpensAt,
+      body.teamVotingClosesAt,
+      body.managementVotingOpensAt,
+      body.managementVotingClosesAt,
+    ].some((value) => value !== undefined);
   if (
     !body?.id ||
-    ![
-      "open",
-      "team_voting",
-      "management_voting",
-      "published",
-      "closed",
-    ].includes(body.status ?? "")
+    (!hasScheduleUpdate &&
+      ![
+        "open",
+        "team_voting",
+        "management_voting",
+        "published",
+        "closed",
+      ].includes(body.status ?? ""))
   )
     return NextResponse.json(
-      { error: "A cycle and status are required." },
+      { error: "Choose a valid cycle update." },
+      { status: 400 },
+    );
+  const scheduleValues = [
+    body.opensAt,
+    body.closesAt,
+    body.teamVotingOpensAt,
+    body.teamVotingClosesAt,
+    body.managementVotingOpensAt,
+    body.managementVotingClosesAt,
+  ];
+  if (
+    scheduleValues.some(
+      (value) => value !== undefined && value !== null && !validDate(value),
+    )
+  )
+    return NextResponse.json(
+      { error: "Choose valid schedule dates." },
+      { status: 400 },
+    );
+  if (
+    (body.closesAt &&
+      body.teamVotingOpensAt &&
+      body.closesAt >= body.teamVotingOpensAt) ||
+    (body.teamVotingClosesAt &&
+      body.managementVotingOpensAt &&
+      body.teamVotingClosesAt >= body.managementVotingOpensAt)
+  )
+    return NextResponse.json(
+      { error: "Award windows cannot overlap." },
       { status: 400 },
     );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
@@ -117,9 +189,40 @@ export async function PATCH(req: Request) {
         { status: 409 },
       );
   }
+  const { data: existingCycle, error: cycleError } = await db
+    .from("hall_of_fame_cycles")
+    .select("team_voting_opens_at, management_voting_opens_at")
+    .eq("id", body.id)
+    .maybeSingle();
+  if (cycleError || !existingCycle)
+    return NextResponse.json(
+      { error: cycleError?.message ?? "Award cycle not found." },
+      { status: 404 },
+    );
+  const stageTimestamp =
+    body.status === "team_voting" && !existingCycle.team_voting_opens_at
+      ? { team_voting_opens_at: new Date().toISOString().slice(0, 10) }
+      : body.status === "management_voting" &&
+          !existingCycle.management_voting_opens_at
+        ? { management_voting_opens_at: new Date().toISOString().slice(0, 10) }
+        : {};
+  const scheduleUpdate = hasScheduleUpdate
+    ? {
+        opens_at: body.opensAt ?? null,
+        closes_at: body.closesAt ?? null,
+        team_voting_opens_at: body.teamVotingOpensAt ?? null,
+        team_voting_closes_at: body.teamVotingClosesAt ?? null,
+        management_voting_opens_at: body.managementVotingOpensAt ?? null,
+        management_voting_closes_at: body.managementVotingClosesAt ?? null,
+      }
+    : {};
   const { error } = await db
     .from("hall_of_fame_cycles")
-    .update({ status: body.status })
+    .update({
+      ...(body.status ? { status: body.status } : {}),
+      ...stageTimestamp,
+      ...scheduleUpdate,
+    })
     .eq("id", body.id);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });

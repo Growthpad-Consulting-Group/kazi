@@ -5,6 +5,12 @@ import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
 
+const managementRoles = new Set(["admin", "hr", "manager"]);
+
+function isWindowOpen(closeAt: string | null) {
+  return !closeAt || new Date(`${closeAt}T23:59:59`).getTime() >= Date.now();
+}
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session)
@@ -12,21 +18,19 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     cycleId?: string;
     nomineeId?: string;
-    category?: string;
+    category?: "wow" | "mvp";
     score?: number;
   } | null;
-  const score = body?.score;
   if (
     !body?.cycleId ||
     !body.nomineeId ||
     !["wow", "mvp"].includes(body.category ?? "") ||
-    typeof score !== "number" ||
-    !Number.isInteger(score) ||
-    score < 1 ||
-    score > 10
+    !Number.isInteger(body.score) ||
+    (body.score ?? 0) < 1 ||
+    (body.score ?? 0) > 10
   )
     return NextResponse.json(
-      { error: "Choose a nominee, award, and a score from 1 to 10." },
+      { error: "Choose an eligible nominee, award, and score from 1 to 10." },
       { status: 400 },
     );
   if (body.nomineeId === session.user.id)
@@ -34,85 +38,105 @@ export async function POST(request: Request) {
       { error: "You cannot vote for yourself." },
       { status: 400 },
     );
-  const db = supabaseAdmin as unknown as {
-    from: (table: string) => {
-      select: (columns: string) => {
-        eq: (
-          column: string,
-          value: string,
-        ) => {
-          maybeSingle: () => Promise<{ data: { status: string } | null }>;
-        };
-      };
-      upsert: (
-        value: unknown,
-        options: unknown,
-      ) => Promise<{ error: { message: string } | null }>;
-    };
-  };
-  const { data: cycle } = await db
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed tables
+  const db = supabaseAdmin as any;
+  const { data: cycle, error: cycleError } = await db
     .from("hall_of_fame_cycles")
-    .select("status")
+    .select(
+      "status, team_voting_opens_at, team_voting_closes_at, management_voting_opens_at, management_voting_closes_at",
+    )
     .eq("id", body.cycleId)
     .maybeSingle();
-  const management = userCan(session.user, "manage_recognition_campaigns");
+  if (cycleError || !cycle)
+    return NextResponse.json(
+      { error: cycleError?.message ?? "Award cycle not found." },
+      { status: 404 },
+    );
+
+  const canManage = userCan(session.user, "manage_recognition_campaigns");
   const stage =
-    cycle?.status === "management_voting" && management
+    cycle.status === "management_voting" && canManage
       ? "management"
-      : cycle?.status === "team_voting"
+      : cycle.status === "team_voting" &&
+          !managementRoles.has(session.user.role)
         ? "team"
         : null;
   if (!stage)
     return NextResponse.json(
       { error: "Voting is not open for your role." },
+      { status: 403 },
+    );
+  const opensAt =
+    stage === "team"
+      ? cycle.team_voting_opens_at
+      : cycle.management_voting_opens_at;
+  const closesAt =
+    stage === "team"
+      ? cycle.team_voting_closes_at
+      : cycle.management_voting_closes_at;
+  if (opensAt && new Date(`${opensAt}T00:00:00`).getTime() > Date.now())
+    return NextResponse.json(
+      { error: "This voting window has not opened yet." },
       { status: 409 },
     );
+  if (!isWindowOpen(closesAt))
+    return NextResponse.json(
+      { error: "This voting window has closed." },
+      { status: 409 },
+    );
+
+  const { data: nomination, error: nominationError } = await db
+    .from("hall_of_fame_nominations")
+    .select("id")
+    .eq("cycle_id", body.cycleId)
+    .eq("nominee_id", body.nomineeId)
+    .eq("category", body.category)
+    .maybeSingle();
+  if (nominationError || !nomination)
+    return NextResponse.json(
+      { error: "This person is not nominated for that award." },
+      { status: 403 },
+    );
+
   if (stage === "management") {
-    /* eslint-disable @typescript-eslint/no-explicit-any -- migration-backed table awaits generated types */
-    const { data: teamVotes, error: finalistsError } = await (
-      supabaseAdmin as any
-    )
+    const { data: teamVotes, error } = await db
       .from("hall_of_fame_votes")
       .select("nominee_id, score")
       .eq("cycle_id", body.cycleId)
       .eq("category", body.category)
       .eq("stage", "team");
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-    if (finalistsError)
-      return NextResponse.json(
-        { error: finalistsError.message },
-        { status: 500 },
-      );
-    const scores = new Map<string, { total: number; count: number }>();
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    const totals = new Map<string, { total: number; count: number }>();
     for (const vote of teamVotes ?? []) {
-      const entry = scores.get(vote.nominee_id) ?? { total: 0, count: 0 };
+      const entry = totals.get(vote.nominee_id) ?? { total: 0, count: 0 };
       entry.total += vote.score;
       entry.count += 1;
-      scores.set(vote.nominee_id, entry);
+      totals.set(vote.nominee_id, entry);
     }
-    const finalists = [...scores.entries()]
+    const finalists = [...totals.entries()]
       .sort(([, a], [, b]) => b.total / b.count - a.total / a.count)
       .slice(0, 3)
-      .map(([nomineeId]) => nomineeId);
+      .map(([id]) => id);
     if (!finalists.includes(body.nomineeId))
       return NextResponse.json(
-        {
-          error:
-            "Management voting is limited to the three team-vote finalists.",
-        },
+        { error: "Management voting is limited to team-vote finalists." },
         { status: 403 },
       );
   }
+
   const { error } = await db.from("hall_of_fame_votes").upsert(
     {
       cycle_id: body.cycleId,
       nominee_id: body.nomineeId,
       voter_id: session.user.id,
       category: body.category,
-      score: score as number,
+      score: body.score,
       stage,
+      created_at: new Date().toISOString(),
     },
-    { onConflict: "cycle_id,nominee_id,voter_id,category,stage" },
+    { onConflict: "cycle_id,voter_id,category,stage" },
   );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });

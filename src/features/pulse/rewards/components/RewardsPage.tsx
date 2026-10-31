@@ -290,15 +290,19 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                 icon="solar:star-broken"
                 color="amber"
                 compact
-                subtitle="Available to redeem"
+                subtitle={
+                  balance > 0
+                    ? "Available to redeem"
+                    : "Complete Side Quests to start earning"
+                }
               />
               <StatCard
-                title="Quarterly XP"
+                title="Leaderboard points"
                 value={xpWallet?.quarterly_balance ?? 0}
                 icon="solar:medal-ribbon-broken"
                 color="blue"
                 compact
-                subtitle="Recognition progress, not redeemable"
+                subtitle="Your progress this quarter"
               />
               {canManage && (
                 <>
@@ -327,17 +331,15 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold capitalize text-brand-500">
-                      Next reward
+                      Closest reward
                     </p>
                     <p className="mt-1 truncate text-sm font-semibold text-[var(--text-hi)]">
-                      {nextReward.name}
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--text-lo)]">
-                      {nextReward.points_cost - balance} more points to redeem
+                      {nextReward.name} · {nextReward.points_cost - balance}{" "}
+                      points away
                     </p>
                   </div>
                   <span className="font-mono text-sm font-bold text-brand-500">
-                    {balance}/{nextReward.points_cost}
+                    {balance} / {nextReward.points_cost} points
                   </span>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-2)]">

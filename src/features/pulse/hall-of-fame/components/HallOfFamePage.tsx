@@ -16,6 +16,10 @@ type Cycle = {
     | "closed";
   opens_at: string | null;
   closes_at: string | null;
+  team_voting_opens_at: string | null;
+  team_voting_closes_at: string | null;
+  management_voting_opens_at: string | null;
+  management_voting_closes_at: string | null;
 };
 type Staff = {
   id: string;
@@ -51,11 +55,14 @@ type Winner = {
 export default async function HallOfFamePage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
+  const canManage = userCan(session.user, "manage_recognition_campaigns");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
   const db = supabaseAdmin as any;
   const { data: cycleData } = await db
     .from("hall_of_fame_cycles")
-    .select("id, month, status, opens_at, closes_at")
+    .select(
+      "id, month, status, opens_at, closes_at, team_voting_opens_at, team_voting_closes_at, management_voting_opens_at, management_voting_closes_at",
+    )
     .in("status", [
       "open",
       "team_voting",
@@ -99,6 +106,7 @@ export default async function HallOfFamePage() {
           .from("hall_of_fame_votes")
           .select("nominee_id, voter_id, category, score, stage")
           .eq("cycle_id", cycle.id)
+          .eq("stage", "team")
       : Promise.resolve({ data: [] }),
     cycle
       ? db
@@ -123,7 +131,8 @@ export default async function HallOfFamePage() {
     <>
       <HallOfFameClient
         currentUserId={session.user.id}
-        canManage={userCan(session.user, "manage_recognition_campaigns")}
+        canManage={canManage}
+        canTeamVote={!["admin", "hr", "manager"].includes(session.user.role)}
         requiresMonthlyEntry={
           !["admin", "hr", "manager"].includes(session.user.role)
         }
@@ -134,7 +143,9 @@ export default async function HallOfFamePage() {
             member.avatar_url ?? signaturePhotos.get(member.id) ?? null,
         }))}
         nominations={(nominationsResult.data ?? []) as Nomination[]}
-        votes={(votesResult.data ?? []) as Vote[]}
+        votes={((votesResult.data ?? []) as Vote[]).filter(
+          (vote) => canManage || vote.voter_id === session.user.id,
+        )}
         winners={(winnersResult.data ?? []) as Winner[]}
       />
     </>

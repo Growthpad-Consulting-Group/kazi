@@ -30,6 +30,10 @@ type Cycle = {
     | "closed";
   opens_at: string | null;
   closes_at: string | null;
+  team_voting_opens_at: string | null;
+  team_voting_closes_at: string | null;
+  management_voting_opens_at: string | null;
+  management_voting_closes_at: string | null;
 } | null;
 type Staff = {
   id: string;
@@ -112,9 +116,22 @@ function toDateString(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 }
 
+function recommendedCycleSchedule(month: string) {
+  const prefix = month.slice(0, 7);
+  return {
+    opensAt: `${prefix}-01`,
+    closesAt: `${prefix}-07`,
+    teamVotingOpensAt: `${prefix}-08`,
+    teamVotingClosesAt: `${prefix}-12`,
+    managementVotingOpensAt: `${prefix}-13`,
+    managementVotingClosesAt: `${prefix}-15`,
+  };
+}
+
 export default function HallOfFameClient({
   currentUserId,
   canManage,
+  canTeamVote,
   requiresMonthlyEntry,
   cycle,
   staff,
@@ -124,6 +141,7 @@ export default function HallOfFameClient({
 }: {
   currentUserId: string;
   canManage: boolean;
+  canTeamVote: boolean;
   requiresMonthlyEntry: boolean;
   cycle: Cycle;
   staff: Staff[];
@@ -139,14 +157,36 @@ export default function HallOfFameClient({
   const [score, setScore] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [newCycleOpen, setNewCycleOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [month, setMonth] = useState(
     `${new Date().toISOString().slice(0, 7)}-01`,
   );
   const [opensAt, setOpensAt] = useState("");
   const [closesAt, setClosesAt] = useState("");
+  const [teamVotingOpensAt, setTeamVotingOpensAt] = useState("");
+  const [teamVotingClosesAt, setTeamVotingClosesAt] = useState("");
+  const [managementVotingOpensAt, setManagementVotingOpensAt] = useState("");
+  const [managementVotingClosesAt, setManagementVotingClosesAt] = useState("");
+  const [currentTime, setCurrentTime] = useState(() => new Date().getTime());
   const nominationWindow: DateRangeValue = {
     startDate: opensAt ? new Date(`${opensAt}T00:00:00`) : null,
     endDate: closesAt ? new Date(`${closesAt}T00:00:00`) : null,
+  };
+  const teamVotingWindow: DateRangeValue = {
+    startDate: teamVotingOpensAt
+      ? new Date(`${teamVotingOpensAt}T00:00:00`)
+      : null,
+    endDate: teamVotingClosesAt
+      ? new Date(`${teamVotingClosesAt}T00:00:00`)
+      : null,
+  };
+  const managementVotingWindow: DateRangeValue = {
+    startDate: managementVotingOpensAt
+      ? new Date(`${managementVotingOpensAt}T00:00:00`)
+      : null,
+    endDate: managementVotingClosesAt
+      ? new Date(`${managementVotingClosesAt}T00:00:00`)
+      : null,
   };
 
   const nominationsByNominee = useMemo(
@@ -197,10 +237,29 @@ export default function HallOfFameClient({
     ? nominationWindowLabel(cycle)
     : null;
   const activeNominationCountdown = cycle ? nominationCountdown(cycle) : null;
-  const votingStage =
+  const stageCloseAt =
     cycle?.status === "team_voting"
+      ? cycle.team_voting_closes_at
+      : cycle?.status === "management_voting"
+        ? cycle.management_voting_closes_at
+        : null;
+  const stageOpenAt =
+    cycle?.status === "team_voting"
+      ? cycle.team_voting_opens_at
+      : cycle?.status === "management_voting"
+        ? cycle.management_voting_opens_at
+        : null;
+  const votingWindowStarted =
+    !stageOpenAt ||
+    new Date(`${stageOpenAt}T00:00:00`).getTime() <= currentTime;
+  const votingWindowOpen =
+    votingWindowStarted &&
+    (!stageCloseAt ||
+      new Date(`${stageCloseAt}T23:59:59`).getTime() >= currentTime);
+  const votingStage =
+    cycle?.status === "team_voting" && canTeamVote && votingWindowOpen
       ? "team"
-      : cycle?.status === "management_voting" && canManage
+      : cycle?.status === "management_voting" && canManage && votingWindowOpen
         ? "management"
         : null;
   const isVoting = votingStage !== null;
@@ -223,23 +282,46 @@ export default function HallOfFameClient({
     }
     return averages;
   }, [votes]);
-  const finalists = useMemo(() => {
-    if (votingStage !== "management") return new Set<string>();
-    const ids = new Set<string>();
+  const finalistsByCategory = useMemo(() => {
+    const byCategory = new Map<"wow" | "mvp", Set<string>>();
+    if (cycle?.status !== "management_voting") return byCategory;
     for (const option of CATEGORY_OPTIONS) {
-      [...voteAverages.entries()]
+      const ids = [...voteAverages.entries()]
         .filter(([key]) => key.startsWith(`${option.value}:`))
         .sort(([, a], [, b]) => b - a)
         .slice(0, 3)
-        .forEach(([key]) => ids.add(key.slice(option.value.length + 1)));
+        .map(([key]) => key.slice(option.value.length + 1));
+      byCategory.set(option.value, new Set(ids));
     }
-    return ids;
-  }, [voteAverages, votingStage]);
+    return byCategory;
+  }, [cycle?.status, voteAverages]);
+
+  const votingDirectory = useMemo(() => {
+    if (!isVoting) return directory;
+    return directory.filter((member) => {
+      const nomineeCategories = new Set(
+        (nominationsByNominee[member.id] ?? []).map((item) => item.category),
+      );
+      if (votingStage === "team") return nomineeCategories.size > 0;
+      return [...nomineeCategories].some((value) =>
+        finalistsByCategory.get(value)?.has(member.id),
+      );
+    });
+  }, [
+    directory,
+    finalistsByCategory,
+    isVoting,
+    nominationsByNominee,
+    votingStage,
+  ]);
 
   const openNominate = (id: string) => {
     setSelectedId(id);
     setImpact("");
-    setCategory("wow");
+    const nominatedCategories = (nominationsByNominee[id] ?? []).map(
+      (item) => item.category,
+    );
+    setCategory(nominatedCategories[0] ?? "wow");
     setScore(null);
   };
 
@@ -286,6 +368,10 @@ export default function HallOfFameClient({
           month,
           opensAt: opensAt || null,
           closesAt: closesAt || null,
+          teamVotingOpensAt: teamVotingOpensAt || null,
+          teamVotingClosesAt: teamVotingClosesAt || null,
+          managementVotingOpensAt: managementVotingOpensAt || null,
+          managementVotingClosesAt: managementVotingClosesAt || null,
         }),
       });
       const data = await response.json();
@@ -296,6 +382,61 @@ export default function HallOfFameClient({
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not open nominations.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openNewCycleModal = () => {
+    const schedule = recommendedCycleSchedule(month);
+    setOpensAt(schedule.opensAt);
+    setClosesAt(schedule.closesAt);
+    setTeamVotingOpensAt(schedule.teamVotingOpensAt);
+    setTeamVotingClosesAt(schedule.teamVotingClosesAt);
+    setManagementVotingOpensAt(schedule.managementVotingOpensAt);
+    setManagementVotingClosesAt(schedule.managementVotingClosesAt);
+    setNewCycleOpen(true);
+  };
+
+  const openScheduleModal = () => {
+    if (!cycle) return;
+    setOpensAt(cycle.opens_at ?? "");
+    setClosesAt(cycle.closes_at ?? "");
+    setTeamVotingOpensAt(cycle.team_voting_opens_at ?? "");
+    setTeamVotingClosesAt(cycle.team_voting_closes_at ?? "");
+    setManagementVotingOpensAt(cycle.management_voting_opens_at ?? "");
+    setManagementVotingClosesAt(cycle.management_voting_closes_at ?? "");
+    setScheduleOpen(true);
+  };
+
+  const saveSchedule = async () => {
+    if (!cycle) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/pulse/hall-of-fame/cycles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: cycle.id,
+          opensAt: opensAt || null,
+          closesAt: closesAt || null,
+          teamVotingOpensAt: teamVotingOpensAt || null,
+          teamVotingClosesAt: teamVotingClosesAt || null,
+          managementVotingOpensAt: managementVotingOpensAt || null,
+          managementVotingClosesAt: managementVotingClosesAt || null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      toast.success("Award schedule updated.");
+      setScheduleOpen(false);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not update the schedule.",
       );
     } finally {
       setSaving(false);
@@ -425,6 +566,14 @@ export default function HallOfFameClient({
   };
 
   useEffect(() => {
+    const timer = window.setInterval(
+      () => setCurrentTime(new Date().getTime()),
+      60_000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     if (!cycle) return;
     const channel = supabaseBrowser
       .channel(hallOfFameChannelName(cycle.id))
@@ -461,22 +610,38 @@ export default function HallOfFameClient({
                 ? isOpen
                   ? "Nominations open"
                   : cycle.status === "team_voting"
-                    ? "Team voting open"
+                    ? votingWindowOpen
+                      ? "Team voting open"
+                      : votingWindowStarted
+                        ? "Team voting closed"
+                        : "Team voting scheduled"
                     : cycle.status === "management_voting"
                       ? "Management voting"
                       : cycle.status === "published"
                         ? "Winners published"
                         : "Nominations closed"
                 : "Nominations not open yet"}
-              {isOpen && activeNominationCountdown && (
+              {((isOpen && activeNominationCountdown) ||
+                (!isOpen && stageCloseAt)) && (
                 <span
                   className={
-                    activeNominationCountdown.urgent
+                    (
+                      isOpen
+                        ? activeNominationCountdown?.urgent
+                        : new Date(`${stageCloseAt}T23:59:59`).getTime() -
+                            currentTime <=
+                          3 * 86_400_000
+                    )
                       ? "text-amber-600 dark:text-amber-300"
                       : ""
                   }
                 >
-                  · {activeNominationCountdown.label}
+                  ·{" "}
+                  {isOpen
+                    ? activeNominationCountdown?.label
+                    : votingWindowOpen
+                      ? `${Math.max(0, Math.ceil((new Date(`${stageCloseAt}T23:59:59`).getTime() - currentTime) / 86_400_000))} days remaining`
+                      : "Voting closed"}
                 </span>
               )}
             </span>
@@ -488,6 +653,16 @@ export default function HallOfFameClient({
             )}
             {canManage && (
               <div className="flex flex-wrap items-center gap-2">
+                {cycle?.status !== "published" && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon="solar:calendar-mark-broken"
+                    onClick={openScheduleModal}
+                  >
+                    Edit schedule
+                  </Button>
+                )}
                 {isOpen && (
                   <Button
                     size="sm"
@@ -535,7 +710,7 @@ export default function HallOfFameClient({
                     size="sm"
                     icon="solar:add-circle-broken"
                     loading={saving}
-                    onClick={() => setNewCycleOpen(true)}
+                    onClick={openNewCycleModal}
                   >
                     Open nominations
                   </Button>
@@ -613,6 +788,29 @@ export default function HallOfFameClient({
         </section>
       )}
 
+      {isVoting && votingStage === "team" && (
+        <section className="flex flex-col gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-4 shadow-lg shadow-brand-500/5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-hi)]">
+              Vote for this month’s standout work
+            </p>
+            <p className="mt-1 text-xs text-[var(--text-lo)]">
+              Choose one eligible nominee in each award and score their impact
+              from 1 to 10.
+            </p>
+          </div>
+          <span className="rounded-lg bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)]">
+            {
+              votes.filter(
+                (vote) =>
+                  vote.voter_id === currentUserId && vote.stage === "team",
+              ).length
+            }{" "}
+            of 2 awards scored
+          </span>
+        </section>
+      )}
+
       <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20">
         <div className="flex flex-col gap-3 border-b border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -624,7 +822,7 @@ export default function HallOfFameClient({
                 ? "Select a colleague to nominate them."
                 : isVoting
                   ? votingStage === "team"
-                    ? "Score a nominee from 1 to 10. You cannot score yourself."
+                    ? "Only nominated colleagues are shown. Select one nominee per award and score their impact."
                     : "Management scores the top three team-vote finalists in each award."
                   : "Nominations are closed. Open a cycle to nominate."}
             </p>
@@ -636,105 +834,95 @@ export default function HallOfFameClient({
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500 sm:w-72"
           />
         </div>
-        {directory.length === 0 ? (
+        {votingDirectory.length === 0 ? (
           <div className="px-5 py-12 text-center text-sm text-[var(--text-lo)]">
             No staff match your search.
           </div>
         ) : (
           <div className="grid max-h-[72vh] grid-cols-2 gap-3 overflow-y-auto p-4 sm:grid-cols-3 sm:gap-4 sm:p-5 lg:grid-cols-4 xl:grid-cols-5">
-            {directory
-              .filter(
-                (member) =>
-                  !isVoting ||
-                  votingStage === "team" ||
-                  finalists.has(member.id),
-              )
-              .map((member) => {
-                const received = nominationsByNominee[member.id] ?? [];
-                const wow = received.filter(
-                  (item) => item.category === "wow",
-                ).length;
-                const mvp = received.filter(
-                  (item) => item.category === "mvp",
-                ).length;
-                const initialsText = member.name
-                  .split(" ")
-                  .filter(Boolean)
-                  .map((part) => part[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase();
-                const isWinner = winners.some(
-                  (winner) => winner.nominee_id === member.id,
-                );
-                return (
-                  <button
-                    key={member.id}
-                    type="button"
-                    onClick={() => openNominate(member.id)}
-                    className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] text-left shadow-lg shadow-slate-200/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:shadow-black/30"
-                  >
-                    {member.avatar_url ? (
-                      <Image
-                        src={member.avatar_url}
-                        alt={member.name}
-                        fill
-                        sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-500/30 via-orange-400/20 to-violet-500/20 font-mono text-4xl font-bold text-[var(--text-hi)]/70">
-                        {initialsText}
-                      </span>
-                    )}
-                    <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                    {(wow > 0 || mvp > 0) && (
-                      <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1">
-                        {wow > 0 && (
-                          <span className="rounded-lg bg-brand-500 px-2 py-0.5 font-mono text-[10px] font-bold text-white shadow-lg">
-                            WOW × {wow}
-                          </span>
-                        )}
-                        {mvp > 0 && (
-                          <span className="rounded-lg bg-white/90 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-900 shadow-lg">
-                            MVP × {mvp}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {isWinner && (
-                      <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-lg bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950 shadow-lg">
-                        <Icon
-                          icon="solar:cup-star-broken"
-                          className="h-3 w-3"
-                        />
-                        Winner
-                      </span>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 p-3.5">
-                      <p className="truncate text-sm font-semibold text-white">
-                        {member.name}
-                        {member.id === currentUserId ? (
-                          <span className="font-normal text-white/60">
-                            {" "}
-                            (you)
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="truncate text-xs text-white/70">
-                        {member.job_title ?? "Team member"}
-                      </p>
-                      <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-white/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        {isOpen ? "Nominate" : isVoting ? "Score" : "View"}{" "}
-                        <Icon
-                          icon="solar:alt-arrow-right-broken"
-                          className="h-3 w-3"
-                        />
-                      </p>
+            {votingDirectory.map((member) => {
+              const received = nominationsByNominee[member.id] ?? [];
+              const wow = received.filter(
+                (item) => item.category === "wow",
+              ).length;
+              const mvp = received.filter(
+                (item) => item.category === "mvp",
+              ).length;
+              const initialsText = member.name
+                .split(" ")
+                .filter(Boolean)
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase();
+              const isWinner = winners.some(
+                (winner) => winner.nominee_id === member.id,
+              );
+              return (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => openNominate(member.id)}
+                  className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] text-left shadow-lg shadow-slate-200/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:shadow-black/30"
+                >
+                  {member.avatar_url ? (
+                    <Image
+                      src={member.avatar_url}
+                      alt={member.name}
+                      fill
+                      sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-500/30 via-orange-400/20 to-violet-500/20 font-mono text-4xl font-bold text-[var(--text-hi)]/70">
+                      {initialsText}
+                    </span>
+                  )}
+                  <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+                  {(wow > 0 || mvp > 0) && (
+                    <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1">
+                      {wow > 0 && (
+                        <span className="rounded-lg bg-brand-500 px-2 py-0.5 font-mono text-[10px] font-bold text-white shadow-lg">
+                          WOW × {wow}
+                        </span>
+                      )}
+                      {mvp > 0 && (
+                        <span className="rounded-lg bg-white/90 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-900 shadow-lg">
+                          MVP × {mvp}
+                        </span>
+                      )}
                     </div>
-                  </button>
-                );
-              })}
+                  )}
+                  {isWinner && (
+                    <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-lg bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950 shadow-lg">
+                      <Icon icon="solar:cup-star-broken" className="h-3 w-3" />
+                      Winner
+                    </span>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 p-3.5">
+                    <p className="truncate text-sm font-semibold text-white">
+                      {member.name}
+                      {member.id === currentUserId ? (
+                        <span className="font-normal text-white/60">
+                          {" "}
+                          (you)
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="truncate text-xs text-white/70">
+                      {member.job_title ?? "Team member"}
+                    </p>
+                    <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-white/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      {isOpen ? "Nominate" : isVoting ? "Score" : "View"}{" "}
+                      <Icon
+                        icon="solar:alt-arrow-right-broken"
+                        className="h-3 w-3"
+                      />
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
@@ -809,19 +997,23 @@ export default function HallOfFameClient({
         onClose={() => setSelectedId(null)}
         title={
           selected
-            ? isSelfNomination
-              ? "Your monthly project entry"
-              : `Nominate ${selected.name}`
+            ? isVoting
+              ? `Vote for ${selected.name}`
+              : isSelfNomination
+                ? "Your monthly project entry"
+                : `Nominate ${selected.name}`
             : "Nominate"
         }
         subtitle={
-          isSelfNomination
-            ? "Choose an award and describe the work you delivered this month."
-            : selected
-              ? [selected.job_title, selected.department]
-                  .filter(Boolean)
-                  .join(" · ") || "Team member"
-              : undefined
+          isVoting
+            ? "Review their nomination evidence, then score the impact."
+            : isSelfNomination
+              ? "Choose an award and describe the work you delivered this month."
+              : selected
+                ? [selected.job_title, selected.department]
+                    .filter(Boolean)
+                    .join(" · ") || "Team member"
+                : undefined
         }
         icon="solar:star-fall-broken"
       >
@@ -980,7 +1172,17 @@ export default function HallOfFameClient({
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  {CATEGORY_OPTIONS.map((option) => (
+                  {CATEGORY_OPTIONS.filter((option) => {
+                    const nominated = selectedNominations.some(
+                      (item) => item.category === option.value,
+                    );
+                    return votingStage === "management"
+                      ? nominated &&
+                          !!finalistsByCategory
+                            .get(option.value)
+                            ?.has(selected.id)
+                      : nominated;
+                  }).map((option) => (
                     <button
                       key={option.value}
                       type="button"
@@ -995,6 +1197,21 @@ export default function HallOfFameClient({
                       </span>
                     </button>
                   ))}
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                  <p className="text-xs font-semibold text-[var(--text-hi)]">
+                    Why {selected.name.split(" ")[0]} was nominated
+                  </p>
+                  {selectedNominations
+                    .filter((item) => item.category === category)
+                    .map((item) => (
+                      <p
+                        key={item.id}
+                        className="mt-2 text-xs leading-relaxed text-[var(--text-lo)]"
+                      >
+                        {item.impact_statement}
+                      </p>
+                    ))}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[var(--text-hi)]">
@@ -1032,13 +1249,90 @@ export default function HallOfFameClient({
                   disabled={score === null}
                   onClick={submitVote}
                 >
-                  Save {votingStage === "team" ? "team" : "management"} score
+                  Save {votingStage === "team" ? "team" : "management"} vote
                 </Button>
               </>
             )}
           </div>
         )}
       </SlideOver>
+
+      <SimpleModal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        title="Edit award schedule"
+        icon="solar:calendar-mark-broken"
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-[var(--text-lo)]">
+            Keep each stage focused and non-overlapping. Staff can only vote
+            while their relevant window is open.
+          </p>
+          <div className="block text-xs font-semibold text-[var(--text-hi)]">
+            Nomination window
+            <div className="mt-1.5">
+              <DateRangePicker
+                value={nominationWindow}
+                onChange={(range) => {
+                  setOpensAt(
+                    range.startDate ? toDateString(range.startDate) : "",
+                  );
+                  setClosesAt(range.endDate ? toDateString(range.endDate) : "");
+                }}
+                allowedRanges={["Custom Range"]}
+                maxDate={null}
+                fullWidth
+              />
+            </div>
+          </div>
+          <div className="block text-xs font-semibold text-[var(--text-hi)]">
+            Team voting window
+            <div className="mt-1.5">
+              <DateRangePicker
+                value={teamVotingWindow}
+                onChange={(range) => {
+                  setTeamVotingOpensAt(
+                    range.startDate ? toDateString(range.startDate) : "",
+                  );
+                  setTeamVotingClosesAt(
+                    range.endDate ? toDateString(range.endDate) : "",
+                  );
+                }}
+                allowedRanges={["Custom Range"]}
+                maxDate={null}
+                fullWidth
+              />
+            </div>
+          </div>
+          <div className="block text-xs font-semibold text-[var(--text-hi)]">
+            Finalist voting window
+            <div className="mt-1.5">
+              <DateRangePicker
+                value={managementVotingWindow}
+                onChange={(range) => {
+                  setManagementVotingOpensAt(
+                    range.startDate ? toDateString(range.startDate) : "",
+                  );
+                  setManagementVotingClosesAt(
+                    range.endDate ? toDateString(range.endDate) : "",
+                  );
+                }}
+                allowedRanges={["Custom Range"]}
+                maxDate={null}
+                fullWidth
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+            <Button variant="secondary" onClick={() => setScheduleOpen(false)}>
+              Cancel
+            </Button>
+            <Button loading={saving} onClick={saveSchedule}>
+              Save schedule
+            </Button>
+          </div>
+        </div>
+      </SimpleModal>
 
       <SimpleModal
         open={newCycleOpen}
@@ -1053,7 +1347,21 @@ export default function HallOfFameClient({
           <label className="block text-xs font-semibold text-[var(--text-hi)]">
             Award month
             <div className="mt-1.5">
-              <MonthSelect value={month} onChange={setMonth} />
+              <MonthSelect
+                value={month}
+                onChange={(nextMonth) => {
+                  setMonth(nextMonth);
+                  const schedule = recommendedCycleSchedule(nextMonth);
+                  setOpensAt(schedule.opensAt);
+                  setClosesAt(schedule.closesAt);
+                  setTeamVotingOpensAt(schedule.teamVotingOpensAt);
+                  setTeamVotingClosesAt(schedule.teamVotingClosesAt);
+                  setManagementVotingOpensAt(schedule.managementVotingOpensAt);
+                  setManagementVotingClosesAt(
+                    schedule.managementVotingClosesAt,
+                  );
+                }}
+              />
             </div>
           </label>
           <div className="block text-xs font-semibold text-[var(--text-hi)]">
@@ -1072,6 +1380,48 @@ export default function HallOfFameClient({
                 fullWidth
               />
             </div>
+            <p className="mt-2 font-normal leading-relaxed text-[var(--text-lo)]">
+              Recommended cadence: nominations 1–7, team voting 8–12, and
+              finalist voting 13–15. You can adjust the dates for an exception.
+            </p>
+          </div>
+          <div className="block text-xs font-semibold text-[var(--text-hi)]">
+            Team voting window
+            <div className="mt-1.5">
+              <DateRangePicker
+                value={teamVotingWindow}
+                onChange={(range) => {
+                  setTeamVotingOpensAt(
+                    range.startDate ? toDateString(range.startDate) : "",
+                  );
+                  setTeamVotingClosesAt(
+                    range.endDate ? toDateString(range.endDate) : "",
+                  );
+                }}
+                allowedRanges={["Custom Range"]}
+                maxDate={null}
+                fullWidth
+              />
+            </div>
+          </div>
+          <div className="block text-xs font-semibold text-[var(--text-hi)]">
+            Finalist voting window
+            <div className="mt-1.5">
+              <DateRangePicker
+                value={managementVotingWindow}
+                onChange={(range) => {
+                  setManagementVotingOpensAt(
+                    range.startDate ? toDateString(range.startDate) : "",
+                  );
+                  setManagementVotingClosesAt(
+                    range.endDate ? toDateString(range.endDate) : "",
+                  );
+                }}
+                allowedRanges={["Custom Range"]}
+                maxDate={null}
+                fullWidth
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
             <Button variant="secondary" onClick={() => setNewCycleOpen(false)}>
@@ -1079,7 +1429,17 @@ export default function HallOfFameClient({
             </Button>
             <Button
               loading={saving}
-              disabled={!!(opensAt && closesAt && closesAt < opensAt)}
+              disabled={
+                !!(
+                  (opensAt && closesAt && closesAt < opensAt) ||
+                  (teamVotingOpensAt &&
+                    teamVotingClosesAt &&
+                    teamVotingClosesAt < teamVotingOpensAt) ||
+                  (managementVotingOpensAt &&
+                    managementVotingClosesAt &&
+                    managementVotingClosesAt < managementVotingOpensAt)
+                )
+              }
               onClick={createCycle}
             >
               Open nominations
