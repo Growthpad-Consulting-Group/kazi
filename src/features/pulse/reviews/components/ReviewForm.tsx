@@ -13,6 +13,11 @@ interface Props {
 }
 
 type Rating = { criterion: string; rating: number; comment: string };
+export type CompetencyCriterion = {
+  name: string;
+  weight?: number;
+  guidance?: string;
+};
 
 const DEFAULT_CRITERIA = [
   "Quality of work",
@@ -22,9 +27,18 @@ const DEFAULT_CRITERIA = [
   "Growth & development",
 ];
 
-export function ReviewForm({ review, revieweeId, reviewType }: Props) {
+export function ReviewForm({
+  review,
+  revieweeId,
+  reviewType,
+  criteria = DEFAULT_CRITERIA.map((name) => ({
+    name,
+    weight: 20,
+    guidance: "",
+  })),
+}: Props & { criteria?: CompetencyCriterion[] }) {
   const [ratings, setRatings] = useState<Rating[]>(() =>
-    DEFAULT_CRITERIA.map((criterion) => {
+    criteria.map(({ name: criterion }) => {
       const existing = review.competency_ratings.find(
         (rating) => rating.criterion === criterion,
       );
@@ -47,9 +61,11 @@ export function ReviewForm({ review, revieweeId, reviewType }: Props) {
 
   const overallRating =
     Math.round(
-      (ratings.reduce((sum, rating) => sum + rating.rating, 0) /
-        ratings.length) *
-        10,
+      ratings.reduce(
+        (sum, rating, index) =>
+          sum + rating.rating * ((criteria[index]?.weight ?? 20) / 100),
+        0,
+      ) * 10,
     ) / 10;
 
   function updateRating(index: number, value: number) {
@@ -142,6 +158,11 @@ export function ReviewForm({ review, revieweeId, reviewType }: Props) {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-medium text-[var(--text-hi)]">
                   {rating.criterion}
+                  {criteria[index]?.weight && (
+                    <span className="ml-1.5 text-[11px] font-normal text-[var(--text-lo)]">
+                      {criteria[index].weight}%
+                    </span>
+                  )}
                 </p>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((value) => (
@@ -157,6 +178,11 @@ export function ReviewForm({ review, revieweeId, reviewType }: Props) {
                   ))}
                 </div>
               </div>
+              {criteria[index]?.guidance && (
+                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-lo)]">
+                  {criteria[index].guidance}
+                </p>
+              )}
               <input
                 value={rating.comment}
                 onChange={(event) => updateComment(index, event.target.value)}

@@ -22,15 +22,17 @@ export default async function IdpsPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
   const isManager = can(session.user.role, "manage_idps");
+  const isHr = session.user.role === "admin" || session.user.role === "hr";
   const filters = [
     `user_id.eq.${session.user.id}`,
     ...(isManager ? [`manager_id.eq.${session.user.id}`] : []),
   ];
-  const { data } = await supabaseAdmin
+  let plansQuery = supabaseAdmin
     .from("idps")
     .select("*")
-    .or(filters.join(","))
     .order("created_at", { ascending: false });
+  if (!isHr) plansQuery = plansQuery.or(filters.join(","));
+  const { data } = await plansQuery;
   const plans = (data ?? []) as unknown as Idp[];
   const ids = [...new Set(plans.map((plan) => plan.user_id))];
   const peopleResult = ids.length
@@ -39,6 +41,20 @@ export default async function IdpsPage() {
   const people = new Map(
     (peopleResult.data ?? []).map((person) => [person.id, person.name]),
   );
+  const { data: directReportsData } = isManager
+    ? isHr
+      ? await supabaseAdmin
+          .from("users")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name")
+      : await supabaseAdmin
+          .from("users")
+          .select("id, name")
+          .eq("is_active", true)
+          .eq("manager_id", session.user.id)
+          .order("name")
+    : { data: [] };
   const active = plans.filter((plan) => plan.status === "active");
   const complete = plans.filter((plan) => plan.status === "completed");
   const openActions = plans.reduce(
@@ -61,6 +77,9 @@ export default async function IdpsPage() {
           <NewIdpButton
             userId={session.user.id}
             isManager={isManager}
+            directReports={(directReportsData ?? []).filter(
+              (person) => person.id !== session.user.id,
+            )}
             size="sm"
           />
         }

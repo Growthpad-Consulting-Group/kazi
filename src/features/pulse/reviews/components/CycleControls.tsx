@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 const NEXT_LABEL: Record<
   string,
@@ -31,38 +32,84 @@ const NEXT_LABEL: Record<
     title: "Complete this cycle?",
     body: "All reviews lock and the cycle is closed. This can't be undone.",
   },
+  completed: {
+    button: "Release results",
+    title: "Release final reviews?",
+    body: "Employees will be able to read their completed feedback and acknowledge the conversation. This keeps reviewer input private until the cycle is ready.",
+  },
 };
 
 export function CycleStageButton({
   cycleId,
   status,
+  resultsReleasedAt,
+  stageDueDate,
 }: {
   cycleId: string;
   status: string;
+  resultsReleasedAt?: string | null;
+  stageDueDate?: string | null;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [waiverReason, setWaiverReason] = useState("");
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [extensionDate, setExtensionDate] = useState(stageDueDate ?? "");
   const next = NEXT_LABEL[status];
-  if (!next) return null;
+  if (!next || (status === "completed" && resultsReleasedAt)) return null;
 
   async function advance() {
     setSaving(true);
     try {
       const response = await fetch(`/api/pulse/reviews/${cycleId}/stage`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body:
+          status === "completed"
+            ? JSON.stringify({ action: "release_results" })
+            : JSON.stringify({ waiverReason }),
       });
       const data = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
       if (!response.ok)
         throw new Error(data?.error ?? "Could not move the cycle on.");
-      toast.success("Cycle updated");
+      toast.success(
+        status === "completed" ? "Results released" : "Cycle updated",
+      );
       setConfirming(false);
+      setWaiverReason("");
       router.refresh();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not move the cycle on.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function extendDeadline() {
+    if (!extensionDate) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/pulse/reviews/${cycleId}/stage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "extend_deadline",
+          dueDate: extensionDate,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      toast.success("Deadline extended");
+      setExtendOpen(false);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not extend deadline.",
       );
     } finally {
       setSaving(false);
@@ -78,6 +125,16 @@ export function CycleStageButton({
       >
         {next.button}
       </Button>
+      {stageDueDate && status !== "completed" && (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon="solar:calendar-mark-broken"
+          onClick={() => setExtendOpen(true)}
+        >
+          Extend deadline
+        </Button>
+      )}
       <SimpleModal
         open={confirming}
         onClose={() => !saving && setConfirming(false)}
@@ -86,6 +143,22 @@ export function CycleStageButton({
         maxWidth="max-w-md"
       >
         <p className="text-sm leading-6 text-[var(--text-lo)]">{next.body}</p>
+        {status !== "pending" && status !== "completed" && (
+          <label className="mt-4 block text-xs font-semibold text-[var(--text-hi)]">
+            Waiver reason{" "}
+            <span className="font-normal text-[var(--text-lo)]">
+              Required only when reviews remain outstanding
+            </span>
+            <textarea
+              value={waiverReason}
+              onChange={(event) => setWaiverReason(event.target.value)}
+              rows={3}
+              maxLength={1000}
+              placeholder="Explain why this stage can close with incomplete reviews…"
+              className="mt-2 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-normal text-[var(--text-hi)] outline-none focus:border-brand-500"
+            />
+          </label>
+        )}
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
           <Button
             variant="secondary"
@@ -96,6 +169,36 @@ export function CycleStageButton({
           </Button>
           <Button loading={saving} onClick={advance}>
             {next.button}
+          </Button>
+        </div>
+      </SimpleModal>
+      <SimpleModal
+        open={extendOpen}
+        onClose={() => !saving && setExtendOpen(false)}
+        title="Extend stage deadline"
+        icon="solar:calendar-mark-broken"
+        maxWidth="max-w-md"
+      >
+        <p className="text-sm text-[var(--text-lo)]">
+          This change is recorded in the performance audit trail.
+        </p>
+        <div className="mt-4">
+          <DatePicker
+            value={extensionDate}
+            onChange={setExtensionDate}
+            placeholder="Choose new deadline"
+          />
+        </div>
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button variant="secondary" onClick={() => setExtendOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            loading={saving}
+            disabled={!extensionDate}
+            onClick={extendDeadline}
+          >
+            Extend deadline
           </Button>
         </div>
       </SimpleModal>
@@ -120,6 +223,188 @@ export type PlanRow = {
     submitted: boolean;
   }[];
 };
+
+export type PeerNomination = {
+  id: string;
+  revieweeName: string;
+  nomineeName: string;
+};
+
+export function PeerNominationButton({
+  cycleId,
+  people,
+  nominatedIds,
+}: {
+  cycleId: string;
+  people: PlanPerson[];
+  nominatedIds: string[];
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [nomineeId, setNomineeId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const choices = people.filter((person) => !nominatedIds.includes(person.id));
+  async function nominate() {
+    setSaving(true);
+    try {
+      const response = await fetch(
+        `/api/pulse/reviews/${cycleId}/peer-nominations`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nomineeId }),
+        },
+      );
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(data?.error ?? "Could not submit nomination.");
+      toast.success("Peer nomination sent for approval");
+      setOpen(false);
+      setNomineeId("");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not submit nomination.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="secondary"
+        icon="solar:users-group-two-rounded-broken"
+        onClick={() => setOpen(true)}
+      >
+        Nominate a peer
+      </Button>
+      <SimpleModal
+        open={open}
+        onClose={() => !saving && setOpen(false)}
+        title="Nominate a peer reviewer"
+        icon="solar:users-group-two-rounded-broken"
+        maxWidth="max-w-md"
+      >
+        <p className="text-sm leading-6 text-[var(--text-lo)]">
+          Choose someone who has worked closely enough with you to offer useful
+          feedback. Your manager or HR will review the request.
+        </p>
+        <select
+          value={nomineeId}
+          onChange={(event) => setNomineeId(event.target.value)}
+          className="mt-4 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500"
+        >
+          <option value="">Choose a colleague</option>
+          {choices.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.name}
+              {person.jobTitle ? ` — ${person.jobTitle}` : ""}
+            </option>
+          ))}
+        </select>
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button
+            variant="secondary"
+            disabled={saving}
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button loading={saving} disabled={!nomineeId} onClick={nominate}>
+            Send for approval
+          </Button>
+        </div>
+      </SimpleModal>
+    </>
+  );
+}
+
+export function PeerNominationQueue({
+  cycleId,
+  nominations,
+}: {
+  cycleId: string;
+  nominations: PeerNomination[];
+}) {
+  const router = useRouter();
+  const [savingId, setSavingId] = useState<string | null>(null);
+  async function review(nominationId: string, action: "approve" | "reject") {
+    setSavingId(nominationId);
+    try {
+      const response = await fetch(
+        `/api/pulse/reviews/${cycleId}/peer-nominations`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nominationId, action }),
+        },
+      );
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(data?.error ?? "Could not review nomination.");
+      toast.success(
+        action === "approve" ? "Peer reviewer approved" : "Nomination declined",
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not review nomination.",
+      );
+    } finally {
+      setSavingId(null);
+    }
+  }
+  if (!nominations.length) return null;
+  return (
+    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+      <div>
+        <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+          Peer nominations
+        </h2>
+        <p className="mt-1 text-xs text-[var(--text-lo)]">
+          Approve a requested reviewer or decline it before the peer stage
+          opens.
+        </p>
+      </div>
+      <div className="mt-3 space-y-2">
+        {nominations.map((nomination) => (
+          <div
+            key={nomination.id}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"
+          >
+            <p className="text-sm text-[var(--text-hi)]">
+              <span className="font-semibold">{nomination.nomineeName}</span>{" "}
+              for {nomination.revieweeName}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={savingId === nomination.id}
+                onClick={() => review(nomination.id, "reject")}
+              >
+                Decline
+              </Button>
+              <Button
+                size="sm"
+                loading={savingId === nomination.id}
+                onClick={() => review(nomination.id, "approve")}
+              >
+                Approve
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function StatusChip({
   label,
@@ -311,7 +596,7 @@ export function ReviewPlan({
   if (!rows.length) {
     return (
       <p className="py-8 text-center text-sm text-[var(--text-lo)]">
-        Start the cycle to create everyone's reviews.
+        Start the cycle to create everyone&apos;s reviews.
       </p>
     );
   }

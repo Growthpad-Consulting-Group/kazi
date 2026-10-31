@@ -12,14 +12,17 @@ const toDateValue = (value: Date) =>
 export function NewIdpButton({
   userId,
   isManager,
+  directReports = [],
   size = "md",
 }: {
   userId: string;
   isManager: boolean;
+  directReports?: { id: string; name: string }[];
   size?: "sm" | "md";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [ownerId, setOwnerId] = useState(userId);
   const [title, setTitle] = useState("");
   const [goals, setGoals] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -36,8 +39,7 @@ export function NewIdpButton({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: userId,
-          manager_id: isManager ? userId : null,
+          user_id: ownerId,
           title,
           goals,
           start_date: startDate || null,
@@ -74,6 +76,23 @@ export function NewIdpButton({
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
+          {isManager && directReports.length > 0 && (
+            <label className="block text-xs font-medium text-slate-500 mb-1">
+              Plan owner
+              <select
+                value={ownerId}
+                onChange={(event) => setOwnerId(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value={userId}>My own plan</option>
+                {directReports.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">
               Title *

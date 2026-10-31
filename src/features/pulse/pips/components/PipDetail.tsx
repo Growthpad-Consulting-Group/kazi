@@ -17,7 +17,15 @@ interface Props {
   pip: Pip;
   employeeName: string;
   canEdit: boolean;
+  canActivateWithException: boolean;
   isEmployee: boolean;
+  checkins?: {
+    id: string;
+    author_id: string;
+    authorName: string;
+    note: string;
+    created_at: string;
+  }[];
 }
 
 const CHECK_IN_OPTIONS = ["Daily", "Weekly", "Fortnightly", "Monthly"];
@@ -38,7 +46,14 @@ function formatDate(value: string) {
   });
 }
 
-export function PipDetail({ pip, employeeName, canEdit, isEmployee }: Props) {
+export function PipDetail({
+  pip,
+  employeeName,
+  canEdit,
+  canActivateWithException,
+  isEmployee,
+  checkins = [],
+}: Props) {
   const router = useRouter();
   const [concern, setConcern] = useState(pip.concern);
   const [expected, setExpected] = useState(pip.expected_outcomes);
@@ -54,6 +69,18 @@ export function PipDetail({ pip, employeeName, canEdit, isEmployee }: Props) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [notes, setNotes] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [checkinNote, setCheckinNote] = useState("");
+  const [acknowledged, setAcknowledged] = useState(
+    Boolean(
+      (pip as Pip & { employee_acknowledged_at?: string | null })
+        .employee_acknowledged_at,
+    ),
+  );
+  const activated = Boolean(
+    (pip as Pip & { activated_at?: string | null }).activated_at,
+  );
+  const [exceptionOpen, setExceptionOpen] = useState(false);
+  const [exceptionReason, setExceptionReason] = useState("");
 
   const isResolved = Boolean(pip.resolved_at);
   const done = actions.filter((action) => action.done).length;
@@ -151,6 +178,40 @@ export function PipDetail({ pip, employeeName, canEdit, isEmployee }: Props) {
     }
   }
 
+  async function addCheckin(acknowledge = false) {
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/pulse/pips/${pip.id}/checkins`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          acknowledge ? { acknowledge: true } : { note: checkinNote },
+        ),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      if (acknowledge) setAcknowledged(true);
+      else setCheckinNote("");
+      toast.success(acknowledge ? "Plan acknowledged" : "Check-in saved");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not save check-in.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function activateWithException() {
+    if (!exceptionReason.trim()) return;
+    const ok = await send(
+      { activate_with_exception: exceptionReason },
+      "Plan activated with HR exception",
+    );
+    if (ok) setExceptionOpen(false);
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20 sm:p-6">
@@ -177,7 +238,9 @@ export function PipDetail({ pip, employeeName, canEdit, isEmployee }: Props) {
                   : pip.outcome === "unsuccessful"
                     ? "Unsuccessful"
                     : "Closed"
-                : "Active"}
+                : activated
+                  ? "Active"
+                  : "Awaiting acknowledgement"}
             </span>
             {canEdit && !isResolved && (
               <Button
@@ -187,6 +250,16 @@ export function PipDetail({ pip, employeeName, canEdit, isEmployee }: Props) {
                 onClick={() => setResolveOpen(true)}
               >
                 Close plan
+              </Button>
+            )}
+            {canActivateWithException && !isResolved && !activated && (
+              <Button
+                size="sm"
+                variant="secondary"
+                icon="solar:shield-warning-broken"
+                onClick={() => setExceptionOpen(true)}
+              >
+                HR exception
               </Button>
             )}
             {canEdit && isResolved && (
@@ -223,6 +296,120 @@ export function PipDetail({ pip, employeeName, canEdit, isEmployee }: Props) {
           </div>
         )}
       </section>
+
+      {!isResolved && (
+        <section className={sectionClass}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-hi)]">
+                Plan check-in
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-lo)]">
+                {activated
+                  ? "Record progress, support needed, or the next agreed step."
+                  : "This plan starts after the employee acknowledges it, or HR records an exception."}
+              </p>
+            </div>
+            {isEmployee && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={acknowledged}
+                loading={saving}
+                onClick={() => addCheckin(true)}
+              >
+                {acknowledged ? "Acknowledged" : "Acknowledge plan"}
+              </Button>
+            )}
+          </div>
+          {activated && (
+            <>
+              <textarea
+                value={checkinNote}
+                onChange={(event) => setCheckinNote(event.target.value)}
+                rows={3}
+                maxLength={3000}
+                placeholder="Add a dated progress note…"
+                className={`${inputClass} mt-4 resize-y`}
+              />
+              <div className="mt-3 flex justify-end">
+                <Button
+                  loading={saving}
+                  disabled={!checkinNote.trim()}
+                  onClick={() => addCheckin()}
+                >
+                  Save check-in
+                </Button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      <SimpleModal
+        open={exceptionOpen}
+        onClose={() => !saving && setExceptionOpen(false)}
+        title="Activate with HR exception"
+        icon="solar:shield-warning-broken"
+        maxWidth="max-w-md"
+      >
+        <p className="text-sm leading-6 text-[var(--text-lo)]">
+          Use only where an acknowledgement cannot be obtained. The reason is
+          retained with this plan.
+        </p>
+        <textarea
+          value={exceptionReason}
+          onChange={(event) => setExceptionReason(event.target.value)}
+          rows={3}
+          maxLength={1000}
+          placeholder="Why is an HR exception appropriate?"
+          className={`${inputClass} mt-4 resize-y`}
+        />
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button variant="secondary" onClick={() => setExceptionOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            loading={saving}
+            disabled={!exceptionReason.trim()}
+            onClick={activateWithException}
+          >
+            Activate plan
+          </Button>
+        </div>
+      </SimpleModal>
+
+      {checkins.length > 0 && (
+        <section className={sectionClass}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-lo)]">
+            Check-in history
+          </p>
+          <div className="mt-3 space-y-3">
+            {checkins.map((checkin) => (
+              <div
+                key={checkin.id}
+                className="rounded-xl bg-[var(--surface-2)] p-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold text-[var(--text-hi)]">
+                    {checkin.authorName}
+                  </p>
+                  <p className="text-[11px] text-[var(--text-lo)]">
+                    {new Date(checkin.created_at).toLocaleDateString("en-KE", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-lo)]">
+                  {checkin.note}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className={sectionClass}>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-lo)]">

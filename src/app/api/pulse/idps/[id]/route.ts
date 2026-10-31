@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import type { Database, IdpStatus } from "@/types/database";
@@ -33,7 +32,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   const isOwner = plan.user_id === session.user.id;
   const isManager =
     plan.manager_id === session.user.id ||
-    can(session.user.role, "manage_idps");
+    ["admin", "hr"].includes(session.user.role);
   if (!isOwner && !isManager)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -119,7 +118,7 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Plan not found." }, { status: 404 });
   const canDelete =
     plan.manager_id === session.user.id ||
-    can(session.user.role, "manage_idps");
+    ["admin", "hr"].includes(session.user.role);
   if (!canDelete)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 

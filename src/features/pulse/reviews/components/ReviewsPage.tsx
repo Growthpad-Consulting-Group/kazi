@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { NewCycleButton } from "./NewCycleButton";
+import { PerformanceAuditExportButton } from "./PerformanceAuditExportButton";
 import type { ReviewCycleRow, ReviewStatus } from "@/types/database";
 
 const STATUS: Record<
@@ -85,7 +86,10 @@ export default async function ReviewsPage() {
         icon="solar:clipboard-list-broken"
         trailing={
           isAdmin ? (
-            <NewCycleButton userId={session.user.id} size="sm" />
+            <div className="flex items-center gap-2">
+              <PerformanceAuditExportButton />
+              <NewCycleButton size="sm" />
+            </div>
           ) : undefined
         }
       />

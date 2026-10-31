@@ -34,6 +34,21 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  if (session.user.role === "manager") {
+    const { data: employee } = await supabaseAdmin
+      .from("users")
+      .select("manager_id")
+      .eq("id", user_id)
+      .maybeSingle();
+    if (employee?.manager_id !== session.user.id)
+      return NextResponse.json(
+        {
+          error:
+            "Managers can create support plans only for their direct reports.",
+        },
+        { status: 403 },
+      );
+  }
   if (review_date && review_date < start_date) {
     return NextResponse.json(
       { error: "The review date must be on or after the start date." },
@@ -41,7 +56,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const { data, error } = await supabaseAdmin
+  // New plans remain pending until the employee has seen and acknowledged them.
+  // An HR/admin exception is handled separately on the plan record for auditability.
+  const { data, error } = await (supabaseAdmin as any)
     .from("pips")
     .insert({
       user_id,

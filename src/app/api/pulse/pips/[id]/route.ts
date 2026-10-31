@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Database, Pip } from "@/types/database";
 import { invalidateTables } from "@/lib/cache/invalidate";
@@ -21,18 +20,24 @@ async function loadPip(id: string) {
   return data as unknown as Pip | null;
 }
 
-function isEditor(pip: Pip, userId: string, role: Parameters<typeof can>[0]) {
+function isEditor(
+  pip: Pip,
+  userId: string,
+  role:
+    "admin" | "hr" | "hiring_manager" | "interviewer" | "manager" | "employee",
+) {
   return (
     pip.manager_id === userId ||
     pip.hr_id === userId ||
-    can(role, "manage_pips")
+    ["admin", "hr"].includes(role)
   );
 }
 
 function isParticipant(
   pip: Pip,
   userId: string,
-  role: Parameters<typeof can>[0],
+  role:
+    "admin" | "hr" | "hiring_manager" | "interviewer" | "manager" | "employee",
 ) {
   return pip.user_id === userId || isEditor(pip, userId, role);
 }
@@ -57,6 +62,30 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   const update: Database["public"]["Tables"]["pips"]["Update"] = {};
+
+  if (body.activate_with_exception !== undefined) {
+    if (!["admin", "hr"].includes(session.user.role))
+      return NextResponse.json(
+        {
+          error:
+            "Only HR can activate a plan without employee acknowledgement.",
+        },
+        { status: 403 },
+      );
+    const reason =
+      typeof body.activate_with_exception === "string"
+        ? body.activate_with_exception.trim()
+        : "";
+    if (!reason || reason.length > 1000)
+      return NextResponse.json(
+        { error: "Add an HR exception reason of up to 1,000 characters." },
+        { status: 400 },
+      );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed fields
+    (update as any).activated_at = new Date().toISOString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed fields
+    (update as any).activation_exception_reason = reason;
+  }
 
   if (body.actions !== undefined) {
     if (!Array.isArray(body.actions))

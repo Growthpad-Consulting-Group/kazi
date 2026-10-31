@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/rbac";
 import { IdpDetail } from "@/features/pulse/idps/components/IdpDetail";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import type { Idp } from "@/types/database";
@@ -26,7 +25,7 @@ export default async function Page({
   const idp = data as unknown as Idp;
   const isOwner = idp.user_id === session.user.id;
   const isManager = idp.manager_id === session.user.id;
-  const canManageAll = can(session.user.role, "manage_idps");
+  const canManageAll = ["admin", "hr"].includes(session.user.role);
   if (!isOwner && !isManager && !canManageAll) notFound();
 
   const { data: owner } = await supabaseAdmin

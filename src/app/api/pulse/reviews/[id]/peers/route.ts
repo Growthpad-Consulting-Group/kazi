@@ -43,6 +43,25 @@ export async function POST(req: Request, context: RouteContext) {
   if (!(await canAssignFor(session.user.role, session.user.id, revieweeId)))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed peer settings
+  const { data: cycle } = await (supabaseAdmin as any)
+    .from("review_cycles")
+    .select("max_peer_reviews")
+    .eq("id", id)
+    .maybeSingle();
+  const { count: assigned } = await supabaseAdmin
+    .from("performance_reviews")
+    .select("id", { count: "exact", head: true })
+    .eq("cycle_id", id)
+    .eq("reviewee_id", revieweeId)
+    .eq("review_type", "peer");
+  if ((assigned ?? 0) + peerIds.length > (cycle?.max_peer_reviews ?? 3))
+    return NextResponse.json(
+      {
+        error: `A person can have at most ${cycle?.max_peer_reviews ?? 3} peer reviewers in this cycle.`,
+      },
+      { status: 400 },
+    );
   const rows = peerIds.map((peerId) => ({
     cycle_id: id,
     reviewee_id: revieweeId,

@@ -17,9 +17,12 @@ export async function POST(request: Request) {
   if (!hasCronAccess(request))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: cycles, error } = await supabaseAdmin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed deadline fields
+  const { data: cycles, error } = await (supabaseAdmin as any)
     .from("review_cycles")
-    .select("id, title, status, end_date")
+    .select(
+      "id, title, status, end_date, self_review_due_date, manager_review_due_date, peer_review_due_date",
+    )
     .in("status", [...ACTIVE_STAGES]);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -31,12 +34,22 @@ export async function POST(request: Request) {
     title: string;
     status: (typeof ACTIVE_STAGES)[number];
     end_date: string;
+    self_review_due_date: string | null;
+    manager_review_due_date: string | null;
+    peer_review_due_date: string | null;
   }[]) {
-    const daysLeft = Math.round((Date.parse(cycle.end_date) - today) / DAY_MS);
+    const dueDate =
+      cycle.status === "self_review"
+        ? cycle.self_review_due_date
+        : cycle.status === "manager_review"
+          ? cycle.manager_review_due_date
+          : cycle.peer_review_due_date;
+    if (!dueDate) continue;
+    const daysLeft = Math.round((Date.parse(dueDate) - today) / DAY_MS);
     if (daysLeft > REMINDER_WINDOW_DAYS) continue;
     reminded += await notifyOutstandingReviewers(cycle.id, cycle.status, {
       cycleTitle: cycle.title,
-      dueDate: cycle.end_date,
+      dueDate,
       overdue: daysLeft < 0,
       opening: false,
     });

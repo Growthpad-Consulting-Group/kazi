@@ -7,8 +7,13 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { ReviewForm } from "./ReviewForm";
+import type { CompetencyCriterion } from "./ReviewForm";
+import { FinalReviewFeedback } from "./FinalReviewFeedback";
+import { ReviewExportButton } from "./ReviewExportButton";
 import {
   CycleStageButton,
+  PeerNominationButton,
+  PeerNominationQueue,
   ReviewPlan,
   type PlanPerson,
   type PlanRow,
@@ -94,12 +99,51 @@ export default async function ReviewCyclePage({
     .single();
   if (!cycleData) notFound();
   const cycle = cycleData as unknown as ReviewCycleRow;
+  const canManage = can(session.user.role, "manage_reviews");
+  const resultsReleasedAt =
+    (cycle as ReviewCycleRow & { results_released_at?: string | null })
+      .results_released_at ?? null;
+  const stageDueDate = (() => {
+    const deadlines = cycle as ReviewCycleRow & {
+      self_review_due_date?: string | null;
+      manager_review_due_date?: string | null;
+      peer_review_due_date?: string | null;
+    };
+    if (cycle.status === "self_review") return deadlines.self_review_due_date;
+    if (cycle.status === "manager_review")
+      return deadlines.manager_review_due_date;
+    if (cycle.status === "peer_review") return deadlines.peer_review_due_date;
+    return null;
+  })();
+  const stageOverdue = Boolean(
+    stageDueDate && new Date(`${stageDueDate}T23:59:59`) < new Date(),
+  );
+  const cycleCriteria =
+    (
+      cycle as ReviewCycleRow & {
+        competency_template?: CompetencyCriterion[] | null;
+      }
+    ).competency_template ?? undefined;
 
-  const { data: reviewsData } = await supabaseAdmin
+  let reviewsQuery = supabaseAdmin
     .from("performance_reviews")
     .select("*")
     .eq("cycle_id", cycleId);
-  const reviews = (reviewsData ?? []) as unknown as PerformanceReview[];
+  if (!canManage)
+    reviewsQuery = reviewsQuery.or(
+      `reviewer_id.eq.${session.user.id},reviewee_id.eq.${session.user.id}`,
+    );
+  const { data: reviewsData } = await reviewsQuery;
+  const reviews = ((reviewsData ?? []) as PerformanceReview[]).filter(
+    (review) =>
+      canManage ||
+      review.reviewer_id === session.user.id ||
+      (Boolean(resultsReleasedAt) &&
+        review.reviewee_id === session.user.id &&
+        review.review_type === "manager" &&
+        Boolean(review.submitted_at)),
+  );
+  if (!canManage && reviews.length === 0) notFound();
   const myReviews = reviews.filter(
     (review) => review.reviewer_id === session.user.id && !review.submitted_at,
   );
@@ -122,12 +166,14 @@ export default async function ReviewCyclePage({
     ((usersData ?? []) as unknown as UserRow[]).map((user) => [user.id, user]),
   );
   const status = STATUS[cycle.status];
-  const canManage = can(session.user.role, "manage_reviews");
-  const { data: peopleData } = await supabaseAdmin
-    .from("users")
-    .select("id, name, job_title, manager_id")
-    .eq("is_active", true)
-    .order("name");
+  const { data: peopleData } =
+    canManage || cycle.status === "self_review"
+      ? await supabaseAdmin
+          .from("users")
+          .select("id, name, job_title, manager_id")
+          .eq("is_active", true)
+          .order("name")
+      : { data: [] };
   const people: PlanPerson[] = (
     (peopleData ?? []) as unknown as {
       id: string;
@@ -142,6 +188,20 @@ export default async function ReviewCyclePage({
     managerId: user.manager_id,
   }));
   const nameById = new Map(people.map((person) => [person.id, person.name]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table
+  const nominationsQuery = (supabaseAdmin as any)
+    .from("review_peer_nominations")
+    .select("id, reviewee_id, nominee_id, status, requested_by")
+    .eq("cycle_id", cycleId);
+  const { data: nominationsData } = canManage
+    ? await nominationsQuery.eq("status", "pending")
+    : await nominationsQuery.eq("requested_by", session.user.id);
+  const nominations = (nominationsData ?? []) as {
+    id: string;
+    reviewee_id: string;
+    nominee_id: string;
+    status: "pending" | "approved" | "rejected";
+  }[];
   const nameOf = (id: string) => nameById.get(id) ?? "Former staff";
   const planRows: PlanRow[] = people
     .filter((person) =>
@@ -175,6 +235,46 @@ export default async function ReviewCyclePage({
       type,
       count: reviews.filter((review) => review.review_type === type).length,
     }),
+  );
+  const canNominatePeer =
+    cycle.status === "self_review" &&
+    reviews.some(
+      (review) =>
+        review.reviewer_id === session.user.id && review.review_type === "self",
+    );
+  const managerRatings = reviews.filter(
+    (review) =>
+      review.review_type === "manager" &&
+      review.submitted_at &&
+      typeof review.overall_rating === "number",
+  );
+  const ratingDistribution = [1, 2, 3, 4, 5].map((rating) => ({
+    rating,
+    count: managerRatings.filter(
+      (review) => Math.round(Number(review.overall_rating)) === rating,
+    ).length,
+  }));
+  const calibrationByManager = Array.from(
+    managerRatings.reduce((result, review) => {
+      const current = result.get(review.reviewer_id) ?? {
+        total: 0,
+        count: 0,
+      };
+      current.total += Number(review.overall_rating);
+      current.count += 1;
+      result.set(review.reviewer_id, current);
+      return result;
+    }, new Map<string, { total: number; count: number }>()),
+  ).map(([managerId, values]) => ({
+    managerId,
+    name: nameOf(managerId),
+    count: values.count,
+    average: values.total / values.count,
+  }));
+  const outliers = managerRatings.filter(
+    (review) =>
+      Number(review.overall_rating) <= 2 ||
+      Number(review.overall_rating) >= 4.5,
   );
 
   return (
@@ -213,7 +313,32 @@ export default async function ReviewCyclePage({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {canManage && (
-                <CycleStageButton cycleId={cycle.id} status={cycle.status} />
+                <CycleStageButton
+                  cycleId={cycle.id}
+                  status={cycle.status}
+                  resultsReleasedAt={resultsReleasedAt}
+                  stageDueDate={stageDueDate}
+                />
+              )}
+              {canManage && resultsReleasedAt && (
+                <ReviewExportButton
+                  title={cycle.title}
+                  rows={reviews
+                    .filter(
+                      (review) =>
+                        review.review_type === "manager" && review.submitted_at,
+                    )
+                    .map((review) => ({
+                      name: users[review.reviewee_id]?.name ?? "Former staff",
+                      jobTitle: users[review.reviewee_id]?.job_title ?? "",
+                      reviewType: "Manager review",
+                      reviewer: nameOf(review.reviewer_id),
+                      rating: review.overall_rating,
+                      strengths: review.strengths ?? "",
+                      developmentAreas: review.development_areas ?? "",
+                      submittedAt: review.submitted_at,
+                    }))}
+                />
               )}
               <Link
                 href="/pulse/reviews"
@@ -262,30 +387,182 @@ export default async function ReviewCyclePage({
             subtitle={date(cycle.end_date, { year: "numeric" })}
           />
         </section>
+        {canManage && managerRatings.length > 0 && (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                  Calibration snapshot
+                </h2>
+                <p className="mt-1 text-xs text-[var(--text-lo)]">
+                  Use this to compare manager scoring before you release final
+                  feedback.
+                </p>
+              </div>
+              <span className="rounded-lg bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-700">
+                {managerRatings.length} manager rating
+                {managerRatings.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+              <div className="rounded-xl bg-[var(--surface-2)] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">
+                  Rating distribution
+                </p>
+                <div className="mt-3 flex items-end gap-2">
+                  {ratingDistribution.map(({ rating, count }) => {
+                    const height = Math.max(
+                      8,
+                      (count /
+                        Math.max(
+                          ...ratingDistribution.map((item) => item.count),
+                          1,
+                        )) *
+                        56,
+                    );
+                    return (
+                      <div
+                        key={rating}
+                        className="flex flex-1 flex-col items-center gap-1.5"
+                      >
+                        <span className="text-[10px] font-semibold text-[var(--text-lo)]">
+                          {count}
+                        </span>
+                        <span
+                          className="w-full rounded-t-md bg-gradient-to-t from-brand-500 to-orange-400"
+                          style={{ height }}
+                        />
+                        <span className="text-[10px] text-[var(--text-lo)]">
+                          {rating}/5
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="rounded-xl bg-[var(--surface-2)] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">
+                  Manager comparison
+                </p>
+                <div className="mt-2 space-y-2">
+                  {calibrationByManager.map((manager) => (
+                    <div
+                      key={manager.managerId}
+                      className="flex items-center justify-between gap-3 text-xs"
+                    >
+                      <span className="truncate text-[var(--text-hi)]">
+                        {manager.name}
+                      </span>
+                      <span className="shrink-0 font-mono font-semibold text-brand-500">
+                        {manager.average.toFixed(1)}/5{" "}
+                        <span className="font-normal text-[var(--text-lo)]">
+                          · {manager.count}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {outliers.length > 0 && (
+              <p className="mt-3 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                {outliers.length} rating
+                {outliers.length === 1 ? " is" : "s are"} at the edge of the
+                scale (≤2 or ≥4.5). Review the supporting examples before
+                release.
+              </p>
+            )}
+          </section>
+        )}
+        {stageDueDate && (
+          <section
+            className={`flex items-center justify-between rounded-2xl border p-4 ${stageOverdue ? "border-red-500/20 bg-red-500/[0.05]" : "border-blue-500/20 bg-blue-500/[0.05]"}`}
+          >
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-hi)]">
+                {stageOverdue
+                  ? "Current stage is overdue"
+                  : "Current stage deadline"}
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-lo)]">
+                {STATUS[cycle.status].label} is due {date(stageDueDate)}.
+              </p>
+            </div>
+            <span
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${stageOverdue ? "bg-red-500/10 text-red-600" : "bg-blue-500/10 text-blue-600"}`}
+            >
+              {stageOverdue ? "Overdue" : "Due soon"}
+            </span>
+          </section>
+        )}
 
-        <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-          <div className="border-b border-[var(--border)] px-5 py-4">
-            <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-              Review plan
-            </h2>
-            <p className="mt-1 text-xs text-[var(--text-lo)]">
-              Who is reviewing whom. Managers can add peers for their direct
-              reports.
-            </p>
-          </div>
-          <div className="px-5">
-            <ReviewPlan
-              cycleId={cycle.id}
-              rows={planRows}
-              people={people}
-              canAssignAll={canManage}
-              currentUserId={session.user.id}
+        {canNominatePeer && (
+          <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-hi)]">
+                Peer feedback
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-lo)]">
+                Nominate colleagues who can give meaningful feedback. Approval
+                is handled by your manager or HR.
+              </p>
+            </div>
+            <PeerNominationButton
+              cycleId={cycleId}
+              people={people.filter((person) => person.id !== session.user.id)}
+              nominatedIds={nominations
+                .filter((nomination) => nomination.status !== "rejected")
+                .map((nomination) => nomination.nominee_id)}
             />
-          </div>
-        </section>
+          </section>
+        )}
+
+        {canManage && (
+          <PeerNominationQueue
+            cycleId={cycleId}
+            nominations={nominations.map((nomination) => ({
+              id: nomination.id,
+              revieweeName: nameOf(nomination.reviewee_id),
+              nomineeName: nameOf(nomination.nominee_id),
+            }))}
+          />
+        )}
+
+        {canManage && (
+          <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+            <div className="border-b border-[var(--border)] px-5 py-4">
+              <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                Review plan
+              </h2>
+              <p className="mt-1 text-xs text-[var(--text-lo)]">
+                Who is reviewing whom. HR can manage peer assignments.
+              </p>
+            </div>
+            <div className="px-5">
+              <ReviewPlan
+                cycleId={cycle.id}
+                rows={planRows}
+                people={people}
+                canAssignAll={canManage}
+                currentUserId={session.user.id}
+              />
+            </div>
+          </section>
+        )}
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
           <main className="min-w-0 space-y-5">
+            {resultsReleasedAt &&
+              reviews
+                .filter(
+                  (review) =>
+                    review.reviewee_id === session.user.id &&
+                    review.review_type === "manager" &&
+                    review.submitted_at,
+                )
+                .map((review) => (
+                  <FinalReviewFeedback key={review.id} review={review} />
+                ))}
             {myReviews.length > 0 ? (
               <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
                 <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
@@ -331,6 +608,7 @@ export default async function ReviewCyclePage({
                           cycleId={cycleId}
                           revieweeId={review.reviewee_id}
                           reviewType={review.review_type as ReviewType}
+                          criteria={cycleCriteria}
                         />
                       </article>
                     );

@@ -20,34 +20,55 @@ export default async function PipsPage() {
   if (!session) return null;
   const { id: userId, role } = session.user;
   const isManager = can(role, "manage_pips");
+  const isHr = role === "admin" || role === "hr";
   const [pipsResult, reportsResult] = await Promise.all([
-    isManager
+    isHr
       ? supabaseAdmin
           .from("pips")
           .select("*")
-          .or(`user_id.eq.${userId},manager_id.eq.${userId}`)
           .order("created_at", { ascending: false })
-      : supabaseAdmin
-          .from("pips")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false }),
-    isManager
+      : isManager
+        ? supabaseAdmin
+            .from("pips")
+            .select("*")
+            .or(`user_id.eq.${userId},manager_id.eq.${userId}`)
+            .order("created_at", { ascending: false })
+        : supabaseAdmin
+            .from("pips")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false }),
+    isHr
       ? supabaseAdmin
           .from("users")
           .select("id, name")
-          .eq("manager_id", userId)
           .eq("is_active", true)
-      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+          .order("name")
+      : isManager
+        ? supabaseAdmin
+            .from("users")
+            .select("id, name")
+            .eq("manager_id", userId)
+            .eq("is_active", true)
+        : Promise.resolve({ data: [] as { id: string; name: string }[] }),
   ]);
   const pips = (pipsResult.data ?? []) as unknown as Pip[];
   const reports = (reportsResult.data ?? []) as { id: string; name: string }[];
   const names = new Map(reports.map((report) => [report.id, report.name]));
   const myPips = pips.filter((pip) => pip.user_id === userId);
-  const teamPips = pips.filter(
-    (pip) => pip.manager_id === userId && pip.user_id !== userId,
+  const teamPips = isHr
+    ? pips.filter((pip) => pip.user_id !== userId)
+    : pips.filter((pip) => pip.manager_id === userId && pip.user_id !== userId);
+  const active = pips.filter(
+    (pip) =>
+      !pip.resolved_at &&
+      Boolean((pip as Pip & { activated_at?: string | null }).activated_at),
   );
-  const active = pips.filter((pip) => !pip.resolved_at);
+  const awaitingAcknowledgement = pips.filter(
+    (pip) =>
+      !pip.resolved_at &&
+      !(pip as Pip & { activated_at?: string | null }).activated_at,
+  );
   const resolved = pips.filter((pip) => Boolean(pip.resolved_at));
   const dueForReview = active.filter(
     (pip) =>
@@ -62,7 +83,7 @@ export default async function PipsPage() {
     <>
       <SetPageHeader
         title="Performance support plans"
-        description={`${active.length} active plan${active.length === 1 ? "" : "s"} · structured support and clear follow-through`}
+        description={`${active.length} active plan${active.length === 1 ? "" : "s"}${awaitingAcknowledgement.length ? ` · ${awaitingAcknowledgement.length} awaiting acknowledgement` : ""} · structured support and clear follow-through`}
         icon="solar:heart-pulse-broken"
         trailing={
           isManager && reports.length ? (
@@ -118,8 +139,12 @@ export default async function PipsPage() {
               names={names}
             />
             <PipSection
-              title="Team support plans"
-              description="Support plans you are accountable for as a manager."
+              title={isHr ? "Organisation support plans" : "Team support plans"}
+              description={
+                isHr
+                  ? "Active support plans across the organisation."
+                  : "Support plans you are accountable for as a manager."
+              }
               pips={teamPips}
               names={names}
             />
@@ -185,7 +210,9 @@ function PipCard({ pip, name }: { pip: Pip; name?: string }) {
   const total = pip.actions.length;
   const done = pip.actions.filter((action) => action.done).length;
   const progress = total ? Math.round((done / total) * 100) : 0;
-  const active = !pip.resolved_at;
+  const active =
+    !pip.resolved_at &&
+    Boolean((pip as Pip & { activated_at?: string | null }).activated_at);
   return (
     <Link
       href={`/pulse/pips/${pip.id}`}
@@ -207,7 +234,11 @@ function PipCard({ pip, name }: { pip: Pip; name?: string }) {
         <span
           className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold ${active ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}
         >
-          {active ? "Active" : "Resolved"}
+          {pip.resolved_at
+            ? "Resolved"
+            : active
+              ? "Active"
+              : "Awaiting acknowledgement"}
         </span>
       </div>
       <div className="mt-4 flex items-center gap-2">
