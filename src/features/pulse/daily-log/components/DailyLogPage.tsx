@@ -104,19 +104,29 @@ function cacheActiveTimer(timer: ActiveTimer | null) {
   window.dispatchEvent(new Event(activeTimerTabEvent));
 }
 
+type SharedTimerState = {
+  timer: SharedActiveTimer | null;
+  /** Entry written when the page's timer was stopped elsewhere. */
+  stopped: DailyLogEntry | null;
+};
+
 /** undefined means the timer API could not be reached. */
-async function fetchSharedTimer(): Promise<
-  SharedActiveTimer | null | undefined
-> {
+async function fetchSharedTimer(
+  stoppedTimerId?: string,
+): Promise<SharedTimerState | undefined> {
   try {
-    const response = await fetch("/api/pulse/daily-log/timer", {
+    const query = stoppedTimerId
+      ? `?stoppedTimerId=${encodeURIComponent(stoppedTimerId)}`
+      : "";
+    const response = await fetch(`/api/pulse/daily-log/timer${query}`, {
       cache: "no-store",
     });
     if (!response.ok) return undefined;
     const json = (await response.json()) as {
       timer?: SharedActiveTimer | null;
+      stopped?: DailyLogEntry | null;
     };
-    return json.timer ?? null;
+    return { timer: json.timer ?? null, stopped: json.stopped ?? null };
   } catch {
     return undefined;
   }
@@ -324,7 +334,10 @@ export function DailyLogPage({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- date changes must show loading while the selected log is fetched.
     setLoading(true);
     const sharedTimerRequest = isReviewer
-      ? Promise.resolve<SharedActiveTimer | null | undefined>(null)
+      ? Promise.resolve<SharedTimerState | undefined>({
+          timer: null,
+          stopped: null,
+        })
       : fetchSharedTimer();
     Promise.all([
       fetch(`/api/pulse/daily-log?date=${date}`).then((res) => res.json()),
@@ -341,7 +354,7 @@ export function DailyLogPage({
             wins?: string | null;
             error?: string;
           },
-          SharedActiveTimer | null | undefined,
+          SharedTimerState | undefined,
         ]) => {
           if (cancelled) return;
           if (json.error) throw new Error(json.error);
@@ -352,8 +365,8 @@ export function DailyLogPage({
               ? isReviewer
                 ? null
                 : getStoredTimer(date)
-              : sharedTimer?.logDate === date
-                ? activeTimerFromShared(sharedTimer)
+              : sharedTimer.timer?.logDate === date
+                ? activeTimerFromShared(sharedTimer.timer)
                 : null;
           const loadedRows = loaded.length
             ? loaded.map((entry) => ({
@@ -400,7 +413,7 @@ export function DailyLogPage({
     let cancelled = false;
     let inFlight = false;
 
-    const reconcile = (shared: SharedActiveTimer | null) => {
+    const reconcile = ({ timer: shared, stopped }: SharedTimerState) => {
       const current = activeTimerRef.current;
       const matching = shared?.logDate === date ? shared : null;
 
@@ -408,7 +421,26 @@ export function DailyLogPage({
         // Stopped, or replaced, somewhere else.
         cacheActiveTimer(null);
         setActiveTimer(null);
-        if (isDirtyRef.current) {
+        if (stopped) {
+          // The server already wrote the entry, so show its duration in this
+          // row instead of asking for a refresh.
+          setRows((rows) =>
+            rows.map((row) =>
+              row.id === current.rowId
+                ? {
+                    ...row,
+                    showRange: false,
+                    startTime: "",
+                    endTime: "",
+                    minutes: formatMinutes(stopped.minutes),
+                  }
+                : row,
+            ),
+          );
+          toast.success(
+            `Timer stopped in another window at ${formatMinutes(stopped.minutes)}.`,
+          );
+        } else if (isDirtyRef.current) {
           setNeedsRefresh(true);
           toast.error(
             "Your timer was stopped in another window. Refresh this log before saving.",
@@ -436,7 +468,7 @@ export function DailyLogPage({
       if (inFlight || pendingTimerRequests.current > 0) return;
       inFlight = true;
       const requestedAt = Date.now();
-      const shared = await fetchSharedTimer();
+      const shared = await fetchSharedTimer(activeTimerRef.current?.id);
       inFlight = false;
       if (cancelled || shared === undefined) return;
       if (

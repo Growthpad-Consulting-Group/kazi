@@ -49,6 +49,11 @@ export async function OPTIONS(request: Request) {
   return extensionCors(request, new NextResponse(null, { status: 204 }));
 }
 
+/**
+ * Reads the active timer. When the caller passes the id of a timer it was
+ * showing and that timer is gone, the response includes the entry written when
+ * it was stopped, so the caller can show the duration without a reload.
+ */
 export async function GET(request: Request) {
   const owner = await timerOwner(request);
   if (!owner) return respond(request, null, { error: "Unauthorized" }, 401);
@@ -59,7 +64,24 @@ export async function GET(request: Request) {
     .maybeSingle();
   if (error)
     return respond(request, owner, { error: "Could not load timer" }, 500);
-  return respond(request, owner, { timer: data?.timer ?? null });
+
+  const stoppedTimerId = new URL(request.url).searchParams.get(
+    "stoppedTimerId",
+  );
+  let stopped: DailyLogEntry | null = null;
+  if (!data?.timer && stoppedTimerId && UUID_PATTERN.test(stoppedTimerId)) {
+    const { data: claim } = await db
+      .from("shared_timer_stops")
+      .select("entry")
+      .eq("user_id", owner.userId)
+      .eq("timer_id", stoppedTimerId)
+      .maybeSingle();
+    stopped = (claim?.entry as DailyLogEntry | undefined) ?? null;
+  }
+  return respond(request, owner, {
+    timer: data?.timer ?? null,
+    stopped,
+  });
 }
 
 /** Start a timer. Re-sending the same timer id is an idempotent update. */

@@ -231,4 +231,33 @@ describe("shared timer API", () => {
     expect(again.status).toBe(200);
     expect(store.tables.shared_active_timers).toHaveLength(1);
   });
+
+  it("reports the entry for a timer stopped elsewhere to the tab that was showing it", async () => {
+    await PUT(request("PUT", { timer: timer() }));
+    await POST(request("POST", { action: "stop", timerId: TIMER_ID }));
+
+    const read = await (
+      await GET(
+        new Request(
+          `https://kazi.test/api/pulse/daily-log/timer?stoppedTimerId=${TIMER_ID}`,
+        ),
+      )
+    ).json();
+
+    expect(read.timer).toBeNull();
+    expect(read.stopped).toMatchObject({ task: "Client call", minutes: 30 });
+  });
+
+  it("does not report a stop while a timer is still active", async () => {
+    await PUT(request("PUT", { timer: timer() }));
+    const read = await (
+      await GET(
+        new Request(
+          `https://kazi.test/api/pulse/daily-log/timer?stoppedTimerId=${TIMER_ID}`,
+        ),
+      )
+    ).json();
+    expect(read.timer).not.toBeNull();
+    expect(read.stopped).toBeNull();
+  });
 });
