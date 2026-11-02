@@ -354,6 +354,44 @@ async function disconnectKazi() {
   await chrome.storage.local.set({ disconnectedByUser: true });
 }
 
+// Today's logged tasks for the popup list.
+async function listToday() {
+  const token = await tokenValue();
+  if (!token) return { entries: [], editable: false, connected: false };
+  const date = localDate(new Date().toISOString());
+  const response = await fetch(
+    `${KAZI_URL}/api/extensions/kazi-timer/today?date=${date}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  ).catch(() => null);
+  if (!response?.ok)
+    return {
+      entries: [],
+      editable: false,
+      connected: true,
+      error: "Could not load today's tasks",
+    };
+  return { ...(await response.json()), date, connected: true };
+}
+
+async function deleteTodayEntry({ date, index, task }) {
+  const token = await tokenValue();
+  if (!token) return { error: "Connect Kazi to change today's tasks." };
+  const response = await fetch(`${KAZI_URL}/api/extensions/kazi-timer/today`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ date, index, task }),
+  }).catch(() => null);
+  if (!response) return { error: OFFLINE_MESSAGE };
+  if (!response.ok) {
+    const json = await readJson(response);
+    return { error: json?.error || "Could not delete this task" };
+  }
+  return { ok: true };
+}
+
 async function getClients() {
   const token = await tokenValue();
   if (!token) return { clients: [] };
@@ -469,6 +507,10 @@ async function handleMessage(message) {
     return { connected: true, ...(await connectKazi()) };
 
   if (message.type === "get-clients") return getClients();
+
+  if (message.type === "list-today") return listToday();
+
+  if (message.type === "delete-entry") return deleteTodayEntry(message);
 
   if (message.type === "mini-get-state") return miniTimerState();
 

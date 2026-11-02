@@ -564,3 +564,85 @@ describe("Kazi Timer automatic reconnect", () => {
     expect(local.installId).toMatch(/^[0-9a-f-]{36}$/);
   });
 });
+
+describe("Kazi Timer today's tasks", () => {
+  it("lists today's logged tasks when connected", async () => {
+    session.kaziAccessToken = "token";
+    globalThis.fetch = vi.fn(async () =>
+      jsonResponse(200, {
+        entries: [
+          {
+            index: 0,
+            task: "Client call",
+            client: "Acme",
+            category: "Meetings",
+            minutes: 35,
+          },
+        ],
+        editable: true,
+      }),
+    );
+    await loadWorker();
+
+    const today = await message({ type: "list-today" });
+
+    expect(today.connected).toBe(true);
+    expect(today.entries[0]).toMatchObject({
+      task: "Client call",
+      minutes: 35,
+    });
+    expect(globalThis.fetch.mock.calls[0][0]).toMatch(
+      /\/api\/extensions\/kazi-timer\/today\?date=\d{4}-\d{2}-\d{2}$/,
+    );
+  });
+
+  it("reports not connected without a token", async () => {
+    await loadWorker();
+    expect(await message({ type: "list-today" })).toEqual({
+      entries: [],
+      editable: false,
+      connected: false,
+    });
+  });
+
+  it("deletes a row by index and task", async () => {
+    session.kaziAccessToken = "token";
+    globalThis.fetch = vi.fn(async () => jsonResponse(200, { ok: true }));
+    await loadWorker();
+
+    const result = await message({
+      type: "delete-entry",
+      date: "2026-11-02",
+      index: 2,
+      task: "Remove Job ad",
+    });
+
+    expect(result).toEqual({ ok: true });
+    const [, init] = globalThis.fetch.mock.calls[0];
+    expect(init.method).toBe("DELETE");
+    expect(JSON.parse(init.body)).toEqual({
+      date: "2026-11-02",
+      index: 2,
+      task: "Remove Job ad",
+    });
+  });
+
+  it("shows the server's message when the row changed", async () => {
+    session.kaziAccessToken = "token";
+    globalThis.fetch = vi.fn(async () =>
+      jsonResponse(409, {
+        error: "The log changed. Refresh the list and try again.",
+      }),
+    );
+    await loadWorker();
+
+    const result = await message({
+      type: "delete-entry",
+      date: "2026-11-02",
+      index: 0,
+      task: "Old",
+    });
+
+    expect(result.error).toMatch(/log changed/);
+  });
+});

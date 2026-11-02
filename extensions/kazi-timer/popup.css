@@ -284,3 +284,36 @@ footer span {
   color: var(--muted, #71717a);
   font-size: 12px;
 }
+
+.today {
+  margin: 12px 0;
+}
+.today ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+.today li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #e4e4e7;
+}
+.today-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12px;
+}
+.today-meta strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}

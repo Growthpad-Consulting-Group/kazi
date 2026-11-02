@@ -124,6 +124,85 @@ function send(type, values = {}) {
   return chrome.runtime.sendMessage({ type, ...values });
 }
 
+function formatMinutes(total) {
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  return hours && minutes
+    ? `${hours}h ${minutes}m`
+    : hours
+      ? `${hours}h`
+      : `${minutes}m`;
+}
+
+// Today's logged tasks. Resume starts a new session for the task; stopping it
+// adds the time to the same row. Delete removes the row from today's log.
+async function renderToday() {
+  const today = await send("list-today");
+  const list = $("#today-list");
+  const empty = $("#today-empty");
+  list.replaceChildren();
+  $("#today").hidden = !today.connected;
+  if (!today.connected) return;
+  if (today.error) {
+    $("#notice").textContent = today.error;
+  }
+  empty.hidden = Boolean(today.entries?.length);
+  for (const entry of today.entries || []) {
+    const item = document.createElement("li");
+    const meta = document.createElement("div");
+    meta.className = "today-meta";
+    const name = document.createElement("strong");
+    name.textContent = entry.task;
+    const details = document.createElement("span");
+    details.textContent = [entry.client, formatMinutes(entry.minutes)]
+      .filter(Boolean)
+      .join(" · ");
+    meta.append(name, details);
+    const actions = document.createElement("div");
+    actions.className = "today-actions";
+    const resume = document.createElement("button");
+    resume.type = "button";
+    resume.className = "secondary";
+    resume.textContent = "Resume";
+    resume.disabled = Boolean(activeTimer) || !today.editable;
+    resume.addEventListener("click", async () => {
+      const result = await send("start", {
+        task: entry.task,
+        client: entry.client || "",
+        category: entry.category,
+      });
+      if (result.error) {
+        $("#notice").textContent = result.error;
+        return;
+      }
+      await load();
+    });
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "link";
+    remove.textContent = "Delete";
+    remove.disabled = !today.editable;
+    remove.addEventListener("click", async () => {
+      if (
+        !confirm(
+          `Delete "${entry.task}" (${formatMinutes(entry.minutes)}) from today's log?`,
+        )
+      )
+        return;
+      const result = await send("delete-entry", {
+        date: today.date,
+        index: entry.index,
+        task: entry.task,
+      });
+      $("#notice").textContent = result.error || "Deleted from today's log.";
+      await renderToday();
+    });
+    actions.append(resume, remove);
+    item.append(meta, actions);
+    list.append(item);
+  }
+}
+
 async function load() {
   const state = await send("get-state");
   activeTimer = state.timer || null;
@@ -144,6 +223,7 @@ async function load() {
   render();
   clearInterval(ticker);
   ticker = setInterval(render, 1000);
+  await renderToday();
 }
 
 $("#start-form").addEventListener("submit", async (event) => {
