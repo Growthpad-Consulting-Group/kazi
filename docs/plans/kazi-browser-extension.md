@@ -44,6 +44,13 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [ ] Restore a still-valid extension session automatically on browser startup without showing Connect Kazi again.
 - [ ] Show Connect Kazi only when the extension has no valid session or the staff member explicitly disconnects.
 
+### P3 — Cross-browser distribution
+
+- [ ] Validate and document Microsoft Edge deployment through Edge for Business / Chromium enterprise policies.
+- [ ] Package and test a Firefox build, including its identity redirect and Mozilla Add-ons signing requirements.
+- [ ] Assess a Safari Web Extension wrapper, Apple signing, and managed macOS distribution.
+- [ ] Publish a supported-browser matrix; treat Brave, Arc and Opera as unverified Chromium compatibility until tested.
+
 ## Phase 1 — toolbar timer
 
 Build a Chrome/Edge Manifest V3 extension that provides:

@@ -131,7 +131,7 @@ async function load() {
   $("#queued").textContent = state.queued ? `${state.queued} queued` : "";
   $("#connect").textContent = state.connected ? "Disconnect" : "Connect Kazi";
   $("#notice").textContent = state.connected
-    ? "Stopped tasks sync to your Kazi daily log. Your connection expires when you close the browser."
+    ? "Completed timers sync to your Kazi daily log. Your connection stays active for this browser session."
     : activeTimer?.source === "kazi"
       ? "This timer is running in Kazi. Connect Kazi to pause, resume, or stop it from your toolbar."
       : "Connect Kazi to sync completed entries. Until then, they stay only in this browser.";

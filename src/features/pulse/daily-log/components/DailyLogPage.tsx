@@ -565,11 +565,9 @@ export function DailyLogPage({
       toast.error("Stop the current timer before starting another one.");
       return;
     }
-    if ((rowMinutes(row) ?? 0) > 0) {
-      toast.error("Clear this row's duration before starting a timer on it.");
-      return;
-    }
     const startedAt = Date.now();
+    const accumulatedMs =
+      (row.trackedSeconds ?? (rowMinutes(row) ?? 0) * 60) * 1000;
     const id = crypto.randomUUID();
     const shared: SharedActiveTimer = {
       id,
@@ -578,7 +576,7 @@ export function DailyLogPage({
       client: row.client.trim() || null,
       category: row.category,
       startedAt: new Date(startedAt).toISOString(),
-      accumulatedMs: 0,
+      accumulatedMs,
       running: true,
       source: "kazi",
       updatedAt: new Date(startedAt).toISOString(),
@@ -1312,11 +1310,7 @@ export function DailyLogPage({
                           <button
                             type="button"
                             onClick={() => startTimer(index)}
-                            disabled={
-                              Boolean(activeTimer) ||
-                              !row.task.trim() ||
-                              (rowMinutes(row) ?? 0) > 0
-                            }
+                            disabled={Boolean(activeTimer) || !row.task.trim()}
                             className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-brand-500 hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-35"
                             aria-label={`Start timer for ${row.task || "activity"}`}
                             title="Start timer"
