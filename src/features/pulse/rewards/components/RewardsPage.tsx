@@ -661,6 +661,14 @@ type WeekPoints = {
   earners: { name: string; points: number; avatarUrl: string | null }[];
 };
 const EMPTY_WEEK_POINTS: WeekPoints = { total: 0, awards: 0, earners: [] };
+const NON_AWARD_LEDGER_ENTRIES = new Set([
+  "wallet_reconciliation",
+  "manual_balance_clearance",
+  "automation_reversal",
+  "redemption",
+  "redemption_refund",
+  "point_expiry",
+]);
 
 async function loadWeekPoints(): Promise<WeekPoints> {
   const weekPoints: WeekPoints = { total: 0, awards: 0, earners: [] };
@@ -668,10 +676,13 @@ async function loadWeekPoints(): Promise<WeekPoints> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reward_ledger is not in the generated types
   const { data: ledger } = await (supabaseAdmin as any)
     .from("reward_ledger")
-    .select("user_id, amount")
+    .select("user_id, amount, reference_type")
     .gt("amount", 0)
     .gte("created_at", since);
-  const rows = (ledger ?? []) as { user_id: string; amount: number }[];
+  const rows = (ledger ?? []).filter(
+    (row: { reference_type: string | null }) =>
+      !NON_AWARD_LEDGER_ENTRIES.has(row.reference_type ?? ""),
+  ) as { user_id: string; amount: number }[];
   const byUser = new Map<string, number>();
   for (const row of rows) {
     weekPoints.total += row.amount;
