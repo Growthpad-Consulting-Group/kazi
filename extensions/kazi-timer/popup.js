@@ -185,6 +185,65 @@ $("#stop").addEventListener("click", async () => {
   await load();
 });
 
+function renderMiniSites(state) {
+  $("#mini-enabled").checked = state.enabled;
+  $("#mini-add").disabled = !state.enabled;
+  const list = $("#mini-sites");
+  list.replaceChildren();
+  for (const origin of state.sites) {
+    const item = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = origin.replace(/^https?:\/\//, "");
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "link";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => removeMiniSite(origin));
+    item.append(label, remove);
+    list.append(item);
+  }
+}
+
+async function loadMiniTimer() {
+  renderMiniSites(await send("mini-get-state"));
+}
+
+async function removeMiniSite(origin) {
+  await chrome.permissions.remove({ origins: [`${origin}/*`] }).catch(() => {});
+  renderMiniSites(await send("mini-set-site", { origin, enabled: false }));
+}
+
+$("#mini-enabled").addEventListener("change", async (event) => {
+  const state = await send("mini-set-enabled", {
+    enabled: event.target.checked,
+  });
+  renderMiniSites(state);
+});
+
+$("#mini-add").addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  let origin = null;
+  try {
+    origin = new URL(tab?.url || "").origin;
+  } catch {
+    origin = null;
+  }
+  if (!origin || !origin.startsWith("https://")) {
+    $("#notice").textContent =
+      "Open a secure (https) site, then choose Show on this site.";
+    return;
+  }
+  // Requested directly from the click so Chrome can show its prompt.
+  const granted = await chrome.permissions.request({
+    origins: [`${origin}/*`],
+  });
+  if (!granted) {
+    $("#notice").textContent = `Access to ${origin} was not allowed.`;
+    return;
+  }
+  renderMiniSites(await send("mini-set-site", { origin, enabled: true }));
+});
+
 $("#open-kazi").addEventListener("click", () =>
   chrome.tabs.create({ url: KAZI_URL }),
 );
@@ -257,3 +316,4 @@ $("#connect").addEventListener("click", async () => {
   }
 });
 load();
+loadMiniTimer();

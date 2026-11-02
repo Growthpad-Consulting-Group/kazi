@@ -74,6 +74,23 @@
         </div>
         <button class="primary" type="submit">Start timer</button>
       </form>
+      <details class="floating" id="floating">
+        <summary>Floating timer (optional)</summary>
+        <label class="check">
+          <input type="checkbox" id="mini-enabled" />
+          Show a small timer on sites I choose
+        </label>
+        <button class="secondary" id="mini-add" type="button">
+          Show on this site
+        </button>
+        <ul id="mini-sites"></ul>
+        <p class="privacy">
+          The floating timer shows only your active Kazi timer and its controls.
+          It never reads page content, form fields, browsing history or
+          credentials. Chrome asks for access to each site you add, and you can
+          remove it at any time.
+        </p>
+      </details>
       <p class="notice" id="notice">
         Connect Kazi to sync completed entries. Until then, they stay only in
         this browser.

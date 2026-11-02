@@ -58,6 +58,11 @@ beforeEach(() => {
       create: vi.fn().mockResolvedValue(undefined),
       onAlarm: event("alarm"),
     },
+    tabs: {
+      query: vi.fn(async () => []),
+      onUpdated: event("tabUpdated"),
+    },
+    scripting: { executeScript: vi.fn(async () => []) },
     action: {
       setBadgeText: vi.fn().mockResolvedValue(undefined),
       setBadgeBackgroundColor: vi.fn().mockResolvedValue(undefined),
@@ -366,5 +371,100 @@ describe("Kazi Timer shared timer flow", () => {
     expect(state.timer.accumulatedMs).toBe(60_000);
     expect(state.timer.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(local.timer.accumulatedMs).toBe(60_000);
+  });
+});
+
+describe("Kazi Timer floating timer opt-in", () => {
+  const ASANA = "https://app.asana.com";
+  let injected;
+
+  beforeEach(() => {
+    injected = [];
+    chromeMock.tabs = {
+      query: vi.fn(async () => [
+        { id: 7, url: `${ASANA}/0/123/list` },
+        { id: 8, url: "https://example.com/page" },
+      ]),
+      onUpdated: event("tabUpdated"),
+    };
+    chromeMock.scripting = {
+      executeScript: vi.fn(async ({ target }) => {
+        injected.push(target.tabId);
+      }),
+    };
+  });
+
+  it("is off by default and injects nothing on navigation", async () => {
+    await loadWorker();
+    await listeners.tabUpdated(
+      7,
+      { status: "complete" },
+      { url: `${ASANA}/0/123` },
+    );
+    expect(chromeMock.scripting.executeScript).not.toHaveBeenCalled();
+  });
+
+  it("injects into open tabs of a site once it is chosen", async () => {
+    await loadWorker();
+    await message({ type: "mini-set-enabled", enabled: true });
+
+    const state = await message({
+      type: "mini-set-site",
+      origin: ASANA,
+      enabled: true,
+    });
+
+    expect(state.sites).toEqual([ASANA]);
+    expect(injected).toEqual([7]);
+  });
+
+  it("injects on navigation only for chosen sites while enabled", async () => {
+    await loadWorker();
+    await message({ type: "mini-set-enabled", enabled: true });
+    await message({ type: "mini-set-site", origin: ASANA, enabled: true });
+    injected.length = 0;
+
+    await listeners.tabUpdated(
+      8,
+      { status: "complete" },
+      { url: "https://example.com/page" },
+    );
+    await listeners.tabUpdated(
+      7,
+      { status: "loading" },
+      { url: `${ASANA}/0/123` },
+    );
+    await listeners.tabUpdated(
+      7,
+      { status: "complete" },
+      { url: `${ASANA}/0/123` },
+    );
+
+    expect(injected).toEqual([7]);
+  });
+
+  it("stops injecting when the site is removed or the opt-in is turned off", async () => {
+    await loadWorker();
+    await message({ type: "mini-set-enabled", enabled: true });
+    await message({ type: "mini-set-site", origin: ASANA, enabled: true });
+    await message({ type: "mini-set-site", origin: ASANA, enabled: false });
+    injected.length = 0;
+
+    await listeners.tabUpdated(
+      7,
+      { status: "complete" },
+      { url: `${ASANA}/0/123` },
+    );
+    expect(injected).toEqual([]);
+
+    await message({ type: "mini-set-site", origin: ASANA, enabled: true });
+    await message({ type: "mini-set-enabled", enabled: false });
+    injected.length = 0;
+    await listeners.tabUpdated(
+      7,
+      { status: "complete" },
+      { url: `${ASANA}/0/123` },
+    );
+    expect(injected).toEqual([]);
   });
 });

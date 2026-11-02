@@ -326,6 +326,48 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 chrome.storage.onChanged.addListener(refreshBadge);
 
+// Floating timer (opt-in). Off by default. Only sites the staff member has
+// chosen, and for which Chrome has granted access, get the overlay script.
+const MINI_ENABLED_KEY = "miniTimerEnabled";
+const MINI_SITES_KEY = "miniTimerSites";
+const MINI_SCRIPT = "content/mini-timer.js";
+
+async function miniTimerState() {
+  const { [MINI_ENABLED_KEY]: enabled = false, [MINI_SITES_KEY]: sites = [] } =
+    await chrome.storage.local.get([MINI_ENABLED_KEY, MINI_SITES_KEY]);
+  return { enabled: enabled === true, sites };
+}
+
+async function injectMiniTimer(tabId) {
+  await chrome.scripting
+    .executeScript({ target: { tabId }, files: [MINI_SCRIPT] })
+    .catch(() => {});
+}
+
+async function injectIntoSite(origin) {
+  const tabs = await chrome.tabs.query({});
+  await Promise.all(
+    tabs
+      .filter((tab) => tab.id && tab.url && originOf(tab.url) === origin)
+      .map((tab) => injectMiniTimer(tab.id)),
+  );
+}
+
+function originOf(url) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status !== "complete" || !tab.url) return;
+  const { enabled, sites } = await miniTimerState();
+  if (enabled && sites.includes(originOf(tab.url)))
+    await injectMiniTimer(tabId);
+});
+
 async function handleMessage(message) {
   if (message.type === "get-state") {
     const timer = await refreshFromServer();
@@ -343,6 +385,25 @@ async function handleMessage(message) {
     return { connected: true, ...(await connectKazi()) };
 
   if (message.type === "get-clients") return getClients();
+
+  if (message.type === "mini-get-state") return miniTimerState();
+
+  if (message.type === "mini-set-enabled") {
+    await chrome.storage.local.set({ [MINI_ENABLED_KEY]: message.enabled });
+    return miniTimerState();
+  }
+
+  if (message.type === "mini-set-site") {
+    // The popup requests or removes the Chrome permission. The worker keeps
+    // the list and injects the overlay into tabs already open on that site.
+    const { sites } = await miniTimerState();
+    const next = message.enabled
+      ? [...new Set([...sites, message.origin])]
+      : sites.filter((origin) => origin !== message.origin);
+    await chrome.storage.local.set({ [MINI_SITES_KEY]: next });
+    if (message.enabled) await injectIntoSite(message.origin);
+    return miniTimerState();
+  }
 
   if (message.type === "disconnect") {
     await disconnectKazi();

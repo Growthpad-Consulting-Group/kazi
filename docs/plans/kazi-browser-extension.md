@@ -21,11 +21,11 @@ Make active daily-log timing visible and controllable while staff work outside K
 
 ### P1 — V2 optional cross-site mini timer
 
-- [ ] Add an explicit opt-in for the floating mini timer; it must be disabled by default.
-- [ ] Let staff choose permitted sites individually. Request host permission only after they select a site.
-- [ ] Add a compact, dismissible overlay with elapsed time, pause/stop and “Open Kazi”.
+- [x] Add an explicit opt-in for the floating mini timer; it must be disabled by default.
+- [x] Let staff choose permitted sites individually. Request host permission only after they select a site.
+- [x] Add a compact, dismissible overlay with elapsed time, pause/stop and “Open Kazi”.
 - [ ] Offer “Start from this page” only as a manual prefill; never read page content, form fields, browsing history or credentials.
-- [ ] Add per-site enable/disable controls and a visible privacy explanation.
+- [x] Add per-site enable/disable controls and a visible privacy explanation.
 - [ ] Test overlays against common apps (Google Workspace, Asana and Slack) without interfering with their UI.
 
 ### P0.1 — Shared active timer authority
