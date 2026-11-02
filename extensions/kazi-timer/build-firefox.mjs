@@ -38,7 +38,14 @@ const manifest = {
   browser_specific_settings: {
     gecko: {
       id: "kazi-timer@growthpad.africa",
-      strict_min_version: "128.0",
+      strict_min_version: "140.0",
+      // What the add-on sends off the device. authenticationInfo: the Kazi
+      // sign-in token. websiteContent: the task title read on Asana and the
+      // activity names staff type. Confirm with the privacy owner before
+      // submitting.
+      data_collection_permissions: {
+        required: ["authenticationInfo", "websiteContent"],
+      },
     },
   },
 };
