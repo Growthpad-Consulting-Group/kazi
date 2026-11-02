@@ -251,11 +251,23 @@ footer span {
   cursor: pointer;
   font-weight: 600;
 }
-.floating .check {
+.floating label.check {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 8px 0;
+  color: #18181b;
+  font-size: 13px;
+  font-weight: 600;
+}
+.floating .check input {
+  width: auto;
+  margin: 0;
+  flex: none;
+}
+.floating #mini-add {
+  width: 100%;
+  margin: 4px 0;
 }
 .floating ul {
   list-style: none;

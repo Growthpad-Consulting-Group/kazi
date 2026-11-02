@@ -187,7 +187,6 @@ $("#stop").addEventListener("click", async () => {
 
 function renderMiniSites(state) {
   $("#mini-enabled").checked = state.enabled;
-  $("#mini-add").disabled = !state.enabled;
   const list = $("#mini-sites");
   list.replaceChildren();
   for (const origin of state.sites) {
@@ -233,15 +232,19 @@ $("#mini-add").addEventListener("click", async () => {
       "Open a secure (https) site, then choose Show on this site.";
     return;
   }
-  // Requested directly from the click so Chrome can show its prompt.
-  const granted = await chrome.permissions.request({
-    origins: [`${origin}/*`],
-  });
+  // Requested straight from the click so Chrome can show its prompt.
+  const granted = await chrome.permissions
+    .request({ origins: [`${origin}/*`] })
+    .catch(() => false);
   if (!granted) {
     $("#notice").textContent = `Access to ${origin} was not allowed.`;
     return;
   }
+  // Choosing a site is itself the opt-in, so turn the feature on if needed.
+  await send("mini-set-enabled", { enabled: true });
   renderMiniSites(await send("mini-set-site", { origin, enabled: true }));
+  $("#notice").textContent =
+    `Floating timer added for ${origin.replace(/^https:\/\//, "")}.`;
 });
 
 $("#open-kazi").addEventListener("click", () =>
