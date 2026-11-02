@@ -20,12 +20,19 @@
         <div class="actions">
           <button class="secondary" id="pause">Pause</button>
           <button class="danger" id="stop">Stop &amp; queue</button>
+          <button class="secondary" id="manage-kazi" hidden>Manage in Kazi</button>
         </div>
       </section>
       <form id="start-form">
         <label>What are you working on?<input id="task" maxlength="200" required placeholder="e.g. Prepare client proposal" /></label>
         <div class="grid">
-          <label>Client or project<select id="client"><option value="">No client or project</option></select></label>
+          <label class="combo-label">Client or project
+            <div class="combobox">
+              <input id="client-search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="client-options" autocomplete="off" placeholder="Search client or project" />
+              <button id="clear-client" type="button" aria-label="Clear client or project" title="Clear client or project" hidden>×</button>
+              <ul id="client-options" role="listbox" hidden></ul>
+            </div>
+          </label>
           <label>Type<select id="category"><option>Projects</option><option>Meetings</option><option>Hiring</option><option>Reporting</option><option>Admin</option><option>Other</option></select></label>
         </div>
         <button class="primary" type="submit">Start timer</button>

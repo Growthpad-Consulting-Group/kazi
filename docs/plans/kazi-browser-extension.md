@@ -16,6 +16,7 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [x] Sync stopped entries into the appropriate daily log, with conflict handling and offline retry.
 - [x] Retry queued entries from the background worker after browser startup and on the one-minute timer tick.
 - [x] Let staff view and revoke active Kazi Timer connections from Profile settings.
+- [x] Mirror a timer started in Kazi to the extension popup and toolbar badge, with controls kept in Kazi to prevent two timers drifting apart.
 - [ ] Add Chrome/Edge install, restart, sleep/wake, sign-out and concurrent-tab tests.
 
 ### P1 — V2 optional cross-site mini timer
@@ -32,11 +33,12 @@ Make active daily-log timing visible and controllable while staff work outside K
 Build a Chrome/Edge Manifest V3 extension that provides:
 
 - A browser-action popup with the active task, elapsed time, start, pause, and stop controls.
+- When a timer is started in Kazi, its task and elapsed time are mirrored to the popup and badge. The popup links back to Kazi for controls, so there is always one source of truth.
 - A browser badge showing elapsed minutes while a timer is active.
 - Reliable local timer state in `chrome.storage`, with `chrome.alarms` used to refresh the badge when the popup is closed.
 - Secure synchronization with the Kazi daily-log API after an explicit staff sign-in.
 
-Permissions should stay minimal: `storage`, `alarms`, and `activeTab`. No broad site access is needed for this phase.
+Permissions stay minimal: `storage`, `alarms`, `identity`, and access only to `https://kazi.growthpad.africa/*`. The Kazi-only content bridge reads the active timer state, never page content or browsing data.
 
 ## Phase 2 — optional cross-site floating widget
 
