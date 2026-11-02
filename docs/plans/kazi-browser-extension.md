@@ -44,7 +44,7 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [x] Make stop an idempotent server action that writes exactly one daily-log entry, then clears the shared timer.
 - [x] Reconcile the open Kazi daily-log page with shared timer changes from another surface, including paused state and elapsed time.
 - [x] Preserve offline extension queueing only when no extension connection is available, then sync safely after reconnecting.
-- [ ] Add end-to-end coverage for Kazi → extension and extension → Kazi start/pause/resume/stop flows, concurrent tabs, restart and offline retry.
+- [ ] Add end-to-end coverage for Kazi → extension and extension → Kazi start/pause/resume/stop flows, concurrent tabs, restart and offline retry. _Owner will cover this separately; not in this repo's plan._
 
 ### P0.2 — Connection experience
 
