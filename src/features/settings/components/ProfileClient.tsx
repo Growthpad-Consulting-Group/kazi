@@ -212,8 +212,13 @@ export default function ProfileClient({
     }
     startPwTransition(async () => {
       try {
-        await changePassword({ current: currentPw, next: newPw });
-        toast.success("Password changed");
+        await changePassword({
+          current: googleProfileConnected ? undefined : currentPw,
+          next: newPw,
+        });
+        toast.success(
+          googleProfileConnected ? "Password added" : "Password changed",
+        );
         setCurrentPw("");
         setNewPw("");
         setConfirmPw("");
@@ -535,21 +540,27 @@ export default function ProfileClient({
       {/* Password change */}
       <SettingsSection
         title="Password"
-        description="Change your sign-in password"
+        description={
+          googleProfileConnected
+            ? "Add a password for recovery sign-in"
+            : "Change your sign-in password"
+        }
         icon="solar:lock-password-broken"
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
-              Current password
-            </span>
-            <PasswordInput
-              value={currentPw}
-              onChange={(e) => setCurrentPw(e.target.value)}
-              autoComplete="current-password"
-              className={inputCls}
-            />
-          </label>
+          {!googleProfileConnected && (
+            <label className="block sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+                Current password
+              </span>
+              <PasswordInput
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                autoComplete="current-password"
+                className={inputCls}
+              />
+            </label>
+          )}
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
               New password
@@ -583,10 +594,19 @@ export default function ProfileClient({
           <Button
             icon="solar:lock-password-broken"
             loading={pwPending}
-            disabled={!currentPw || !newPw || !confirmPw || newPw !== confirmPw}
+            disabled={
+              (!googleProfileConnected && !currentPw) ||
+              !newPw ||
+              !confirmPw ||
+              newPw !== confirmPw
+            }
             onClick={savePassword}
           >
-            {pwPending ? "Changing…" : "Change password"}
+            {pwPending
+              ? "Saving…"
+              : googleProfileConnected
+                ? "Add password"
+                : "Change password"}
           </Button>
         </div>
       </SettingsSection>

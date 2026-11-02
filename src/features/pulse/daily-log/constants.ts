@@ -15,6 +15,7 @@ export type DailyLogEntry = {
   category: DailyLogCategory;
   startTime?: string | null;
   endTime?: string | null;
+  outsideHoursReason?: string | null;
 };
 
 const CLOCK_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -78,7 +79,19 @@ export function validateDailyLogEntries(
       typeof raw?.client === "string" && raw.client.trim()
         ? raw.client.trim().slice(0, 100)
         : null;
-    entries.push({ task, client, minutes, category, startTime, endTime });
+    const outsideHoursReason =
+      typeof raw?.outsideHoursReason === "string"
+        ? raw.outsideHoursReason.trim().slice(0, MAX_BLOCKERS_LENGTH) || null
+        : null;
+    entries.push({
+      task,
+      client,
+      minutes,
+      category,
+      startTime,
+      endTime,
+      outsideHoursReason,
+    });
   }
 
   const total = entries.reduce((sum, entry) => sum + entry.minutes, 0);

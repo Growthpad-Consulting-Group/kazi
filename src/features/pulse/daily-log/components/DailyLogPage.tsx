@@ -36,6 +36,7 @@ type Row = {
   showRange: boolean;
   startTime: string;
   endTime: string;
+  outsideHoursReason: string;
   minutes: string;
   category: DailyLogCategory;
   trackedSeconds?: number;
@@ -63,6 +64,7 @@ const emptyRow = (): Row => ({
   showRange: false,
   startTime: "",
   endTime: "",
+  outsideHoursReason: "",
   minutes: "",
   category: "Projects",
 });
@@ -241,6 +243,7 @@ export function DailyLogPage({
                 showRange: !!(entry.startTime && entry.endTime),
                 startTime: entry.startTime ?? "",
                 endTime: entry.endTime ?? "",
+                outsideHoursReason: entry.outsideHoursReason ?? "",
                 minutes: formatMinutes(entry.minutes),
                 category: entry.category,
               }))
@@ -571,6 +574,7 @@ export function DailyLogPage({
         category: row.category,
         startTime: hasRange ? row.startTime : null,
         endTime: hasRange ? row.endTime : null,
+        outsideHoursReason: row.outsideHoursReason.trim() || null,
       });
     }
 
@@ -1034,6 +1038,18 @@ export function DailyLogPage({
                         >
                           Remove time range
                         </button>
+                        <input
+                          value={row.outsideHoursReason}
+                          onChange={(e) =>
+                            updateRow(index, {
+                              outsideHoursReason: e.target.value,
+                            })
+                          }
+                          maxLength={1000}
+                          placeholder="If this is outside 08:00–17:00, briefly explain why"
+                          className={`${timeClass} min-w-64 flex-1`}
+                          aria-label="Outside-hours reason"
+                        />
                       </div>
                     ) : (
                       <button

@@ -61,12 +61,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Kazi | Growthpad",
     description: "Growthpad's recruitment and staff-performance workspace.",
+    url: "/",
     siteName: "Kazi",
     type: "website",
     locale: "en_KE",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Kazi | Growthpad",
     description: "Growthpad's recruitment and staff-performance workspace.",
   },

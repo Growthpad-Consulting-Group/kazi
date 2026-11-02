@@ -47,6 +47,18 @@ type TeamMember = {
   byCategory: Record<string, number>;
   entries: TeamEntry[];
 };
+type OvertimeRequest = {
+  id: string;
+  log_date: string;
+  task: string;
+  start_time: string;
+  end_time: string;
+  outside_minutes: number;
+  reason: string;
+  status: "pending" | "approved" | "declined";
+  resolution: "time_off_in_lieu" | "payroll_compensation" | null;
+  staff: { name: string; avatar_url: string | null } | null;
+};
 
 const RANGE_OPTIONS = [
   "This Week",
@@ -99,6 +111,8 @@ export function TeamActivity() {
   const [reloadKey, setReloadKey] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<ActivityFilter>("all");
+  const [overtime, setOvertime] = useState<OvertimeRequest[]>([]);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
   const todayIso = toDateString(new Date());
 
   const from = range.startDate ? toDateString(range.startDate) : null;
@@ -127,6 +141,50 @@ export function TeamActivity() {
       cancelled = true;
     };
   }, [from, to, reloadKey]);
+
+  useEffect(() => {
+    fetch("/api/pulse/overtime")
+      .then((res) => res.json())
+      .then((json: { requests?: OvertimeRequest[] }) =>
+        setOvertime(json.requests ?? []),
+      )
+      .catch(() => setOvertime([]));
+  }, [reloadKey]);
+
+  const resolveOvertime = async (
+    id: string,
+    status: "approved" | "declined",
+    resolution?: "time_off_in_lieu" | "payroll_compensation",
+  ) => {
+    setResolvingId(id);
+    try {
+      const res = await fetch("/api/pulse/overtime", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status, resolution }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Could not resolve request.");
+      setOvertime((items) =>
+        items.map((item) =>
+          item.id === id
+            ? { ...item, status, resolution: resolution ?? null }
+            : item,
+        ),
+      );
+      toast.success(
+        status === "approved"
+          ? "Outside-hours work approved."
+          : "Outside-hours work declined.",
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not resolve request.",
+      );
+    } finally {
+      setResolvingId(null);
+    }
+  };
 
   const runAction = async (
     userId: string,
@@ -278,6 +336,95 @@ export function TeamActivity() {
           />
         </div>
       </div>
+
+      {overtime.filter((request) => request.status === "pending").length >
+        0 && (
+        <section className="rounded-2xl border border-amber-500/20 bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+              <Icon icon="solar:clock-circle-broken" className="h-4.5 w-4.5" />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                Outside-hours review
+              </h2>
+              <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                Review the context, then record the agreed outcome.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {overtime
+              .filter((request) => request.status === "pending")
+              .map((request) => (
+                <article
+                  key={request.id}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-hi)]">
+                        {request.staff?.name ?? "Staff member"}
+                      </p>
+                      <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                        {formatDay(request.log_date)} ·{" "}
+                        {request.start_time.slice(0, 5)}–
+                        {request.end_time.slice(0, 5)} ·{" "}
+                        {formatMinutes(request.outside_minutes)} outside hours
+                      </p>
+                    </div>
+                    <span className="rounded-lg bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                      Pending
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-[var(--text-hi)]">
+                    {request.task}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+                    {request.reason}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      loading={resolvingId === request.id}
+                      onClick={() =>
+                        resolveOvertime(
+                          request.id,
+                          "approved",
+                          "time_off_in_lieu",
+                        )
+                      }
+                    >
+                      Approve · TOIL
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      loading={resolvingId === request.id}
+                      onClick={() =>
+                        resolveOvertime(
+                          request.id,
+                          "approved",
+                          "payroll_compensation",
+                        )
+                      }
+                    >
+                      Approve · payroll
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      loading={resolvingId === request.id}
+                      onClick={() => resolveOvertime(request.id, "declined")}
+                    >
+                      Decline
+                    </Button>
+                  </div>
+                </article>
+              ))}
+          </div>
+        </section>
+      )}
 
       {error && (
         <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-600">

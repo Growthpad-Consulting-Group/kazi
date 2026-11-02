@@ -6,6 +6,7 @@ import { awardDailyLogRewards } from "@/features/pulse/daily-log/rewards";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   cleanText,
+  clockToMinutes,
   isEditableLogDate,
   isValidLogDate,
   validateDailyLogEntries,
@@ -28,6 +29,18 @@ const db = supabaseAdmin as any;
 type TeamLogRow = LogRow;
 
 const MAX_RANGE_DAYS = 93;
+const DEFAULT_WORKDAY_START = 8 * 60;
+const DEFAULT_WORKDAY_END = 17 * 60;
+
+function outsideWorkMinutes(entry: DailyLogEntry) {
+  if (!entry.startTime || !entry.endTime) return 0;
+  const start = clockToMinutes(entry.startTime);
+  const end = clockToMinutes(entry.endTime);
+  return (
+    Math.max(0, DEFAULT_WORKDAY_START - start) +
+    Math.max(0, end - DEFAULT_WORKDAY_END)
+  );
+}
 
 function daysBetween(from: string, to: string) {
   return (
@@ -336,6 +349,22 @@ export async function POST(req: Request) {
   const mood = validateDailyLogMood(body?.mood);
   if (!mood.ok)
     return NextResponse.json({ error: mood.error }, { status: 400 });
+  const outsideEntries = validated.entries
+    .map((entry, index) => ({
+      entry,
+      index,
+      minutes: outsideWorkMinutes(entry),
+    }))
+    .filter((item) => item.minutes > 0);
+  if (outsideEntries.some(({ entry }) => !entry.outsideHoursReason)) {
+    return NextResponse.json(
+      {
+        error:
+          "Add a short reason for each time-range entry outside 08:00–17:00 Nairobi time.",
+      },
+      { status: 400 },
+    );
+  }
 
   const { error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .from("daily_activity_logs")
@@ -352,6 +381,39 @@ export async function POST(req: Request) {
     );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (outsideEntries.length) {
+    const { data: staff } = await supabaseAdmin
+      .from("users")
+      .select("manager_id")
+      .eq("id", session.user.id)
+      .maybeSingle();
+    const requests = outsideEntries.map(({ entry, index, minutes }) => ({
+      user_id: session.user.id,
+      log_date: body.date,
+      entry_key: `${index}:${entry.startTime}-${entry.endTime}`,
+      task: entry.task,
+      start_time: entry.startTime,
+      end_time: entry.endTime,
+      outside_minutes: minutes,
+      reason: entry.outsideHoursReason!,
+    }));
+    const { error: overtimeError } = await db
+      .from("overtime_requests")
+      .upsert(requests, { onConflict: "user_id,log_date,entry_key" });
+    if (overtimeError)
+      return NextResponse.json(
+        { error: overtimeError.message },
+        { status: 500 },
+      );
+    if (staff?.manager_id) {
+      await supabaseAdmin.from("notifications").insert({
+        user_id: staff.manager_id,
+        message: `Outside-hours work submitted for review on ${body.date}.`,
+        link: "/pulse/checkins?tab=daily",
+      });
+    }
+  }
 
   // A saved log can earn points. A failure here must not undo the save.
   try {
