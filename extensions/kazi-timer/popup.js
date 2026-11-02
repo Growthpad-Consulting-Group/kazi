@@ -220,31 +220,42 @@ $("#mini-enabled").addEventListener("change", async (event) => {
 });
 
 $("#mini-add").addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  let origin = null;
+  const button = $("#mini-add");
+  button.disabled = true;
+  button.textContent = "Checking site…";
   try {
-    origin = new URL(tab?.url || "").origin;
-  } catch {
-    origin = null;
-  }
-  if (!origin || !origin.startsWith("https://")) {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    let origin = null;
+    try {
+      origin = new URL(tab?.url || "").origin;
+    } catch {
+      origin = null;
+    }
+    if (!origin || !origin.startsWith("https://")) {
+      $("#notice").textContent =
+        "Open a secure (https) site, then choose Show on this site.";
+      return;
+    }
+    // Requested straight from the click so Chrome can show its prompt.
+    const granted = await chrome.permissions
+      .request({ origins: [`${origin}/*`] })
+      .catch(() => false);
+    if (!granted) {
+      $("#notice").textContent = `Access to ${origin} was not allowed.`;
+      return;
+    }
+    // Choosing a site is itself the opt-in, so turn the feature on if needed.
+    await send("mini-set-enabled", { enabled: true });
+    renderMiniSites(await send("mini-set-site", { origin, enabled: true }));
     $("#notice").textContent =
-      "Open a secure (https) site, then choose Show on this site.";
-    return;
+      `Floating timer added for ${origin.replace(/^https:\/\//, "")}.`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Show on this site";
   }
-  // Requested straight from the click so Chrome can show its prompt.
-  const granted = await chrome.permissions
-    .request({ origins: [`${origin}/*`] })
-    .catch(() => false);
-  if (!granted) {
-    $("#notice").textContent = `Access to ${origin} was not allowed.`;
-    return;
-  }
-  // Choosing a site is itself the opt-in, so turn the feature on if needed.
-  await send("mini-set-enabled", { enabled: true });
-  renderMiniSites(await send("mini-set-site", { origin, enabled: true }));
-  $("#notice").textContent =
-    `Floating timer added for ${origin.replace(/^https:\/\//, "")}.`;
 });
 
 $("#open-kazi").addEventListener("click", () =>
