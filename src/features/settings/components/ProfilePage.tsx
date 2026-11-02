@@ -19,13 +19,6 @@ export default async function ProfilePage() {
     avatar_url: string | null;
   } | null;
   type SigProfileRow = { photo_url: string | null } | null;
-  type ExtensionConnection = {
-    id: string;
-    client_name: string;
-    created_at: string;
-    last_used_at: string | null;
-    expires_at: string;
-  };
   type SignatureDb = {
     from: (t: string) => {
       select: (c: string) => {
@@ -42,7 +35,6 @@ export default async function ProfilePage() {
     sigResult,
     profileConnection,
     passkeyResult,
-    extensionConnections,
   ] = await Promise.all([
     supabaseAdmin
       .from("users")
@@ -81,13 +73,6 @@ export default async function ProfilePage() {
         "id, device_type, backed_up, transports, device_label, created_at, last_used_at",
       )
       .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false }),
-    (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- extension migration is newer than generated database types.
-      .from("browser_extension_tokens")
-      .select("id, client_name, created_at, last_used_at, expires_at")
-      .eq("user_id", session.user.id)
-      .is("revoked_at", null)
-      .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false }),
   ]);
 
@@ -144,9 +129,6 @@ export default async function ProfilePage() {
             created_at: string;
             last_used_at: string | null;
           }[]
-        }
-        extensionConnections={
-          (extensionConnections.data ?? []) as ExtensionConnection[]
         }
       />
     </div>
