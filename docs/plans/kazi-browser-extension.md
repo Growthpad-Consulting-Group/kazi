@@ -17,7 +17,7 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [x] Retry queued entries from the background worker after browser startup and on the one-minute timer tick.
 - [x] Let staff view and revoke active Kazi Timer connections from Profile settings.
 - [x] Mirror a timer started in Kazi to the extension popup and toolbar badge, with controls kept in Kazi to prevent two timers drifting apart.
-- [ ] Add Chrome/Edge install, restart, sleep/wake, sign-out and concurrent-tab tests.
+- [x] Add Chrome/Edge install, restart, sleep/wake, sign-out and concurrent-tab worker tests.
 
 ### P1 — V2 optional cross-site mini timer
 

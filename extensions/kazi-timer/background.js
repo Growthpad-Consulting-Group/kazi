@@ -3,6 +3,7 @@ const QUEUE_KEY = "completedEntries";
 const TOKEN_KEY = "kaziAccessToken";
 const TICK_ALARM = "kazi-timer-tick";
 const KAZI_URL = "https://kazi.growthpad.africa";
+let messageQueue = Promise.resolve();
 
 function elapsedSeconds(timer, now = Date.now()) {
   if (!timer) return 0;
@@ -134,119 +135,106 @@ chrome.runtime.onStartup.addListener(async () => {
   await refreshBadge();
   await syncQueue();
 });
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === TICK_ALARM) {
-    refreshBadge();
-    syncQueue();
+    await refreshBadge();
+    await syncQueue();
   }
 });
 chrome.storage.onChanged.addListener(refreshBadge);
 
+async function handleMessage(message) {
+  const { [TIMER_KEY]: timer } = await chrome.storage.local.get(TIMER_KEY);
+
+  if (message.type === "kazi-page-timer") {
+    if (message.timer) {
+      await chrome.storage.local.set({ [TIMER_KEY]: message.timer });
+    } else if (timer?.source === "kazi") {
+      await chrome.storage.local.set({ [TIMER_KEY]: null });
+    }
+    await refreshBadge();
+    return { ok: true };
+  }
+
+  if (message.type === "get-state") {
+    const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+    const { [QUEUE_KEY]: queued = [] } =
+      await chrome.storage.local.get(QUEUE_KEY);
+    return {
+      timer,
+      elapsedSeconds: elapsedSeconds(timer),
+      connected: Boolean(token),
+      queued: queued.length,
+    };
+  }
+
+  if (message.type === "connect")
+    return { connected: true, ...(await connectKazi()) };
+
+  if (message.type === "get-clients") return getClients();
+
+  if (message.type === "disconnect") {
+    await disconnectKazi();
+    return { connected: false };
+  }
+
+  if (message.type === "start") {
+    if (timer) return { error: "A timer is already active" };
+    const next = {
+      task: message.task,
+      client: message.client || "",
+      category: message.category,
+      startedAt: Date.now(),
+      elapsedMs: 0,
+      running: true,
+      source: "extension",
+    };
+    await chrome.storage.local.set({ [TIMER_KEY]: next });
+    return { timer: next };
+  }
+
+  if (!timer) return { error: "No active timer" };
+
+  if (message.type === "pause") {
+    const next = {
+      ...timer,
+      elapsedMs: elapsedSeconds(timer) * 1000,
+      running: false,
+    };
+    await chrome.storage.local.set({ [TIMER_KEY]: next });
+    return { timer: next };
+  }
+
+  if (message.type === "resume") {
+    const next = { ...timer, startedAt: Date.now(), running: true };
+    await chrome.storage.local.set({ [TIMER_KEY]: next });
+    return { timer: next };
+  }
+
+  if (message.type === "stop") {
+    const entry = {
+      id: crypto.randomUUID(),
+      task: timer.task,
+      client: timer.client,
+      category: timer.category,
+      seconds: elapsedSeconds(timer),
+      stoppedAt: new Date().toISOString(),
+    };
+    const { [QUEUE_KEY]: queued = [] } =
+      await chrome.storage.local.get(QUEUE_KEY);
+    await chrome.storage.local.set({
+      [TIMER_KEY]: null,
+      [QUEUE_KEY]: [...queued, entry],
+    });
+    return { entry, ...(await syncQueue()) };
+  }
+  return { error: "Unknown Kazi Timer action" };
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  (async () => {
-    const { [TIMER_KEY]: timer } = await chrome.storage.local.get(TIMER_KEY);
-
-    if (message.type === "kazi-page-timer") {
-      if (message.timer) {
-        await chrome.storage.local.set({ [TIMER_KEY]: message.timer });
-      } else if (timer?.source === "kazi") {
-        await chrome.storage.local.set({ [TIMER_KEY]: null });
-      }
-      await refreshBadge();
-      sendResponse({ ok: true });
-      return;
-    }
-
-    if (message.type === "get-state") {
-      const { [TOKEN_KEY]: token } =
-        await chrome.storage.session.get(TOKEN_KEY);
-      const { [QUEUE_KEY]: queued = [] } =
-        await chrome.storage.local.get(QUEUE_KEY);
-      sendResponse({
-        timer,
-        elapsedSeconds: elapsedSeconds(timer),
-        connected: Boolean(token),
-        queued: queued.length,
-      });
-      return;
-    }
-
-    if (message.type === "connect") {
-      sendResponse({ connected: true, ...(await connectKazi()) });
-      return;
-    }
-
-    if (message.type === "get-clients") {
-      sendResponse(await getClients());
-      return;
-    }
-
-    if (message.type === "disconnect") {
-      await disconnectKazi();
-      sendResponse({ connected: false });
-      return;
-    }
-
-    if (message.type === "start") {
-      if (timer) {
-        sendResponse({ error: "A timer is already active" });
-        return;
-      }
-      const next = {
-        task: message.task,
-        client: message.client || "",
-        category: message.category,
-        startedAt: Date.now(),
-        elapsedMs: 0,
-        running: true,
-        source: "extension",
-      };
-      await chrome.storage.local.set({ [TIMER_KEY]: next });
-      sendResponse({ timer: next });
-      return;
-    }
-
-    if (!timer) {
-      sendResponse({ error: "No active timer" });
-      return;
-    }
-
-    if (message.type === "pause") {
-      const next = {
-        ...timer,
-        elapsedMs: elapsedSeconds(timer) * 1000,
-        running: false,
-      };
-      await chrome.storage.local.set({ [TIMER_KEY]: next });
-      sendResponse({ timer: next });
-      return;
-    }
-
-    if (message.type === "resume") {
-      const next = { ...timer, startedAt: Date.now(), running: true };
-      await chrome.storage.local.set({ [TIMER_KEY]: next });
-      sendResponse({ timer: next });
-      return;
-    }
-
-    if (message.type === "stop") {
-      const entry = {
-        id: crypto.randomUUID(),
-        task: timer.task,
-        client: timer.client,
-        category: timer.category,
-        seconds: elapsedSeconds(timer),
-        stoppedAt: new Date().toISOString(),
-      };
-      const { [QUEUE_KEY]: queued = [] } =
-        await chrome.storage.local.get(QUEUE_KEY);
-      await chrome.storage.local.set({
-        [TIMER_KEY]: null,
-        [QUEUE_KEY]: [...queued, entry],
-      });
-      sendResponse({ entry, ...(await syncQueue()) });
-      return;
-    }
-  })().catch((error) => sendResponse({ error: error.message }));
+  messageQueue = messageQueue
+    .then(() => handleMessage(message))
+    .then(sendResponse)
+    .catch((error) => sendResponse({ error: error.message }));
   return true;
 });
