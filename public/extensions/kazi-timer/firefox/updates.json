@@ -1,3 +1,18 @@
 {
-  "addons": {}
+  "addons": {
+    "kazi-timer@growthpad.africa": {
+      "updates": [
+        {
+          "version": "0.4.4",
+          "update_link": "https://kazi.growthpad.africa/extensions/kazi-timer/firefox/kazi-timer-0.4.4.xpi",
+          "update_hash": "sha256:641d9a9e03f7ed5ec0c5bb48f96859e1d75201fc0cfe51a5e3e2d3c33cc904bd",
+          "applications": {
+            "gecko": {
+              "strict_min_version": "140.0"
+            }
+          }
+        }
+      ]
+    }
+  }
 }
