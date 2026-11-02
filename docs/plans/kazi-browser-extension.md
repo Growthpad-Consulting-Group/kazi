@@ -30,10 +30,10 @@ Make active daily-log timing visible and controllable while staff work outside K
 
 ### P2 — Task-level integrations
 
-- [x] Build an opt-in Asana integration that places a Kazi start button beside an open task.
-- [x] Read only the visible Asana task title after the staff member enables the Asana integration; never collect descriptions, comments, attachments, credentials or browsing history.
+- [x] Build an Asana integration that places a Kazi start button beside an open task. It runs automatically on app.asana.com, with no per-user opt-in, because Asana access is a declared host permission.
+- [x] Read only the visible Asana task title; never collect descriptions, comments, attachments, credentials or browsing history.
 - [x] Start the shared Kazi timer directly from the visible Asana task title.
-- [ ] Add explicit Asana permission and privacy copy, plus DOM-resilience tests for common task views.
+- [ ] Add Asana privacy copy in the extension popup and Kazi, plus DOM-resilience tests for common task views.
 
 ### P0.1 — Shared active timer authority
 
@@ -47,9 +47,9 @@ Make active daily-log timing visible and controllable while staff work outside K
 
 ### P0.2 — Connection experience
 
-- [ ] Keep the first Kazi authorization explicit and consent-based.
-- [ ] Restore a still-valid extension session automatically on browser startup without showing Connect Kazi again.
-- [ ] Show Connect Kazi only when the extension has no valid session or the staff member explicitly disconnects.
+- [x] Keep the first Kazi authorization explicit and consent-based. Chrome connects on install; if the person isn't signed in to Kazi, Kazi's sign-in page opens once.
+- [x] Restore a still-valid extension session automatically on browser startup without showing Connect Kazi again. The token is held in session storage and reconnects silently while the person is signed in to Kazi.
+- [x] Show Connect Kazi only when the extension has no valid session or the staff member explicitly disconnects. Kazi's integrations page shows connection status.
 
 ### P3 — Cross-browser distribution
 
