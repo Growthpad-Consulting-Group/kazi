@@ -24,16 +24,25 @@ export function hashExtensionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+// Firefox gives each browser install its own random host under this domain,
+// so it cannot be matched to an extension ID. The token only ever reaches the
+// extension's own identity flow, in the URL fragment.
+const FIREFOX_REDIRECT_HOST = /^[0-9a-f-]{36}\.extensions\.allizom\.org$/;
+
 export function isAllowedExtensionRedirectUri(value: string | null) {
   if (!value) return false;
   try {
     const redirect = new URL(value);
+    if (
+      redirect.protocol !== "https:" ||
+      redirect.pathname !== "/kazi" ||
+      redirect.search !== "" ||
+      redirect.hash !== ""
+    )
+      return false;
+    if (FIREFOX_REDIRECT_HOST.test(redirect.hostname)) return true;
     const extensionId = redirect.hostname.replace(/\.chromiumapp\.org$/, "");
     return (
-      redirect.protocol === "https:" &&
-      redirect.pathname === "/kazi" &&
-      redirect.search === "" &&
-      redirect.hash === "" &&
       redirect.hostname === `${extensionId}.chromiumapp.org` &&
       isAllowedExtensionId(extensionId)
     );
