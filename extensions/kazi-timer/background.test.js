@@ -495,3 +495,61 @@ describe("Kazi Timer Asana task link", () => {
     expect(local.timerSources).toBeUndefined();
   });
 });
+
+describe("Kazi Timer automatic reconnect", () => {
+  beforeEach(() => {
+    chromeMock.identity = {
+      getRedirectURL: vi.fn(() => "https://ext.chromiumapp.org/kazi"),
+      launchWebAuthFlow: vi.fn(async ({ url }) => {
+        const state =
+          new URL(url).searchParams.get("redirect_uri") &&
+          new URL(url).searchParams.get("state");
+        return `https://ext.chromiumapp.org/kazi#access_token=fresh-token&state=${state}`;
+      }),
+    };
+  });
+
+  it("reconnects silently on startup when the staff member is still signed in", async () => {
+    await loadWorker();
+    await listeners.startup();
+
+    expect(chromeMock.identity.launchWebAuthFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ interactive: false }),
+    );
+    expect(local.kaziAccessToken).toBe("fresh-token");
+  });
+
+  it("does not open a window again within the retry interval", async () => {
+    chromeMock.identity.launchWebAuthFlow.mockRejectedValue(
+      new Error("Interaction required"),
+    );
+    await loadWorker();
+    await listeners.alarm({ name: "kazi-timer-tick" });
+    await listeners.alarm({ name: "kazi-timer-tick" });
+
+    expect(chromeMock.identity.launchWebAuthFlow).toHaveBeenCalledTimes(1);
+  });
+
+  it("forgets the token when Kazi rejects it, so the next tick reconnects", async () => {
+    session.kaziAccessToken = "expired-token";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+    }));
+    await loadWorker();
+
+    await message({ type: "start", task: "Expired", category: "Projects" });
+
+    expect(local.kaziAccessToken).toBeUndefined();
+  });
+
+  it("does not reconnect after the staff member clicks Disconnect", async () => {
+    session.kaziAccessToken = "revocable-token";
+    await loadWorker();
+    await message({ type: "disconnect" });
+    await listeners.startup();
+
+    expect(chromeMock.identity.launchWebAuthFlow).not.toHaveBeenCalled();
+  });
+});

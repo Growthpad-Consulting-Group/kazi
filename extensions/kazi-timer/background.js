@@ -216,6 +216,8 @@ async function sharedTimerRequest(method, body) {
   } catch {
     throw new KaziUnreachable(OFFLINE_MESSAGE);
   }
+  // The token expires after 12 hours. Forget it so the next tick reconnects.
+  if (response.status === 401) await chrome.storage.local.remove(TOKEN_KEY);
   return {
     ok: response.ok,
     status: response.status,
@@ -270,7 +272,10 @@ async function adoptLocalTimer() {
   });
 }
 
-async function connectKazi() {
+// interactive: true may show Kazi's sign-in page. interactive: false only
+// succeeds when the staff member is already signed in to Kazi in this browser,
+// so it can reconnect with no window and no click.
+async function connectKazi({ interactive = true } = {}) {
   const redirectUri = chrome.identity.getRedirectURL("kazi");
   const state = crypto.randomUUID();
   const authorizationUrl = new URL(
@@ -282,7 +287,7 @@ async function connectKazi() {
   }).toString();
   const callbackUrl = await chrome.identity.launchWebAuthFlow({
     url: authorizationUrl.href,
-    interactive: true,
+    interactive,
   });
   if (!callbackUrl) throw new Error("Kazi connection was cancelled");
   const callback = new URL(callbackUrl);
@@ -291,10 +296,34 @@ async function connectKazi() {
     throw new Error("Kazi did not approve this extension connection");
   await chrome.storage.local.set({
     [TOKEN_KEY]: parameters.get("access_token"),
+    disconnectedByUser: false,
   });
   await adoptLocalTimer();
   await refreshFromServer();
   return syncQueue();
+}
+
+const SILENT_RETRY_MS = 10 * 60 * 1000;
+
+// Reconnects without a click when the staff member is still signed in to
+// Kazi. Retries are spaced out so the tick alarm does not open a hidden window
+// every 30 seconds.
+async function reconnectSilently({ force = false } = {}) {
+  if (await tokenValue()) return false;
+  // Respect an explicit Disconnect until the staff member connects again.
+  const { disconnectedByUser = false } =
+    await chrome.storage.local.get("disconnectedByUser");
+  if (disconnectedByUser) return false;
+  const { lastSilentAttempt = 0 } =
+    await chrome.storage.local.get("lastSilentAttempt");
+  if (!force && Date.now() - lastSilentAttempt < SILENT_RETRY_MS) return false;
+  await chrome.storage.local.set({ lastSilentAttempt: Date.now() });
+  try {
+    await connectKazi({ interactive: false });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function disconnectKazi() {
@@ -307,6 +336,7 @@ async function disconnectKazi() {
   }
   await chrome.storage.local.remove(TOKEN_KEY);
   await chrome.storage.session.remove(TOKEN_KEY);
+  await chrome.storage.local.set({ disconnectedByUser: true });
 }
 
 async function getClients() {
@@ -325,15 +355,20 @@ async function getClients() {
 chrome.runtime.onInstalled.addListener(async () => {
   await chrome.alarms.create(TICK_ALARM, { periodInMinutes: 0.5 });
   await refreshBadge();
+  // Connect straight away so staff do not have to find Connect Kazi.
+  if (!(await reconnectSilently({ force: true })))
+    await connectKazi({ interactive: true }).catch(() => {});
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  await reconnectSilently({ force: true });
   await refreshFromServer();
   await refreshBadge();
   await syncQueue();
 });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === TICK_ALARM) {
+    await reconnectSilently();
     await refreshFromServer();
     await refreshBadge();
     await syncQueue();
