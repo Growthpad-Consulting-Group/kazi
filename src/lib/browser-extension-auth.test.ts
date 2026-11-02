@@ -18,7 +18,7 @@ describe("isAllowedExtensionRedirectUri", () => {
   it("accepts the Firefox identity redirect on the extensions domain", () => {
     expect(
       isAllowedExtensionRedirectUri(
-        "https://6f1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d.extensions.allizom.org/kazi",
+        "https://c82637abaff732ea80e8a36d07a4f37a53fc55f9.extensions.allizom.org/kazi",
       ),
     ).toBe(true);
   });
@@ -39,7 +39,7 @@ describe("isAllowedExtensionRedirectUri", () => {
     );
     expect(
       isAllowedExtensionRedirectUri(
-        "https://6f1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d.extensions.allizom.org/kazi?x=1",
+        "https://c82637abaff732ea80e8a36d07a4f37a53fc55f9.extensions.allizom.org/kazi?x=1",
       ),
     ).toBe(false);
   });
