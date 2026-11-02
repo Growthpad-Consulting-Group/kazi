@@ -1,7 +1,10 @@
 export function normalizeApplicationUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   try {
-    const url = new URL(value.trim());
+    const input = value.trim();
+    const url = new URL(
+      /^https?:\/\//i.test(input) ? input : `https://${input}`,
+    );
     if (!["https:", "http:"].includes(url.protocol)) return null;
     url.pathname = url.pathname
       .split("/")
