@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Kazi Timer",
   "description": "Track intentional work and save it to Kazi.",
-  "version": "0.3.16",
+  "version": "0.4.0",
   "action": {
     "default_title": "Kazi Timer",
     "default_popup": "popup.html",
@@ -25,6 +25,16 @@
   },
   "update_url": "https://kazi.growthpad.africa/extensions/kazi-timer/updates.xml",
   "permissions": ["alarms", "storage", "identity", "scripting", "activeTab"],
-  "host_permissions": ["https://kazi.growthpad.africa/*"],
-  "optional_host_permissions": ["https://*/*"]
+  "host_permissions": [
+    "https://kazi.growthpad.africa/*",
+    "https://app.asana.com/*"
+  ],
+  "optional_host_permissions": ["https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://app.asana.com/*"],
+      "js": ["content/asana-task-timer.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
