@@ -146,6 +146,35 @@ export default function IntegrationsClient({
 
   // Google Calendar state
   const [googleCalendar, setGoogleCalendar] = useState(googleCalendarStatus);
+  const [kaziTimerConnections, setKaziTimerConnections] = useState<
+    { id: string; created_at: string; last_used_at: string | null }[] | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/extensions/kazi-timer/connections", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json: { connections?: typeof kaziTimerConnections }) => {
+        if (!cancelled) setKaziTimerConnections(json.connections ?? []);
+      })
+      .catch(() => !cancelled && setKaziTimerConnections([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function disconnectKaziTimer() {
+    const connections = kaziTimerConnections ?? [];
+    await Promise.all(
+      connections.map((connection) =>
+        fetch(`/api/extensions/kazi-timer/connections?id=${connection.id}`, {
+          method: "DELETE",
+        }),
+      ),
+    );
+    setKaziTimerConnections([]);
+    toast.success("Kazi Timer disconnected");
+  }
 
   // Handle OAuth return — read param directly from window.location (avoids Suspense requirement)
   useEffect(() => {
@@ -309,6 +338,32 @@ export default function IntegrationsClient({
             meta={asana.workspace ? `Workspace: ${asana.workspace}` : undefined}
             onConnect={connectAsana}
             onDisconnect={disconnectAsana}
+          />
+          <IntegrationCard
+            icon="solar:stopwatch-broken"
+            name="Kazi Timer (browser extension)"
+            description="Starts and stops timers from Asana and other tabs. It connects by itself while you are signed in to Kazi. Install it from the link your admin shared."
+            status={
+              kaziTimerConnections === null
+                ? "disconnected"
+                : kaziTimerConnections.length
+                  ? "connected"
+                  : "disconnected"
+            }
+            meta={
+              kaziTimerConnections?.length
+                ? `Last used ${
+                    kaziTimerConnections[0].last_used_at
+                      ? new Date(
+                          kaziTimerConnections[0].last_used_at,
+                        ).toLocaleString()
+                      : "not yet"
+                  }`
+                : undefined
+            }
+            onDisconnect={
+              kaziTimerConnections?.length ? disconnectKaziTimer : undefined
+            }
           />
         </div>
       </SettingsSection>

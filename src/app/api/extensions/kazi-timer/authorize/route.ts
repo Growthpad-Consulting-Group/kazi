@@ -35,17 +35,33 @@ export async function GET(request: Request) {
   const token = createExtensionToken();
   const expiresAt = extensionExpiry();
   const db = supabaseAdmin as any; // eslint-disable-line @typescript-eslint/no-explicit-any -- migration adds this table.
-  const { error } = await db.from("browser_extension_tokens").insert({
-    user_id: session.user.id,
-    token_hash: hashExtensionToken(token),
-    client_name: "kazi-timer",
-    expires_at: expiresAt,
-  });
-  if (error)
+  const { data: created, error } = await db
+    .from("browser_extension_tokens")
+    .insert({
+      user_id: session.user.id,
+      token_hash: hashExtensionToken(token),
+      client_name: "kazi-timer",
+      expires_at: expiresAt,
+    })
+    .select("id")
+    .single();
+  if (error || !created)
     return NextResponse.json(
       { error: "Could not connect the extension" },
       { status: 500 },
     );
+
+  // One active connection per staff member: a new connection retires the
+  // previous one, so old tokens do not pile up.
+  const { error: revokeError } = await db
+    .from("browser_extension_tokens")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("user_id", session.user.id)
+    .eq("client_name", "kazi-timer")
+    .is("revoked_at", null)
+    .neq("id", created.id);
+  if (revokeError)
+    console.error("Could not revoke earlier Kazi Timer tokens", revokeError);
 
   const callback = new URL(redirectUri!);
   callback.hash = new URLSearchParams({

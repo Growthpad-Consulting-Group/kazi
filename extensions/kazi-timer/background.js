@@ -89,14 +89,18 @@ function localDate(iso) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+// The Kazi token lives in session storage only, so it is never written to disk.
+// After a browser restart the worker reconnects silently from the Kazi session.
 async function tokenValue() {
-  // Keep the short-lived, revocable extension token across service-worker
-  // restarts and managed extension updates. The API enforces its expiry.
-  const { [TOKEN_KEY]: token } = await chrome.storage.local.get(TOKEN_KEY);
+  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
   if (token) return token;
+  // Tokens saved by earlier versions in local storage are moved out of it.
   const { [TOKEN_KEY]: legacyToken } =
-    await chrome.storage.session.get(TOKEN_KEY);
-  if (legacyToken) await chrome.storage.local.set({ [TOKEN_KEY]: legacyToken });
+    await chrome.storage.local.get(TOKEN_KEY);
+  if (legacyToken) {
+    await chrome.storage.session.set({ [TOKEN_KEY]: legacyToken });
+    await chrome.storage.local.remove(TOKEN_KEY);
+  }
   return legacyToken;
 }
 
@@ -217,7 +221,7 @@ async function sharedTimerRequest(method, body) {
     throw new KaziUnreachable(OFFLINE_MESSAGE);
   }
   // The token expires after 12 hours. Forget it so the next tick reconnects.
-  if (response.status === 401) await chrome.storage.local.remove(TOKEN_KEY);
+  if (response.status === 401) await chrome.storage.session.remove(TOKEN_KEY);
   return {
     ok: response.ok,
     status: response.status,
@@ -294,10 +298,10 @@ async function connectKazi({ interactive = true } = {}) {
   const parameters = new URLSearchParams(callback.hash.slice(1));
   if (parameters.get("state") !== state || !parameters.get("access_token"))
     throw new Error("Kazi did not approve this extension connection");
-  await chrome.storage.local.set({
+  await chrome.storage.session.set({
     [TOKEN_KEY]: parameters.get("access_token"),
-    disconnectedByUser: false,
   });
+  await chrome.storage.local.set({ disconnectedByUser: false });
   await adoptLocalTimer();
   await refreshFromServer();
   return syncQueue();

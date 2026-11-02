@@ -516,7 +516,7 @@ describe("Kazi Timer automatic reconnect", () => {
     expect(chromeMock.identity.launchWebAuthFlow).toHaveBeenCalledWith(
       expect.objectContaining({ interactive: false }),
     );
-    expect(local.kaziAccessToken).toBe("fresh-token");
+    expect(session.kaziAccessToken).toBe("fresh-token");
   });
 
   it("does not open a window again within the retry interval", async () => {
@@ -541,7 +541,7 @@ describe("Kazi Timer automatic reconnect", () => {
 
     await message({ type: "start", task: "Expired", category: "Projects" });
 
-    expect(local.kaziAccessToken).toBeUndefined();
+    expect(session.kaziAccessToken).toBeUndefined();
   });
 
   it("does not reconnect after the staff member clicks Disconnect", async () => {
