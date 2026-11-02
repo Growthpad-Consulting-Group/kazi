@@ -9,23 +9,46 @@
   const selectors = [
     '[data-testid="task-name"]',
     '[data-testid*="task-name"]',
-    "h1",
+    '[data-testid*="task-title"]',
+    '[aria-label="Task name"]',
+    'textarea[aria-label*="Task"]',
+    '[contenteditable="true"][aria-label*="Task"]',
   ];
 
+  function taskHeading() {
+    return selectors
+      .flatMap((selector) => [...document.querySelectorAll(selector)])
+      .filter((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.left > window.innerWidth * 0.45 &&
+          Boolean(
+            candidate.textContent?.trim() ||
+            ("value" in candidate && candidate.value?.trim()),
+          )
+        );
+      })[0];
+  }
+
   function taskTitle() {
-    const element = selectors
-      .map((selector) => document.querySelector(selector))
-      .find((candidate) => candidate?.textContent?.trim());
-    return (
-      element?.textContent?.replace(/\s+/g, " ").trim().slice(0, 200) || ""
-    );
+    const element = taskHeading();
+    const value =
+      element && "value" in element && typeof element.value === "string"
+        ? element.value
+        : element?.textContent;
+    return value?.replace(/\s+/g, " ").trim().slice(0, 200) || "";
   }
 
   function mount() {
-    const target = selectors
-      .map((selector) => document.querySelector(selector))
-      .find((candidate) => candidate?.parentElement);
-    if (!target?.parentElement || document.getElementById(buttonId)) return;
+    const target = taskHeading();
+    if (!target?.parentElement) return;
+    const existing = document.getElementById(buttonId);
+    if (existing) {
+      if (existing.parentElement !== target.parentElement) existing.remove();
+      else return;
+    }
 
     const button = document.createElement("button");
     button.id = buttonId;
