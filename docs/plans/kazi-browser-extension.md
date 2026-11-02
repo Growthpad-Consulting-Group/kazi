@@ -4,6 +4,27 @@
 
 Make active daily-log timing visible and controllable while staff work outside Kazi, without exposing private staff or client data.
 
+## Actionable delivery plan
+
+### P0 — V1 toolbar timer
+
+- [x] Create a Chrome/Edge Manifest V3 extension workspace.
+- [x] Add local, restart-safe timer state, pause/resume, stop and a live toolbar badge.
+- [x] Add a popup for naming a task, choosing a category, controlling the timer and opening Kazi.
+- [x] Add extension-specific authorization using a short-lived, revocable Kazi token. Never reuse browser cookies or a staff password.
+- [x] Add narrowly scoped Kazi endpoints for the signed-in staff member’s completed timer entries.
+- [x] Sync stopped entries into the appropriate daily log, with conflict handling and offline retry.
+- [ ] Add Chrome/Edge install, restart, sleep/wake, sign-out and concurrent-tab tests.
+
+### P1 — V2 optional cross-site mini timer
+
+- [ ] Add an explicit opt-in for the floating mini timer; it must be disabled by default.
+- [ ] Let staff choose permitted sites individually. Request host permission only after they select a site.
+- [ ] Add a compact, dismissible overlay with elapsed time, pause/stop and “Open Kazi”.
+- [ ] Offer “Start from this page” only as a manual prefill; never read page content, form fields, browsing history or credentials.
+- [ ] Add per-site enable/disable controls and a visible privacy explanation.
+- [ ] Test overlays against common apps (Google Workspace, Asana and Slack) without interfering with their UI.
+
 ## Phase 1 — toolbar timer
 
 Build a Chrome/Edge Manifest V3 extension that provides:
@@ -31,11 +52,8 @@ Only build this if the toolbar experience proves insufficient. It would use a co
 - Add narrowly scoped endpoints for reading and mutating only the signed-in user’s active timer.
 - Store tokens with `chrome.storage.session` where possible; provide a disconnect action.
 
-## Delivery checklist
+## Security gate
 
-1. Create an extension workspace with `manifest.json`, popup, service worker, and shared timer state.
-2. Add secure extension authentication and token revocation in Kazi.
-3. Build start/pause/stop synchronization and conflict handling with the Kazi daily log.
-4. Add badge updates, offline recovery, and error states.
-5. Test Chrome and Edge, including browser restart, sleep/wake, sign-out, and concurrent Kazi tabs.
-6. Complete a privacy/permission review before enabling any content script.
+The extension can track a local timer before it is connected, but it must not
+sync staff data until the P0 authorization work is complete. No service keys,
+Supabase keys, Kazi passwords or browser cookies may be stored in the extension.

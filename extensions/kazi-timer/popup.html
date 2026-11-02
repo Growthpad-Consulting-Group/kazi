@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kazi Timer</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="mark">K</span>
+        <div><strong>Kazi Timer</strong><small id="status">Ready to track</small></div>
+      </header>
+      <section id="timer-panel" hidden>
+        <p class="eyebrow">ACTIVE TASK</p>
+        <h1 id="task-name"></h1>
+        <p id="task-meta"></p>
+        <p class="elapsed" id="elapsed">0:00</p>
+        <div class="actions">
+          <button class="secondary" id="pause">Pause</button>
+          <button class="danger" id="stop">Stop &amp; queue</button>
+        </div>
+      </section>
+      <form id="start-form">
+        <label>What are you working on?<input id="task" maxlength="200" required placeholder="e.g. Prepare client proposal" /></label>
+        <div class="grid">
+          <label>Client or project<input id="client" maxlength="120" placeholder="Optional" /></label>
+          <label>Type<select id="category"><option>Projects</option><option>Meetings</option><option>Hiring</option><option>Reporting</option><option>Admin</option><option>Other</option></select></label>
+        </div>
+        <button class="primary" type="submit">Start timer</button>
+      </form>
+      <p class="notice" id="notice">Connect Kazi to sync completed entries. Until then, they stay only in this browser.</p>
+      <footer><button class="link" id="open-kazi">Open Kazi</button><span id="queued"></span><button class="link" id="connect">Connect Kazi</button></footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
