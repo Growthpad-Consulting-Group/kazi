@@ -11,8 +11,10 @@ content, browsing history, passwords or Kazi cookies.
 3. Choose **Load unpacked** and select this `kazi-timer` directory.
 4. Pin **Kazi Timer** to the toolbar.
 
-The popup starts, pauses, resumes and stops a task. Use **Connect Kazi** to
+The popup starts, pauses, resumes and stops a task. Use **Connect Kazi** once to
 approve a 12-hour, extension-only connection in an authenticated Kazi window.
+The revocable token survives browser restarts and managed extension updates, but
+Kazi still requires a new connection when its 12-hour expiry is reached.
 Timers live on Kazi’s server, so pause, resume and stop made in Kazi or in another
 browser window appear in the popup. A stop is sent once per timer and writes a
 single entry to the day’s daily log. If Kazi cannot be reached, the stop waits in

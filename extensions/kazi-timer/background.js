@@ -82,8 +82,14 @@ function localDate(iso) {
 }
 
 async function tokenValue() {
-  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
-  return token;
+  // Keep the short-lived, revocable extension token across service-worker
+  // restarts and managed extension updates. The API enforces its expiry.
+  const { [TOKEN_KEY]: token } = await chrome.storage.local.get(TOKEN_KEY);
+  if (token) return token;
+  const { [TOKEN_KEY]: legacyToken } =
+    await chrome.storage.session.get(TOKEN_KEY);
+  if (legacyToken) await chrome.storage.local.set({ [TOKEN_KEY]: legacyToken });
+  return legacyToken;
 }
 
 async function pendingStops() {
@@ -275,7 +281,7 @@ async function connectKazi() {
   const parameters = new URLSearchParams(callback.hash.slice(1));
   if (parameters.get("state") !== state || !parameters.get("access_token"))
     throw new Error("Kazi did not approve this extension connection");
-  await chrome.storage.session.set({
+  await chrome.storage.local.set({
     [TOKEN_KEY]: parameters.get("access_token"),
   });
   await adoptLocalTimer();
@@ -291,6 +297,7 @@ async function disconnectKazi() {
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
   }
+  await chrome.storage.local.remove(TOKEN_KEY);
   await chrome.storage.session.remove(TOKEN_KEY);
 }
 
