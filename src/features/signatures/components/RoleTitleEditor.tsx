@@ -6,10 +6,17 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 
 /** Lets an employee correct the role title shown in their own signature. */
-export function RoleTitleEditor({ initial }: { initial: string | null }) {
+export function RoleTitleEditor({
+  initial,
+  phone: initialPhone,
+}: {
+  initial: string | null;
+  phone: string | null;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(initial ?? "");
+  const [phone, setPhone] = useState(initialPhone ?? "");
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -18,7 +25,7 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
       const res = await fetch("/api/signatures/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role_title: value }),
+        body: JSON.stringify({ role_title: value, phone }),
       });
       const data = (await res.json().catch(() => null)) as {
         error?: string;
@@ -31,7 +38,7 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
         toast.error(
           `Saved, but your email signature did not update: ${data.gmailError ?? "Gmail sync failed."}`,
         );
-      else toast.success("Role title updated");
+      else toast.success("Signature details updated");
       setEditing(false);
       router.refresh();
     } catch (error) {
@@ -48,9 +55,10 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
   if (!editing) {
     return (
       <div className="mt-1 flex items-center gap-2">
-        <p className="text-sm text-[var(--text-lo)]">
-          {initial ?? "No role title set"}
-        </p>
+        <div className="text-sm text-[var(--text-lo)]">
+          <p>{initial ?? "No role title set"}</p>
+          <p>{initialPhone ?? "No phone number set"}</p>
+        </div>
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -72,6 +80,14 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
         placeholder="e.g. Full Stack Developer"
         className="w-full max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] outline-none focus:ring-2 focus:ring-brand-500/40"
       />
+      <input
+        value={phone}
+        onChange={(event) => setPhone(event.target.value)}
+        maxLength={40}
+        aria-label="Phone number"
+        placeholder="Phone number"
+        className="w-full max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] outline-none focus:ring-2 focus:ring-brand-500/40"
+      />
       <Button size="sm" loading={saving} onClick={save}>
         Save
       </Button>
@@ -80,6 +96,7 @@ export function RoleTitleEditor({ initial }: { initial: string | null }) {
         variant="ghost"
         onClick={() => {
           setValue(initial ?? "");
+          setPhone(initialPhone ?? "");
           setEditing(false);
         }}
       >

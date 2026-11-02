@@ -228,10 +228,10 @@ export default async function EngagementCalendarPage() {
           <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
             <div>
               <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-                Activity timeline
+                Planned activity
               </h2>
               <p className="mt-0.5 text-xs text-[var(--text-lo)]">
-                Open an activity to manage it or review outcomes.
+                A compact view of what is live, next, and ready to review.
               </p>
             </div>
             <span className="rounded-lg bg-[var(--surface-2)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">
@@ -239,7 +239,7 @@ export default async function EngagementCalendarPage() {
             </span>
           </div>
           {items.length ? (
-            <div className="p-3">
+            <div className="grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((item) => {
                 const [icon, tone] = styles[item.type];
                 const pastDue = isPastDue(item);
@@ -247,14 +247,24 @@ export default async function EngagementCalendarPage() {
                   <Link
                     key={`${item.type}-${item.id}`}
                     href={item.href}
-                    className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-[var(--surface-2)]"
+                    className="group relative flex min-h-36 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-500/30 hover:shadow-lg hover:shadow-slate-200/40 dark:hover:shadow-black/20"
                   >
-                    <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}
-                    >
-                      <Icon icon={icon} className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}
+                      >
+                        <Icon icon={icon} className="h-4 w-4" />
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {pastDue ? (
+                          <ArchiveItemButton id={item.id} type={item.type} />
+                        ) : null}
+                        <span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] font-semibold capitalize text-[var(--text-lo)]">
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
                           {item.title}
@@ -275,17 +285,15 @@ export default async function EngagementCalendarPage() {
                         {item.end ? ` · ends ${fmt(item.end)}` : ""}
                       </p>
                     </div>
-                    <span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] font-semibold capitalize text-[var(--text-lo)]">
-                      {item.status}
-                    </span>
-                    {pastDue ? (
-                      <ArchiveItemButton id={item.id} type={item.type} />
-                    ) : (
+                    <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 text-xs text-[var(--text-lo)]">
+                      <span>
+                        {item.start ? fmt(item.start) : "Unscheduled"}
+                      </span>
                       <Icon
                         icon="solar:alt-arrow-right-broken"
                         className="h-4 w-4 text-[var(--text-lo)] group-hover:text-brand-500"
                       />
-                    )}
+                    </div>
                   </Link>
                 );
               })}

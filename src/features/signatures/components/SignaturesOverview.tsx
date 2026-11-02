@@ -40,6 +40,7 @@ type StaffProfile = {
   role_title: string | null;
   department: string | null;
   photo_url: string | null;
+  phone: string | null;
 };
 type SignatureAssignment = { staff_profile_id: string; template_id: string };
 type SignatureTemplate = { id: string; name: string; html: string };
@@ -81,7 +82,7 @@ export default async function SignaturesOverview() {
       database
         .from("signature_staff_profiles")
         .select(
-          "id, user_id, email, full_name, role_title, department, photo_url",
+          "id, user_id, email, full_name, role_title, department, phone, photo_url",
         ),
       database
         .from("signature_assignments")
@@ -165,7 +166,10 @@ export default async function SignaturesOverview() {
                     <p className="font-semibold text-[var(--text-hi)]">
                       {profile.full_name}
                     </p>
-                    <RoleTitleEditor initial={profile.role_title} />
+                    <RoleTitleEditor
+                      initial={profile.role_title}
+                      phone={profile.phone}
+                    />
                   </div>
                 </div>
                 {template ? (

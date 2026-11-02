@@ -20,6 +20,7 @@ type Database = {
 };
 
 const MAX_ROLE_TITLE_LENGTH = 120;
+const MAX_PHONE_LENGTH = 40;
 
 /** Lets a signed-in person change their own role title. Other fields stay managed by HR and admins. */
 export async function PATCH(request: Request) {
@@ -29,12 +30,17 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json().catch(() => null)) as {
     role_title?: unknown;
+    phone?: unknown;
   } | null;
   const roleTitle =
     typeof body?.role_title === "string" ? body.role_title.trim() : null;
-  if (roleTitle === null)
-    return NextResponse.json({ error: "Enter a role title." }, { status: 400 });
-  if (roleTitle.length > MAX_ROLE_TITLE_LENGTH) {
+  const phone = typeof body?.phone === "string" ? body.phone.trim() : null;
+  if (roleTitle === null && phone === null)
+    return NextResponse.json(
+      { error: "Enter a role title or phone number." },
+      { status: 400 },
+    );
+  if (roleTitle !== null && roleTitle.length > MAX_ROLE_TITLE_LENGTH) {
     return NextResponse.json(
       {
         error: `Keep the role title under ${MAX_ROLE_TITLE_LENGTH} characters.`,
@@ -42,6 +48,11 @@ export async function PATCH(request: Request) {
       { status: 400 },
     );
   }
+  if (phone !== null && phone.length > MAX_PHONE_LENGTH)
+    return NextResponse.json(
+      { error: "Keep the phone number under 40 characters." },
+      { status: 400 },
+    );
 
   const database = supabaseAdmin as unknown as Database;
   const { data: profile, error: profileError } = await database
@@ -60,7 +71,10 @@ export async function PATCH(request: Request) {
 
   const { error } = await database
     .from("signature_staff_profiles")
-    .update({ role_title: roleTitle || null })
+    .update({
+      ...(roleTitle !== null ? { role_title: roleTitle || null } : {}),
+      ...(phone !== null ? { phone: phone || null } : {}),
+    })
     .eq("id", id);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });

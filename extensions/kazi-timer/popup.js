@@ -1,6 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const KAZI_URL = "https://kazi.growthpad.africa/pulse/checkins?tab=daily";
 let activeTimer = null;
+let connected = false;
 let ticker = null;
 let clients = [];
 let selectedClient = "";
@@ -105,6 +106,15 @@ function render() {
     .join(" · ");
   $("#elapsed").textContent = format(currentSeconds());
   $("#pause").textContent = activeTimer.running ? "Pause" : "Resume";
+  const needsConnection = activeTimer.source === "kazi" && !connected;
+  $("#pause").disabled = needsConnection;
+  $("#stop").disabled = needsConnection;
+  $("#pause").title = needsConnection
+    ? "Connect Kazi to control this timer here"
+    : "";
+  $("#stop").title = needsConnection
+    ? "Connect Kazi to control this timer here"
+    : "";
   $("#pause").hidden = false;
   $("#stop").hidden = false;
   $("#manage-kazi").hidden = true;
@@ -117,11 +127,14 @@ function send(type, values = {}) {
 async function load() {
   const state = await send("get-state");
   activeTimer = state.timer || null;
+  connected = state.connected;
   $("#queued").textContent = state.queued ? `${state.queued} queued` : "";
   $("#connect").textContent = state.connected ? "Disconnect" : "Connect Kazi";
   $("#notice").textContent = state.connected
     ? "Stopped tasks sync to your Kazi daily log. Your connection expires when you close the browser."
-    : "Connect Kazi to sync completed entries. Until then, they stay only in this browser.";
+    : activeTimer?.source === "kazi"
+      ? "This timer is running in Kazi. Connect Kazi to pause, resume, or stop it from your toolbar."
+      : "Connect Kazi to sync completed entries. Until then, they stay only in this browser.";
   clients = [];
   if (state.connected) {
     const response = await send("get-clients");

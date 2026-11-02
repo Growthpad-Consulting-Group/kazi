@@ -388,6 +388,10 @@ async function handleMessage(message) {
   if (message.type === "pause" || message.type === "resume") {
     const action = message.type;
     if (!(await tokenValue())) {
+      if (timer.source === "kazi")
+        return {
+          error: "Connect Kazi to control this timer from the toolbar.",
+        };
       const now = Date.now();
       const next =
         action === "pause"
@@ -423,6 +427,8 @@ async function handleMessage(message) {
   }
 
   if (message.type === "stop") {
+    if (timer.source === "kazi" && !(await tokenValue()))
+      return { error: "Connect Kazi to control this timer from the toolbar." };
     const stoppedAt = new Date().toISOString();
     const item = {
       type: "stop",
