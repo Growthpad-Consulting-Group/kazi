@@ -146,6 +146,20 @@ function applyStoppedEntry(
   );
 }
 
+/** A plain row for the same activity that a running timer can take over. */
+function canResumeRow(
+  row: Row,
+  timer: Pick<Row, "task" | "client" | "category">,
+) {
+  return (
+    !row.showRange &&
+    !row.claimOutsideHours &&
+    row.task.trim().toLowerCase() === timer.task.trim().toLowerCase() &&
+    row.client.trim() === timer.client.trim() &&
+    row.category === timer.category
+  );
+}
+
 /** undefined means the timer API could not be reached. */
 async function fetchSharedTimer(
   stoppedTimerId?: string,
@@ -321,6 +335,7 @@ export function DailyLogPage({
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const activeTimerRef = useRef<ActiveTimer | null>(null);
+  const rowsRef = useRef<Row[]>([]);
   const isDirtyRef = useRef(false);
   // Timer changes made here win over polls that started before them.
   const lastLocalTimerChange = useRef(0);
@@ -331,6 +346,9 @@ export function DailyLogPage({
   useEffect(() => {
     activeTimerRef.current = activeTimer;
   }, [activeTimer]);
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
   useEffect(() => {
     isDirtyRef.current = isDirty;
   }, [isDirty]);
@@ -424,11 +442,27 @@ export function DailyLogPage({
                 category: entry.category,
               }))
             : [emptyRow()];
+          // A running timer resumes the task's existing row when there is one.
+          const resumable = restoredTimer
+            ? loadedRows.find((row) => canResumeRow(row, restoredTimer.row))
+            : undefined;
+          const resumedTimer =
+            restoredTimer && resumable
+              ? { ...restoredTimer, rowId: resumable.id }
+              : restoredTimer;
           setRows(
-            restoredTimer ? [...loadedRows, restoredTimer.row] : loadedRows,
+            restoredTimer && resumable
+              ? loadedRows.map((row) =>
+                  row.id === resumable.id
+                    ? { ...restoredTimer.row, id: resumable.id }
+                    : row,
+                )
+              : restoredTimer
+                ? [...loadedRows, restoredTimer.row]
+                : loadedRows,
           );
-          setActiveTimer(restoredTimer);
-          if (restoredTimer) cacheActiveTimer(restoredTimer);
+          setActiveTimer(resumedTimer);
+          if (resumedTimer) cacheActiveTimer(resumedTimer);
           setNeedsRefresh(false);
           setSavedAt(json.updatedAt ?? null);
           setSavedEntries(loaded);
@@ -494,6 +528,26 @@ export function DailyLogPage({
         return;
       }
       const next = activeTimerFromShared(matching);
+      // A timer for a task already in the log resumes that row, so the task
+      // keeps one row. Otherwise the timer gets its own row.
+      const resumable = rowsRef.current.find((row) =>
+        canResumeRow(row, {
+          task: matching.task,
+          client: matching.client ?? "",
+          category: matching.category,
+        }),
+      );
+      if (resumable) {
+        const resumed: ActiveTimer = { ...next, rowId: resumable.id };
+        setRows((rows) =>
+          rows.map((row) =>
+            row.id === resumable.id ? { ...next.row, id: resumable.id } : row,
+          ),
+        );
+        setActiveTimer(resumed);
+        cacheActiveTimer(resumed);
+        return;
+      }
       setRows((rows) =>
         rows.some((row) => row.id === next.rowId) ? rows : [...rows, next.row],
       );
