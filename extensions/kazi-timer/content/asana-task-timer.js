@@ -42,12 +42,25 @@
     return value?.replace(/\s+/g, " ").trim().slice(0, 200) || "";
   }
 
+  function markCompleteButton() {
+    return [...document.querySelectorAll("button")]
+      .filter((button) => button.textContent?.trim() === "Mark complete")
+      .filter((button) => {
+        const rect = button.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      })
+      .sort(
+        (left, right) =>
+          left.getBoundingClientRect().top - right.getBoundingClientRect().top,
+      )[0];
+  }
+
   function mount() {
-    const target = taskHeading();
+    const target = markCompleteButton();
     if (!target?.parentElement) return;
     const existing = document.getElementById(buttonId);
     if (existing) {
-      if (existing.parentElement !== target.parentElement) existing.remove();
+      if (existing.previousElementSibling !== target) existing.remove();
       else return;
     }
 
@@ -73,7 +86,7 @@
         window.alert(result.error);
       } else button.textContent = "Timer running";
     });
-    target.parentElement.append(button);
+    target.insertAdjacentElement("afterend", button);
   }
 
   new MutationObserver(mount).observe(document.documentElement, {
