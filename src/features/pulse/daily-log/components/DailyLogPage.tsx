@@ -1270,7 +1270,10 @@ export function DailyLogPage({
                   showManageTrigger={false}
                 />
                 {rows.map((row, index) => (
-                  <div key={row.id} className="space-y-2">
+                  <div
+                    key={row.id}
+                    className="-mx-2 space-y-2 rounded-xl px-2 py-1 transition-colors duration-150 hover:bg-[var(--surface-2)]/60"
+                  >
                     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_170px_150px_130px_auto]">
                       <input
                         value={row.task}
