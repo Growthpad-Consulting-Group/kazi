@@ -35,6 +35,25 @@ the package must stay outside source control; it is required for every update.
 For a release, increase `version` in `manifest.json`, package with the same key,
 and replace the CRX plus this update manifest.
 
+## Microsoft Edge (Edge for Business)
+
+Edge runs Chromium extensions, so the same package and update manifest apply.
+Use this only if staff use Edge instead of Chrome. Edge does not use the Google
+Admin console; set the policy in Microsoft Intune or Group Policy instead.
+
+Force-install the extension with the `ExtensionInstallForcelist` policy:
+
+```
+dffnikiadlobakbogmmfjkobjieehcbc;https://kazi.growthpad.africa/extensions/kazi-timer/updates.xml
+```
+
+- **Windows (Group Policy or Intune):** `HKLM\Software\Policies\Microsoft\Edge\ExtensionInstallForcelist`, as a list value.
+- **macOS (MDM profile):** the `com.microsoft.Edge` domain, key `ExtensionInstallForcelist`, as an array of strings.
+
+Verify on one test account that the extension appears in `edge://extensions`
+with the install marked as managed, and that it connects to Kazi. Edge is
+expected to behave like Chrome, but this has not been tested yet.
+
 ## Deliberate limitation
 
 Apply the matching Supabase migration before using Kazi sync. The extension
