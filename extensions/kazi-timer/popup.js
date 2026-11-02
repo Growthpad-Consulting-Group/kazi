@@ -186,7 +186,6 @@ $("#stop").addEventListener("click", async () => {
 });
 
 function renderMiniSites(state) {
-  $("#mini-enabled").checked = state.enabled;
   const list = $("#mini-sites");
   list.replaceChildren();
   for (const origin of state.sites) {
@@ -211,13 +210,6 @@ async function removeMiniSite(origin) {
   await chrome.permissions.remove({ origins: [`${origin}/*`] }).catch(() => {});
   renderMiniSites(await send("mini-set-site", { origin, enabled: false }));
 }
-
-$("#mini-enabled").addEventListener("change", async (event) => {
-  const state = await send("mini-set-enabled", {
-    enabled: event.target.checked,
-  });
-  renderMiniSites(state);
-});
 
 $("#mini-add").addEventListener("click", async () => {
   const button = $("#mini-add");
@@ -254,7 +246,7 @@ $("#mini-add").addEventListener("click", async () => {
       `Floating timer added for ${origin.replace(/^https:\/\//, "")}.`;
   } finally {
     button.disabled = false;
-    button.textContent = "Show on this site";
+    button.textContent = "Enable timer on this site";
   }
 });
 

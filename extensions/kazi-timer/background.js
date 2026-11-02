@@ -338,6 +338,7 @@ chrome.storage.onChanged.addListener(refreshBadge);
 const MINI_ENABLED_KEY = "miniTimerEnabled";
 const MINI_SITES_KEY = "miniTimerSites";
 const MINI_SCRIPT = "content/mini-timer.js";
+const ASANA_TASK_SCRIPT = "content/asana-task-timer.js";
 
 async function miniTimerState() {
   const { [MINI_ENABLED_KEY]: enabled = false, [MINI_SITES_KEY]: sites = [] } =
@@ -351,12 +352,22 @@ async function injectMiniTimer(tabId) {
     .catch(() => {});
 }
 
+async function injectAsanaTaskTimer(tabId, url) {
+  if (originOf(url) !== "https://app.asana.com") return;
+  await chrome.scripting
+    .executeScript({ target: { tabId }, files: [ASANA_TASK_SCRIPT] })
+    .catch(() => {});
+}
+
 async function injectIntoSite(origin) {
   const tabs = await chrome.tabs.query({});
   await Promise.all(
     tabs
       .filter((tab) => tab.id && tab.url && originOf(tab.url) === origin)
-      .map((tab) => injectMiniTimer(tab.id)),
+      .map(async (tab) => {
+        await injectMiniTimer(tab.id);
+        await injectAsanaTaskTimer(tab.id, tab.url);
+      }),
   );
 }
 
@@ -371,8 +382,10 @@ function originOf(url) {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
   const { enabled, sites } = await miniTimerState();
-  if (enabled && sites.includes(originOf(tab.url)))
+  if (enabled && sites.includes(originOf(tab.url))) {
     await injectMiniTimer(tabId);
+    await injectAsanaTaskTimer(tabId, tab.url);
+  }
 });
 
 async function handleMessage(message) {

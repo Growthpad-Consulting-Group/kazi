@@ -28,6 +28,13 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [x] Add per-site enable/disable controls and a visible privacy explanation.
 - [ ] Test overlays against common apps (Google Workspace, Asana and Slack) without interfering with their UI.
 
+### P2 — Task-level integrations
+
+- [x] Build an opt-in Asana integration that places a Kazi start button beside an open task.
+- [x] Read only the visible Asana task title after the staff member enables the Asana integration; never collect descriptions, comments, attachments, credentials or browsing history.
+- [x] Let staff edit the prefilled title and start the shared Kazi timer from the task context.
+- [ ] Add explicit Asana permission and privacy copy, plus DOM-resilience tests for common task views.
+
 ### P0.1 — Shared active timer authority
 
 - [x] Define one persisted active-timer payload shared by Kazi and the extension: task, client, category, log date, start timestamp, accumulated milliseconds, running state, source and idempotency key.
