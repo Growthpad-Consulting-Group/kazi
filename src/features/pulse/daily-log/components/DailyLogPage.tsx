@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
+import { Accordion } from "@/components/ui/Accordion";
 import { DatePicker } from "@/components/ui/DatePicker";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
@@ -14,6 +15,8 @@ import {
   RecurringWorkManager,
 } from "./RecurringWorkManager";
 import { TeamActivity } from "./TeamActivity";
+import { activeTimerTabEvent } from "@/components/providers/ActiveTimerTabIndicator";
+import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
 import {
   DAILY_LOG_CATEGORIES,
@@ -160,6 +163,7 @@ export function DailyLogPage({
   const [blockers, setBlockers] = useState("");
   const [wins, setWins] = useState("");
   const [editing, setEditing] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [edited, setEdited] = useState(false);
   const locked = !isEditableLogDate(date);
   const [savedEntries, setSavedEntries] = useState<DailyLogEntry[]>([]);
@@ -171,6 +175,8 @@ export function DailyLogPage({
   >([]);
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
   const [timerNow, setTimerNow] = useState(() => Date.now());
+  const { confirmNavigation, setUnsaved, setCallbacks } = useUnsavedChanges();
+  const saveRef = useRef<() => Promise<void>>(async () => {});
 
   // Notes a manager left on the chosen day, shown read-only.
   useEffect(() => {
@@ -247,6 +253,7 @@ export function DailyLogPage({
           setSavedEntries(loaded);
           setEdited(json.edited ?? false);
           setEditing(false);
+          setIsDirty(false);
           setMood(json.mood ?? null);
           setBlockers(json.blockers ?? "");
           setWins(json.wins ?? "");
@@ -315,7 +322,8 @@ export function DailyLogPage({
   const weekComplete = activeWeek.every((day) => loggedDays.has(day.key));
   const weekShared = weeklyCheckinSubmitted;
 
-  const updateRow = (index: number, patch: Partial<Row>) => {
+  const updateRow = (index: number, patch: Partial<Row>, markDirty = true) => {
+    if (markDirty) setIsDirty(true);
     const adjustedTime =
       "minutes" in patch ||
       "startTime" in patch ||
@@ -362,8 +370,9 @@ export function DailyLogPage({
         minutes: "",
       },
     };
-    updateRow(index, timer.row);
+    updateRow(index, timer.row, false);
     window.localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    window.dispatchEvent(new Event(activeTimerTabEvent));
     setActiveTimer(timer);
     setTimerNow(startedAt);
   };
@@ -397,7 +406,9 @@ export function DailyLogPage({
       ),
     );
     window.localStorage.removeItem(TIMER_STORAGE_KEY);
+    window.dispatchEvent(new Event(activeTimerTabEvent));
     setActiveTimer(null);
+    setIsDirty(true);
     toast.success(`Timer stopped at ${formatElapsed(totalSeconds * 1000)}.`);
   };
 
@@ -454,9 +465,11 @@ export function DailyLogPage({
       ];
     });
     setAsana((prev) => ({ ...prev, open: false }));
+    if (picked.length) setIsDirty(true);
   };
 
   const addRecurringWork = (entry: DailyLogEntry) => {
+    setIsDirty(true);
     setRows((prev) => {
       const base =
         prev.length === 1 &&
@@ -487,6 +500,7 @@ export function DailyLogPage({
         ? [emptyRow()]
         : current.filter((_, rowIndex) => rowIndex !== index),
     );
+    setIsDirty(true);
     toast(
       (notification) => (
         <div className="flex items-center gap-3 text-sm text-[var(--text-hi)]">
@@ -527,7 +541,7 @@ export function DailyLogPage({
     );
   };
 
-  const save = async () => {
+  const save = useCallback(async () => {
     if (activeTimer?.date === date) {
       toast.error("Stop the active timer before saving this daily log.");
       return;
@@ -584,9 +598,15 @@ export function DailyLogPage({
         { date, entries, mood },
       ]);
       setEditing(false);
-      const daysAfterSave = new Set(loggedDays);
+      setIsDirty(false);
+      const daysAfterSave = new Set(
+        history
+          .filter((log) => weekDays(date).some((day) => day.key === log.date))
+          .filter((log) => log.entries.length > 0)
+          .map((log) => log.date),
+      );
       daysAfterSave.add(date);
-      const completedAfterSave = activeWeek.every((day) =>
+      const completedAfterSave = weekDays(date).every((day) =>
         daysAfterSave.has(day.key),
       );
       if (completedAfterSave && !weeklyCheckinSubmitted) {
@@ -606,7 +626,44 @@ export function DailyLogPage({
     } finally {
       setSaving(false);
     }
+  }, [
+    activeTimer,
+    blockers,
+    date,
+    history,
+    mood,
+    router,
+    rows,
+    weeklyCheckinSubmitted,
+    wins,
+  ]);
+
+  // A timer is persisted locally and deliberately follows the staff member
+  // around Kazi. Only manual edits should interrupt navigation.
+  const dailyLogNeedsAttention = !isReviewer && isDirty;
+
+  const selectDate = (nextDate: string) => {
+    if (nextDate === date) return;
+    if (!confirmNavigation(() => setDate(nextDate))) return;
+    setDate(nextDate);
   };
+
+  useEffect(() => {
+    saveRef.current = save;
+  }, [save]);
+
+  useEffect(() => {
+    setUnsaved(dailyLogNeedsAttention, "Unsaved daily activity");
+    return () => setUnsaved(false);
+  }, [dailyLogNeedsAttention, setUnsaved]);
+
+  useEffect(() => {
+    setCallbacks({
+      onSave: () => saveRef.current(),
+      onDiscard: () => window.location.reload(),
+    });
+    return () => setCallbacks({});
+  }, [setCallbacks]);
 
   const inputClass =
     "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60";
@@ -732,7 +789,7 @@ export function DailyLogPage({
             <div className="w-48">
               <DatePicker
                 value={date}
-                onChange={setDate}
+                onChange={selectDate}
                 maxDate={new Date()}
               />
             </div>
@@ -747,6 +804,19 @@ export function DailyLogPage({
             edited={edited}
             canEdit={!locked}
             onEdit={() => setEditing(true)}
+            activeTimer={
+              activeTimer?.date === date
+                ? {
+                    task: activeTimer.row.task,
+                    elapsed: formatElapsed(
+                      activeTimer.accumulatedSeconds * 1000 +
+                        timerNow -
+                        activeTimer.startedAt,
+                    ),
+                  }
+                : null
+            }
+            onOpenTimer={() => setEditing(true)}
           />
           <RecurringWorkManager
             date={date}
@@ -800,7 +870,7 @@ export function DailyLogPage({
               <div className="w-48">
                 <DatePicker
                   value={date}
-                  onChange={setDate}
+                  onChange={selectDate}
                   maxDate={new Date()}
                 />
               </div>
@@ -980,7 +1050,10 @@ export function DailyLogPage({
                   <div className="flex flex-wrap items-center gap-4">
                     <button
                       type="button"
-                      onClick={() => setRows((prev) => [...prev, emptyRow()])}
+                      onClick={() => {
+                        setRows((prev) => [...prev, emptyRow()]);
+                        setIsDirty(true);
+                      }}
                       className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-500 hover:underline"
                     >
                       <Icon
@@ -1085,75 +1158,94 @@ export function DailyLogPage({
               </div>
             )}
 
-            <div className="grid gap-4 border-t border-[var(--border)] pt-4 sm:grid-cols-3">
-              <div>
-                <p className="mb-2 text-xs font-semibold text-[var(--text-hi)]">
-                  How did today feel?
-                </p>
-                <div className="flex gap-1.5">
-                  {MOODS.slice(0, DAILY_LOG_MOOD_COUNT).map((emoji, index) => {
-                    const value = index + 1;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        title={MOOD_LABELS[index]}
-                        aria-label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}: ${MOOD_LABELS[index]}`}
-                        onClick={() => setMood(mood === value ? null : value)}
-                        aria-pressed={mood === value}
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-colors ${mood === value ? "bg-brand-500/15 ring-2 ring-brand-500/40" : "bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
-                      >
-                        {emoji}
-                      </button>
-                    );
-                  })}
+            <Accordion
+              title="Daily reflection"
+              subtitle="Mood, blockers and wins are optional"
+              icon="solar:heart-pulse-broken"
+              badge={mood ? MOOD_LABELS[mood - 1] : "Optional"}
+              defaultOpen={Boolean(mood || blockers.trim() || wins.trim())}
+            >
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-[var(--text-hi)]">
+                    How did today feel?
+                  </p>
+                  <div className="flex gap-1.5">
+                    {MOODS.slice(0, DAILY_LOG_MOOD_COUNT).map(
+                      (emoji, index) => {
+                        const value = index + 1;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            title={MOOD_LABELS[index]}
+                            aria-label={`Mood ${value} of ${DAILY_LOG_MOOD_COUNT}: ${MOOD_LABELS[index]}`}
+                            onClick={() => {
+                              setMood(mood === value ? null : value);
+                              setIsDirty(true);
+                            }}
+                            aria-pressed={mood === value}
+                            className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-colors ${mood === value ? "bg-brand-500/15 ring-2 ring-brand-500/40" : "bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
+                          >
+                            {emoji}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--text-lo)]">
+                    {mood ? (
+                      <>
+                        Feeling{" "}
+                        <span className="font-semibold text-[var(--text-hi)]">
+                          {MOOD_LABELS[mood - 1]}
+                        </span>
+                      </>
+                    ) : (
+                      "No mood selected"
+                    )}
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-[var(--text-lo)]">
-                  {mood ? (
-                    <>
-                      Feeling{" "}
-                      <span className="font-semibold text-[var(--text-hi)]">
-                        {MOOD_LABELS[mood - 1]}
-                      </span>
-                    </>
-                  ) : (
-                    "No mood selected"
-                  )}
-                </p>
+                <div>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">
+                    Blockers{" "}
+                    <span className="font-normal text-[var(--text-lo)]">
+                      Optional
+                    </span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={blockers}
+                    onChange={(e) => {
+                      setBlockers(e.target.value);
+                      setIsDirty(true);
+                    }}
+                    placeholder="Anything slowing you down?"
+                    maxLength={1000}
+                    className={`${inputClass} resize-y`}
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">
+                    Wins and learnings{" "}
+                    <span className="font-normal text-[var(--text-lo)]">
+                      Optional
+                    </span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={wins}
+                    onChange={(e) => {
+                      setWins(e.target.value);
+                      setIsDirty(true);
+                    }}
+                    placeholder="What went well, or what did you learn?"
+                    maxLength={1000}
+                    className={`${inputClass} resize-y`}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">
-                  Blockers{" "}
-                  <span className="font-normal text-[var(--text-lo)]">
-                    Optional
-                  </span>
-                </label>
-                <textarea
-                  rows={2}
-                  value={blockers}
-                  onChange={(e) => setBlockers(e.target.value)}
-                  placeholder="Anything slowing you down?"
-                  maxLength={1000}
-                  className={`${inputClass} resize-y`}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-[var(--text-hi)]">
-                  Wins and learnings{" "}
-                  <span className="font-normal text-[var(--text-lo)]">
-                    Optional
-                  </span>
-                </label>
-                <textarea
-                  rows={2}
-                  value={wins}
-                  onChange={(e) => setWins(e.target.value)}
-                  placeholder="What went well, or what did you learn?"
-                  maxLength={1000}
-                  className={`${inputClass} resize-y`}
-                />
-              </div>
-            </div>
+            </Accordion>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
               <p className="text-[11px] text-[var(--text-lo)]">

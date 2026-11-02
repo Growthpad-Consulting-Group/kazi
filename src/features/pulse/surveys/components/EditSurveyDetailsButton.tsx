@@ -4,14 +4,17 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
+
 export function EditSurveyDetailsButton({
   surveyId,
   initialTitle,
   initialDescription,
+  renderTrigger,
 }: {
   surveyId: string;
   initialTitle: string;
   initialDescription: string | null;
+  renderTrigger?: (open: () => void) => React.ReactNode;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -41,14 +44,18 @@ export function EditSurveyDetailsButton({
   }
   return (
     <>
-      <Button
-        size="sm"
-        variant="secondary"
-        icon="solar:pen-new-square-broken"
-        onClick={() => setOpen(true)}
-      >
-        Edit draft
-      </Button>
+      {renderTrigger ? (
+        renderTrigger(() => setOpen(true))
+      ) : (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon="solar:pen-new-square-broken"
+          onClick={() => setOpen(true)}
+        >
+          Edit draft
+        </Button>
+      )}
       <SimpleModal
         open={open}
         onClose={() => setOpen(false)}

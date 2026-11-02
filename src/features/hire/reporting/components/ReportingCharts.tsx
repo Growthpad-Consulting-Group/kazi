@@ -26,6 +26,7 @@ const STAGE_COLORS: Record<string, string> = {
 };
 
 interface Props {
+  rangeLabel: string;
   funnel: { stage: string; count: number }[];
   applications: { week: string; applications: number }[];
   sources: {
@@ -44,7 +45,12 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-export function ReportingCharts({ funnel, applications, sources }: Props) {
+export function ReportingCharts({
+  rangeLabel,
+  funnel,
+  applications,
+  sources,
+}: Props) {
   const activeFunnel = funnel.filter(
     (item) => item.stage !== "rejected" && item.count > 0,
   );
@@ -55,7 +61,7 @@ export function ReportingCharts({ funnel, applications, sources }: Props) {
         icon="solar:chart-square-broken"
         tone="orange"
         title="Application momentum"
-        description="Incoming applications over the last eight weeks."
+        description={`Incoming applications in ${rangeLabel.toLowerCase()}.`}
       >
         <ResponsiveContainer width="100%" height={235}>
           <AreaChart
@@ -117,7 +123,7 @@ export function ReportingCharts({ funnel, applications, sources }: Props) {
         icon="solar:pie-chart-2-broken"
         tone="blue"
         title="Pipeline conversion"
-        description="Distribution across the active hiring journey."
+        description={`Candidates who applied in ${rangeLabel.toLowerCase()}.`}
       >
         {activeTotal ? (
           <div className="flex items-center gap-4">
@@ -176,7 +182,7 @@ export function ReportingCharts({ funnel, applications, sources }: Props) {
           icon="solar:ranking-broken"
           tone="green"
           title="Source quality"
-          description="Applicants and shortlisted candidates by top source."
+          description={`Applicants and shortlisted candidates in ${rangeLabel.toLowerCase()}.`}
         >
           <ResponsiveContainer width="100%" height={250}>
             <BarChart

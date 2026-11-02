@@ -25,7 +25,10 @@ type UnsavedChangesValue = {
   clearUnsavedFlag: () => void;
   reset: () => void;
   setIsDiscarding: (value: boolean) => void;
-  confirmNavigation: () => boolean;
+  confirmNavigation: (onConfirm?: () => void) => boolean;
+  navigationConfirmationOpen: boolean;
+  cancelNavigation: () => void;
+  discardAndNavigate: () => void;
 };
 
 const Context = createContext<UnsavedChangesValue | null>(null);
@@ -37,6 +40,11 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState("Unsaved changes");
   const [callbacks, setCallbacksState] = useState<Callbacks>({});
   const [isDiscarding, setIsDiscarding] = useState(false);
+  const [navigationConfirmationOpen, setNavigationConfirmationOpen] =
+    useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<
+    (() => void) | null
+  >(null);
 
   const setUnsaved = useCallback(
     (unsaved: boolean, nextMessage?: string) => {
@@ -64,12 +72,28 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
       setIsSaving(false);
     }
   }, [callbacks]);
-  const confirmNavigation = useCallback(() => {
-    if (!isUnsaved) return true;
-    setShakeNonce((value) => value + 1);
-    window.dispatchEvent(new CustomEvent("unsaved-shake"));
-    return false;
-  }, [isUnsaved]);
+  const confirmNavigation = useCallback(
+    (onConfirm?: () => void) => {
+      if (!isUnsaved) return true;
+      setPendingNavigation(() => onConfirm ?? null);
+      setNavigationConfirmationOpen(true);
+      setShakeNonce((value) => value + 1);
+      window.dispatchEvent(new CustomEvent("unsaved-shake"));
+      return false;
+    },
+    [isUnsaved],
+  );
+  const cancelNavigation = useCallback(() => {
+    setNavigationConfirmationOpen(false);
+    setPendingNavigation(null);
+  }, []);
+  const discardAndNavigate = useCallback(() => {
+    const next = pendingNavigation;
+    setNavigationConfirmationOpen(false);
+    setPendingNavigation(null);
+    reset();
+    next?.();
+  }, [pendingNavigation, reset]);
 
   return (
     <Context.Provider
@@ -86,6 +110,9 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
         reset,
         setIsDiscarding,
         confirmNavigation,
+        navigationConfirmationOpen,
+        cancelNavigation,
+        discardAndNavigate,
       }}
     >
       {children}
@@ -104,6 +131,9 @@ const fallback: UnsavedChangesValue = {
   reset: () => {},
   setIsDiscarding: () => {},
   confirmNavigation: () => true,
+  navigationConfirmationOpen: false,
+  cancelNavigation: () => {},
+  discardAndNavigate: () => {},
 };
 
 export function useUnsavedChanges() {

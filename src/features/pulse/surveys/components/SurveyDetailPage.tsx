@@ -12,6 +12,7 @@ import { SurveyResults } from "./SurveyResults";
 import { SurveyStatusToggle } from "./SurveyStatusToggle";
 import { SurveyLifecycleActions } from "./SurveyLifecycleActions";
 import { EditSurveyDetailsButton } from "./EditSurveyDetailsButton";
+import { SurveyResultsExportButton } from "./SurveyResultsExportButton";
 import type { Survey, SurveyResponse, SurveyStatus } from "@/types/database";
 import { audienceUserIds, isSurveyAudienceMember } from "../audience";
 
@@ -142,6 +143,14 @@ export default async function SurveyDetailPage({
         title={survey.title}
         description={`${status.label} · ${survey.questions.length} question${survey.questions.length === 1 ? "" : "s"}`}
         icon="solar:chat-round-dots-broken"
+        trailing={
+          isAdmin ? (
+            <SurveyStatusToggle
+              surveyId={survey.id}
+              currentStatus={survey.status}
+            />
+          ) : undefined
+        }
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -234,38 +243,30 @@ export default async function SurveyDetailPage({
           </div>
         </section>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <main className="min-w-0 space-y-5">
-            {isAdmin && (
-              <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
-                    <Icon
-                      icon="solar:chart-square-broken"
-                      className="h-4 w-4"
-                    />
-                  </span>
-                  <div>
+        {isAdmin && (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:px-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                  <Icon icon="solar:settings-broken" className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-[var(--text-hi)]">
-                      Survey controls
+                      Survey management
                     </p>
-                    <p className="mt-0.5 text-xs text-[var(--text-lo)]">
-                      <span className="font-semibold text-[var(--text-hi)]">
-                        {participantCount}
-                      </span>{" "}
-                      response{participantCount === 1 ? "" : "s"} collected so
-                      far
-                    </p>
+                    <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-lo)]">
+                      Admin only
+                    </span>
                   </div>
+                  <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                    {participantCount} response
+                    {participantCount === 1 ? "" : "s"} collected ·{" "}
+                    {status.label.toLowerCase()} survey
+                  </p>
                 </div>
-                <SurveyStatusToggle
-                  surveyId={survey.id}
-                  currentStatus={survey.status}
-                />
-                <SurveyLifecycleActions
-                  surveyId={survey.id}
-                  status={survey.status}
-                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 {survey.status === "draft" && (
                   <EditSurveyDetailsButton
                     surveyId={survey.id}
@@ -273,19 +274,18 @@ export default async function SurveyDetailPage({
                     initialDescription={survey.description}
                   />
                 )}
-                <a
-                  href={`/api/pulse/surveys/${survey.id}/export`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--border)]"
-                >
-                  <Icon
-                    icon="solar:download-minimalistic-broken"
-                    className="h-4 w-4"
-                  />
-                  Export results
-                </a>
-              </section>
-            )}
+                <SurveyLifecycleActions
+                  surveyId={survey.id}
+                  status={survey.status}
+                />
+                <SurveyResultsExportButton surveyId={survey.id} />
+              </div>
+            </div>
+          </section>
+        )}
 
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <main className="min-w-0 space-y-5">
             {survey.status === "active" && !alreadyResponded && (
               <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
                 <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">

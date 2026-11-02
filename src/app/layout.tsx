@@ -5,6 +5,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { Toaster } from "react-hot-toast";
 import ServiceWorkerRegister from "@/components/providers/ServiceWorkerRegister";
+import ActiveTimerTabIndicator from "@/components/providers/ActiveTimerTabIndicator";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://kazi.growthpad.africa";
@@ -91,7 +92,10 @@ export default function RootLayout({
       className={`${figtree.variable} ${cloverDisplay.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          {children}
+          <ActiveTimerTabIndicator />
+        </SessionProvider>
         <ServiceWorkerRegister />
         <Toaster
           position="top-right"

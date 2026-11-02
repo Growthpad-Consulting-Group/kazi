@@ -5,11 +5,13 @@ import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useAvatar } from "@/shared/hooks/useAvatar";
 import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 
 export default function HeaderProfileDropdown() {
+  const router = useRouter();
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -113,7 +115,9 @@ export default function HeaderProfileDropdown() {
                 <Link
                   href="/settings/profile"
                   onClick={(event) => {
-                    if (!confirmNavigation()) {
+                    if (
+                      !confirmNavigation(() => router.push("/settings/profile"))
+                    ) {
                       event.preventDefault();
                       return;
                     }
@@ -129,7 +133,12 @@ export default function HeaderProfileDropdown() {
                 </Link>
                 <button
                   onClick={() => {
-                    if (confirmNavigation()) signOut({ callbackUrl: "/login" });
+                    if (
+                      confirmNavigation(() =>
+                        signOut({ callbackUrl: "/login" }),
+                      )
+                    )
+                      signOut({ callbackUrl: "/login" });
                   }}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition-all hover:bg-red-500/10 active:scale-95"
                 >

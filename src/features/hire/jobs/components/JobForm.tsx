@@ -307,7 +307,8 @@ export function JobForm({ job, departments = [] }: Props) {
       icon: "solar:arrow-left-broken",
       variant: "secondary" as const,
       onClick: () => {
-        if (confirmNavigation()) router.push("/hire/jobs");
+        if (confirmNavigation(() => router.push("/hire/jobs")))
+          router.push("/hire/jobs");
       },
     },
     ...(job
@@ -317,7 +318,8 @@ export function JobForm({ job, departments = [] }: Props) {
             icon: "solar:eye-broken",
             variant: "secondary" as const,
             onClick: () => {
-              if (confirmNavigation()) router.push(`/hire/jobs/${job.id}`);
+              if (confirmNavigation(() => router.push(`/hire/jobs/${job.id}`)))
+                router.push(`/hire/jobs/${job.id}`);
             },
           },
           ...(job.status === "open" &&
@@ -534,7 +536,7 @@ export function JobForm({ job, departments = [] }: Props) {
 
   const actionsProps = {
     onCancel: () => {
-      if (confirmNavigation()) router.back();
+      if (confirmNavigation(() => router.back())) router.back();
     },
     onSave: () => formRef.current?.requestSubmit(),
     loading: isPending,

@@ -8,7 +8,7 @@ const quote = (value: unknown) =>
   `"${String(value ?? "").replaceAll('"', '""')}"`;
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -37,6 +37,27 @@ export async function GET(
       ...questions.map((question) => response.answers[question.id] ?? ""),
     ]),
   ];
+  if (new URL(req.url).searchParams.get("format") === "json") {
+    return NextResponse.json({
+      title: survey.title,
+      rows: (responses ?? []).map((response) =>
+        Object.fromEntries([
+          ["submitted_at", response.submitted_at],
+          ...questions.map((question, index) => [
+            `question_${index + 1}`,
+            response.answers[question.id] ?? "",
+          ]),
+        ]),
+      ),
+      fields: [
+        { key: "submitted_at", label: "Submitted at" },
+        ...questions.map((question, index) => ({
+          key: `question_${index + 1}`,
+          label: question.text,
+        })),
+      ],
+    });
+  }
   return new NextResponse(
     rows.map((row) => row.map(quote).join(",")).join("\n"),
     {

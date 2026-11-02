@@ -73,7 +73,7 @@ export default function KaziSidebar({
       : pathname.startsWith(href);
   const navGroups = navigationForRole(session?.user?.allowedPaths ?? []);
   const guardedPush = (href: string) => {
-    if (!confirmNavigation()) return;
+    if (!confirmNavigation(() => router.push(href))) return;
     router.push(href);
   };
 
@@ -100,7 +100,8 @@ export default function KaziSidebar({
                 href="/dashboard"
                 title="Dashboard"
                 onClick={(event) => {
-                  if (confirmNavigation()) return;
+                  if (confirmNavigation(() => router.push("/dashboard")))
+                    return;
                   event.preventDefault();
                 }}
               >
@@ -134,7 +135,7 @@ export default function KaziSidebar({
               href="/dashboard"
               title="Dashboard"
               onClick={(event) => {
-                if (confirmNavigation()) return;
+                if (confirmNavigation(() => router.push("/dashboard"))) return;
                 event.preventDefault();
               }}
             >
@@ -327,7 +328,12 @@ export default function KaziSidebar({
                 <div className="my-1 h-px bg-white/10 dark:bg-white/5" />
                 <button
                   onClick={() => {
-                    if (confirmNavigation()) signOut({ callbackUrl: "/login" });
+                    if (
+                      confirmNavigation(() =>
+                        signOut({ callbackUrl: "/login" }),
+                      )
+                    )
+                      signOut({ callbackUrl: "/login" });
                   }}
                   className="flex items-center gap-3 w-full p-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-red-500 hover:bg-red-500/10"
                 >

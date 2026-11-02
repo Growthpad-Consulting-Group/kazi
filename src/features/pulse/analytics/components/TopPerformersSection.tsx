@@ -149,7 +149,7 @@ export default function TopPerformersSection({
             Top Performers
           </h3>
           <p className="text-xs text-[var(--text-lo)]">
-            Top 10 by performance metric
+            Top 10 by the selected performance metric
           </p>
         </div>
       </div>
@@ -160,7 +160,7 @@ export default function TopPerformersSection({
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`inline-flex items-center gap-1.5 rounded-t-lg px-3 pb-2.5 pt-1 text-xs font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-t-lg px-3 pb-2.5 pt-1 text-sm font-semibold transition-colors ${
               activeTab === tab.key
                 ? "border-b-2 border-brand-500 text-brand-500"
                 : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"

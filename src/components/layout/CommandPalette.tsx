@@ -82,7 +82,7 @@ export default function CommandPalette() {
   }, [query]);
 
   const go = (href: string) => {
-    if (!confirmNavigation()) return;
+    if (!confirmNavigation(() => router.push(href))) return;
     router.push(href);
     close();
   };

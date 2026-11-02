@@ -41,6 +41,8 @@ export function DailyLogRecap({
   edited,
   canEdit,
   onEdit,
+  activeTimer,
+  onOpenTimer,
 }: {
   dateLabel: string;
   entries: DailyLogEntry[];
@@ -51,6 +53,8 @@ export function DailyLogRecap({
   edited: boolean;
   canEdit: boolean;
   onEdit: () => void;
+  activeTimer?: { task: string; elapsed: string } | null;
+  onOpenTimer?: () => void;
 }) {
   const total = entries.reduce((sum, entry) => sum + entry.minutes, 0);
   const categories = DAILY_LOG_CATEGORIES.filter((category) =>
@@ -78,7 +82,31 @@ export function DailyLogRecap({
             </p>
           )}
         </div>
-        <div className="flex items-stretch gap-3">
+        <div className="flex flex-wrap items-stretch justify-end gap-3">
+          {activeTimer && onOpenTimer && (
+            <button
+              type="button"
+              onClick={onOpenTimer}
+              className="group flex min-w-[13rem] items-center gap-2 rounded-xl bg-brand-500/10 px-3 py-2 text-left transition-colors hover:bg-brand-500/15"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-white">
+                <Icon icon="solar:stopwatch-broken" className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-brand-600">
+                  Timer running
+                </span>
+                <span className="block truncate font-mono text-xs font-bold text-[var(--text-hi)]">
+                  {activeTimer.elapsed} ·{" "}
+                  {activeTimer.task || "Untitled activity"}
+                </span>
+              </span>
+              <Icon
+                icon="solar:alt-arrow-right-broken"
+                className="ml-auto h-3.5 w-3.5 text-brand-500 transition-transform group-hover:translate-x-0.5"
+              />
+            </button>
+          )}
           {canEdit ? (
             <div className="flex">
               <Button

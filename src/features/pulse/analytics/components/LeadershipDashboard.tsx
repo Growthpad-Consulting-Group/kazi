@@ -33,6 +33,15 @@ type Checkin = {
 };
 type Goal = { owner_id: string | null; status: string; progress: number };
 
+const NON_PERFORMANCE_REWARD_ENTRIES = new Set([
+  "wallet_reconciliation",
+  "manual_balance_clearance",
+  "automation_reversal",
+  "redemption",
+  "redemption_refund",
+  "point_expiry",
+]);
+
 function getWeekStart(weeksAgo = 0) {
   const d = new Date();
   d.setDate(d.getDate() - d.getDay() + 1 - weeksAgo * 7);
@@ -123,10 +132,11 @@ export default async function LeadershipDashboard() {
       .select("user_id")
       .eq("show_on_leaderboard", false)
       .in("user_id", memberIds),
-    // Gap 4: reward ledger totals
+    // Points used for performance recognition. Accounting entries such as
+    // historical wallet reconciliation and redemption must never affect rank.
     supabaseAdmin
       .from("reward_ledger")
-      .select("user_id, amount")
+      .select("user_id, amount, reference_type")
       .in("user_id", memberIds),
     // Performance reviews for the latest cycle (if one exists)
     latestCycleId
@@ -203,18 +213,21 @@ export default async function LeadershipDashboard() {
   const membersMap = new Map(members.map((m) => [m.id, m]));
   const optedOutSet = new Set((optedOutRows ?? []).map((r) => r.user_id));
 
-  // 1. Reward points — sum positive amounts per user
+  // 1. Reward points — net eligible recognition points per user.
   const rewardTotals = new Map<string, number>();
   for (const row of rewardRows ?? []) {
-    if (row.amount > 0) {
-      rewardTotals.set(
-        row.user_id,
-        (rewardTotals.get(row.user_id) ?? 0) + row.amount,
-      );
-    }
+    if (NON_PERFORMANCE_REWARD_ENTRIES.has(row.reference_type ?? ""))
+      continue;
+    rewardTotals.set(
+      row.user_id,
+      (rewardTotals.get(row.user_id) ?? 0) + row.amount,
+    );
   }
   const topRewardPoints: TopPerformerEntry[] = [...rewardTotals.entries()]
-    .filter(([id]) => !optedOutSet.has(id) && membersMap.has(id))
+    .filter(
+      ([id, total]) =>
+        total > 0 && !optedOutSet.has(id) && membersMap.has(id),
+    )
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
     .map(([id, total]) => ({

@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { NewSurveyButton } from "./NewSurveyButton";
+import { SurveyListActions } from "./SurveyListActions";
 import type { Survey, SurveyStatus } from "@/types/database";
 import { isSurveyAudienceMember } from "../audience";
 
@@ -254,20 +255,24 @@ export default async function SurveysPage() {
               {surveys.map((survey) => {
                 const status = STATUS[survey.status];
                 return (
-                  <Link
+                  <div
                     key={survey.id}
-                    href={`/pulse/surveys/${survey.id}`}
                     className="group relative flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-[var(--surface-2)] sm:flex-row sm:items-center sm:px-6"
                   >
                     <span
                       className={`absolute bottom-0 left-0 top-0 w-1 ${status.accent}`}
                     />
-                    <span
+                    <Link
+                      href={`/pulse/surveys/${survey.id}`}
+                      aria-label={`Open ${survey.title}`}
                       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${status.badge}`}
                     >
                       <Icon icon={status.icon} className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
+                    </Link>
+                    <Link
+                      href={`/pulse/surveys/${survey.id}`}
+                      className="min-w-0 flex-1"
+                    >
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="truncate text-sm font-semibold text-[var(--text-hi)]">
                           {survey.title}
@@ -293,8 +298,8 @@ export default async function SurveysPage() {
                           {formattedDate(survey.created_at)}
                         </p>
                       )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
+                    </Link>
+                    <div className="relative z-10 flex shrink-0 items-center gap-3">
                       <div className="hidden text-right sm:block">
                         <p className="font-mono text-xs font-semibold text-[var(--text-hi)]">
                           {survey.questions.length}
@@ -315,8 +320,16 @@ export default async function SurveysPage() {
                         icon="solar:alt-arrow-right-broken"
                         className="h-4 w-4 text-[var(--text-lo)] transition-transform group-hover:translate-x-0.5"
                       />
+                      {isAdmin && (
+                        <SurveyListActions
+                          surveyId={survey.id}
+                          title={survey.title}
+                          description={survey.description}
+                          status={survey.status}
+                        />
+                      )}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>

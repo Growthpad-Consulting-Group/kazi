@@ -4,6 +4,11 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import type { CandidateStage } from "@/types/database";
+import { AnalyticsPeriodPicker } from "@/features/pulse/analytics/components/AnalyticsPeriodPicker";
+import {
+  resolveRange,
+  type ResolvedRange,
+} from "@/features/dashboard/components/DashboardRange";
 const ReportingCharts = dynamic(
   () => import("./ReportingCharts").then((m) => m.ReportingCharts),
   {
@@ -38,13 +43,15 @@ type CandidateRecord = {
   jobs: { title: string; department: string | null } | null;
 };
 
-async function getReportData() {
+async function getReportData(range: ResolvedRange) {
   const [candidatesRes, jobsRes] = await Promise.all([
     supabaseAdmin
       .from("candidates")
       .select(
         "id, stage, applied_at, ai_score, shortlisted, source, jobs(title, department)",
-      ),
+      )
+      .gte("applied_at", range.startDate.toISOString())
+      .lte("applied_at", range.endDate.toISOString()),
     supabaseAdmin.from("jobs").select("id, title, status"),
   ]);
   const candidates = (candidatesRes.data ?? []) as unknown as CandidateRecord[];
@@ -108,25 +115,33 @@ async function getReportData() {
     roles.set(role, roleData);
   }
 
-  const start = new Date();
-  start.setDate(start.getDate() - 49);
-  start.setHours(0, 0, 0, 0);
-  const applications = Array.from({ length: 8 }, (_, index) => {
-    const weekStart = new Date(start);
-    weekStart.setDate(start.getDate() + index * 7);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 7);
-    return {
-      week: weekStart.toLocaleDateString("en-KE", {
-        month: "short",
-        day: "numeric",
-      }),
-      applications: candidates.filter((candidate) => {
-        const date = new Date(candidate.applied_at);
-        return date >= weekStart && date < weekEnd;
-      }).length,
-    };
-  });
+  const start = new Date(range.startDate);
+  const end = new Date(range.endDate);
+  const rangeDays = Math.max(
+    1,
+    Math.ceil((end.getTime() - start.getTime()) / 86_400_000) + 1,
+  );
+  const bucketDays = rangeDays <= 14 ? 1 : 7;
+  const applications = Array.from(
+    { length: Math.ceil(rangeDays / bucketDays) },
+    (_, index) => {
+      const bucketStart = new Date(start);
+      bucketStart.setDate(start.getDate() + index * bucketDays);
+      const bucketEnd = new Date(bucketStart);
+      bucketEnd.setDate(bucketStart.getDate() + bucketDays);
+      if (bucketEnd > end) bucketEnd.setTime(end.getTime() + 1);
+      return {
+        week: bucketStart.toLocaleDateString("en-KE", {
+          month: "short",
+          day: "numeric",
+        }),
+        applications: candidates.filter((candidate) => {
+          const date = new Date(candidate.applied_at);
+          return date >= bucketStart && date < bucketEnd;
+        }).length,
+      };
+    },
+  );
 
   return {
     totalCandidates: candidates.length,
@@ -170,8 +185,17 @@ async function getReportData() {
   };
 }
 
-export default async function ReportingPage() {
-  const report = await getReportData();
+export default async function ReportingPage({
+  searchParams,
+}: {
+  searchParams: { from?: string; to?: string; preset?: string };
+}) {
+  const period = resolveRange({
+    from: searchParams.from,
+    to: searchParams.to,
+    preset: searchParams.preset || "Last 30 Days",
+  });
+  const report = await getReportData(period);
   const shortlistRate = report.screened
     ? Math.round((report.shortlisted / report.screened) * 100)
     : null;
@@ -179,8 +203,9 @@ export default async function ReportingPage() {
     <div className="space-y-5">
       <SetPageHeader
         title="Hiring insights"
-        description={`${report.activeCandidates} active candidates across ${report.openJobs} open role${report.openJobs === 1 ? "" : "s"}`}
+        description={`${report.activeCandidates} active candidates from ${period.label.toLowerCase()} across ${report.openJobs} open role${report.openJobs === 1 ? "" : "s"}`}
         icon="solar:chart-2-broken"
+        trailing={<AnalyticsPeriodPicker range={period} />}
       />
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard
@@ -229,6 +254,7 @@ export default async function ReportingPage() {
         />
       </section>
       <ReportingCharts
+        rangeLabel={period.label}
         funnel={report.funnel}
         applications={report.applications}
         sources={report.sources}

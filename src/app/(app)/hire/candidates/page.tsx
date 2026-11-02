@@ -23,9 +23,13 @@ export default async function Page({
     stage?: string;
     attention?: string;
     role?: string;
+    from?: string;
+    to?: string;
+    preset?: string;
   }>;
 }) {
-  const { tab = "list", job, stage, attention, role } = await searchParams;
+  const { tab = "list", job, stage, attention, role, from, to, preset } =
+    await searchParams;
 
   return (
     <div>
@@ -34,7 +38,9 @@ export default async function Page({
       </Suspense>
 
       {tab === "pipeline" && <PipelinePage jobId={job} />}
-      {tab === "reports" && <ReportingPage />}
+      {tab === "reports" && (
+        <ReportingPage searchParams={{ from, to, preset }} />
+      )}
       {(tab === "list" || !["pipeline", "reports"].includes(tab)) && (
         <CandidatesPage
           jobId={job}

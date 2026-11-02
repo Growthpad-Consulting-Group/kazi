@@ -12,6 +12,7 @@ import CommandPalette from "./CommandPalette";
 import { NotificationsProvider } from "@/shared/contexts/NotificationsContext";
 import { UnsavedChangesProvider } from "@/shared/contexts/UnsavedChangesContext";
 import NavigationGuard from "./NavigationGuard";
+import UnsavedNavigationModal from "./UnsavedNavigationModal";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
@@ -23,6 +24,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <UnsavedChangesProvider>
             <PageHeaderProvider>
               <NavigationGuard />
+              <UnsavedNavigationModal />
               <div className="relative min-h-screen flex bg-[var(--canvas)]">
                 <KaziSidebar
                   isOpen={!!isSidebarOpen}
