@@ -54,10 +54,12 @@ Make active daily-log timing visible and controllable while staff work outside K
 
 ### P3 — Cross-browser distribution
 
-- [ ] Validate and document Microsoft Edge deployment through Edge for Business / Chromium enterprise policies.
-- [ ] Package and test a Firefox build, including its identity redirect and Mozilla Add-ons signing requirements.
-- [ ] Assess a Safari Web Extension wrapper, Apple signing, and managed macOS distribution.
-- [ ] Publish a supported-browser matrix; treat Brave, Arc and Opera as unverified Chromium compatibility until tested.
+Assessment from the code. None of these builds has been run in its browser.
+
+- [ ] Validate and document Microsoft Edge deployment through Edge for Business / Chromium enterprise policies. _Assessed: Edge uses Chromium extensions, so the Chrome package and manifest should load unchanged. Force-install needs Edge for Business policy (`ExtensionInstallForcelist` with the same extension ID and update URL). Not yet tested in Edge._
+- [ ] Package and test a Firefox build, including its identity redirect and Mozilla Add-ons signing requirements. _Assessed: Firefox does not run a `service_worker` background, so the manifest needs `background.scripts` and a `browser_specific_settings.gecko.id`. The identity redirect URL differs, so the connect flow needs testing. Enterprise installs need Mozilla signing. Not built._
+- [ ] Assess a Safari Web Extension wrapper, Apple signing, and managed macOS distribution. _Assessed: Safari needs an Xcode wrapper (`safari-web-extension-converter`), an Apple Developer ID to sign it, and an MDM profile for managed installs. Needs an Apple account decision before building._
+- [ ] Publish a supported-browser matrix; treat Brave, Arc and Opera as unverified Chromium compatibility until tested. _Matrix: Chrome (verified by the team), Edge (expected, untested), Firefox (needs a build), Safari (needs a wrapper), Brave, Arc, Opera (unverified)._
 
 ## Phase 1 — toolbar timer
 
