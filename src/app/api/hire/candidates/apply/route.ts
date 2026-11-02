@@ -8,20 +8,10 @@ import {
 } from "@/lib/candidate-applications";
 import { sendApplicationConfirmation } from "@/lib/application-emails";
 import { checkRateLimit, rateLimitHeaders, requestIp } from "@/lib/rate-limit";
-
-function isLinkedInProfile(value: unknown) {
-  if (typeof value !== "string" || !value.trim()) return false;
-  try {
-    const url = new URL(value);
-    return (
-      (url.protocol === "https:" || url.protocol === "http:") &&
-      (url.hostname === "linkedin.com" ||
-        url.hostname.endsWith(".linkedin.com"))
-    );
-  } catch {
-    return false;
-  }
-}
+import {
+  normalizeApplicationUrl,
+  normalizeLinkedInProfile,
+} from "@/lib/application-urls";
 
 // Public endpoint: creates the application without a CV. Prefer apply-with-cv, which reads the CV first.
 export async function POST(req: Request) {
@@ -56,12 +46,21 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  if (!isLinkedInProfile(linkedin_url)) {
+  const linkedinUrl = normalizeLinkedInProfile(linkedin_url);
+  const portfolioUrl = portfolio_url
+    ? normalizeApplicationUrl(portfolio_url)
+    : null;
+  if (!linkedinUrl) {
     return NextResponse.json(
       { error: "A valid LinkedIn profile URL is required" },
       { status: 400 },
     );
   }
+  if (portfolio_url && !portfolioUrl)
+    return NextResponse.json(
+      { error: "Enter a valid portfolio or website URL" },
+      { status: 400 },
+    );
 
   try {
     const job = await assertCanApply(job_id, email);
@@ -71,8 +70,8 @@ export async function POST(req: Request) {
       email,
       phone,
       location,
-      linkedin_url,
-      portfolio_url,
+      linkedin_url: linkedinUrl,
+      portfolio_url: portfolioUrl,
       cover_message,
       source,
     });

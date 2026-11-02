@@ -9,22 +9,12 @@ import {
 } from "@/lib/candidate-applications";
 import { sendApplicationConfirmation } from "@/lib/application-emails";
 import { checkRateLimit, rateLimitHeaders, requestIp } from "@/lib/rate-limit";
+import {
+  normalizeApplicationUrl,
+  normalizeLinkedInProfile,
+} from "@/lib/application-urls";
 
 export const runtime = "nodejs";
-
-function isLinkedInProfile(value: string | null) {
-  if (!value) return false;
-  try {
-    const url = new URL(value);
-    return (
-      (url.protocol === "https:" || url.protocol === "http:") &&
-      (url.hostname === "linkedin.com" ||
-        url.hostname.endsWith(".linkedin.com"))
-    );
-  } catch {
-    return false;
-  }
-}
 
 // Public endpoint: a single request carries the applicant's details and CV.
 // The CV is read before any candidate record is created, so an unreadable file never leaves a half-saved application.
@@ -61,10 +51,18 @@ export async function POST(req: Request) {
       { error: "Please upload your CV." },
       { status: 400 },
     );
-  const linkedinUrl = field("linkedin_url");
-  if (!isLinkedInProfile(linkedinUrl))
+  const linkedinUrl = normalizeLinkedInProfile(field("linkedin_url"));
+  const portfolioUrl = field("portfolio_url")
+    ? normalizeApplicationUrl(field("portfolio_url"))
+    : null;
+  if (!linkedinUrl)
     return NextResponse.json(
       { error: "A valid LinkedIn profile URL is required" },
+      { status: 400 },
+    );
+  if (field("portfolio_url") && !portfolioUrl)
+    return NextResponse.json(
+      { error: "Enter a valid portfolio or website URL" },
       { status: 400 },
     );
 
@@ -78,7 +76,7 @@ export async function POST(req: Request) {
       email,
       phone: field("phone"),
       linkedin_url: linkedinUrl,
-      portfolio_url: field("portfolio_url"),
+      portfolio_url: portfolioUrl,
       cover_message: field("cover_message"),
       source: field("source") ?? "website",
     });

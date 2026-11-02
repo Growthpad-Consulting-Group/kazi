@@ -121,9 +121,21 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             {job?.department && (
               <p className="text-xs text-[var(--text-lo)]">{job.department}</p>
             )}
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[var(--text-lo)]">
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-[var(--text-lo)]">
               <ContactItem icon="solar:letter-broken" value={candidate.email} />
               <ContactItem icon="solar:phone-broken" value={candidate.phone} />
+              <ContactItem
+                icon="solar:link-round-broken"
+                value={candidate.linkedin_url}
+                href={candidate.linkedin_url}
+                label="LinkedIn profile"
+              />
+              <ContactItem
+                icon="solar:global-broken"
+                value={candidate.portfolio_url}
+                href={candidate.portfolio_url}
+                label="Portfolio / website"
+              />
               <ContactItem
                 icon="solar:map-point-broken"
                 value={candidate.location}
@@ -722,12 +734,36 @@ function SectionHeader({ icon, title }: { icon: string; title: string }) {
     </div>
   );
 }
-function ContactItem({ icon, value }: { icon: string; value: string | null }) {
-  return value ? (
-    <span className="flex items-center gap-1">
+function ContactItem({
+  icon,
+  value,
+  href,
+  label,
+}: {
+  icon: string;
+  value: string | null;
+  href?: string | null;
+  label?: string;
+}) {
+  const content = (
+    <>
       <Icon icon={icon} className="h-3.5 w-3.5 text-brand-500" />
-      {value}
-    </span>
+      {label ?? value}
+    </>
+  );
+  return value ? (
+    href ? (
+      <a
+        href={href}
+        target={href ? "_blank" : undefined}
+        rel={href ? "noreferrer" : undefined}
+        className="flex items-center gap-1 transition-colors hover:text-brand-500"
+      >
+        {content}
+      </a>
+    ) : (
+      <span className="flex items-center gap-1">{content}</span>
+    )
   ) : null;
 }
 function MetaRow({ label, value }: { label: string; value: string }) {
