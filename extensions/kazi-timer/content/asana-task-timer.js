@@ -68,6 +68,26 @@
     );
   }
 
+  // The Kazi timer lives in extension storage, so the button reflects it while
+  // the page stays open. Stopping in the popup or on another tab resets it here.
+  let activeTimer = null;
+  function renderButton(button) {
+    if (!button) return;
+    if (activeTimer) {
+      button.disabled = true;
+      button.textContent = activeTimer.running
+        ? "Timer running"
+        : "Timer paused";
+      return;
+    }
+    button.disabled = false;
+    button.textContent = "Start timer";
+  }
+
+  function currentButton() {
+    return document.getElementById(buttonId);
+  }
+
   function createButton(pane) {
     const button = document.createElement("button");
     button.id = buttonId;
@@ -92,11 +112,11 @@
         category: "Projects",
       });
       if (result?.error) {
-        button.disabled = false;
-        button.textContent = "Start timer";
+        renderButton(button);
         window.alert(result.error);
       } else {
-        button.textContent = "Timer running";
+        activeTimer = result.timer;
+        renderButton(button);
       }
     });
     return button;
@@ -108,13 +128,31 @@
     const complete = completionButton(toolbar);
     if (!pane || !toolbar || !complete || !taskTitle(pane)) return;
 
-    const existing = document.getElementById(buttonId);
+    const existing = currentButton();
     if (existing) {
-      if (existing.parentElement === complete.parentElement) return;
+      if (existing.parentElement === complete.parentElement) {
+        renderButton(existing);
+        return;
+      }
       existing.remove();
     }
-    complete.insertAdjacentElement("afterend", createButton(pane));
+    const button = createButton(pane);
+    complete.insertAdjacentElement("afterend", button);
+    renderButton(button);
   }
+
+  chrome.storage.local
+    .get("timer")
+    .then(({ timer }) => {
+      activeTimer = timer || null;
+      renderButton(currentButton());
+    })
+    .catch(() => {});
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !("timer" in changes)) return;
+    activeTimer = changes.timer.newValue || null;
+    renderButton(currentButton());
+  });
 
   function queueMount() {
     if (mountQueued) return;
