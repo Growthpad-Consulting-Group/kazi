@@ -22,6 +22,12 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const redirectUri = url.searchParams.get("redirect_uri");
   const state = url.searchParams.get("state");
+  const installId = url.searchParams.get("install_id");
+  if (installId !== null && !/^[0-9a-zA-Z-]{8,64}$/.test(installId))
+    return NextResponse.json(
+      { error: "Invalid extension connection request" },
+      { status: 400 },
+    );
   if (
     !isAllowedExtensionRedirectUri(redirectUri) ||
     !state ||
@@ -41,6 +47,7 @@ export async function GET(request: Request) {
       user_id: session.user.id,
       token_hash: hashExtensionToken(token),
       client_name: "kazi-timer",
+      install_id: installId,
       expires_at: expiresAt,
     })
     .select("id")
@@ -51,17 +58,20 @@ export async function GET(request: Request) {
       { status: 500 },
     );
 
-  // One active connection per staff member: a new connection retires the
-  // previous one, so old tokens do not pile up.
-  const { error: revokeError } = await db
-    .from("browser_extension_tokens")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("user_id", session.user.id)
-    .eq("client_name", "kazi-timer")
-    .is("revoked_at", null)
-    .neq("id", created.id);
-  if (revokeError)
-    console.error("Could not revoke earlier Kazi Timer tokens", revokeError);
+  // A new connection retires the earlier token from the same browser install,
+  // so old tokens do not pile up. Other browsers keep their connections.
+  if (installId) {
+    const { error: revokeError } = await db
+      .from("browser_extension_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("user_id", session.user.id)
+      .eq("client_name", "kazi-timer")
+      .eq("install_id", installId)
+      .is("revoked_at", null)
+      .neq("id", created.id);
+    if (revokeError)
+      console.error("Could not revoke earlier Kazi Timer tokens", revokeError);
+  }
 
   const callback = new URL(redirectUri!);
   callback.hash = new URLSearchParams({

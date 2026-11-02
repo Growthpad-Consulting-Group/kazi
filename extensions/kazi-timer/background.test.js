@@ -552,4 +552,15 @@ describe("Kazi Timer automatic reconnect", () => {
 
     expect(chromeMock.identity.launchWebAuthFlow).not.toHaveBeenCalled();
   });
+
+  it("sends this browser's install ID with the connection request", async () => {
+    await loadWorker();
+    await listeners.startup();
+
+    const url = new URL(
+      chromeMock.identity.launchWebAuthFlow.mock.calls[0][0].url,
+    );
+    expect(url.searchParams.get("install_id")).toBe(local.installId);
+    expect(local.installId).toMatch(/^[0-9a-f-]{36}$/);
+  });
 });

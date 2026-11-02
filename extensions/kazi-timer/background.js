@@ -279,6 +279,16 @@ async function adoptLocalTimer() {
 // interactive: true may show Kazi's sign-in page. interactive: false only
 // succeeds when the staff member is already signed in to Kazi in this browser,
 // so it can reconnect with no window and no click.
+// One random ID per browser install, so Kazi retires only this browser's
+// earlier connection when it connects again.
+async function installId() {
+  const { installId: stored } = await chrome.storage.local.get("installId");
+  if (stored) return stored;
+  const created = crypto.randomUUID();
+  await chrome.storage.local.set({ installId: created });
+  return created;
+}
+
 async function connectKazi({ interactive = true } = {}) {
   const redirectUri = chrome.identity.getRedirectURL("kazi");
   const state = crypto.randomUUID();
@@ -288,6 +298,7 @@ async function connectKazi({ interactive = true } = {}) {
   authorizationUrl.search = new URLSearchParams({
     redirect_uri: redirectUri,
     state,
+    install_id: await installId(),
   }).toString();
   const callbackUrl = await chrome.identity.launchWebAuthFlow({
     url: authorizationUrl.href,
