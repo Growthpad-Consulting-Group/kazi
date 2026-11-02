@@ -468,3 +468,30 @@ describe("Kazi Timer floating timer opt-in", () => {
     expect(injected).toEqual([]);
   });
 });
+
+describe("Kazi Timer Asana task link", () => {
+  it("remembers the Asana task link for a timer started from Asana, locally only", async () => {
+    await loadWorker();
+    const started = await message({
+      type: "start",
+      task: "Client requested changes",
+      category: "Projects",
+      sourceUrl: "https://app.asana.com/1/1/project/2/task/3",
+    });
+
+    expect(local.timerSources).toEqual({
+      [started.timer.id]: "https://app.asana.com/1/1/project/2/task/3",
+    });
+  });
+
+  it("ignores a link that is not an Asana task", async () => {
+    await loadWorker();
+    await message({
+      type: "start",
+      task: "Other",
+      category: "Projects",
+      sourceUrl: "https://example.com/evil",
+    });
+    expect(local.timerSources).toBeUndefined();
+  });
+});

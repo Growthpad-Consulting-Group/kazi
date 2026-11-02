@@ -51,6 +51,14 @@ async function readTimer() {
   return timer;
 }
 
+// Links to the Asana task a timer was started from, kept only in extension
+// storage (never sent to Kazi). The newest few are kept.
+async function rememberTimerSource(timerId, url) {
+  const { timerSources = {} } = await chrome.storage.local.get("timerSources");
+  const entries = Object.entries({ ...timerSources, [timerId]: url }).slice(-5);
+  await chrome.storage.local.set({ timerSources: Object.fromEntries(entries) });
+}
+
 async function writeTimer(timer) {
   await chrome.storage.local.set({ [TIMER_KEY]: timer });
 }
@@ -465,6 +473,8 @@ async function handleMessage(message) {
         return { error: response.json?.error || "Could not start the timer" };
       }
     }
+    if (originOf(message.sourceUrl) === "https://app.asana.com")
+      await rememberTimerSource(next.id, message.sourceUrl);
     await writeTimer(next);
     return { timer: next };
   }

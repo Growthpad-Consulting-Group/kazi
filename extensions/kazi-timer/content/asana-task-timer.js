@@ -71,6 +71,7 @@
   // The Kazi timer lives in extension storage, so the button reflects it while
   // the page stays open. Stopping in the popup or on another tab resets it here.
   let activeTimer = null;
+  let timerSources = {};
   function formatClock(milliseconds) {
     const total = Math.max(0, Math.floor(milliseconds / 1000));
     const hours = Math.floor(total / 3600);
@@ -103,6 +104,9 @@
         button.disabled = true;
         const state = activeTimer.running ? "Timer running" : "Timer paused";
         button.textContent = `${state} · ${formatClock(elapsedMs(activeTimer))}`;
+      } else if (timerSources[activeTimer.id]) {
+        button.disabled = false;
+        button.textContent = "Open running task";
       } else {
         button.disabled = true;
         button.textContent = "Timer on another task";
@@ -126,6 +130,11 @@
     button.style.cssText =
       "margin-left:8px;border:0;border-radius:8px;padding:6px 9px;background:#f05d23;color:#fff;font:600 12px system-ui;cursor:pointer;white-space:nowrap;";
     button.addEventListener("click", async () => {
+      if (activeTimer && !sameTask(activeTimer.task, taskTitle(taskPane()))) {
+        const url = timerSources[activeTimer.id];
+        if (url) window.location.assign(url);
+        return;
+      }
       const title = taskTitle(pane);
       if (!title) {
         window.alert(
@@ -139,6 +148,7 @@
         type: "start",
         task: title,
         category: "Projects",
+        sourceUrl: window.location.href,
       });
       if (result?.error) {
         renderButton(button);
@@ -176,15 +186,18 @@
   }, 1000);
 
   chrome.storage.local
-    .get("timer")
-    .then(({ timer }) => {
+    .get(["timer", "timerSources"])
+    .then(({ timer, timerSources: sources }) => {
       activeTimer = timer || null;
+      timerSources = sources || {};
       renderButton(currentButton());
     })
     .catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !("timer" in changes)) return;
-    activeTimer = changes.timer.newValue || null;
+    if (area !== "local") return;
+    if ("timerSources" in changes)
+      timerSources = changes.timerSources.newValue || {};
+    if ("timer" in changes) activeTimer = changes.timer.newValue || null;
     renderButton(currentButton());
   });
 
