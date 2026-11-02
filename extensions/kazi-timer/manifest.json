@@ -23,6 +23,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
+  "update_url": "https://kazi.growthpad.africa/extensions/kazi-timer/updates.xml",
   "content_scripts": [
     {
       "matches": ["https://kazi.growthpad.africa/*"],

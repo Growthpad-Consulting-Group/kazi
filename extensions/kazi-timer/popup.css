@@ -3,6 +3,7 @@ body { width: 340px; margin: 0; background: #fffdfb; color: #172033; }
 main { padding: 18px; }
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .mark { display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:#f05d23; color:white; font-weight:800; }
+img.mark { object-fit:cover; }
 header strong, header small { display:block; } header small { margin-top:2px; color:#6b7280; font-size:11px; }
 .eyebrow { margin:0; color:#f05d23; font-size:10px; font-weight:800; letter-spacing:.09em; }
 h1 { margin:6px 0 3px; font-size:16px; line-height:1.35; } #task-meta { margin:0; color:#6b7280; font-size:12px; }

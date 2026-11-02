@@ -61,6 +61,23 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      {
+        source: "/extensions/kazi-timer/updates.xml",
+        headers: [
+          { key: "Content-Type", value: "application/xml; charset=utf-8" },
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+        ],
+      },
+      {
+        source: "/extensions/kazi-timer/kazi-timer.crx",
+        headers: [
+          { key: "Content-Type", value: "application/x-chrome-extension" },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
     ];
   },
   serverExternalPackages: ["@napi-rs/canvas", "tesseract.js"],
