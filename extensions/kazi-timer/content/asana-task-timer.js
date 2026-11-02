@@ -1,78 +1,83 @@
-// Opt-in Asana task helper. It reads only the currently visible task title
-// after a staff member clicks the Kazi button; it never reads descriptions,
-// comments, attachments, credentials, or background page data.
+// Opt-in Asana task helper. It only reads the title in the task pane the
+// staff member has open. Descriptions, comments, attachments, credentials and
+// other page data are never read.
+//
+// Asana is a single-page application, so it replaces the task pane without a
+// document navigation. Keep this adapter scoped to that pane and re-mount when
+// the pane changes rather than selecting headings or buttons across the page.
 (() => {
   if (window.__kaziAsanaTaskTimer) return;
   window.__kaziAsanaTaskTimer = true;
 
   const buttonId = "kazi-asana-start-timer";
-  const selectors = [
-    '[data-testid="task-name"]',
-    '[data-testid*="task-name"]',
-    '[data-testid*="task-title"]',
-    '[aria-label="Task Name"]',
-    '[aria-label="Task name"]',
-    'textarea[aria-label*="Task"]',
-    '[contenteditable="true"][aria-label*="Task"]',
-  ];
+  let mountQueued = false;
 
-  function taskHeading() {
-    return selectors
-      .flatMap((selector) => [...document.querySelectorAll(selector)])
-      .filter((candidate) => {
-        const rect = candidate.getBoundingClientRect();
-        return (
-          rect.width > 0 &&
-          rect.height > 0 &&
-          rect.left > window.innerWidth * 0.45 &&
-          Boolean(
-            candidate.textContent?.trim() ||
-            ("value" in candidate && candidate.value?.trim()),
-          )
-        );
-      })[0];
+  function isVisible(element) {
+    const rect = element?.getBoundingClientRect();
+    return Boolean(rect?.width && rect.height);
   }
 
-  function taskTitle() {
-    const element = taskHeading();
+  function taskPane() {
+    const title = document.querySelector(
+      [
+        '.TaskPane-titleRow textarea',
+        '.TaskPaneBody-main [role="heading"] textarea',
+        '.TaskPaneBody-main [aria-label="Task Name"]',
+        '.TaskPaneBody-main [data-testid="task-name"]',
+        '[aria-label="Task Name"]',
+        '[data-testid="task-name"]',
+      ].join(","),
+    );
+    return title?.closest(".TaskPaneBody-main, .TaskPane") || null;
+  }
+
+  function taskTitle(pane) {
+    const field = pane?.querySelector(
+      [
+        '[role="heading"] textarea',
+        '.TaskPane-titleRow textarea',
+        '[aria-label="Task Name"]',
+        '[data-testid="task-name"]',
+        '[data-testid*="task-title"]',
+      ].join(","),
+    );
+    if (!field || !isVisible(field)) return "";
     const value =
-      element && "value" in element && typeof element.value === "string"
-        ? element.value
-        : element?.textContent;
+      "value" in field && typeof field.value === "string"
+        ? field.value
+        : field.textContent;
     return value?.replace(/\s+/g, " ").trim().slice(0, 200) || "";
   }
 
-  function markCompleteButton() {
-    return [...document.querySelectorAll("button")]
-      .filter((button) => button.textContent?.trim() === "Mark complete")
-      .filter((button) => {
-        const rect = button.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-      })
-      .sort(
-        (left, right) =>
-          left.getBoundingClientRect().top - right.getBoundingClientRect().top,
-      )[0];
+  // Clockify's maintained Asana adapter uses this task-pane toolbar contract.
+  // Keep the title field and completion action in the same pane so a board card
+  // or Asana's left navigation can never receive the Kazi control.
+  function taskToolbar(pane) {
+    const root = pane?.closest(".TaskPane") || pane;
+    const toolbar = root?.querySelector(".TaskPaneToolbarAnimation-row");
+    return toolbar && isVisible(toolbar) ? toolbar : null;
   }
 
-  function mount() {
-    const target = markCompleteButton();
-    if (!target?.parentElement) return;
-    const existing = document.getElementById(buttonId);
-    if (existing) {
-      if (existing.previousElementSibling !== target) existing.remove();
-      else return;
-    }
+  function completionButton(toolbar) {
+    return [...(toolbar?.querySelectorAll("button") || [])].find(
+      (button) => isVisible(button) && button.textContent?.trim() === "Mark complete",
+    );
+  }
 
+  function createButton(pane) {
     const button = document.createElement("button");
     button.id = buttonId;
     button.type = "button";
     button.textContent = "Start timer";
+    button.setAttribute("aria-label", "Start Kazi timer for this Asana task");
     button.style.cssText =
-      "margin-left:8px;border:0;border-radius:8px;padding:6px 9px;background:#f05d23;color:#fff;font:600 12px system-ui;cursor:pointer;";
+      "margin-left:8px;border:0;border-radius:8px;padding:6px 9px;background:#f05d23;color:#fff;font:600 12px system-ui;cursor:pointer;white-space:nowrap;";
     button.addEventListener("click", async () => {
-      const title = taskTitle();
-      if (!title) return;
+      const title = taskTitle(pane);
+      if (!title) {
+        window.alert("Open a task with a title before starting the Kazi timer.");
+        return;
+      }
       button.disabled = true;
       button.textContent = "Starting…";
       const result = await chrome.runtime.sendMessage({
@@ -84,14 +89,39 @@
         button.disabled = false;
         button.textContent = "Start timer";
         window.alert(result.error);
-      } else button.textContent = "Timer running";
+      } else {
+        button.textContent = "Timer running";
+      }
     });
-    target.insertAdjacentElement("afterend", button);
+    return button;
   }
 
-  new MutationObserver(mount).observe(document.documentElement, {
+  function mount() {
+    const pane = taskPane();
+    const toolbar = taskToolbar(pane);
+    const complete = completionButton(toolbar);
+    if (!pane || !toolbar || !complete || !taskTitle(pane)) return;
+
+    const existing = document.getElementById(buttonId);
+    if (existing) {
+      if (existing.parentElement === complete.parentElement) return;
+      existing.remove();
+    }
+    complete.insertAdjacentElement("afterend", createButton(pane));
+  }
+
+  function queueMount() {
+    if (mountQueued) return;
+    mountQueued = true;
+    requestAnimationFrame(() => {
+      mountQueued = false;
+      mount();
+    });
+  }
+
+  new MutationObserver(queueMount).observe(document.documentElement, {
     childList: true,
     subtree: true,
   });
-  mount();
+  queueMount();
 })();
