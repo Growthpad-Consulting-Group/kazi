@@ -89,12 +89,24 @@
     return timer.accumulatedMs + runningMs;
   }
 
+  // The button describes the timer only when it belongs to the task on screen.
+  // A timer for another task is shown as busy, not as running here.
+  function sameTask(a, b) {
+    return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
+  }
+
   function renderButton(button) {
     if (!button) return;
     if (activeTimer) {
-      button.disabled = true;
-      const state = activeTimer.running ? "Timer running" : "Timer paused";
-      button.textContent = `${state} · ${formatClock(elapsedMs(activeTimer))}`;
+      const onThisTask = sameTask(activeTimer.task, taskTitle(taskPane()));
+      if (onThisTask) {
+        button.disabled = true;
+        const state = activeTimer.running ? "Timer running" : "Timer paused";
+        button.textContent = `${state} · ${formatClock(elapsedMs(activeTimer))}`;
+      } else {
+        button.disabled = true;
+        button.textContent = "Timer on another task";
+      }
       return;
     }
     button.disabled = false;
