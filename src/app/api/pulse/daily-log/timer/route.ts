@@ -13,6 +13,7 @@ import {
   type DailyLogEntry,
 } from "@/features/pulse/daily-log/constants";
 import {
+  mergeTimerEntry,
   parseSharedTimer,
   pauseSharedTimer,
   resumeSharedTimer,
@@ -69,6 +70,7 @@ export async function GET(request: Request) {
     "stoppedTimerId",
   );
   let stopped: DailyLogEntry | null = null;
+  let merged = false;
   if (!data?.timer && stoppedTimerId && UUID_PATTERN.test(stoppedTimerId)) {
     const { data: claim } = await db
       .from("shared_timer_stops")
@@ -76,11 +78,13 @@ export async function GET(request: Request) {
       .eq("user_id", owner.userId)
       .eq("timer_id", stoppedTimerId)
       .maybeSingle();
-    stopped = (claim?.entry as DailyLogEntry | undefined) ?? null;
+    stopped = claim ? storedStop(claim.entry).entry : null;
+    merged = claim ? storedStop(claim.entry).merged : false;
   }
   return respond(request, owner, {
     timer: data?.timer ?? null,
     stopped,
+    merged,
   });
 }
 
@@ -204,6 +208,19 @@ export async function POST(request: Request) {
  * log is written, so a retry or a second tab reads the stored entry instead
  * of logging the time twice.
  */
+/**
+ * Claims are stored as { entry, merged }. Older claims hold the bare entry.
+ */
+function storedStop(stored: unknown): {
+  entry: DailyLogEntry;
+  merged: boolean;
+} {
+  const value = stored as { entry?: DailyLogEntry; merged?: boolean };
+  if (value && typeof value.entry === "object")
+    return { entry: value.entry, merged: value.merged === true };
+  return { entry: stored as DailyLogEntry, merged: false };
+}
+
 async function stopTimer(
   request: Request,
   owner: Owner,
@@ -226,12 +243,15 @@ async function stopTimer(
       .eq("user_id", owner.userId)
       .eq("timer_id", timerId)
       .maybeSingle();
-    if (claim)
+    if (claim) {
+      const stored = storedStop(claim.entry);
       return respond(request, owner, {
-        entry: claim.entry,
+        entry: stored.entry,
+        merged: stored.merged,
         timer: null,
         duplicate: true,
       });
+    }
     return respond(request, owner, { error: "No active timer" }, 404);
   }
 
@@ -245,8 +265,15 @@ async function stopTimer(
 
   const timer = row.timer as SharedActiveTimer;
   const stoppedAt = stopInstant(timer, at);
-  const entry: DailyLogEntry = sharedTimerEntry(timer, stoppedAt);
-  const validated = validateDailyLogEntries([entry]);
+  const session = sharedTimerEntry(timer, stoppedAt);
+  const existing = await loadDailyEntries(owner.userId, row.log_date);
+  if (!existing.ok)
+    return respond(request, owner, { error: existing.error }, 500);
+  const { entries, resulting, merged } = mergeTimerEntry(
+    existing.entries,
+    session,
+  );
+  const validated = validateDailyLogEntries(entries);
   if (!validated.ok)
     return respond(request, owner, { error: validated.error }, 400);
 
@@ -254,7 +281,7 @@ async function stopTimer(
     user_id: owner.userId,
     timer_id: timerId,
     log_date: row.log_date,
-    entry: validated.entries[0],
+    entry: { entry: resulting, merged },
     stopped_at: stoppedAt.toISOString(),
   });
   if (claimError?.code === "23505") {
@@ -264,8 +291,10 @@ async function stopTimer(
       .eq("user_id", owner.userId)
       .eq("timer_id", timerId)
       .maybeSingle();
+    const stored = storedStop(claim?.entry ?? { entry: resulting, merged });
     return respond(request, owner, {
-      entry: claim?.entry ?? entry,
+      entry: stored.entry,
+      merged: stored.merged,
       timer: null,
       duplicate: true,
     });
@@ -273,14 +302,25 @@ async function stopTimer(
   if (claimError)
     return respond(request, owner, { error: "Could not stop timer" }, 500);
 
-  const appended = await appendDailyLogEntry(owner.userId, row.log_date, entry);
-  if (!appended.ok) {
+  const written = await writeDailyEntries(
+    owner.userId,
+    row.log_date,
+    validated.entries,
+  );
+  if (!written.ok) {
     await db
       .from("shared_timer_stops")
       .delete()
       .eq("user_id", owner.userId)
       .eq("timer_id", timerId);
-    return respond(request, owner, { error: appended.error }, 500);
+    return respond(request, owner, { error: written.error }, 500);
+  }
+
+  // Rewards must never undo a saved entry.
+  try {
+    await awardDailyLogRewards(owner.userId, row.log_date, validated.entries);
+  } catch (rewardError) {
+    console.error("Daily log rewards failed", rewardError);
   }
 
   // Clearing the timer is the last step. If it fails, a retry finds the claim
@@ -291,7 +331,7 @@ async function stopTimer(
     .eq("user_id", owner.userId)
     .eq("timer_id", timerId);
 
-  return respond(request, owner, { entry, timer: null });
+  return respond(request, owner, { entry: resulting, merged, timer: null });
 }
 
 /** Clamp a client-reported stop time so it cannot precede the start or lie in the future. */
@@ -307,38 +347,33 @@ function stopInstant(timer: SharedActiveTimer, at: unknown): Date {
   return requested > now ? now : requested;
 }
 
-async function appendDailyLogEntry(
+async function loadDailyEntries(
   userId: string,
   date: string,
-  entry: DailyLogEntry,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { data: existing, error: readError } = await db
+): Promise<
+  { ok: true; entries: DailyLogEntry[] } | { ok: false; error: string }
+> {
+  const { data, error } = await db
     .from("daily_activity_logs")
     .select("entries")
     .eq("user_id", userId)
     .eq("log_date", date)
     .maybeSingle();
-  if (readError) return { ok: false, error: "Could not load daily log" };
+  if (error) return { ok: false, error: "Could not load daily log" };
+  return { ok: true, entries: (data?.entries ?? []) as DailyLogEntry[] };
+}
 
-  const merged = validateDailyLogEntries([
-    ...((existing?.entries ?? []) as unknown[]),
-    entry,
-  ]);
-  if (!merged.ok) return { ok: false, error: merged.error };
-
+async function writeDailyEntries(
+  userId: string,
+  date: string,
+  entries: DailyLogEntry[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const { error } = await db
     .from("daily_activity_logs")
     .upsert(
-      { user_id: userId, log_date: date, entries: merged.entries },
+      { user_id: userId, log_date: date, entries },
       { onConflict: "user_id,log_date" },
     );
   if (error) return { ok: false, error: "Could not save daily log" };
-
-  // Rewards must never undo a saved entry.
-  try {
-    await awardDailyLogRewards(userId, date, merged.entries);
-  } catch (rewardError) {
-    console.error("Daily log rewards failed", rewardError);
-  }
   return { ok: true };
 }

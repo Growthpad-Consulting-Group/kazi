@@ -108,7 +108,43 @@ type SharedTimerState = {
   timer: SharedActiveTimer | null;
   /** Entry written when the page's timer was stopped elsewhere. */
   stopped: DailyLogEntry | null;
+  /** True when the minutes were added to an existing entry for the task. */
+  merged: boolean;
 };
+
+/**
+ * Shows a stopped timer in the log. When the server added the minutes to an
+ * existing row for the same task, that row takes the new total and the timer
+ * row goes away, so the task keeps one row.
+ */
+function applyStoppedEntry(
+  rows: Row[],
+  timerRowId: string,
+  stopped: DailyLogEntry,
+  merged: boolean,
+): Row[] {
+  const minutes = formatMinutes(stopped.minutes);
+  if (merged) {
+    const sibling = rows.find(
+      (row) =>
+        row.id !== timerRowId &&
+        !row.showRange &&
+        !row.claimOutsideHours &&
+        row.task.trim().toLowerCase() === stopped.task.trim().toLowerCase() &&
+        row.client.trim() === (stopped.client ?? "").trim() &&
+        row.category === stopped.category,
+    );
+    if (sibling)
+      return rows
+        .filter((row) => row.id !== timerRowId)
+        .map((row) => (row.id === sibling.id ? { ...row, minutes } : row));
+  }
+  return rows.map((row) =>
+    row.id === timerRowId
+      ? { ...row, showRange: false, startTime: "", endTime: "", minutes }
+      : row,
+  );
+}
 
 /** undefined means the timer API could not be reached. */
 async function fetchSharedTimer(
@@ -125,8 +161,13 @@ async function fetchSharedTimer(
     const json = (await response.json()) as {
       timer?: SharedActiveTimer | null;
       stopped?: DailyLogEntry | null;
+      merged?: boolean;
     };
-    return { timer: json.timer ?? null, stopped: json.stopped ?? null };
+    return {
+      timer: json.timer ?? null,
+      stopped: json.stopped ?? null,
+      merged: json.merged === true,
+    };
   } catch {
     return undefined;
   }
@@ -337,6 +378,7 @@ export function DailyLogPage({
       ? Promise.resolve<SharedTimerState | undefined>({
           timer: null,
           stopped: null,
+          merged: false,
         })
       : fetchSharedTimer();
     Promise.all([
@@ -413,7 +455,11 @@ export function DailyLogPage({
     let cancelled = false;
     let inFlight = false;
 
-    const reconcile = ({ timer: shared, stopped }: SharedTimerState) => {
+    const reconcile = ({
+      timer: shared,
+      stopped,
+      merged,
+    }: SharedTimerState) => {
       const current = activeTimerRef.current;
       const matching = shared?.logDate === date ? shared : null;
 
@@ -424,18 +470,9 @@ export function DailyLogPage({
         if (stopped) {
           // The server already wrote the entry, so show its duration in this
           // row instead of asking for a refresh.
+          const stoppedEntry = stopped;
           setRows((rows) =>
-            rows.map((row) =>
-              row.id === current.rowId
-                ? {
-                    ...row,
-                    showRange: false,
-                    startTime: "",
-                    endTime: "",
-                    minutes: formatMinutes(stopped.minutes),
-                  }
-                : row,
-            ),
+            applyStoppedEntry(rows, current.rowId, stoppedEntry, merged),
           );
           toast.success(
             `Timer stopped in another window at ${formatMinutes(stopped.minutes)}.`,
@@ -724,6 +761,7 @@ export function DailyLogPage({
       const json = (await response?.json().catch(() => null)) as {
         error?: string;
         entry?: DailyLogEntry;
+        merged?: boolean;
       } | null;
       if (!response?.ok) {
         // Still running on the server, so put the timer back.
@@ -734,20 +772,15 @@ export function DailyLogPage({
         );
         return;
       }
-      const minutes =
-        json?.entry?.minutes ?? Math.max(1, Math.floor(totalMs / 60_000));
+      const entry = json?.entry ?? {
+        task: stopping.row.task,
+        client: stopping.row.client || null,
+        category: stopping.row.category,
+        minutes: Math.max(1, Math.floor(totalMs / 60_000)),
+      };
+      const merged = json?.merged === true;
       setRows((current) =>
-        current.map((row) =>
-          row.id === stopping.rowId
-            ? {
-                ...row,
-                showRange: false,
-                startTime: "",
-                endTime: "",
-                minutes: formatMinutes(minutes),
-              }
-            : row,
-        ),
+        applyStoppedEntry(current, stopping.rowId, entry, merged),
       );
       setIsDirty(true);
       toast.success(`Timer stopped at ${formatElapsed(totalMs)}.`);

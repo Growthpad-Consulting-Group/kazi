@@ -148,3 +148,41 @@ export function parseSharedTimer(
     },
   };
 }
+
+/** Whether two entries are the same activity, so their time can be combined. */
+export function isSameActivity(a: DailyLogEntry, b: DailyLogEntry) {
+  return (
+    a.task.trim().toLowerCase() === b.task.trim().toLowerCase() &&
+    (a.client ?? "").trim() === (b.client ?? "").trim() &&
+    a.category === b.category
+  );
+}
+
+/**
+ * Adds a stopped timer to a day's entries. The minutes go into the first
+ * matching plain entry for the same activity, so one task keeps one row per
+ * day. Time-range and outside-hours entries are never combined.
+ */
+export function mergeTimerEntry(
+  entries: DailyLogEntry[],
+  entry: DailyLogEntry,
+): { entries: DailyLogEntry[]; resulting: DailyLogEntry; merged: boolean } {
+  const index = entries.findIndex(
+    (item) =>
+      isSameActivity(item, entry) &&
+      !item.startTime &&
+      !item.endTime &&
+      !item.claimOutsideHours,
+  );
+  if (index < 0)
+    return { entries: [...entries, entry], resulting: entry, merged: false };
+  const resulting = {
+    ...entries[index],
+    minutes: entries[index].minutes + entry.minutes,
+  };
+  return {
+    entries: entries.map((item, i) => (i === index ? resulting : item)),
+    resulting,
+    merged: true,
+  };
+}

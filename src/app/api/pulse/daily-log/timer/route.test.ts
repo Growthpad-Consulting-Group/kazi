@@ -260,4 +260,19 @@ describe("shared timer API", () => {
     expect(read.timer).not.toBeNull();
     expect(read.stopped).toBeNull();
   });
+
+  it("adds a second session of the same task to the existing row", async () => {
+    await PUT(request("PUT", { timer: timer() }));
+    await POST(request("POST", { action: "stop", timerId: TIMER_ID }));
+    await PUT(request("PUT", { timer: timer({ id: OTHER_ID }) }));
+    const second = await (
+      await POST(request("POST", { action: "stop", timerId: OTHER_ID }))
+    ).json();
+
+    expect(second.merged).toBe(true);
+    expect(second.entry.minutes).toBe(60);
+    expect(store.tables.daily_activity_logs[0].entries).toEqual([
+      expect.objectContaining({ task: "Client call", minutes: 60 }),
+    ]);
+  });
 });

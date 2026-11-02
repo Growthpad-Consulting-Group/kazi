@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   elapsedSharedTimerMs,
+  mergeTimerEntry,
   parseSharedTimer,
   pauseSharedTimer,
   resumeSharedTimer,
@@ -92,5 +93,47 @@ describe("shared timer", () => {
       ok: true,
       timer: { running: false, startedAt: null, client: null },
     });
+  });
+
+  it("combines a session into the matching plain entry only", () => {
+    const session = {
+      task: "Client call",
+      client: "Acme",
+      category: "Meetings" as const,
+      minutes: 20,
+    };
+    const result = mergeTimerEntry(
+      [
+        {
+          task: "client call ",
+          client: "Acme",
+          category: "Meetings",
+          minutes: 40,
+        },
+        {
+          task: "Client call",
+          client: "Acme",
+          category: "Meetings",
+          minutes: 15,
+          startTime: "09:00",
+          endTime: "09:15",
+        },
+      ],
+      session,
+    );
+    expect(result.merged).toBe(true);
+    expect(result.resulting.minutes).toBe(60);
+    expect(result.entries).toHaveLength(2);
+  });
+
+  it("appends a new entry when no plain entry matches", () => {
+    const result = mergeTimerEntry([], {
+      task: "Review",
+      client: null,
+      category: "Other",
+      minutes: 5,
+    });
+    expect(result.merged).toBe(false);
+    expect(result.entries).toHaveLength(1);
   });
 });
