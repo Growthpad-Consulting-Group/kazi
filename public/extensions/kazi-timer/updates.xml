@@ -3,7 +3,7 @@
   <app appid="dffnikiadlobakbogmmfjkobjieehcbc">
     <updatecheck
       codebase="https://kazi.growthpad.africa/extensions/kazi-timer/kazi-timer.crx"
-      version="0.4.3"
+      version="0.4.4"
     />
   </app>
 </gupdate>

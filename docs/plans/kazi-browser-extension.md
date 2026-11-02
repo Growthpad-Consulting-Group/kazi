@@ -24,7 +24,7 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [x] Add an explicit opt-in for the floating mini timer; it must be disabled by default.
 - [x] Let staff choose permitted sites individually. Request host permission only after they select a site.
 - [x] Add a compact, dismissible overlay with elapsed time, pause/stop and “Open Kazi”.
-- [ ] Offer “Start from this page” only as a manual prefill; never read page content, form fields, browsing history or credentials.
+- [x] Offer “Start from this page” only as a manual prefill; it reads the page title only on click, never page content, form fields, browsing history or credentials.
 - [x] Add per-site enable/disable controls and a visible privacy explanation.
 - [ ] Test overlays against common apps (Google Workspace, Asana and Slack) without interfering with their UI.
 
@@ -33,7 +33,8 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [x] Build an Asana integration that places a Kazi start button beside an open task. It runs automatically on app.asana.com, with no per-user opt-in, because Asana access is a declared host permission.
 - [x] Read only the visible Asana task title; never collect descriptions, comments, attachments, credentials or browsing history.
 - [x] Start the shared Kazi timer directly from the visible Asana task title.
-- [ ] Add Asana privacy copy in the extension popup and Kazi, plus DOM-resilience tests for common task views.
+- [x] Add Asana privacy copy in the extension popup and Kazi.
+- [ ] Add DOM-resilience tests for common Asana task views.
 
 ### P0.1 — Shared active timer authority
 

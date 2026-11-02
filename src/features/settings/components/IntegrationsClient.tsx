@@ -342,7 +342,7 @@ export default function IntegrationsClient({
           <IntegrationCard
             icon="solar:stopwatch-broken"
             name="Kazi Timer (browser extension)"
-            description="Starts and stops timers from Asana and other tabs. It connects by itself while you are signed in to Kazi. Install it from the link your admin shared."
+            description="Starts and stops timers from Asana and other tabs. It connects by itself while you are signed in to Kazi. On Asana it reads only the open task's title, never descriptions, comments or attachments."
             status={
               kaziTimerConnections === null
                 ? "disconnected"
