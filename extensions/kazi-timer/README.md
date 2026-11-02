@@ -54,6 +54,26 @@ Verify on one test account that the extension appears in `edge://extensions`
 with the install marked as managed, and that it connects to Kazi. Edge is
 expected to behave like Chrome, but this has not been tested yet.
 
+## Firefox build (source for Mozilla review)
+
+The Firefox package is generated from this folder's source. It is not
+transpiled or minified; the build script only copies the files, rewrites the
+manifest for Firefox and generates the icon sizes.
+
+Requirements:
+- macOS (the icon step uses the built-in `sips` tool)
+- Node.js 20 or later, and `zip`
+
+Steps, from the repository root:
+
+```bash
+node extensions/kazi-timer/build-firefox.mjs
+```
+
+The package is written to `extensions/kazi-timer/build/kazi-timer-firefox.zip`,
+and the unpacked files to `extensions/kazi-timer/build/firefox/`. The build
+does not need network access or npm packages.
+
 ## Deliberate limitation
 
 Apply the matching Supabase migration before using Kazi sync. The extension
