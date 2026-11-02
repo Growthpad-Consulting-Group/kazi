@@ -93,7 +93,7 @@ describe("Kazi Timer background worker", () => {
     await listeners.installed();
 
     expect(chromeMock.alarms.create).toHaveBeenCalledWith("kazi-timer-tick", {
-      periodInMinutes: 1,
+      periodInMinutes: 0.5,
     });
     expect(chromeMock.action.setBadgeText).toHaveBeenLastCalledWith({
       text: "6m",

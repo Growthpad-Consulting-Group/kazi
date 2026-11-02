@@ -315,7 +315,7 @@ async function getClients() {
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
-  await chrome.alarms.create(TICK_ALARM, { periodInMinutes: 1 });
+  await chrome.alarms.create(TICK_ALARM, { periodInMinutes: 0.5 });
   await refreshBadge();
 });
 

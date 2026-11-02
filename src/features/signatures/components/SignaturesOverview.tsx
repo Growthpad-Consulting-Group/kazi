@@ -41,6 +41,7 @@ type StaffProfile = {
   department: string | null;
   photo_url: string | null;
   phone: string | null;
+  mobile: string | null;
 };
 type SignatureAssignment = { staff_profile_id: string; template_id: string };
 type SignatureTemplate = { id: string; name: string; html: string };
@@ -63,10 +64,12 @@ function renderStaffSignature(html: string, profile: StaffProfile) {
     email: profile.email,
     role_title: profile.role_title,
     department: profile.department,
+    phone: profile.phone,
+    mobile: profile.mobile,
     photo_url: profile.photo_url,
   };
   return sanitizeSignatureHtml(html).replace(
-    /\{\{(full_name|email|role_title|department|photo_url)\}\}/g,
+    /\{\{(full_name|email|role_title|department|phone|mobile|photo_url)\}\}/g,
     (_match, key: string) => escape(values[key]),
   );
 }
@@ -82,7 +85,7 @@ export default async function SignaturesOverview() {
       database
         .from("signature_staff_profiles")
         .select(
-          "id, user_id, email, full_name, role_title, department, phone, photo_url",
+          "id, user_id, email, full_name, role_title, department, phone, mobile, photo_url",
         ),
       database
         .from("signature_assignments")

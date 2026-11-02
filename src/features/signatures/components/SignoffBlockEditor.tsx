@@ -187,7 +187,10 @@ function createStaffCardBlock(): Block {
         },
       ],
     ],
-    columnStyles: [{ width: 20 }, {}],
+    // The left panel can be as narrow as 240px. A 64px photo plus its 12px
+    // column gap needs more than the former 20% (48px), otherwise email table
+    // cells overlap and the name appears flush against the avatar.
+    columnStyles: [{ width: 36 }, {}],
   };
 }
 
@@ -242,7 +245,9 @@ function createContactRow(icon: string, text: string): Block {
         },
       ],
     ],
-    columnStyles: [{ width: 14 }, {}],
+    // Reserve the 28px icon and its 12px gap even in a narrow signature
+    // column, so the contact value never begins underneath the icon.
+    columnStyles: [{ width: 20 }, {}],
   };
 }
 
