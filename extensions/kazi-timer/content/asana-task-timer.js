@@ -71,13 +71,30 @@
   // The Kazi timer lives in extension storage, so the button reflects it while
   // the page stays open. Stopping in the popup or on another tab resets it here.
   let activeTimer = null;
+  function formatClock(milliseconds) {
+    const total = Math.max(0, Math.floor(milliseconds / 1000));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = String(total % 60).padStart(2, "0");
+    return hours
+      ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`
+      : `${minutes}:${seconds}`;
+  }
+
+  function elapsedMs(timer) {
+    const runningMs =
+      timer.running && timer.startedAt
+        ? Date.now() - Date.parse(timer.startedAt)
+        : 0;
+    return timer.accumulatedMs + runningMs;
+  }
+
   function renderButton(button) {
     if (!button) return;
     if (activeTimer) {
       button.disabled = true;
-      button.textContent = activeTimer.running
-        ? "Timer running"
-        : "Timer paused";
+      const state = activeTimer.running ? "Timer running" : "Timer paused";
+      button.textContent = `${state} · ${formatClock(elapsedMs(activeTimer))}`;
       return;
     }
     button.disabled = false;
@@ -140,6 +157,11 @@
     complete.insertAdjacentElement("afterend", button);
     renderButton(button);
   }
+
+  // Refresh the elapsed time once a second while a timer is running.
+  setInterval(() => {
+    if (activeTimer?.running) renderButton(currentButton());
+  }, 1000);
 
   chrome.storage.local
     .get("timer")
