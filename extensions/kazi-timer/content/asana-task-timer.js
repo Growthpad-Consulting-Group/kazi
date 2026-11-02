@@ -10,6 +10,7 @@
     '[data-testid="task-name"]',
     '[data-testid*="task-name"]',
     '[data-testid*="task-title"]',
+    '[aria-label="Task Name"]',
     '[aria-label="Task name"]',
     'textarea[aria-label*="Task"]',
     '[contenteditable="true"][aria-label*="Task"]',
