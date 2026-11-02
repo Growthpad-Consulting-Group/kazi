@@ -70,13 +70,29 @@ const CATEGORY_OPTIONS = [
   {
     value: "wow",
     label: "WOW Award",
-    description: "Delivered a WOW experience to a client",
+    description:
+      "For a person who created an outstanding client experience this month.",
+    purpose:
+      "Celebrates work that made a client feel genuinely supported, impressed or confident in Growthpad.",
+    criteria: [
+      "A meaningful client outcome",
+      "Thoughtful ownership",
+      "Exceptional service or delivery",
+    ],
     icon: "solar:magic-stick-3-broken",
   },
   {
     value: "mvp",
     label: "MVP of the month",
-    description: "Excellent performance this month",
+    description:
+      "For a teammate whose overall contribution stood out this month.",
+    purpose:
+      "Recognises consistent excellence, meaningful teamwork and work that moved Growthpad forward.",
+    criteria: [
+      "Strong results and initiative",
+      "Meaningful collaboration",
+      "Impact beyond usual responsibilities",
+    ],
     icon: "solar:medal-ribbon-broken",
   },
 ] as const;
@@ -757,6 +773,66 @@ export default function HallOfFameClient({
           color="amber"
           subtitle="Client excellence"
         />
+      </section>
+
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold text-brand-500">Award guide</p>
+            <h2 className="mt-1 text-base font-semibold text-[var(--text-hi)]">
+              Celebrate the impact that stood out.
+            </h2>
+          </div>
+          <p className="max-w-md text-xs leading-relaxed text-[var(--text-lo)]">
+            Match the award to the impact, then make the nomination specific.
+          </p>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {CATEGORY_OPTIONS.map((option) => (
+            <article
+              key={option.value}
+              className={`overflow-hidden rounded-xl border bg-[var(--surface-2)] transition-shadow duration-200 hover:shadow-lg ${option.value === "wow" ? "border-brand-500/25" : "border-blue-500/20"}`}
+            >
+              <div className="flex gap-3 p-4">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${option.value === "wow" ? "bg-brand-500 text-white" : "bg-blue-500/10 text-blue-600 dark:text-blue-300"}`}
+                >
+                  <Icon icon={option.icon} className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-[var(--text-hi)]">
+                    {option.label}
+                  </h3>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+                    {option.description}
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-[var(--text-hi)]">
+                    {option.purpose}
+                  </p>
+                </div>
+              </div>
+              <div className="border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-lo)]">
+                  Strong nominations show
+                </p>
+                <ul className="mt-2 grid gap-1.5 sm:grid-cols-3">
+                  {option.criteria.map((criterion) => (
+                    <li
+                      key={criterion}
+                      className="flex items-start gap-1.5 text-xs leading-snug text-[var(--text-lo)]"
+                    >
+                      <Icon
+                        icon="solar:check-circle-broken"
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500"
+                      />
+                      {criterion}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       {isOpen && requiresMonthlyEntry && !hasMonthlyEntry && (
