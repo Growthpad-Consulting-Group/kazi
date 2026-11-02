@@ -51,6 +51,8 @@ const manifest = {
         required: ["authenticationInfo", "websiteContent"],
       },
     },
+    // data_collection_permissions needs Firefox for Android 142 or later.
+    gecko_android: { strict_min_version: "142.0" },
   },
 };
 
