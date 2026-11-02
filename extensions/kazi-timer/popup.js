@@ -41,6 +41,17 @@ async function load() {
   $("#notice").textContent = state.connected
     ? "Stopped tasks sync to your Kazi daily log. Your connection expires when you close the browser."
     : "Connect Kazi to sync completed entries. Until then, they stay only in this browser.";
+  const client = $("#client");
+  client.innerHTML = '<option value="">No client or project</option>';
+  if (state.connected) {
+    const { clients = [] } = await send("get-clients");
+    for (const name of clients) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      client.append(option);
+    }
+  }
   render();
   clearInterval(ticker);
   ticker = setInterval(render, 1000);

@@ -30,6 +30,7 @@ interface Props {
   passwordRequired?: boolean;
   googleProfileConnected?: boolean;
   passkeys?: Passkey[];
+  extensionConnections?: ExtensionConnection[];
 }
 type Passkey = {
   id: string;
@@ -39,6 +40,13 @@ type Passkey = {
   device_label?: string | null;
   created_at: string;
   last_used_at: string | null;
+};
+type ExtensionConnection = {
+  id: string;
+  client_name: string;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string;
 };
 function deviceLabel() {
   const ua = navigator.userAgent;
@@ -54,6 +62,7 @@ export default function ProfileClient({
   passwordRequired = false,
   googleProfileConnected = false,
   passkeys: initialPasskeys = [],
+  extensionConnections: initialExtensionConnections = [],
 }: Props) {
   const router = useRouter();
   const { update: updateSession } = useSession();
@@ -72,6 +81,39 @@ export default function ProfileClient({
   const [pwPending, startPwTransition] = useTransition();
   const [passkeyPending, setPasskeyPending] = useState(false);
   const [passkeys, setPasskeys] = useState(initialPasskeys);
+  const [extensionConnections, setExtensionConnections] = useState(
+    initialExtensionConnections,
+  );
+  const [revokingExtension, setRevokingExtension] = useState<string | null>(
+    null,
+  );
+
+  async function revokeExtensionConnection(id: string) {
+    setRevokingExtension(id);
+    try {
+      const response = await fetch(
+        `/api/extensions/kazi-timer/connections?id=${id}`,
+        { method: "DELETE" },
+      );
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(data?.error ?? "Could not revoke the connection.");
+      setExtensionConnections((current) =>
+        current.filter((connection) => connection.id !== id),
+      );
+      toast.success("Kazi Timer connection revoked.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not revoke the connection.",
+      );
+    } finally {
+      setRevokingExtension(null);
+    }
+  }
 
   async function refreshPasskeys() {
     const response = await fetch("/api/auth/passkeys");
@@ -413,6 +455,57 @@ export default function ProfileClient({
             )}
           </div>
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Kazi Timer"
+        description="Manage browser extension connections that can sync your daily activity."
+        icon="solar:stopwatch-broken"
+      >
+        {extensionConnections.length === 0 ? (
+          <p className="text-sm text-[var(--text-lo)]">
+            No browser timer is connected. Connect Kazi Timer from the Chrome or
+            Edge extension when you are ready to sync work.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {extensionConnections.map((connection) => (
+              <div
+                key={connection.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--surface-2)] p-3"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500">
+                    <Icon icon="solar:stopwatch-broken" className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold capitalize text-[var(--text-hi)]">
+                      {connection.client_name.replaceAll("-", " ")}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-lo)]">
+                      Connected{" "}
+                      {new Date(connection.created_at).toLocaleDateString(
+                        "en-KE",
+                        { day: "numeric", month: "short" },
+                      )}
+                      {connection.last_used_at
+                        ? ` · Last used ${new Date(connection.last_used_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                        : " · Not used yet"}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  loading={revokingExtension === connection.id}
+                  onClick={() => revokeExtensionConnection(connection.id)}
+                >
+                  Revoke
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </SettingsSection>
 
       {/* Read-only access info */}

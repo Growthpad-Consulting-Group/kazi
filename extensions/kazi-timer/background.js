@@ -92,14 +92,30 @@ async function disconnectKazi() {
   await chrome.storage.session.remove(TOKEN_KEY);
 }
 
+async function getClients() {
+  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  if (!token) return { clients: [] };
+  const response = await fetch(`${KAZI_URL}/api/extensions/kazi-timer/clients`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => null);
+  if (!response?.ok) return { clients: [] };
+  return response.json();
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   await chrome.alarms.create(TICK_ALARM, { periodInMinutes: 1 });
   await refreshBadge();
 });
 
-chrome.runtime.onStartup.addListener(refreshBadge);
+chrome.runtime.onStartup.addListener(async () => {
+  await refreshBadge();
+  await syncQueue();
+});
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === TICK_ALARM) refreshBadge();
+  if (alarm.name === TICK_ALARM) {
+    refreshBadge();
+    syncQueue();
+  }
 });
 chrome.storage.onChanged.addListener(refreshBadge);
 
@@ -116,6 +132,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === "connect") {
       sendResponse({ connected: true, ...(await connectKazi()) });
+      return;
+    }
+
+    if (message.type === "get-clients") {
+      sendResponse(await getClients());
       return;
     }
 

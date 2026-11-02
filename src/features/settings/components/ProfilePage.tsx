@@ -19,6 +19,13 @@ export default async function ProfilePage() {
     avatar_url: string | null;
   } | null;
   type SigProfileRow = { photo_url: string | null } | null;
+  type ExtensionConnection = {
+    id: string;
+    client_name: string;
+    created_at: string;
+    last_used_at: string | null;
+    expires_at: string;
+  };
   type SignatureDb = {
     from: (t: string) => {
       select: (c: string) => {
@@ -30,47 +37,59 @@ export default async function ProfilePage() {
     };
   };
 
-  const [{ data: user }, sigResult, profileConnection, passkeyResult] =
-    await Promise.all([
-      supabaseAdmin
-        .from("users")
-        .select("job_title, location, avatar_url")
-        .eq("id", session.user.id)
-        .single(),
-      (supabaseAdmin as unknown as SignatureDb)
-        .from("signature_staff_profiles")
-        .select("photo_url")
-        .eq("user_id", session.user.id)
-        .maybeSingle(),
-      supabaseAdmin
-        .from("google_profile_connections")
-        .select("user_id")
-        .eq("user_id", session.user.id)
-        .maybeSingle(),
-      (
-        supabaseAdmin as unknown as {
-          from: (table: string) => {
-            select: (columns: string) => {
-              eq: (
+  const [
+    { data: user },
+    sigResult,
+    profileConnection,
+    passkeyResult,
+    extensionConnections,
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("users")
+      .select("job_title, location, avatar_url")
+      .eq("id", session.user.id)
+      .single(),
+    (supabaseAdmin as unknown as SignatureDb)
+      .from("signature_staff_profiles")
+      .select("photo_url")
+      .eq("user_id", session.user.id)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("google_profile_connections")
+      .select("user_id")
+      .eq("user_id", session.user.id)
+      .maybeSingle(),
+    (
+      supabaseAdmin as unknown as {
+        from: (table: string) => {
+          select: (columns: string) => {
+            eq: (
+              column: string,
+              value: string,
+            ) => {
+              order: (
                 column: string,
-                value: string,
-              ) => {
-                order: (
-                  column: string,
-                  options: { ascending: boolean },
-                ) => Promise<{ data: unknown }>;
-              };
+                options: { ascending: boolean },
+              ) => Promise<{ data: unknown }>;
             };
           };
-        }
+        };
+      }
+    )
+      .from("passkeys")
+      .select(
+        "id, device_type, backed_up, transports, device_label, created_at, last_used_at",
       )
-        .from("passkeys")
-        .select(
-          "id, device_type, backed_up, transports, device_label, created_at, last_used_at",
-        )
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false }),
-    ]);
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false }),
+    (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- extension migration is newer than generated database types.
+      .from("browser_extension_tokens")
+      .select("id, client_name, created_at, last_used_at, expires_at")
+      .eq("user_id", session.user.id)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }),
+  ]);
 
   const passwordRequired = await mustChangePassword(session.user.id);
   const userData = user as UserRow;
@@ -125,6 +144,9 @@ export default async function ProfilePage() {
             created_at: string;
             last_used_at: string | null;
           }[]
+        }
+        extensionConnections={
+          (extensionConnections.data ?? []) as ExtensionConnection[]
         }
       />
     </div>

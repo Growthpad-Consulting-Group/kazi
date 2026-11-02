@@ -10,7 +10,7 @@
     <main>
       <header>
         <span class="mark">K</span>
-        <div><strong>Kazi Timer</strong><small id="status">Ready to track</small></div>
+        <div><strong>Growthpad Kazi Timer</strong><small id="status">Ready to track</small></div>
       </header>
       <section id="timer-panel" hidden>
         <p class="eyebrow">ACTIVE TASK</p>
@@ -25,7 +25,7 @@
       <form id="start-form">
         <label>What are you working on?<input id="task" maxlength="200" required placeholder="e.g. Prepare client proposal" /></label>
         <div class="grid">
-          <label>Client or project<input id="client" maxlength="120" placeholder="Optional" /></label>
+          <label>Client or project<select id="client"><option value="">No client or project</option></select></label>
           <label>Type<select id="category"><option>Projects</option><option>Meetings</option><option>Hiring</option><option>Reporting</option><option>Admin</option><option>Other</option></select></label>
         </div>
         <button class="primary" type="submit">Start timer</button>

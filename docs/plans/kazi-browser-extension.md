@@ -14,6 +14,8 @@ Make active daily-log timing visible and controllable while staff work outside K
 - [x] Add extension-specific authorization using a short-lived, revocable Kazi token. Never reuse browser cookies or a staff password.
 - [x] Add narrowly scoped Kazi endpoints for the signed-in staff member’s completed timer entries.
 - [x] Sync stopped entries into the appropriate daily log, with conflict handling and offline retry.
+- [x] Retry queued entries from the background worker after browser startup and on the one-minute timer tick.
+- [x] Let staff view and revoke active Kazi Timer connections from Profile settings.
 - [ ] Add Chrome/Edge install, restart, sleep/wake, sign-out and concurrent-tab tests.
 
 ### P1 — V2 optional cross-site mini timer
