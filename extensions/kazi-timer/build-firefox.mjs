@@ -1,0 +1,81 @@
+// Builds the Firefox version of Kazi Timer from the Chrome source.
+//
+// Firefox differs from Chrome in three ways this script handles:
+//   - it runs the background as classic scripts, not a service worker,
+//   - it needs a fixed add-on ID (browser_specific_settings.gecko),
+//   - it ignores the Chrome update_url, so Mozilla signing delivers updates.
+// Run: node build-firefox.mjs   (writes build/firefox and build/kazi-timer-firefox.zip)
+
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const run = promisify(execFile);
+const here = dirname(fileURLToPath(import.meta.url));
+const out = join(here, "build", "firefox");
+const zip = join(here, "build", "kazi-timer-firefox.zip");
+
+const FILES = [
+  "background.js",
+  "popup.html",
+  "popup.css",
+  "popup.js",
+  "content",
+  "icons",
+];
+const EXCLUDE = /\.test\.js$/;
+
+const chromeManifest = JSON.parse(
+  await readFile(join(here, "manifest.json"), "utf8"),
+);
+
+const { update_url: _updateUrl, ...rest } = chromeManifest;
+const manifest = {
+  ...rest,
+  background: { scripts: ["background.js"] },
+  browser_specific_settings: {
+    gecko: {
+      id: "kazi-timer@growthpad.africa",
+      strict_min_version: "128.0",
+    },
+  },
+};
+
+// Firefox checks that each icon matches its declared size. The source icon is
+// larger, so each size is generated here (macOS sips).
+const SIZES = [16, 32, 48, 128];
+
+await rm(join(here, "build"), { recursive: true, force: true });
+await mkdir(out, { recursive: true });
+for (const file of FILES) {
+  await cp(join(here, file), join(out, file), {
+    recursive: true,
+    filter: (source) => !EXCLUDE.test(source),
+  });
+}
+for (const size of SIZES) {
+  await run("sips", [
+    "-z",
+    String(size),
+    String(size),
+    join(here, "icons", "kazi.png"),
+    "--out",
+    join(out, "icons", `kazi-${size}.png`),
+  ]);
+}
+manifest.icons = Object.fromEntries(
+  SIZES.map((size) => [String(size), `icons/kazi-${size}.png`]),
+);
+manifest.action.default_icon = manifest.icons;
+
+await writeFile(
+  join(out, "manifest.json"),
+  `${JSON.stringify(manifest, null, 2)}\n`,
+);
+
+await rm(zip, { force: true });
+await run("zip", ["-qr", zip, "."], { cwd: out });
+console.log(`Built ${out}`);
+console.log(`Packed ${zip}`);

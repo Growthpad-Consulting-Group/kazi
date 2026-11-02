@@ -62,7 +62,7 @@
         </div>
         <button type="button" data-action="toggle"></button>
         <button type="button" class="stop" data-action="stop">Stop</button>
-        <a class="open" href="${KAZI_URL}" target="_blank" rel="noopener">Kazi</a>
+        <a class="open" href="#" target="_blank" rel="noopener">Kazi</a>
       </div>
       <form class="idle" hidden>
         <div class="row">
@@ -75,6 +75,7 @@
       </form>
     </div>`;
 
+  root.querySelector("a.open").href = KAZI_URL;
   const runningPanel = root.querySelector(".running");
   const idlePanel = root.querySelector(".idle");
   const taskInput = root.querySelector('input[name="task"]');
