@@ -131,6 +131,7 @@ export default async function InterviewPage({
               <CandidateCvViewer
                 url={candidate.cv_url}
                 candidateId={candidate.id}
+                candidateName={candidate.full_name}
                 variant="compact"
               />
             ) : hasCv ? (

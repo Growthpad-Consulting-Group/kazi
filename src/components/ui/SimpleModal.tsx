@@ -18,6 +18,7 @@ interface SimpleModalProps {
   header?: React.ReactNode;
   /** Short line under the title, shown in the header. */
   subtitle?: string;
+  bodyClassName?: string;
 }
 
 export function SimpleModal({
@@ -29,6 +30,7 @@ export function SimpleModal({
   maxWidth = "max-w-lg",
   header,
   subtitle,
+  bodyClassName,
 }: SimpleModalProps) {
   const { resolvedMode: mode } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -129,7 +131,12 @@ export function SimpleModal({
                 </div>
               )}
               {/* Body */}
-              <div className="max-h-[calc(60vh-65px)] overflow-y-auto px-5 py-4">
+              <div
+                className={
+                  bodyClassName ??
+                  "max-h-[calc(60vh-65px)] overflow-y-auto px-5 py-4"
+                }
+              >
                 {children}
               </div>
             </GlassPanel>

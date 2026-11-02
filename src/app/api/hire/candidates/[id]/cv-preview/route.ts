@@ -15,8 +15,17 @@ function documentHtml(body: string) {
   </style></head><body>${body}</body></html>`;
 }
 
+function downloadFilename(name: string, extension: string) {
+  const safeName = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  return `${safeName || "candidate"}-CV.${extension}`;
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
@@ -28,7 +37,7 @@ export async function GET(
   const { id } = await params;
   const { data: candidate } = await supabaseAdmin
     .from("candidates")
-    .select("cv_url")
+    .select("cv_url, full_name")
     .eq("id", id)
     .maybeSingle();
   if (!candidate?.cv_url)
@@ -51,20 +60,34 @@ export async function GET(
     return NextResponse.json({ error: "Could not load CV" }, { status: 502 });
 
   const extension = source.pathname.split(".").pop()?.toLowerCase();
-  if (extension === "pdf") {
-    return new NextResponse(response.body, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="candidate-cv.pdf"',
-        "Cache-Control": "private, no-store",
-      },
-    });
-  }
-  if (extension !== "docx")
+  if (extension !== "pdf" && extension !== "docx")
     return NextResponse.json(
       { error: "Unsupported CV format" },
       { status: 415 },
     );
+
+  const isDownload = new URL(request.url).searchParams.get("download") === "1";
+  if (isDownload) {
+    const filename = downloadFilename(candidate.full_name, extension);
+    return new NextResponse(response.body, {
+      headers: {
+        "Content-Type":
+          response.headers.get("content-type") || "application/octet-stream",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  }
+
+  if (extension === "pdf") {
+    return new NextResponse(response.body, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="${downloadFilename(candidate.full_name, extension)}"`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  }
 
   try {
     const result = await mammoth.convertToHtml({

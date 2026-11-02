@@ -20,24 +20,24 @@ Kazi is Growthpad’s internal people-operations suite. It combines hiring, staf
 
 ## Local development
 
-Requirements: Node.js 22+, npm, and the Supabase CLI for schema changes.
+Requirements: Node.js 22+, pnpm 10, and the Supabase CLI for schema changes.
 
 ```bash
-npm ci
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
 ```bash
-npm run lint
-npx tsc --noEmit
-npm test
-npm run build
-npm run seed:admin
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm test
+pnpm build
+pnpm seed:admin
 ```
 
-`npm run build` uses Turbopack. If local compilation is affected by a Turbopack issue, use `npm run build -- --webpack` to isolate it; do not change the production build command without verifying the deployment platform.
+`pnpm build` uses Turbopack. If local compilation is affected by a Turbopack issue, use `pnpm build -- --webpack` to isolate it; do not change the production build command without verifying the deployment platform.
 
 ## Environment configuration
 
@@ -73,19 +73,19 @@ For Vercel deployments, add `SENTRY_AUTH_TOKEN` to both **Preview** and **Produc
 Migrations live in [`supabase/migrations`](supabase/migrations). Apply the linked database changes with:
 
 ```bash
-npx dotenv run -f .env.local -- npx supabase db push
+pnpm exec dotenv run -f .env.local -- pnpm dlx supabase db push
 ```
 
 Confirm that local and linked migrations match:
 
 ```bash
-npx dotenv run -f .env.local -- npx supabase migration list --linked
+pnpm exec dotenv run -f .env.local -- pnpm dlx supabase migration list --linked
 ```
 
 Use the dedicated seed script only when intentionally resetting or preparing demo access:
 
 ```bash
-npm run seed:admin
+pnpm seed:admin
 ```
 
 ## Scheduled work
@@ -116,9 +116,9 @@ Kazi is deployed to Vercel. Configure production variables there, including `CRO
 The repository also retains OpenNext/Cloudflare scripts for a separate deployment target:
 
 ```bash
-npm run build:cf
-npm run preview
-npm run deploy
+pnpm build:cf
+pnpm preview
+pnpm deploy
 ```
 
 Use one deployment path per environment; production currently uses Vercel.

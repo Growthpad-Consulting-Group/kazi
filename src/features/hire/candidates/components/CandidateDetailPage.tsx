@@ -23,6 +23,7 @@ import type { CandidateStage } from "../types";
 import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
 import { CandidateCvViewer } from "./CandidateCvViewer";
+import { CandidateEmailButton } from "./CandidateEmailButton";
 
 type CvParsed = {
   skills?: string[];
@@ -122,8 +123,20 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
               <p className="text-xs text-[var(--text-lo)]">{job.department}</p>
             )}
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-[var(--text-lo)]">
-              <ContactItem icon="solar:letter-broken" value={candidate.email} />
-              <ContactItem icon="solar:phone-broken" value={candidate.phone} />
+              <CandidateEmailButton
+                candidateId={candidate.id}
+                candidateName={candidate.full_name}
+                email={candidate.email}
+              />
+              <ContactItem
+                icon="solar:phone-broken"
+                value={candidate.phone}
+                href={
+                  candidate.phone
+                    ? `tel:${candidate.phone.replace(/\s/g, "")}`
+                    : null
+                }
+              />
               <ContactItem
                 icon="solar:link-round-broken"
                 value={candidate.linkedin_url}
@@ -382,6 +395,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             <CandidateCvViewer
               url={candidate.cv_url}
               candidateId={candidate.id}
+              candidateName={candidate.full_name}
               variant="inline"
             />
           )}
@@ -555,6 +569,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
             <CandidateCvViewer
               url={candidate.cv_url}
               candidateId={candidate.id}
+              candidateName={candidate.full_name}
             />
           ) : candidate.cv_text ? (
             <div className="mt-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3.5 py-3">

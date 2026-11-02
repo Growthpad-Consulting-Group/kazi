@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
 import { RichEmailEditor } from "@/components/ui/RichEmailEditor";
 
@@ -111,24 +110,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10">
-          <Icon
-            icon="solar:letter-broken"
-            className="h-3.5 w-3.5 text-brand-500"
-          />
-        </span>
-        <div>
-          <h2 className="text-base font-semibold text-[var(--text-hi)]">
-            Candidate communications
-          </h2>
-          <p className="text-xs text-[var(--text-lo)]">
-            Draft and send thoughtful updates with AI assistance.
-          </p>
-        </div>
-      </div>
-
+    <div className="space-y-4">
       {sentMessage && (
         <p className="rounded-xl bg-green-500/10 px-3 py-2 text-sm text-green-600">
           ✓ {sentMessage}
@@ -155,14 +137,24 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
         ))}
       </div>
 
+      {!draft && (
+        <Button
+          onClick={draftEmail}
+          loading={drafting}
+          icon="solar:magic-stick-3-broken"
+        >
+          Draft with AI
+        </Button>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3">
-        <p className="text-xs text-[var(--text-lo)]">
+        <p className="text-sm text-[var(--text-lo)]">
           The application confirmation is sent automatically. Resend it only if
           delivery failed or the candidate asks.
         </p>
         <Button
           size="sm"
-          variant="secondary"
+          variant="ghost"
           loading={resending}
           icon="solar:refresh-broken"
           onClick={resendConfirmation}
@@ -173,16 +165,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
 
       {error && <p className="text-xs text-red-500">{error}</p>}
 
-      {!draft ? (
-        <Button
-          onClick={draftEmail}
-          loading={drafting}
-          icon="solar:magic-stick-3-broken"
-          variant="secondary"
-        >
-          Draft with AI
-        </Button>
-      ) : (
+      {draft && (
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-lo)]">
