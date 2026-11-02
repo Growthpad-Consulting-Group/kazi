@@ -1,6 +1,12 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
+// Runtime Sentry reporting uses the public DSN and remains enabled. Build-time
+// release/source-map uploads call Sentry's API and can retry for minutes when
+// that API is unavailable, so only enable them deliberately in CI once the
+// token and network path have been verified.
+const uploadSentryArtifacts = process.env.SENTRY_UPLOAD_SOURCE_MAPS === "true";
+
 const nextConfig: NextConfig = {
   async headers() {
     const isProduction = process.env.NODE_ENV === "production";
@@ -112,14 +118,24 @@ export default withSentryConfig(nextConfig, {
 
   project: "kazi",
 
+  // Passing an empty value prevents the plugin from implicitly picking up a
+  // SENTRY_AUTH_TOKEN from the build environment when uploads are disabled.
+  authToken: uploadSentryArtifacts ? process.env.SENTRY_AUTH_TOKEN : "",
+
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
 
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
+  // Source-map uploads are intentionally opt-in. This preserves normal error
+  // reporting while ensuring a transient Sentry API outage cannot delay a
+  // Vercel deployment by several minutes.
+  widenClientFileUpload: uploadSentryArtifacts,
+  sourcemaps: { disable: !uploadSentryArtifacts },
+  release: uploadSentryArtifacts
+    ? undefined
+    : { create: false, finalize: false, setCommits: false, deploy: false },
 
   // Uncomment to route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   // This can increase your server load as well as your hosting bill.
