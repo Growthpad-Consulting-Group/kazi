@@ -26,12 +26,14 @@ const FILES = [
   "icons",
 ];
 const EXCLUDE = /\.test\.js$/;
+const FIREFOX_UPDATE_URL =
+  "https://kazi.growthpad.africa/extensions/kazi-timer/firefox/updates.json";
 
 const chromeManifest = JSON.parse(
   await readFile(join(here, "manifest.json"), "utf8"),
 );
 
-const { update_url: _updateUrl, ...rest } = chromeManifest;
+const { update_url: _chromeUpdateUrl, ...rest } = chromeManifest;
 const manifest = {
   ...rest,
   background: { scripts: ["background.js"] },
@@ -43,6 +45,8 @@ const manifest = {
       // sign-in token. websiteContent: the task title read on Asana and the
       // activity names staff type. Confirm with the privacy owner before
       // submitting.
+      // Firefox checks this address for updates to self-distributed add-ons.
+      update_url: FIREFOX_UPDATE_URL,
       data_collection_permissions: {
         required: ["authenticationInfo", "websiteContent"],
       },
