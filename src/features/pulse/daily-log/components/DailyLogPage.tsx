@@ -28,6 +28,7 @@ import {
   type DailyLogCategory,
   type DailyLogEntry,
 } from "../constants";
+import type { SharedActiveTimer } from "../shared-timer";
 
 type Row = {
   id: string;
@@ -43,14 +44,22 @@ type Row = {
   trackedSeconds?: number;
 };
 type ActiveTimer = {
+  /** Shared timer id, the idempotency key the server uses for stop. */
+  id: string;
   rowId: string;
   date: string;
-  startedAt: number;
-  accumulatedSeconds: number;
+  running: boolean;
+  /** Start of the current running interval, or null while paused. */
+  startedAt: number | null;
+  accumulatedMs: number;
+  source: "kazi" | "extension";
   row: Row;
 };
 type AsanaTask = { id: string; name: string; project: string | null };
+// The server owns the active timer. This key is only a recovery cache for
+// when the timer API cannot be reached.
 const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
+const TIMER_POLL_MS = 5000;
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
@@ -77,13 +86,90 @@ function getStoredTimer(date: string): ActiveTimer | null {
     const timer = JSON.parse(
       window.localStorage.getItem(TIMER_STORAGE_KEY) ?? "null",
     ) as ActiveTimer | null;
-    return timer?.date === date && timer.rowId && timer.startedAt && timer.row
-      ? timer
-      : null;
+    return timer?.date === date && timer.id && timer.row ? timer : null;
   } catch {
     window.localStorage.removeItem(TIMER_STORAGE_KEY);
     return null;
   }
+}
+
+function cacheActiveTimer(timer: ActiveTimer | null) {
+  try {
+    if (timer)
+      window.localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
+    else window.localStorage.removeItem(TIMER_STORAGE_KEY);
+  } catch {
+    // Storage can be blocked. The server copy is still authoritative.
+  }
+  window.dispatchEvent(new Event(activeTimerTabEvent));
+}
+
+/** undefined means the timer API could not be reached. */
+async function fetchSharedTimer(): Promise<
+  SharedActiveTimer | null | undefined
+> {
+  try {
+    const response = await fetch("/api/pulse/daily-log/timer", {
+      cache: "no-store",
+    });
+    if (!response.ok) return undefined;
+    const json = (await response.json()) as {
+      timer?: SharedActiveTimer | null;
+    };
+    return json.timer ?? null;
+  } catch {
+    return undefined;
+  }
+}
+
+function timerElapsedMs(timer: ActiveTimer, now: number) {
+  return (
+    timer.accumulatedMs +
+    (timer.running && timer.startedAt ? now - timer.startedAt : 0)
+  );
+}
+
+function rowFromSharedTimer(timer: SharedActiveTimer): Row {
+  const startedAt = timer.startedAt ? Date.parse(timer.startedAt) : Date.now();
+  return {
+    ...emptyRow(),
+    id: timer.id,
+    task: timer.task,
+    client: timer.client ?? "",
+    category: timer.category,
+    showRange: true,
+    startTime: clockFromTimestamp(startedAt),
+    endTime: "",
+    minutes: "",
+  };
+}
+
+function activeTimerFromShared(timer: SharedActiveTimer): ActiveTimer {
+  return {
+    id: timer.id,
+    rowId: timer.id,
+    date: timer.logDate,
+    running: timer.running,
+    startedAt: timer.startedAt ? Date.parse(timer.startedAt) : null,
+    accumulatedMs: timer.accumulatedMs,
+    source: timer.source,
+    row: rowFromSharedTimer(timer),
+  };
+}
+
+/** Keep the row the page already shows, and only refresh the timer state. */
+function mergeSharedTimer(
+  current: ActiveTimer | null,
+  timer: SharedActiveTimer,
+): ActiveTimer {
+  if (current?.id !== timer.id) return activeTimerFromShared(timer);
+  return {
+    ...current,
+    running: timer.running,
+    startedAt: timer.startedAt ? Date.parse(timer.startedAt) : null,
+    accumulatedMs: timer.accumulatedMs,
+    source: timer.source,
+  };
 }
 
 function todayLocal() {
@@ -179,8 +265,24 @@ export function DailyLogPage({
   >([]);
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
   const [timerNow, setTimerNow] = useState(() => Date.now());
+  // Set when a timer was stopped elsewhere while this page had unsaved edits.
+  // Saving would overwrite the time logged elsewhere, so it is blocked.
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const activeTimerRef = useRef<ActiveTimer | null>(null);
+  const isDirtyRef = useRef(false);
+  // Timer changes made here win over polls that started before them.
+  const lastLocalTimerChange = useRef(0);
+  const pendingTimerRequests = useRef(0);
   const { confirmNavigation, setUnsaved, setCallbacks } = useUnsavedChanges();
   const saveRef = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    activeTimerRef.current = activeTimer;
+  }, [activeTimer]);
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
 
   // Notes a manager left on the chosen day, shown read-only.
   useEffect(() => {
@@ -221,22 +323,38 @@ export function DailyLogPage({
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- date changes must show loading while the selected log is fetched.
     setLoading(true);
-    fetch(`/api/pulse/daily-log?date=${date}`)
-      .then((res) => res.json())
+    const sharedTimerRequest = isReviewer
+      ? Promise.resolve<SharedActiveTimer | null | undefined>(null)
+      : fetchSharedTimer();
+    Promise.all([
+      fetch(`/api/pulse/daily-log?date=${date}`).then((res) => res.json()),
+      sharedTimerRequest,
+    ])
       .then(
-        (json: {
-          entries?: DailyLogEntry[];
-          updatedAt?: string | null;
-          edited?: boolean;
-          mood?: number | null;
-          blockers?: string | null;
-          wins?: string | null;
-          error?: string;
-        }) => {
+        ([json, sharedTimer]: [
+          {
+            entries?: DailyLogEntry[];
+            updatedAt?: string | null;
+            edited?: boolean;
+            mood?: number | null;
+            blockers?: string | null;
+            wins?: string | null;
+            error?: string;
+          },
+          SharedActiveTimer | null | undefined,
+        ]) => {
           if (cancelled) return;
           if (json.error) throw new Error(json.error);
           const loaded = json.entries ?? [];
-          const restoredTimer = isReviewer ? null : getStoredTimer(date);
+          // The server copy wins. The cache is only used when it cannot be reached.
+          const restoredTimer =
+            sharedTimer === undefined
+              ? isReviewer
+                ? null
+                : getStoredTimer(date)
+              : sharedTimer?.logDate === date
+                ? activeTimerFromShared(sharedTimer)
+                : null;
           const loadedRows = loaded.length
             ? loaded.map((entry) => ({
                 id: newRowId(),
@@ -255,6 +373,8 @@ export function DailyLogPage({
             restoredTimer ? [...loadedRows, restoredTimer.row] : loadedRows,
           );
           setActiveTimer(restoredTimer);
+          if (restoredTimer) cacheActiveTimer(restoredTimer);
+          setNeedsRefresh(false);
           setSavedAt(json.updatedAt ?? null);
           setSavedEntries(loaded);
           setEdited(json.edited ?? false);
@@ -270,6 +390,75 @@ export function DailyLogPage({
 
     return () => {
       cancelled = true;
+    };
+  }, [date, isReviewer, reloadKey]);
+
+  // Reconcile with the server every few seconds, so pause, resume and stop
+  // from the extension (or another tab) appear here without a reload.
+  useEffect(() => {
+    if (isReviewer) return;
+    let cancelled = false;
+    let inFlight = false;
+
+    const reconcile = (shared: SharedActiveTimer | null) => {
+      const current = activeTimerRef.current;
+      const matching = shared?.logDate === date ? shared : null;
+
+      if (current && current.id !== matching?.id) {
+        // Stopped, or replaced, somewhere else.
+        cacheActiveTimer(null);
+        setActiveTimer(null);
+        if (isDirtyRef.current) {
+          setNeedsRefresh(true);
+          toast.error(
+            "Your timer was stopped in another window. Refresh this log before saving.",
+          );
+        } else {
+          setReloadKey((key) => key + 1);
+        }
+      }
+      if (!matching) return;
+      if (current?.id === matching.id) {
+        setActiveTimer((prev) =>
+          prev ? mergeSharedTimer(prev, matching) : prev,
+        );
+        return;
+      }
+      const next = activeTimerFromShared(matching);
+      setRows((rows) =>
+        rows.some((row) => row.id === next.rowId) ? rows : [...rows, next.row],
+      );
+      setActiveTimer(next);
+      cacheActiveTimer(next);
+    };
+
+    const sync = async () => {
+      if (inFlight || pendingTimerRequests.current > 0) return;
+      inFlight = true;
+      const requestedAt = Date.now();
+      const shared = await fetchSharedTimer();
+      inFlight = false;
+      if (cancelled || shared === undefined) return;
+      if (
+        pendingTimerRequests.current > 0 ||
+        lastLocalTimerChange.current > requestedAt
+      )
+        return;
+      reconcile(shared);
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") sync();
+    };
+    sync();
+    const interval = window.setInterval(sync, TIMER_POLL_MS);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", sync);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", sync);
     };
   }, [date, isReviewer]);
 
@@ -352,7 +541,21 @@ export function DailyLogPage({
     );
   };
 
-  const startTimer = async (index: number) => {
+  // Timer requests in flight. The reconcile poll waits for them so it cannot
+  // undo a start, pause or stop that this page has already made.
+  const runTimerRequest = async (request: () => Promise<void>) => {
+    pendingTimerRequests.current += 1;
+    lastLocalTimerChange.current = Date.now();
+    try {
+      await request();
+    } finally {
+      pendingTimerRequests.current -= 1;
+    }
+  };
+
+  // The row shows the timer straight away and is rolled back if the server
+  // refuses it, so a second tab cannot start a timer at the same time.
+  const startTimer = (index: number) => {
     const row = rows[index];
     if (!row.task.trim()) {
       toast.error("Name the activity before starting a timer.");
@@ -362,70 +565,163 @@ export function DailyLogPage({
       toast.error("Stop the current timer before starting another one.");
       return;
     }
+    if ((rowMinutes(row) ?? 0) > 0) {
+      toast.error("Clear this row's duration before starting a timer on it.");
+      return;
+    }
     const startedAt = Date.now();
-    const timer: ActiveTimer = {
-      rowId: row.id,
-      date,
-      startedAt,
-      accumulatedSeconds: row.trackedSeconds ?? (rowMinutes(row) ?? 0) * 60,
-      row: {
-        ...row,
-        showRange: true,
-        startTime: clockFromTimestamp(startedAt),
-        endTime: "",
-        minutes: "",
-      },
+    const id = crypto.randomUUID();
+    const shared: SharedActiveTimer = {
+      id,
+      logDate: date,
+      task: row.task.trim(),
+      client: row.client.trim() || null,
+      category: row.category,
+      startedAt: new Date(startedAt).toISOString(),
+      accumulatedMs: 0,
+      running: true,
+      source: "kazi",
+      updatedAt: new Date(startedAt).toISOString(),
     };
-    updateRow(index, timer.row, false);
-    window.localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timer));
-    window.dispatchEvent(new Event(activeTimerTabEvent));
+    const timerRow: Row = {
+      ...row,
+      id,
+      showRange: true,
+      startTime: clockFromTimestamp(startedAt),
+      endTime: "",
+      minutes: "",
+    };
+    const timer: ActiveTimer = {
+      id,
+      rowId: id,
+      date,
+      running: true,
+      startedAt,
+      accumulatedMs: 0,
+      source: "kazi",
+      row: timerRow,
+    };
+    const replaceRow = (from: string, to: Row) =>
+      setRows((current) =>
+        current.map((item) => (item.id === from ? to : item)),
+      );
+    replaceRow(row.id, timerRow);
+    cacheActiveTimer(timer);
     setActiveTimer(timer);
     setTimerNow(startedAt);
-    const response = await fetch("/api/pulse/daily-log/timer", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, timer }),
+
+    void runTimerRequest(async () => {
+      const response = await fetch("/api/pulse/daily-log/timer", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timer: shared }),
+      }).catch(() => null);
+      if (response?.ok) return;
+
+      const json = (await response?.json().catch(() => null)) as {
+        error?: string;
+        timer?: SharedActiveTimer;
+      } | null;
+      replaceRow(id, row);
+      cacheActiveTimer(null);
+      setActiveTimer(null);
+      if (json?.timer) {
+        const serverTimer = activeTimerFromShared(json.timer);
+        setRows((current) =>
+          current.some((item) => item.id === serverTimer.rowId)
+            ? current
+            : [...current, serverTimer.row],
+        );
+        cacheActiveTimer(serverTimer);
+        setActiveTimer(serverTimer);
+      }
+      toast.error(
+        json?.error ??
+          "Could not start the timer. Check your connection and try again.",
+      );
     });
-    if (!response.ok)
-      toast.error("Timer is running locally but could not sync to Kazi yet.");
   };
 
-  const stopTimer = async () => {
+  // Pause and resume go through the server so the extension and other tabs
+  // see the same elapsed time.
+  const toggleTimer = () => {
     if (!activeTimer) return;
+    const timerId = activeTimer.id;
+    const action = activeTimer.running ? "pause" : "resume";
+    void runTimerRequest(async () => {
+      const response = await fetch("/api/pulse/daily-log/timer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, timerId }),
+      }).catch(() => null);
+      const json = (await response?.json().catch(() => null)) as {
+        error?: string;
+        timer?: SharedActiveTimer;
+      } | null;
+      if (!response?.ok || !json?.timer) {
+        toast.error(json?.error ?? "Could not update the timer. Try again.");
+        return;
+      }
+      setActiveTimer((current) => {
+        if (!current || current.id !== timerId) return current;
+        const next = mergeSharedTimer(current, json.timer!);
+        cacheActiveTimer(next);
+        return next;
+      });
+    });
+  };
+
+  // Stop is one server call that writes the day's single entry and clears the
+  // timer. Retrying it is safe because the server answers with the stored entry.
+  const stopTimer = () => {
+    if (!activeTimer) return;
+    const stopping = activeTimer;
     const stoppedAt = Date.now();
-    const elapsedSeconds = Math.max(
-      0,
-      Math.floor((stoppedAt - activeTimer.startedAt) / 1000),
-    );
-    const totalSeconds = (activeTimer.accumulatedSeconds ?? 0) + elapsedSeconds;
-    const totalMinutes = Math.max(1, Math.floor(totalSeconds / 60));
-    const canKeepRange =
-      activeTimer.accumulatedSeconds === 0 && elapsedSeconds >= 60;
-    setRows((current) =>
-      current.map((row) =>
-        row.id === activeTimer.rowId
-          ? {
-              ...row,
-              // Multiple intervals cannot be represented by one time range.
-              showRange: canKeepRange,
-              startTime: canKeepRange
-                ? clockFromTimestamp(activeTimer.startedAt)
-                : "",
-              endTime: canKeepRange ? clockFromTimestamp(stoppedAt) : "",
-              minutes: formatMinutes(totalMinutes),
-              trackedSeconds: totalSeconds,
-            }
-          : row,
-      ),
-    );
-    window.localStorage.removeItem(TIMER_STORAGE_KEY);
-    window.dispatchEvent(new Event(activeTimerTabEvent));
+    const totalMs = timerElapsedMs(stopping, stoppedAt);
+    cacheActiveTimer(null);
     setActiveTimer(null);
-    setIsDirty(true);
-    await fetch("/api/pulse/daily-log/timer", { method: "DELETE" }).catch(
-      () => {},
-    );
-    toast.success(`Timer stopped at ${formatElapsed(totalSeconds * 1000)}.`);
+
+    void runTimerRequest(async () => {
+      const response = await fetch("/api/pulse/daily-log/timer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "stop",
+          timerId: stopping.id,
+          at: new Date(stoppedAt).toISOString(),
+        }),
+      }).catch(() => null);
+      const json = (await response?.json().catch(() => null)) as {
+        error?: string;
+        entry?: DailyLogEntry;
+      } | null;
+      if (!response?.ok) {
+        // Still running on the server, so put the timer back.
+        cacheActiveTimer(stopping);
+        setActiveTimer(stopping);
+        toast.error(
+          json?.error ?? "Could not stop the timer. It is still running.",
+        );
+        return;
+      }
+      const minutes =
+        json?.entry?.minutes ?? Math.max(1, Math.floor(totalMs / 60_000));
+      setRows((current) =>
+        current.map((row) =>
+          row.id === stopping.rowId
+            ? {
+                ...row,
+                showRange: false,
+                startTime: "",
+                endTime: "",
+                minutes: formatMinutes(minutes),
+              }
+            : row,
+        ),
+      );
+      setIsDirty(true);
+      toast.success(`Timer stopped at ${formatElapsed(totalMs)}.`);
+    });
   };
 
   const addSavedClient = (name: string) =>
@@ -562,6 +858,12 @@ export function DailyLogPage({
       toast.error("Stop the active timer before saving this daily log.");
       return;
     }
+    if (needsRefresh) {
+      toast.error(
+        "Refresh this log before saving so the time logged in another window is kept.",
+      );
+      return;
+    }
     const filled = rows.filter(
       (row) =>
         row.task.trim() || row.minutes.trim() || row.startTime || row.endTime,
@@ -650,14 +952,15 @@ export function DailyLogPage({
     date,
     history,
     mood,
+    needsRefresh,
     router,
     rows,
     weeklyCheckinSubmitted,
     wins,
   ]);
 
-  // A timer is persisted locally and deliberately follows the staff member
-  // around Kazi. Only manual edits should interrupt navigation.
+  // A running timer lives on the server and follows the staff member around
+  // Kazi. Only manual edits should interrupt navigation.
   const dailyLogNeedsAttention = !isReviewer && isDirty;
 
   const selectDate = (nextDate: string) => {
@@ -827,9 +1130,7 @@ export function DailyLogPage({
                 ? {
                     task: activeTimer.row.task,
                     elapsed: formatElapsed(
-                      activeTimer.accumulatedSeconds * 1000 +
-                        timerNow -
-                        activeTimer.startedAt,
+                      timerElapsedMs(activeTimer, timerNow),
                     ),
                   }
                 : null
@@ -931,9 +1232,7 @@ export function DailyLogPage({
                         value={
                           activeTimer?.rowId === row.id
                             ? formatElapsed(
-                                activeTimer.accumulatedSeconds * 1000 +
-                                  timerNow -
-                                  activeTimer.startedAt,
+                                timerElapsedMs(activeTimer, timerNow),
                               )
                             : row.showRange && row.startTime && row.endTime
                               ? formatMinutes(rowMinutes(row) ?? 0)
@@ -968,28 +1267,56 @@ export function DailyLogPage({
                       </select>
                       <div className="flex items-center justify-self-end">
                         {activeTimer?.rowId === row.id ? (
-                          <button
-                            type="button"
-                            onClick={stopTimer}
-                            className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-red-500/10 px-2 text-xs font-mono font-semibold text-red-500 hover:bg-red-500/15"
-                            aria-label="Stop timer"
-                            title="Stop timer"
-                          >
-                            <Icon
-                              icon="solar:stop-circle-broken"
-                              className="h-4 w-4"
-                            />
-                            {formatElapsed(
-                              activeTimer.accumulatedSeconds * 1000 +
-                                timerNow -
-                                activeTimer.startedAt,
-                            )}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={toggleTimer}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-brand-500 hover:bg-brand-500/10"
+                              aria-label={
+                                activeTimer.running
+                                  ? "Pause timer"
+                                  : "Resume timer"
+                              }
+                              title={
+                                activeTimer.running
+                                  ? "Pause timer"
+                                  : "Resume timer"
+                              }
+                            >
+                              <Icon
+                                icon={
+                                  activeTimer.running
+                                    ? "solar:pause-circle-broken"
+                                    : "solar:play-circle-broken"
+                                }
+                                className="h-4 w-4"
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={stopTimer}
+                              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-red-500/10 px-2 text-xs font-mono font-semibold text-red-500 hover:bg-red-500/15"
+                              aria-label="Stop timer"
+                              title="Stop timer"
+                            >
+                              <Icon
+                                icon="solar:stop-circle-broken"
+                                className="h-4 w-4"
+                              />
+                              {formatElapsed(
+                                timerElapsedMs(activeTimer, timerNow),
+                              )}
+                            </button>
+                          </div>
                         ) : (
                           <button
                             type="button"
                             onClick={() => startTimer(index)}
-                            disabled={Boolean(activeTimer) || !row.task.trim()}
+                            disabled={
+                              Boolean(activeTimer) ||
+                              !row.task.trim() ||
+                              (rowMinutes(row) ?? 0) > 0
+                            }
                             className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-brand-500 hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-35"
                             aria-label={`Start timer for ${row.task || "activity"}`}
                             title="Start timer"

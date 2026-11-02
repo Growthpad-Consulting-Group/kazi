@@ -30,12 +30,12 @@ Make active daily-log timing visible and controllable while staff work outside K
 
 ### P0.1 — Shared active timer authority
 
-- [ ] Define one persisted active-timer payload shared by Kazi and the extension: task, client, category, log date, start timestamp, accumulated milliseconds, running state, source and idempotency key.
-- [ ] Replace Kazi daily-log localStorage as the active-timer authority; retain it only as a short-lived recovery cache.
-- [ ] Add authenticated shared-timer start, pause, resume and read actions for both Kazi sessions and extension tokens.
-- [ ] Make stop an idempotent server action that writes exactly one daily-log entry, then clears the shared timer.
-- [ ] Reconcile the open Kazi daily-log page with shared timer changes from another surface, including paused state and elapsed time.
-- [ ] Preserve offline extension queueing only when no extension connection is available, then sync safely after reconnecting.
+- [x] Define one persisted active-timer payload shared by Kazi and the extension: task, client, category, log date, start timestamp, accumulated milliseconds, running state, source and idempotency key.
+- [x] Replace Kazi daily-log localStorage as the active-timer authority; retain it only as a short-lived recovery cache.
+- [x] Add authenticated shared-timer start, pause, resume and read actions for both Kazi sessions and extension tokens.
+- [x] Make stop an idempotent server action that writes exactly one daily-log entry, then clears the shared timer.
+- [x] Reconcile the open Kazi daily-log page with shared timer changes from another surface, including paused state and elapsed time.
+- [x] Preserve offline extension queueing only when no extension connection is available, then sync safely after reconnecting.
 - [ ] Add end-to-end coverage for Kazi → extension and extension → Kazi start/pause/resume/stop flows, concurrent tabs, restart and offline retry.
 
 ### P0.2 — Connection experience

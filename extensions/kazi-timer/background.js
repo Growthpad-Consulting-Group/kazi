@@ -3,16 +3,56 @@ const QUEUE_KEY = "completedEntries";
 const TOKEN_KEY = "kaziAccessToken";
 const TICK_ALARM = "kazi-timer-tick";
 const KAZI_URL = "https://kazi.growthpad.africa";
+const SHARED_TIMER_URL = `${KAZI_URL}/api/pulse/daily-log/timer`;
+const OFFLINE_MESSAGE = "Kazi is unreachable. Try again when you are online.";
 let messageQueue = Promise.resolve();
 
-function elapsedSeconds(timer, now = Date.now()) {
+// The timer shape is the same one Kazi stores on the server:
+// { id, logDate, task, client, category, startedAt (ISO|null), accumulatedMs,
+//   running, source, updatedAt }
+// Timers saved by older versions of this extension are converted on read.
+function elapsedMs(timer, now = Date.now()) {
   if (!timer) return 0;
-  return Math.max(
-    0,
-    Math.floor(
-      (timer.elapsedMs + (timer.running ? now - timer.startedAt : 0)) / 1000,
-    ),
+  const runningMs =
+    timer.running && timer.startedAt ? now - Date.parse(timer.startedAt) : 0;
+  return Math.min(
+    24 * 60 * 60 * 1000,
+    Math.max(0, timer.accumulatedMs + runningMs),
   );
+}
+
+function elapsedSeconds(timer, now = Date.now()) {
+  return Math.floor(elapsedMs(timer, now) / 1000);
+}
+
+function normalizeTimer(raw, now = Date.now()) {
+  if (!raw) return null;
+  if (raw.accumulatedMs !== undefined) return raw;
+  const startedAt = new Date(raw.startedAt ?? now).toISOString();
+  return {
+    id: crypto.randomUUID(),
+    logDate: localDate(startedAt),
+    task: raw.task,
+    client: raw.client || null,
+    category: raw.category || "Projects",
+    startedAt: raw.running ? startedAt : null,
+    accumulatedMs: raw.elapsedMs || 0,
+    running: Boolean(raw.running),
+    source: raw.source === "kazi" ? "kazi" : "extension",
+    updatedAt: new Date(now).toISOString(),
+  };
+}
+
+async function readTimer() {
+  const { [TIMER_KEY]: raw } = await chrome.storage.local.get(TIMER_KEY);
+  if (!raw || raw.accumulatedMs !== undefined) return raw ?? null;
+  const timer = normalizeTimer(raw);
+  await chrome.storage.local.set({ [TIMER_KEY]: timer });
+  return timer;
+}
+
+async function writeTimer(timer) {
+  await chrome.storage.local.set({ [TIMER_KEY]: timer });
 }
 
 function badgeText(totalSeconds) {
@@ -23,7 +63,7 @@ function badgeText(totalSeconds) {
 }
 
 async function refreshBadge() {
-  const { [TIMER_KEY]: timer } = await chrome.storage.local.get(TIMER_KEY);
+  const timer = await readTimer();
   const seconds = elapsedSeconds(timer);
   await chrome.action.setBadgeText({
     text: timer?.running ? badgeText(seconds) : "",
@@ -42,80 +82,179 @@ function localDate(iso) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-async function syncQueue() {
+async function tokenValue() {
   const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  return token;
+}
+
+async function pendingStops() {
+  const { [QUEUE_KEY]: queued = [] } =
+    await chrome.storage.local.get(QUEUE_KEY);
+  return queued.filter((item) => item.type === "stop");
+}
+
+// Legacy queue items are completed entries without a type. They still sync
+// through the entries endpoint, which claims each id once.
+async function syncLegacyEntry(queuedEntry, token) {
+  const response = await fetch(
+    `${KAZI_URL}/api/extensions/kazi-timer/entries`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: queuedEntry.id,
+        date: localDate(queuedEntry.stoppedAt),
+        entry: {
+          task: queuedEntry.task,
+          client: queuedEntry.client || null,
+          category: queuedEntry.category,
+          minutes: Math.max(1, Math.floor(queuedEntry.seconds / 60)),
+        },
+      }),
+    },
+  ).catch(() => null);
+  return Boolean(response?.ok);
+}
+
+// Stops are sent to the shared endpoint. Stop is idempotent per timer id, so a
+// retry after a lost response cannot log the time twice.
+async function syncStop(item, token) {
+  const request = (body) =>
+    fetch(SHARED_TIMER_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }).catch(() => null);
+
+  let response = await request({
+    action: "stop",
+    timerId: item.id,
+    at: item.at,
+  });
+  if (response?.status === 404) {
+    // Kazi has never seen this timer, so it was started while disconnected.
+    // Send it first, then stop it.
+    const created = await fetch(SHARED_TIMER_URL, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ timer: item.timer }),
+    }).catch(() => null);
+    if (created?.status === 409) {
+      const body = await readJson(created);
+      // Stopped already, so nothing is left to log. Otherwise another timer is
+      // running and this one waits in the queue.
+      return body?.error === "This timer was already stopped";
+    }
+    if (!created?.ok) return false;
+    response = await request({ action: "stop", timerId: item.id, at: item.at });
+  }
+  return Boolean(response?.ok);
+}
+
+async function syncQueue() {
+  const token = await tokenValue();
   const { [QUEUE_KEY]: queued = [] } =
     await chrome.storage.local.get(QUEUE_KEY);
   if (!token || !queued.length) return { synced: 0, queued: queued.length };
   let synced = 0;
   const remaining = [];
-  for (const queuedEntry of queued) {
-    const response = await fetch(
-      `${KAZI_URL}/api/extensions/kazi-timer/entries`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: queuedEntry.id,
-          date: localDate(queuedEntry.stoppedAt),
-          entry: {
-            task: queuedEntry.task,
-            client: queuedEntry.client || null,
-            category: queuedEntry.category,
-            minutes: Math.max(1, Math.floor(queuedEntry.seconds / 60)),
-          },
-        }),
-      },
-    ).catch(() => null);
-    if (response?.ok) synced += 1;
-    else remaining.push(queuedEntry);
+  for (const item of queued) {
+    const done =
+      item.type === "stop"
+        ? await syncStop(item, token)
+        : await syncLegacyEntry(item, token);
+    if (done) synced += 1;
+    else remaining.push(item);
   }
   await chrome.storage.local.set({ [QUEUE_KEY]: remaining });
   return { synced, queued: remaining.length };
 }
 
-async function sharedTimerRequest(method, token, body) {
+class KaziUnreachable extends Error {}
+
+async function readJson(response) {
+  return typeof response?.json === "function"
+    ? response.json().catch(() => null)
+    : null;
+}
+
+async function sharedTimerRequest(method, body) {
+  const token = await tokenValue();
   if (!token) return null;
-  const response = await fetch(`${KAZI_URL}/api/pulse/daily-log/timer`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  }).catch(() => null);
-  return response?.ok ? response.json?.() : null;
+  let response;
+  try {
+    response = await fetch(SHARED_TIMER_URL, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch {
+    throw new KaziUnreachable(OFFLINE_MESSAGE);
+  }
+  return {
+    ok: response.ok,
+    status: response.status,
+    json: await readJson(response),
+  };
 }
 
-async function refreshSharedTimer() {
-  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
-  const shared = await sharedTimerRequest("GET", token);
-  if (shared?.timer)
-    await chrome.storage.local.set({ [TIMER_KEY]: shared.timer });
-  return shared?.timer ?? null;
+// Kazi is the source of truth when connected. A timer stopped offline stays
+// hidden until its queued stop has synced, so it cannot reappear.
+async function refreshFromServer() {
+  const local = await readTimer();
+  if (!(await tokenValue())) return local;
+  let response;
+  try {
+    response = await sharedTimerRequest("GET");
+  } catch {
+    return local;
+  }
+  if (!response?.ok) return local;
+  const server = response.json?.timer ?? null;
+  if (server && (await pendingStops()).some((item) => item.id === server.id))
+    return null;
+  await writeTimer(server);
+  return server;
 }
 
-async function saveSharedTimer(timer) {
-  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
-  if (!token) return;
-  await sharedTimerRequest("PUT", token, {
-    date: localDate(new Date().toISOString()),
-    timer,
+// A timer started while disconnected joins Kazi on connect. If Kazi already
+// has another timer, this one is queued as a finished entry so its time is kept.
+async function adoptLocalTimer() {
+  const local = await readTimer();
+  if (!local) return;
+  let response;
+  try {
+    response = await sharedTimerRequest("PUT", { timer: local });
+  } catch {
+    return;
+  }
+  if (response?.status !== 409) return;
+  const { [QUEUE_KEY]: queued = [] } =
+    await chrome.storage.local.get(QUEUE_KEY);
+  await chrome.storage.local.set({
+    [TIMER_KEY]: null,
+    [QUEUE_KEY]: [
+      ...queued,
+      {
+        type: "stop",
+        id: local.id,
+        timer: local,
+        at: new Date().toISOString(),
+      },
+    ],
   });
-}
-
-async function transitionSharedTimer(action, timer) {
-  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
-  if (!token) return;
-  await sharedTimerRequest("POST", token, { action, timer });
-}
-
-async function clearSharedTimer() {
-  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
-  if (token) await sharedTimerRequest("DELETE", token);
 }
 
 async function connectKazi() {
@@ -140,11 +279,13 @@ async function connectKazi() {
   await chrome.storage.session.set({
     [TOKEN_KEY]: parameters.get("access_token"),
   });
+  await adoptLocalTimer();
+  await refreshFromServer();
   return syncQueue();
 }
 
 async function disconnectKazi() {
-  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  const token = await tokenValue();
   if (token) {
     await fetch(`${KAZI_URL}/api/extensions/kazi-timer/entries`, {
       method: "DELETE",
@@ -155,7 +296,7 @@ async function disconnectKazi() {
 }
 
 async function getClients() {
-  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  const token = await tokenValue();
   if (!token) return { clients: [] };
   const response = await fetch(
     `${KAZI_URL}/api/extensions/kazi-timer/clients`,
@@ -173,13 +314,13 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-  await refreshSharedTimer();
+  await refreshFromServer();
   await refreshBadge();
   await syncQueue();
 });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === TICK_ALARM) {
-    await refreshSharedTimer();
+    await refreshFromServer();
     await refreshBadge();
     await syncQueue();
   }
@@ -187,29 +328,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 chrome.storage.onChanged.addListener(refreshBadge);
 
 async function handleMessage(message) {
-  const { [TIMER_KEY]: timer } = await chrome.storage.local.get(TIMER_KEY);
-
-  if (message.type === "kazi-page-timer") {
-    if (message.timer) {
-      await chrome.storage.local.set({ [TIMER_KEY]: message.timer });
-    } else if (timer?.source === "kazi") {
-      await chrome.storage.local.set({ [TIMER_KEY]: null });
-    }
-    await refreshBadge();
-    return { ok: true };
-  }
-
   if (message.type === "get-state") {
-    await refreshSharedTimer();
-    const { [TIMER_KEY]: refreshedTimer } =
-      await chrome.storage.local.get(TIMER_KEY);
-    const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+    const timer = await refreshFromServer();
     const { [QUEUE_KEY]: queued = [] } =
       await chrome.storage.local.get(QUEUE_KEY);
     return {
-      timer: refreshedTimer,
-      elapsedSeconds: elapsedSeconds(refreshedTimer),
-      connected: Boolean(token),
+      timer,
+      elapsedSeconds: elapsedSeconds(timer),
+      connected: Boolean(await tokenValue()),
       queued: queued.length,
     };
   }
@@ -224,61 +350,101 @@ async function handleMessage(message) {
     return { connected: false };
   }
 
+  const timer = await readTimer();
+
   if (message.type === "start") {
     if (timer) return { error: "A timer is already active" };
+    const now = new Date().toISOString();
     const next = {
-      task: message.task,
-      client: message.client || "",
+      id: crypto.randomUUID(),
+      logDate: localDate(now),
+      task: String(message.task || "").trim(),
+      client: message.client || null,
       category: message.category,
-      startedAt: Date.now(),
-      elapsedMs: 0,
+      startedAt: now,
+      accumulatedMs: 0,
       running: true,
       source: "extension",
+      updatedAt: now,
     };
-    await chrome.storage.local.set({ [TIMER_KEY]: next });
-    await saveSharedTimer(next);
+    if (await tokenValue()) {
+      let response;
+      try {
+        response = await sharedTimerRequest("PUT", { timer: next });
+      } catch (error) {
+        return { error: error.message };
+      }
+      if (!response.ok) {
+        if (response.json?.timer) await writeTimer(response.json.timer);
+        return { error: response.json?.error || "Could not start the timer" };
+      }
+    }
+    await writeTimer(next);
     return { timer: next };
   }
 
   if (!timer) return { error: "No active timer" };
 
-  if (message.type === "pause") {
-    const next = {
-      ...timer,
-      elapsedMs: elapsedSeconds(timer) * 1000,
-      running: false,
-    };
-    await chrome.storage.local.set({ [TIMER_KEY]: next });
-    await saveSharedTimer(next);
-    await transitionSharedTimer("pause", next);
-    return { timer: next };
-  }
-
-  if (message.type === "resume") {
-    const next = { ...timer, startedAt: Date.now(), running: true };
-    await chrome.storage.local.set({ [TIMER_KEY]: next });
-    await saveSharedTimer(next);
-    await transitionSharedTimer("resume", next);
-    return { timer: next };
+  if (message.type === "pause" || message.type === "resume") {
+    const action = message.type;
+    if (!(await tokenValue())) {
+      const now = Date.now();
+      const next =
+        action === "pause"
+          ? {
+              ...timer,
+              accumulatedMs: elapsedMs(timer, now),
+              startedAt: null,
+              running: false,
+            }
+          : {
+              ...timer,
+              startedAt: new Date(now).toISOString(),
+              running: true,
+            };
+      await writeTimer(next);
+      return { timer: next };
+    }
+    let response;
+    try {
+      response = await sharedTimerRequest("POST", {
+        action,
+        timerId: timer.id,
+      });
+    } catch (error) {
+      return { error: error.message };
+    }
+    if (!response.ok) {
+      if (response.status === 404) await writeTimer(null);
+      return { error: response.json?.error || "Could not update the timer" };
+    }
+    await writeTimer(response.json.timer);
+    return { timer: response.json.timer };
   }
 
   if (message.type === "stop") {
-    const entry = {
-      id: crypto.randomUUID(),
-      task: timer.task,
-      client: timer.client,
-      category: timer.category,
-      seconds: elapsedSeconds(timer),
-      stoppedAt: new Date().toISOString(),
+    const stoppedAt = new Date().toISOString();
+    const item = {
+      type: "stop",
+      id: timer.id,
+      timer,
+      at: stoppedAt,
     };
     const { [QUEUE_KEY]: queued = [] } =
       await chrome.storage.local.get(QUEUE_KEY);
     await chrome.storage.local.set({
       [TIMER_KEY]: null,
-      [QUEUE_KEY]: [...queued, entry],
+      [QUEUE_KEY]: [...queued, item],
     });
-    await clearSharedTimer();
-    return { entry, ...(await syncQueue()) };
+    const sync = await syncQueue();
+    return {
+      entry: {
+        id: timer.id,
+        task: timer.task,
+        seconds: elapsedSeconds(timer, Date.parse(stoppedAt)),
+      },
+      ...sync,
+    };
   }
   return { error: "Unknown Kazi Timer action" };
 }

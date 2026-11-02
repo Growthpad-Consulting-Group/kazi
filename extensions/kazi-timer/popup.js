@@ -82,11 +82,11 @@ function format(seconds) {
 
 function currentSeconds() {
   if (!activeTimer) return 0;
-  return Math.floor(
-    (activeTimer.elapsedMs +
-      (activeTimer.running ? Date.now() - activeTimer.startedAt : 0)) /
-      1000,
-  );
+  const runningMs =
+    activeTimer.running && activeTimer.startedAt
+      ? Date.now() - Date.parse(activeTimer.startedAt)
+      : 0;
+  return Math.floor((activeTimer.accumulatedMs + runningMs) / 1000);
 }
 
 function render() {
@@ -150,6 +150,10 @@ $("#start-form").addEventListener("submit", async (event) => {
 
 $("#pause").addEventListener("click", async () => {
   const result = await send(activeTimer.running ? "pause" : "resume");
+  if (result.error) {
+    $("#notice").textContent = result.error;
+    return;
+  }
   activeTimer = result.timer;
   render();
 });
@@ -157,9 +161,14 @@ $("#pause").addEventListener("click", async () => {
 $("#stop").addEventListener("click", async () => {
   const result = await send("stop");
   activeTimer = null;
-  $("#notice").textContent = result.entry
-    ? "Saved to this browser's queue. Connect Kazi to sync it."
-    : "Could not stop this timer.";
+  if (!result.entry) {
+    $("#notice").textContent = result.error || "Could not stop this timer.";
+  } else if (result.queued) {
+    $("#notice").textContent =
+      "Saved on this browser. It will sync to Kazi when it is reachable.";
+  } else {
+    $("#notice").textContent = "Stopped and saved to your Kazi daily log.";
+  }
   await load();
 });
 

@@ -6,19 +6,43 @@ import {
   extensionCors,
   extensionTokenUser,
 } from "@/lib/browser-extension-auth";
-import type { SharedActiveTimer } from "@/features/pulse/daily-log/shared-timer";
+import { awardDailyLogRewards } from "@/features/pulse/daily-log/rewards";
+import {
+  isEditableLogDate,
+  validateDailyLogEntries,
+  type DailyLogEntry,
+} from "@/features/pulse/daily-log/constants";
+import {
+  parseSharedTimer,
+  pauseSharedTimer,
+  resumeSharedTimer,
+  sharedTimerEntry,
+  type SharedActiveTimer,
+} from "@/features/pulse/daily-log/shared-timer";
 
-const db = supabaseAdmin as any; // eslint-disable-line @typescript-eslint/no-explicit-any -- migration is newer than generated types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- timer tables are newer than generated types.
+const db = supabaseAdmin as any;
 
-async function timerOwner(request: Request) {
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type Owner = { userId: string; extension: boolean };
+
+async function timerOwner(request: Request): Promise<Owner | null> {
   const session = await getServerSession(authOptions);
   if (session) return { userId: session.user.id, extension: false };
   const extension = await extensionTokenUser(request);
   return extension ? { userId: extension.user_id, extension: true } : null;
 }
 
-function reply(request: Request, extension: boolean, response: NextResponse) {
-  return extension ? extensionCors(request, response) : response;
+function respond(
+  request: Request,
+  owner: Owner | null,
+  body: unknown,
+  status = 200,
+) {
+  const response = NextResponse.json(body, { status });
+  return owner?.extension ? extensionCors(request, response) : response;
 }
 
 export async function OPTIONS(request: Request) {
@@ -27,120 +51,272 @@ export async function OPTIONS(request: Request) {
 
 export async function GET(request: Request) {
   const owner = await timerOwner(request);
-  if (!owner)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!owner) return respond(request, null, { error: "Unauthorized" }, 401);
   const { data, error } = await db
     .from("shared_active_timers")
-    .select("log_date, timer")
+    .select("timer")
     .eq("user_id", owner.userId)
     .maybeSingle();
   if (error)
-    return reply(
-      request,
-      owner.extension,
-      NextResponse.json({ error: "Could not load timer" }, { status: 500 }),
-    );
-  return reply(
-    request,
-    owner.extension,
-    NextResponse.json({
-      timer: data ? { ...data.timer, date: data.log_date } : null,
-    }),
-  );
+    return respond(request, owner, { error: "Could not load timer" }, 500);
+  return respond(request, owner, { timer: data?.timer ?? null });
 }
 
+/** Start a timer. Re-sending the same timer id is an idempotent update. */
 export async function PUT(request: Request) {
   const owner = await timerOwner(request);
-  if (!owner)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!owner) return respond(request, null, { error: "Unauthorized" }, 401);
   const body = (await request.json().catch(() => null)) as {
     timer?: unknown;
-    date?: unknown;
   } | null;
-  if (!body?.timer || typeof body.date !== "string")
-    return reply(
-      request,
-      owner.extension,
-      NextResponse.json(
-        { error: "A timer and log date are required" },
-        { status: 400 },
-      ),
-    );
-  const { error } = await db.from("shared_active_timers").upsert(
-    {
-      user_id: owner.userId,
-      log_date: body.date,
-      timer: body.timer,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
-  if (error)
-    return reply(
-      request,
-      owner.extension,
-      NextResponse.json({ error: "Could not save timer" }, { status: 500 }),
-    );
-  return reply(request, owner.extension, NextResponse.json({ ok: true }));
-}
+  const parsed = parseSharedTimer(body?.timer);
+  if (!parsed.ok) return respond(request, owner, { error: parsed.error }, 400);
+  const { timer } = parsed;
 
-export async function DELETE(request: Request) {
-  const owner = await timerOwner(request);
-  if (!owner)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { error } = await db
+  const { data: stopped } = await db
+    .from("shared_timer_stops")
+    .select("timer_id")
+    .eq("user_id", owner.userId)
+    .eq("timer_id", timer.id)
+    .maybeSingle();
+  if (stopped)
+    return respond(
+      request,
+      owner,
+      { error: "This timer was already stopped" },
+      409,
+    );
+
+  const { data: current, error: readError } = await db
     .from("shared_active_timers")
-    .delete()
-    .eq("user_id", owner.userId);
-  if (error)
-    return reply(
+    .select("timer_id, timer")
+    .eq("user_id", owner.userId)
+    .maybeSingle();
+  if (readError)
+    return respond(request, owner, { error: "Could not save timer" }, 500);
+
+  if (current && current.timer_id !== timer.id)
+    return respond(
       request,
-      owner.extension,
-      NextResponse.json({ error: "Could not stop timer" }, { status: 500 }),
+      owner,
+      { error: "A timer is already active", timer: current.timer },
+      409,
     );
-  return reply(request, owner.extension, NextResponse.json({ ok: true }));
+
+  const row = {
+    user_id: owner.userId,
+    timer_id: timer.id,
+    log_date: timer.logDate,
+    timer,
+    updated_at: timer.updatedAt,
+  };
+  // Inserting for a brand-new timer lets the primary key reject a second
+  // tab that started at the same moment.
+  const { error } = current
+    ? await db
+        .from("shared_active_timers")
+        .update(row)
+        .eq("user_id", owner.userId)
+        .eq("timer_id", timer.id)
+    : await db.from("shared_active_timers").insert(row);
+  if (error?.code === "23505")
+    return respond(request, owner, { error: "A timer is already active" }, 409);
+  if (error)
+    return respond(request, owner, { error: "Could not save timer" }, 500);
+  return respond(request, owner, { timer });
 }
 
+/** Pause, resume or stop the timer with the given id. */
 export async function POST(request: Request) {
   const owner = await timerOwner(request);
-  if (!owner)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!owner) return respond(request, null, { error: "Unauthorized" }, 401);
   const body = (await request.json().catch(() => null)) as {
-    action?: "pause" | "resume";
-    timer?: SharedActiveTimer;
+    action?: unknown;
+    timerId?: unknown;
+    at?: unknown;
   } | null;
-  if (!body?.timer || !["pause", "resume"].includes(body.action ?? ""))
-    return reply(
+  const action = body?.action;
+  if (
+    !["pause", "resume", "stop"].includes(String(action)) ||
+    typeof body?.timerId !== "string" ||
+    !UUID_PATTERN.test(body.timerId)
+  )
+    return respond(
       request,
-      owner.extension,
-      NextResponse.json(
-        { error: "A valid timer action is required" },
-        { status: 400 },
-      ),
+      owner,
+      { error: "A timer action and timer id are required" },
+      400,
     );
-  const updatedAt = new Date().toISOString();
-  const timer: SharedActiveTimer = {
-    ...body.timer,
-    running: body.action === "resume",
-    startedAt: body.action === "resume" ? updatedAt : null,
-    updatedAt,
-  };
+
+  if (action === "stop")
+    return stopTimer(request, owner, body.timerId, body.at);
+
+  const { data: row, error: readError } = await db
+    .from("shared_active_timers")
+    .select("timer")
+    .eq("user_id", owner.userId)
+    .eq("timer_id", body.timerId)
+    .maybeSingle();
+  if (readError)
+    return respond(request, owner, { error: "Could not update timer" }, 500);
+  if (!row) return respond(request, owner, { error: "No active timer" }, 404);
+
+  const current = row.timer as SharedActiveTimer;
+  const next =
+    action === "pause" ? pauseSharedTimer(current) : resumeSharedTimer(current);
+  if (next === current || next.running === current.running)
+    return respond(request, owner, { timer: current });
+
   const { error } = await db
     .from("shared_active_timers")
-    .upsert(
-      {
-        user_id: owner.userId,
-        log_date: timer.logDate,
-        timer,
-        updated_at: updatedAt,
-      },
-      { onConflict: "user_id" },
-    );
+    .update({ timer: next, updated_at: next.updatedAt })
+    .eq("user_id", owner.userId)
+    .eq("timer_id", body.timerId);
   if (error)
-    return reply(
+    return respond(request, owner, { error: "Could not update timer" }, 500);
+  return respond(request, owner, { timer: next });
+}
+
+/**
+ * Stop is idempotent per timer id. The claim row is inserted before the daily
+ * log is written, so a retry or a second tab reads the stored entry instead
+ * of logging the time twice.
+ */
+async function stopTimer(
+  request: Request,
+  owner: Owner,
+  timerId: string,
+  at: unknown,
+) {
+  const { data: row, error: readError } = await db
+    .from("shared_active_timers")
+    .select("log_date, timer")
+    .eq("user_id", owner.userId)
+    .eq("timer_id", timerId)
+    .maybeSingle();
+  if (readError)
+    return respond(request, owner, { error: "Could not stop timer" }, 500);
+
+  if (!row) {
+    const { data: claim } = await db
+      .from("shared_timer_stops")
+      .select("entry")
+      .eq("user_id", owner.userId)
+      .eq("timer_id", timerId)
+      .maybeSingle();
+    if (claim)
+      return respond(request, owner, {
+        entry: claim.entry,
+        timer: null,
+        duplicate: true,
+      });
+    return respond(request, owner, { error: "No active timer" }, 404);
+  }
+
+  if (!isEditableLogDate(row.log_date))
+    return respond(
       request,
-      owner.extension,
-      NextResponse.json({ error: "Could not update timer" }, { status: 500 }),
+      owner,
+      { error: "This timer's day is locked and can no longer be logged." },
+      403,
     );
-  return reply(request, owner.extension, NextResponse.json({ timer }));
+
+  const timer = row.timer as SharedActiveTimer;
+  const stoppedAt = stopInstant(timer, at);
+  const entry: DailyLogEntry = sharedTimerEntry(timer, stoppedAt);
+  const validated = validateDailyLogEntries([entry]);
+  if (!validated.ok)
+    return respond(request, owner, { error: validated.error }, 400);
+
+  const { error: claimError } = await db.from("shared_timer_stops").insert({
+    user_id: owner.userId,
+    timer_id: timerId,
+    log_date: row.log_date,
+    entry: validated.entries[0],
+    stopped_at: stoppedAt.toISOString(),
+  });
+  if (claimError?.code === "23505") {
+    const { data: claim } = await db
+      .from("shared_timer_stops")
+      .select("entry")
+      .eq("user_id", owner.userId)
+      .eq("timer_id", timerId)
+      .maybeSingle();
+    return respond(request, owner, {
+      entry: claim?.entry ?? entry,
+      timer: null,
+      duplicate: true,
+    });
+  }
+  if (claimError)
+    return respond(request, owner, { error: "Could not stop timer" }, 500);
+
+  const appended = await appendDailyLogEntry(owner.userId, row.log_date, entry);
+  if (!appended.ok) {
+    await db
+      .from("shared_timer_stops")
+      .delete()
+      .eq("user_id", owner.userId)
+      .eq("timer_id", timerId);
+    return respond(request, owner, { error: appended.error }, 500);
+  }
+
+  // Clearing the timer is the last step. If it fails, a retry finds the claim
+  // above and only clears the timer again.
+  await db
+    .from("shared_active_timers")
+    .delete()
+    .eq("user_id", owner.userId)
+    .eq("timer_id", timerId);
+
+  return respond(request, owner, { entry, timer: null });
+}
+
+/** Clamp a client-reported stop time so it cannot precede the start or lie in the future. */
+function stopInstant(timer: SharedActiveTimer, at: unknown): Date {
+  const now = new Date();
+  if (typeof at !== "string") return now;
+  const requested = new Date(at);
+  if (Number.isNaN(requested.getTime())) return now;
+  if (timer.running && timer.startedAt) {
+    const startedAt = new Date(timer.startedAt);
+    if (requested < startedAt) return startedAt;
+  }
+  return requested > now ? now : requested;
+}
+
+async function appendDailyLogEntry(
+  userId: string,
+  date: string,
+  entry: DailyLogEntry,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: existing, error: readError } = await db
+    .from("daily_activity_logs")
+    .select("entries")
+    .eq("user_id", userId)
+    .eq("log_date", date)
+    .maybeSingle();
+  if (readError) return { ok: false, error: "Could not load daily log" };
+
+  const merged = validateDailyLogEntries([
+    ...((existing?.entries ?? []) as unknown[]),
+    entry,
+  ]);
+  if (!merged.ok) return { ok: false, error: merged.error };
+
+  const { error } = await db
+    .from("daily_activity_logs")
+    .upsert(
+      { user_id: userId, log_date: date, entries: merged.entries },
+      { onConflict: "user_id,log_date" },
+    );
+  if (error) return { ok: false, error: "Could not save daily log" };
+
+  // Rewards must never undo a saved entry.
+  try {
+    await awardDailyLogRewards(userId, date, merged.entries);
+  } catch (rewardError) {
+    console.error("Daily log rewards failed", rewardError);
+  }
+  return { ok: true };
 }

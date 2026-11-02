@@ -32,14 +32,15 @@ const MAX_RANGE_DAYS = 93;
 const DEFAULT_WORKDAY_START = 8 * 60;
 const DEFAULT_WORKDAY_END = 17 * 60;
 
-function outsideWorkMinutes(entry: DailyLogEntry) {
+function outsideWorkMinutes(
+  entry: DailyLogEntry,
+  workdayStart = DEFAULT_WORKDAY_START,
+  workdayEnd = DEFAULT_WORKDAY_END,
+) {
   if (!entry.startTime || !entry.endTime) return 0;
   const start = clockToMinutes(entry.startTime);
   const end = clockToMinutes(entry.endTime);
-  return (
-    Math.max(0, DEFAULT_WORKDAY_START - start) +
-    Math.max(0, end - DEFAULT_WORKDAY_END)
-  );
+  return Math.max(0, workdayStart - start) + Math.max(0, end - workdayEnd);
 }
 
 function daysBetween(from: string, to: string) {
@@ -349,18 +350,28 @@ export async function POST(req: Request) {
   const mood = validateDailyLogMood(body?.mood);
   if (!mood.ok)
     return NextResponse.json({ error: mood.error }, { status: 400 });
+  const { data: schedule } = await db
+    .from("staff_work_schedules")
+    .select("timezone, workday_start, workday_end")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+  const workdayStart = clockToMinutes(
+    schedule?.workday_start?.slice(0, 5) ?? "08:00",
+  );
+  const workdayEnd = clockToMinutes(
+    schedule?.workday_end?.slice(0, 5) ?? "17:00",
+  );
   const outsideEntries = validated.entries
     .map((entry, index) => ({
       entry,
       index,
-      minutes: outsideWorkMinutes(entry),
+      minutes: outsideWorkMinutes(entry, workdayStart, workdayEnd),
     }))
     .filter((item) => item.entry.claimOutsideHours);
   if (outsideEntries.some(({ minutes }) => minutes === 0)) {
     return NextResponse.json(
       {
-        error:
-          "Only time outside 08:00–17:00 Nairobi time can be sent for outside-hours review.",
+        error: `Only time outside ${schedule?.workday_start?.slice(0, 5) ?? "08:00"}–${schedule?.workday_end?.slice(0, 5) ?? "17:00"} ${schedule?.timezone ?? "Africa/Nairobi"} can be sent for outside-hours review.`,
       },
       { status: 400 },
     );
@@ -368,8 +379,7 @@ export async function POST(req: Request) {
   if (outsideEntries.some(({ entry }) => !entry.outsideHoursReason)) {
     return NextResponse.json(
       {
-        error:
-          "Add a short reason for each time-range entry outside 08:00–17:00 Nairobi time.",
+        error: "Add a short reason for each requested outside-hours entry.",
       },
       { status: 400 },
     );

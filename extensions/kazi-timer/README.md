@@ -13,8 +13,10 @@ content, browsing history, passwords or Kazi cookies.
 
 The popup starts, pauses, resumes and stops a task. Use **Connect Kazi** to
 approve a 12-hour, extension-only connection in an authenticated Kazi window.
-Stopped tasks are queued locally and then appended to the current day’s Kazi
-daily log. Disconnect revokes the current extension token.
+Timers live on Kazi’s server, so pause, resume and stop made in Kazi or in another
+browser window appear in the popup. A stop is sent once per timer and writes a
+single entry to the day’s daily log. If Kazi cannot be reached, the stop waits in
+the local queue and syncs when the connection returns. Disconnect revokes the current extension token.
 
 ## Enterprise distribution
 

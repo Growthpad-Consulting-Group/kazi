@@ -6,8 +6,9 @@ const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
 const TIMER_EVENT = "kazi:daily-log:timer-change";
 
 type StoredTimer = {
-  startedAt: number;
-  accumulatedSeconds: number;
+  startedAt: number | null;
+  accumulatedMs: number;
+  running: boolean;
   row?: { task?: string };
 };
 
@@ -16,15 +17,11 @@ function readActiveTimer(): StoredTimer | null {
     const value = JSON.parse(
       window.localStorage.getItem(TIMER_STORAGE_KEY) ?? "null",
     ) as Partial<StoredTimer> | null;
-    if (
-      !value ||
-      typeof value.startedAt !== "number" ||
-      typeof value.accumulatedSeconds !== "number"
-    )
-      return null;
+    if (!value || typeof value.accumulatedMs !== "number") return null;
     return {
-      startedAt: value.startedAt,
-      accumulatedSeconds: value.accumulatedSeconds,
+      startedAt: typeof value.startedAt === "number" ? value.startedAt : null,
+      accumulatedMs: value.accumulatedMs,
+      running: value.running === true,
       row: value.row,
     };
   } catch {
@@ -76,7 +73,9 @@ export default function ActiveTimerTabIndicator() {
     }
 
     if (!originalTitle.current) originalTitle.current = document.title;
-    const elapsed = timer.accumulatedSeconds * 1000 + now - timer.startedAt;
+    const elapsed =
+      timer.accumulatedMs +
+      (timer.running && timer.startedAt ? now - timer.startedAt : 0);
     const task = timer.row?.task?.trim().replace(/\s+/g, " ");
     const taskLabel = task ? ` · ${task.slice(0, 48)}` : "";
     document.title = `${formatElapsed(elapsed)}${taskLabel} · ${originalTitle.current}`;

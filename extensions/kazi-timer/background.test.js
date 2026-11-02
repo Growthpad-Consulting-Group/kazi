@@ -161,3 +161,210 @@ describe("Kazi Timer background worker", () => {
     expect(local.timer.task).toBe("First task");
   });
 });
+
+const SHARED_URL = "https://kazi.growthpad.africa/api/pulse/daily-log/timer";
+const TIMER_ID = "11111111-1111-4111-8111-111111111111";
+
+function jsonResponse(status, body) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  };
+}
+
+// A tiny stand-in for the Kazi timer API: one timer per user, stop idempotent.
+function fakeKazi() {
+  const state = { timer: null, stops: new Map(), calls: [] };
+  globalThis.fetch = vi.fn(async (url, init = {}) => {
+    const body = init.body ? JSON.parse(init.body) : null;
+    state.calls.push({ url, method: init.method || "GET", body });
+    if (url !== SHARED_URL) return { ok: true, status: 200 };
+    if (init.method === "GET") return jsonResponse(200, { timer: state.timer });
+    if (init.method === "PUT") {
+      if (state.stops.has(body.timer.id))
+        return jsonResponse(409, { error: "This timer was already stopped" });
+      if (state.timer && state.timer.id !== body.timer.id)
+        return jsonResponse(409, {
+          error: "A timer is already active",
+          timer: state.timer,
+        });
+      state.timer = body.timer;
+      return jsonResponse(200, { timer: body.timer });
+    }
+    if (body.action === "stop") {
+      if (state.stops.has(body.timerId))
+        return jsonResponse(200, {
+          entry: state.stops.get(body.timerId),
+          timer: null,
+          duplicate: true,
+        });
+      if (!state.timer || state.timer.id !== body.timerId)
+        return jsonResponse(404, { error: "No active timer" });
+      const entry = { task: state.timer.task, minutes: 1 };
+      state.stops.set(body.timerId, entry);
+      state.timer = null;
+      return jsonResponse(200, { entry, timer: null });
+    }
+    if (body.action === "pause" || body.action === "resume") {
+      if (!state.timer) return jsonResponse(404, { error: "No active timer" });
+      state.timer = { ...state.timer, running: body.action === "resume" };
+      return jsonResponse(200, { timer: state.timer });
+    }
+    return jsonResponse(400, { error: "bad" });
+  });
+  return state;
+}
+
+describe("Kazi Timer shared timer flow", () => {
+  it("starts a timer on Kazi and mirrors it locally", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+
+    const started = await message({
+      type: "start",
+      task: "Client call",
+      category: "Meetings",
+    });
+
+    expect(started.timer.task).toBe("Client call");
+    expect(kazi.timer.id).toBe(started.timer.id);
+    expect(local.timer.id).toBe(started.timer.id);
+  });
+
+  it("sends stop to the shared endpoint and clears the local timer", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+    const started = await message({
+      type: "start",
+      task: "Review",
+      category: "Projects",
+    });
+
+    const stopped = await message({ type: "stop" });
+
+    expect(stopped.entry.id).toBe(started.timer.id);
+    expect(stopped.queued).toBe(0);
+    expect(kazi.stops.has(started.timer.id)).toBe(true);
+    expect(kazi.timer).toBeNull();
+    expect(local.timer).toBeNull();
+    expect(local.completedEntries).toEqual([]);
+  });
+
+  it("keeps the stop queued offline and syncs it once Kazi is reachable", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+    const started = await message({
+      type: "start",
+      task: "Offline work",
+      category: "Admin",
+    });
+
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error("offline"));
+    const offline = await message({ type: "stop" });
+    expect(offline.queued).toBe(1);
+    expect(local.timer).toBeNull();
+
+    fakeKazi();
+    await listeners.alarm({ name: "kazi-timer-tick" });
+
+    expect(local.completedEntries).toEqual([]);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      SHARED_URL,
+      expect.objectContaining({ method: "PUT" }),
+    );
+    expect(started.timer.id).toBeTruthy();
+  });
+
+  it("does not log a timer twice when a stop is retried", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+    const started = await message({
+      type: "start",
+      task: "Retry",
+      category: "Other",
+    });
+    await message({ type: "stop" });
+
+    local.completedEntries = [
+      {
+        type: "stop",
+        id: started.timer.id,
+        timer: started.timer,
+        at: new Date().toISOString(),
+      },
+    ];
+    await listeners.alarm({ name: "kazi-timer-tick" });
+
+    expect(kazi.stops.size).toBe(1);
+    expect(local.completedEntries).toEqual([]);
+  });
+
+  it("reflects a pause made in Kazi when the worker refreshes", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+    const started = await message({
+      type: "start",
+      task: "Shared",
+      category: "Projects",
+    });
+    kazi.timer = {
+      ...kazi.timer,
+      running: false,
+      startedAt: null,
+      accumulatedMs: 120_000,
+    };
+
+    const state = await message({ type: "get-state" });
+
+    expect(state.timer.id).toBe(started.timer.id);
+    expect(state.timer.running).toBe(false);
+    expect(state.elapsedSeconds).toBe(120);
+  });
+
+  it("hides a timer whose offline stop has not synced yet", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+    const started = await message({
+      type: "start",
+      task: "Stale",
+      category: "Projects",
+    });
+    local.completedEntries = [
+      {
+        type: "stop",
+        id: started.timer.id,
+        timer: started.timer,
+        at: new Date().toISOString(),
+      },
+    ];
+    kazi.stops.clear();
+
+    const state = await message({ type: "get-state" });
+
+    expect(state.timer).toBeNull();
+  });
+
+  it("converts legacy local timers to the shared shape", async () => {
+    local.timer = {
+      task: "Legacy",
+      elapsedMs: 60_000,
+      startedAt: 940_000,
+      running: true,
+      source: "extension",
+    };
+    await loadWorker();
+
+    const state = await message({ type: "get-state" });
+
+    expect(state.timer.accumulatedMs).toBe(60_000);
+    expect(state.timer.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(local.timer.accumulatedMs).toBe(60_000);
+  });
+});
