@@ -77,6 +77,47 @@ async function syncQueue() {
   return { synced, queued: remaining.length };
 }
 
+async function sharedTimerRequest(method, token, body) {
+  if (!token) return null;
+  const response = await fetch(`${KAZI_URL}/api/pulse/daily-log/timer`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  }).catch(() => null);
+  return response?.ok ? response.json?.() : null;
+}
+
+async function refreshSharedTimer() {
+  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  const shared = await sharedTimerRequest("GET", token);
+  if (shared?.timer)
+    await chrome.storage.local.set({ [TIMER_KEY]: shared.timer });
+  return shared?.timer ?? null;
+}
+
+async function saveSharedTimer(timer) {
+  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  if (!token) return;
+  await sharedTimerRequest("PUT", token, {
+    date: localDate(new Date().toISOString()),
+    timer,
+  });
+}
+
+async function transitionSharedTimer(action, timer) {
+  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  if (!token) return;
+  await sharedTimerRequest("POST", token, { action, timer });
+}
+
+async function clearSharedTimer() {
+  const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
+  if (token) await sharedTimerRequest("DELETE", token);
+}
+
 async function connectKazi() {
   const redirectUri = chrome.identity.getRedirectURL("kazi");
   const state = crypto.randomUUID();
@@ -132,11 +173,13 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  await refreshSharedTimer();
   await refreshBadge();
   await syncQueue();
 });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === TICK_ALARM) {
+    await refreshSharedTimer();
     await refreshBadge();
     await syncQueue();
   }
@@ -157,12 +200,15 @@ async function handleMessage(message) {
   }
 
   if (message.type === "get-state") {
+    await refreshSharedTimer();
+    const { [TIMER_KEY]: refreshedTimer } =
+      await chrome.storage.local.get(TIMER_KEY);
     const { [TOKEN_KEY]: token } = await chrome.storage.session.get(TOKEN_KEY);
     const { [QUEUE_KEY]: queued = [] } =
       await chrome.storage.local.get(QUEUE_KEY);
     return {
-      timer,
-      elapsedSeconds: elapsedSeconds(timer),
+      timer: refreshedTimer,
+      elapsedSeconds: elapsedSeconds(refreshedTimer),
       connected: Boolean(token),
       queued: queued.length,
     };
@@ -190,6 +236,7 @@ async function handleMessage(message) {
       source: "extension",
     };
     await chrome.storage.local.set({ [TIMER_KEY]: next });
+    await saveSharedTimer(next);
     return { timer: next };
   }
 
@@ -202,12 +249,16 @@ async function handleMessage(message) {
       running: false,
     };
     await chrome.storage.local.set({ [TIMER_KEY]: next });
+    await saveSharedTimer(next);
+    await transitionSharedTimer("pause", next);
     return { timer: next };
   }
 
   if (message.type === "resume") {
     const next = { ...timer, startedAt: Date.now(), running: true };
     await chrome.storage.local.set({ [TIMER_KEY]: next });
+    await saveSharedTimer(next);
+    await transitionSharedTimer("resume", next);
     return { timer: next };
   }
 
@@ -226,6 +277,7 @@ async function handleMessage(message) {
       [TIMER_KEY]: null,
       [QUEUE_KEY]: [...queued, entry],
     });
+    await clearSharedTimer();
     return { entry, ...(await syncQueue()) };
   }
   return { error: "Unknown Kazi Timer action" };

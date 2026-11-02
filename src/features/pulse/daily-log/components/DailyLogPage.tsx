@@ -352,7 +352,7 @@ export function DailyLogPage({
     );
   };
 
-  const startTimer = (index: number) => {
+  const startTimer = async (index: number) => {
     const row = rows[index];
     if (!row.task.trim()) {
       toast.error("Name the activity before starting a timer.");
@@ -381,9 +381,16 @@ export function DailyLogPage({
     window.dispatchEvent(new Event(activeTimerTabEvent));
     setActiveTimer(timer);
     setTimerNow(startedAt);
+    const response = await fetch("/api/pulse/daily-log/timer", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date, timer }),
+    });
+    if (!response.ok)
+      toast.error("Timer is running locally but could not sync to Kazi yet.");
   };
 
-  const stopTimer = () => {
+  const stopTimer = async () => {
     if (!activeTimer) return;
     const stoppedAt = Date.now();
     const elapsedSeconds = Math.max(
@@ -415,6 +422,9 @@ export function DailyLogPage({
     window.dispatchEvent(new Event(activeTimerTabEvent));
     setActiveTimer(null);
     setIsDirty(true);
+    await fetch("/api/pulse/daily-log/timer", { method: "DELETE" }).catch(
+      () => {},
+    );
     toast.success(`Timer stopped at ${formatElapsed(totalSeconds * 1000)}.`);
   };
 

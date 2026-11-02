@@ -105,10 +105,9 @@ function render() {
     .join(" · ");
   $("#elapsed").textContent = format(currentSeconds());
   $("#pause").textContent = activeTimer.running ? "Pause" : "Resume";
-  const managedInKazi = activeTimer.source === "kazi";
-  $("#pause").hidden = managedInKazi;
-  $("#stop").hidden = managedInKazi;
-  $("#manage-kazi").hidden = !managedInKazi;
+  $("#pause").hidden = false;
+  $("#stop").hidden = false;
+  $("#manage-kazi").hidden = true;
 }
 
 function send(type, values = {}) {

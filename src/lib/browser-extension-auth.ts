@@ -73,7 +73,7 @@ export function extensionCors(request: Request, response: NextResponse) {
     );
     response.headers.set(
       "Access-Control-Allow-Methods",
-      "GET, POST, DELETE, OPTIONS",
+      "GET, POST, PUT, DELETE, OPTIONS",
     );
   }
   return response;
