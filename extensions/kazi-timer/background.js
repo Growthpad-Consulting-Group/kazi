@@ -57,7 +57,6 @@ async function writeTimer(timer) {
 
 function badgeText(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60);
-  if (!minutes) return "";
   if (minutes >= 60) return `${Math.floor(minutes / 60)}h`;
   return `${minutes}m`;
 }
