@@ -355,7 +355,16 @@ export async function POST(req: Request) {
       index,
       minutes: outsideWorkMinutes(entry),
     }))
-    .filter((item) => item.minutes > 0);
+    .filter((item) => item.entry.claimOutsideHours);
+  if (outsideEntries.some(({ minutes }) => minutes === 0)) {
+    return NextResponse.json(
+      {
+        error:
+          "Only time outside 08:00–17:00 Nairobi time can be sent for outside-hours review.",
+      },
+      { status: 400 },
+    );
+  }
   if (outsideEntries.some(({ entry }) => !entry.outsideHoursReason)) {
     return NextResponse.json(
       {

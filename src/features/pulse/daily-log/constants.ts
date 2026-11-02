@@ -15,6 +15,7 @@ export type DailyLogEntry = {
   category: DailyLogCategory;
   startTime?: string | null;
   endTime?: string | null;
+  claimOutsideHours?: boolean;
   outsideHoursReason?: string | null;
 };
 
@@ -83,6 +84,7 @@ export function validateDailyLogEntries(
       typeof raw?.outsideHoursReason === "string"
         ? raw.outsideHoursReason.trim().slice(0, MAX_BLOCKERS_LENGTH) || null
         : null;
+    const claimOutsideHours = raw?.claimOutsideHours === true;
     entries.push({
       task,
       client,
@@ -90,6 +92,7 @@ export function validateDailyLogEntries(
       category,
       startTime,
       endTime,
+      claimOutsideHours,
       outsideHoursReason,
     });
   }

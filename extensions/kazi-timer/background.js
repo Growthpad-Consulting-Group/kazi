@@ -28,6 +28,7 @@ async function refreshBadge() {
     text: timer?.running ? badgeText(seconds) : "",
   });
   await chrome.action.setBadgeBackgroundColor({ color: "#f05d23" });
+  await chrome.action.setBadgeTextColor({ color: "#ffffff" });
   await chrome.action.setTitle({
     title: timer?.running
       ? `${timer.task} · ${Math.floor(seconds / 60)}m`

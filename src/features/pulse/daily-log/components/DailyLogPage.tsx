@@ -36,6 +36,7 @@ type Row = {
   showRange: boolean;
   startTime: string;
   endTime: string;
+  claimOutsideHours: boolean;
   outsideHoursReason: string;
   minutes: string;
   category: DailyLogCategory;
@@ -64,6 +65,7 @@ const emptyRow = (): Row => ({
   showRange: false,
   startTime: "",
   endTime: "",
+  claimOutsideHours: false,
   outsideHoursReason: "",
   minutes: "",
   category: "Projects",
@@ -243,6 +245,7 @@ export function DailyLogPage({
                 showRange: !!(entry.startTime && entry.endTime),
                 startTime: entry.startTime ?? "",
                 endTime: entry.endTime ?? "",
+                claimOutsideHours: entry.claimOutsideHours ?? false,
                 outsideHoursReason: entry.outsideHoursReason ?? "",
                 minutes: formatMinutes(entry.minutes),
                 category: entry.category,
@@ -574,6 +577,7 @@ export function DailyLogPage({
         category: row.category,
         startTime: hasRange ? row.startTime : null,
         endTime: hasRange ? row.endTime : null,
+        claimOutsideHours: Boolean(hasRange && row.claimOutsideHours),
         outsideHoursReason: row.outsideHoursReason.trim() || null,
       });
     }
@@ -1038,18 +1042,37 @@ export function DailyLogPage({
                         >
                           Remove time range
                         </button>
-                        <input
-                          value={row.outsideHoursReason}
-                          onChange={(e) =>
-                            updateRow(index, {
-                              outsideHoursReason: e.target.value,
-                            })
-                          }
-                          maxLength={1000}
-                          placeholder="If this is outside 08:00–17:00, briefly explain why"
-                          className={`${timeClass} min-w-64 flex-1`}
-                          aria-label="Outside-hours reason"
-                        />
+                        <label className="ml-2 flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-[var(--text-lo)]">
+                          <input
+                            type="checkbox"
+                            checked={row.claimOutsideHours}
+                            disabled={activeTimer?.rowId === row.id}
+                            onChange={(e) =>
+                              updateRow(index, {
+                                claimOutsideHours: e.target.checked,
+                                ...(e.target.checked
+                                  ? {}
+                                  : { outsideHoursReason: "" }),
+                              })
+                            }
+                            className="h-3.5 w-3.5 rounded border-[var(--border)] text-brand-500 focus:ring-brand-500"
+                          />
+                          Request outside-hours review
+                        </label>
+                        {row.claimOutsideHours ? (
+                          <input
+                            value={row.outsideHoursReason}
+                            onChange={(e) =>
+                              updateRow(index, {
+                                outsideHoursReason: e.target.value,
+                              })
+                            }
+                            maxLength={1000}
+                            placeholder="Briefly explain why this time needs review"
+                            className={`${timeClass} min-w-56 flex-1`}
+                            aria-label="Outside-hours review reason"
+                          />
+                        ) : null}
                       </div>
                     ) : (
                       <button
