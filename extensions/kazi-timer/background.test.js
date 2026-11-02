@@ -415,7 +415,7 @@ describe("Kazi Timer floating timer opt-in", () => {
     });
 
     expect(state.sites).toEqual([ASANA]);
-    expect(injected).toEqual([7, 7]);
+    expect(injected).toEqual([7]);
   });
 
   it("injects on navigation only for chosen sites while enabled", async () => {
@@ -440,7 +440,7 @@ describe("Kazi Timer floating timer opt-in", () => {
       { url: `${ASANA}/0/123` },
     );
 
-    expect(injected).toEqual([7, 7]);
+    expect(injected).toEqual([7]);
   });
 
   it("stops injecting when the site is removed or the opt-in is turned off", async () => {

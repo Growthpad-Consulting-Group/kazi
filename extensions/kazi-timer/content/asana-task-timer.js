@@ -30,19 +30,24 @@
     const button = document.createElement("button");
     button.id = buttonId;
     button.type = "button";
-    button.textContent = "Start Kazi timer";
+    button.textContent = "Start timer";
     button.style.cssText =
       "margin-left:8px;border:0;border-radius:8px;padding:6px 9px;background:#f05d23;color:#fff;font:600 12px system-ui;cursor:pointer;";
     button.addEventListener("click", async () => {
       const title = taskTitle();
-      const task = window.prompt("Start Kazi timer for", title)?.trim();
-      if (!task) return;
+      if (!title) return;
+      button.disabled = true;
+      button.textContent = "Starting…";
       const result = await chrome.runtime.sendMessage({
         type: "start",
-        task,
+        task: title,
         category: "Projects",
       });
-      if (result?.error) window.alert(result.error);
+      if (result?.error) {
+        button.disabled = false;
+        button.textContent = "Start timer";
+        window.alert(result.error);
+      } else button.textContent = "Timer running";
     });
     target.parentElement.append(button);
   }

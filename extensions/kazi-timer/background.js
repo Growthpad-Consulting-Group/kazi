@@ -365,8 +365,11 @@ async function injectIntoSite(origin) {
     tabs
       .filter((tab) => tab.id && tab.url && originOf(tab.url) === origin)
       .map(async (tab) => {
-        await injectMiniTimer(tab.id);
-        await injectAsanaTaskTimer(tab.id, tab.url);
+        if (originOf(tab.url) === "https://app.asana.com") {
+          await injectAsanaTaskTimer(tab.id, tab.url);
+        } else {
+          await injectMiniTimer(tab.id);
+        }
       }),
   );
 }
@@ -383,8 +386,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
   const { enabled, sites } = await miniTimerState();
   if (enabled && sites.includes(originOf(tab.url))) {
-    await injectMiniTimer(tabId);
-    await injectAsanaTaskTimer(tabId, tab.url);
+    if (originOf(tab.url) === "https://app.asana.com") {
+      await injectAsanaTaskTimer(tabId, tab.url);
+    } else {
+      await injectMiniTimer(tabId);
+    }
   }
 });
 
