@@ -170,6 +170,7 @@ async function renderToday() {
         task: entry.task,
         client: entry.client || "",
         category: entry.category,
+        baseMinutes: entry.minutes,
       });
       if (result.error) {
         $("#notice").textContent = result.error;

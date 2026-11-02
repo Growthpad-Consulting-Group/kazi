@@ -238,6 +238,23 @@ describe("Kazi Timer shared timer flow", () => {
     expect(local.timer.id).toBe(started.timer.id);
   });
 
+  it("continues a logged row from its total when resumed", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+
+    const resumed = await message({
+      type: "start",
+      task: "Expose LinkedIn",
+      category: "Projects",
+      baseMinutes: 35,
+    });
+
+    expect(resumed.timer.accumulatedMs).toBe(35 * 60_000);
+    expect(resumed.timer.baseMs).toBe(35 * 60_000);
+    expect(kazi.timer.baseMs).toBe(35 * 60_000);
+  });
+
   it("sends stop to the shared endpoint and clears the local timer", async () => {
     session.kaziAccessToken = "token";
     const kazi = fakeKazi();

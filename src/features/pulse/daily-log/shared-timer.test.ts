@@ -63,6 +63,20 @@ describe("shared timer", () => {
     ).toBe(1);
   });
 
+  it("writes only the time added since a resumed row's total", () => {
+    const resumed = {
+      ...timer,
+      startedAt: now.toISOString(),
+      accumulatedMs: 35 * 60_000,
+      baseMs: 35 * 60_000,
+    };
+    const tenMinutesLater = new Date(now.getTime() + 10 * 60_000);
+    expect(sharedTimerEntry(resumed, tenMinutesLater).minutes).toBe(10);
+    expect(
+      parseSharedTimer({ ...resumed, baseMs: 60 * 60_000 }, now).ok,
+    ).toBe(false);
+  });
+
   it("rejects payloads the server must not store", () => {
     expect(parseSharedTimer({ ...timer, id: "not-a-uuid" }, now).ok).toBe(
       false,

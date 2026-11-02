@@ -22,6 +22,12 @@ export type SharedActiveTimer = {
   startedAt: string | null;
   /** Milliseconds already tracked in earlier running intervals. */
   accumulatedMs: number;
+  /**
+   * Time already logged on the row this timer continues (from Resume). It is
+   * part of accumulatedMs for display, but stop only writes the time added
+   * since, so the row total is not counted twice.
+   */
+  baseMs?: number;
   running: boolean;
   source: "kazi" | "extension";
   updatedAt: string;
@@ -72,10 +78,9 @@ export function sharedTimerEntry(
   timer: SharedActiveTimer,
   now = new Date(),
 ): DailyLogEntry {
-  const minutes = Math.max(
-    1,
-    Math.floor(elapsedSharedTimerMs(timer, now.getTime()) / 60_000),
-  );
+  const addedMs =
+    elapsedSharedTimerMs(timer, now.getTime()) - (timer.baseMs ?? 0);
+  const minutes = Math.max(1, Math.floor(addedMs / 60_000));
   return {
     task: timer.task,
     client: timer.client || null,
@@ -122,6 +127,14 @@ export function parseSharedTimer(
     accumulatedMs > MAX_TIMER_MS
   )
     return { ok: false, error: "Timer duration is invalid" };
+  const baseMs = value.baseMs ?? 0;
+  if (
+    typeof baseMs !== "number" ||
+    !Number.isFinite(baseMs) ||
+    baseMs < 0 ||
+    baseMs > accumulatedMs
+  )
+    return { ok: false, error: "Timer base is invalid" };
   const running = value.running === true;
   const startedAt =
     typeof value.startedAt === "string" &&
@@ -142,6 +155,7 @@ export function parseSharedTimer(
       category,
       startedAt: running ? startedAt : null,
       accumulatedMs: Math.round(accumulatedMs),
+      baseMs: Math.round(baseMs),
       running,
       source: value.source,
       updatedAt: now.toISOString(),

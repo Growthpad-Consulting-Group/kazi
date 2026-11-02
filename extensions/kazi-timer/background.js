@@ -541,6 +541,9 @@ async function handleMessage(message) {
   if (message.type === "start") {
     if (timer) return { error: "A timer is already active" };
     const now = new Date().toISOString();
+    // Resume continues a row already in today's log, so its time is the start.
+    const baseMinutes = Math.max(0, Math.round(Number(message.baseMinutes) || 0));
+    const baseMs = baseMinutes * 60_000;
     const next = {
       id: crypto.randomUUID(),
       logDate: localDate(now),
@@ -548,7 +551,8 @@ async function handleMessage(message) {
       client: message.client || null,
       category: message.category,
       startedAt: now,
-      accumulatedMs: 0,
+      accumulatedMs: baseMs,
+      baseMs,
       running: true,
       source: "extension",
       updatedAt: now,
