@@ -20,7 +20,7 @@
   function taskPane() {
     const title = document.querySelector(
       [
-        '.TaskPane-titleRow textarea',
+        ".TaskPane-titleRow textarea",
         '.TaskPaneBody-main [role="heading"] textarea',
         '.TaskPaneBody-main [aria-label="Task Name"]',
         '.TaskPaneBody-main [data-testid="task-name"]',
@@ -35,7 +35,7 @@
     const field = pane?.querySelector(
       [
         '[role="heading"] textarea',
-        '.TaskPane-titleRow textarea',
+        ".TaskPane-titleRow textarea",
         '[aria-label="Task Name"]',
         '[data-testid="task-name"]',
         '[data-testid*="task-title"]',
@@ -59,8 +59,12 @@
   }
 
   function completionButton(toolbar) {
-    return [...(toolbar?.querySelectorAll("button") || [])].find(
-      (button) => isVisible(button) && button.textContent?.trim() === "Mark complete",
+    // Asana renders its toolbar actions as div[role="button"], not <button>.
+    return [
+      ...(toolbar?.querySelectorAll('button, [role="button"]') || []),
+    ].find(
+      (button) =>
+        isVisible(button) && button.textContent?.trim() === "Mark complete",
     );
   }
 
@@ -75,7 +79,9 @@
     button.addEventListener("click", async () => {
       const title = taskTitle(pane);
       if (!title) {
-        window.alert("Open a task with a title before starting the Kazi timer.");
+        window.alert(
+          "Open a task with a title before starting the Kazi timer.",
+        );
         return;
       }
       button.disabled = true;
