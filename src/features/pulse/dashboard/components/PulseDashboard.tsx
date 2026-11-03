@@ -10,6 +10,23 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import EmployeeNextStepQueue from "./EmployeeNextStepQueue";
 import { buildEmployeeNextSteps } from "../next-steps";
+import { loadEmployeeQueueSignals } from "../employee-queue-signals";
+import { loadMyWeek } from "../my-week-data";
+import { todayInWorkTimezone } from "../my-week";
+import {
+  loadManagerAttention,
+  type ReportCheckin,
+} from "../manager-queue-data";
+import type { AttentionItem } from "../manager-queue";
+import { loadTeamTrend } from "../team-trend-data";
+import type { TeamWeekTrend } from "../team-trend";
+import TeamTrendStrip from "./TeamTrendStrip";
+import AttentionQueue from "./AttentionQueue";
+import MyWeekMomentum from "./MyWeekMomentum";
+import CultureSpotlightCard from "./CultureSpotlightCard";
+import { loadCultureSpotlight } from "../culture-spotlight-data";
+import { loadFollowThrough } from "../follow-through";
+import FollowThroughCard from "./FollowThroughCard";
 
 type GoalSummary = {
   id: string;
@@ -43,18 +60,6 @@ function getCurrentWeekStart(): string {
   const day = d.getDay();
   d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
   return d.toISOString().slice(0, 10);
-}
-
-// Daily logs are recorded against the company's working timezone.
-function todayInWorkTimezone(now: Date): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Nairobi",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function weekLabel(weekStart: string) {
@@ -168,6 +173,7 @@ export default async function PulseDashboard() {
   const nextSteps = isManager
     ? []
     : buildEmployeeNextSteps({
+        ...(await loadEmployeeQueueSignals(userId, session.user.role, now)),
         todayLogEntries,
         checkinStatus: checkin?.status ?? null,
         nextOneOnOneAt: upcomingOneOnOne?.scheduled_at
@@ -178,6 +184,18 @@ export default async function PulseDashboard() {
         ).length,
         now,
       });
+  const [myWeek, cultureSpotlight, followThrough] = isManager
+    ? [null, null, null]
+    : await Promise.all([
+        loadMyWeek({
+          userId,
+          weekStart,
+          today: todayInWorkTimezone(now),
+          goals: openGoals,
+        }),
+        loadCultureSpotlight(userId, now),
+        loadFollowThrough(userId),
+      ]);
 
   const senders = feedback.length
     ? await supabaseAdmin
@@ -198,32 +216,57 @@ export default async function PulseDashboard() {
     avgMood: number | null;
     blockers: number;
   } | null = null;
-  if (isManager && reports.length) {
-    const { data } = await supabaseAdmin
-      .from("checkins")
-      .select("status, mood, blockers")
-      .in(
-        "user_id",
-        reports.map((report) => report.id),
-      )
-      .eq("week_start", weekStart);
-    const teamCheckins = (data ?? []) as CheckinSummary[];
-    const moods = teamCheckins.flatMap((entry) =>
-      entry.mood === null ? [] : [entry.mood],
+  let attention: AttentionItem[] = [];
+  let teamTrend: TeamWeekTrend[] = [];
+  if (isManager) {
+    let teamRows: ReportCheckin[] = [];
+    if (reports.length) {
+      const { data } = await supabaseAdmin
+        .from("checkins")
+        .select("user_id, status, mood, blockers")
+        .in(
+          "user_id",
+          reports.map((report) => report.id),
+        )
+        .eq("week_start", weekStart);
+      const names = new Map(reports.map((report) => [report.id, report.name]));
+      teamRows = ((data ?? []) as (CheckinSummary & { user_id: string })[]).map(
+        (row) => ({
+          user_id: row.user_id,
+          name: names.get(row.user_id) ?? "A team member",
+          status: row.status,
+          mood: row.mood,
+          blockers: row.blockers,
+        }),
+      );
+      const moods = teamRows.flatMap((entry) =>
+        entry.mood === null ? [] : [entry.mood],
+      );
+      team = {
+        total: reports.length,
+        submitted: teamRows.filter(
+          (entry) =>
+            entry.status === "submitted" || entry.status === "reviewed",
+        ).length,
+        avgMood: moods.length
+          ? Math.round(
+              (moods.reduce((sum, mood) => sum + mood, 0) / moods.length) * 10,
+            ) / 10
+          : null,
+        blockers: teamRows.filter((entry) => Boolean(entry.blockers?.trim()))
+          .length,
+      };
+    }
+    attention = await loadManagerAttention({
+      userId,
+      role: session.user.role,
+      reportIds: reports.map((report) => report.id),
+      teamCheckins: teamRows,
+    });
+    teamTrend = await loadTeamTrend(
+      reports.map((report) => report.id),
+      weekStart,
     );
-    team = {
-      total: reports.length,
-      submitted: teamCheckins.filter(
-        (entry) => entry.status === "submitted" || entry.status === "reviewed",
-      ).length,
-      avgMood: moods.length
-        ? Math.round(
-            (moods.reduce((sum, mood) => sum + mood, 0) / moods.length) * 10,
-          ) / 10
-        : null,
-      blockers: teamCheckins.filter((entry) => Boolean(entry.blockers?.trim()))
-        .length,
-    };
   }
 
   const checkinStatus = statusMeta(checkin?.status);
@@ -321,6 +364,8 @@ export default async function PulseDashboard() {
           </div>
         </section>
 
+        {isManager && <AttentionQueue items={attention} />}
+
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {isManager && team ? (
             <StatCard
@@ -394,6 +439,16 @@ export default async function PulseDashboard() {
         </section>
 
         {!isManager && <EmployeeNextStepQueue steps={nextSteps} />}
+        {!isManager && myWeek && <MyWeekMomentum summary={myWeek} />}
+        {!isManager && cultureSpotlight && (
+          <CultureSpotlightCard spotlight={cultureSpotlight} />
+        )}
+        {!isManager && followThrough && followThrough.total > 0 && (
+          <FollowThroughCard
+            items={followThrough.items}
+            total={followThrough.total}
+          />
+        )}
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.85fr)]">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle
@@ -593,14 +648,14 @@ export default async function PulseDashboard() {
                 <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
               </Link>
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <MiniMetric
                 label="Submitted"
                 value={`${team.submitted}/${team.total}`}
                 tone="orange"
               />
               <MiniMetric
-                label="Awaiting"
+                label="Not yet submitted"
                 value={team.total - team.submitted}
                 tone="amber"
               />
@@ -613,13 +668,11 @@ export default async function PulseDashboard() {
                 }
                 tone="blue"
               />
-              <MiniMetric
-                label="Blockers"
-                value={team.blockers}
-                tone={team.blockers ? "red" : "green"}
-              />
             </div>
           </section>
+        )}
+        {isManager && teamTrend.length > 0 && reports.length > 0 && (
+          <TeamTrendStrip trend={teamTrend} />
         )}
         {isManager && <MilestonesWidget />}
         {isManager && <CultureHealthWidget />}
@@ -679,6 +732,11 @@ export default async function PulseDashboard() {
                 href="/pulse/feedback"
                 icon="solar:star-fall-broken"
                 label="Recognize someone"
+              />
+              <QuickLink
+                href="/pulse/impact"
+                icon="solar:graph-up-broken"
+                label="My impact"
               />
             </div>
           </section>

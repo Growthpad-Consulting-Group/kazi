@@ -3,8 +3,12 @@ import { Icon } from "@iconify/react";
 import type { NextStep } from "../next-steps";
 
 const KIND_ICON: Record<NextStep["kind"], string> = {
+  review_acknowledgement: "solar:document-text-broken",
   daily_log: "solar:notebook-broken",
   weekly_checkin: "solar:clipboard-check-broken",
+  survey: "solar:list-check-broken",
+  side_quest: "solar:flag-broken",
+  hall_of_fame: "solar:cup-star-broken",
   one_on_one_prep: "solar:chat-round-dots-broken",
   action_items: "solar:checklist-minimalistic-broken",
 };

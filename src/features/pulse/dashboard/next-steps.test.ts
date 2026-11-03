@@ -5,6 +5,7 @@ import {
 } from "./next-steps";
 
 const now = new Date("2026-11-03T09:00:00Z");
+const DAY = 86_400_000;
 
 function input(
   overrides: Partial<EmployeeNextStepInput> = {},
@@ -12,12 +13,76 @@ function input(
   return {
     todayLogEntries: 0,
     checkinStatus: null,
+    unacknowledgedReviews: 0,
+    openSurveys: [],
+    outstandingSideQuests: 0,
+    hallOfFame: null,
     nextOneOnOneAt: null,
     openActionItems: 0,
     now,
     ...overrides,
   };
 }
+
+const settled = { todayLogEntries: 1, checkinStatus: "submitted" as const };
+
+describe("employee queue signals", () => {
+  it("puts released review acknowledgements first", () => {
+    const steps = buildEmployeeNextSteps(
+      input({ ...settled, unacknowledgedReviews: 1, todayLogEntries: 0 }),
+    );
+    expect(steps[0].kind).toBe("review_acknowledgement");
+    expect(steps[0].href).toBe("/pulse/reviews");
+    expect(steps[1].kind).toBe("daily_log");
+  });
+
+  it("marks a survey closing within a week as urgent", () => {
+    const closes = new Date(now.getTime() + 2 * DAY);
+    const [step] = buildEmployeeNextSteps(
+      input({
+        ...settled,
+        openSurveys: [{ title: "Pulse survey", closesAt: closes }],
+      }),
+    );
+    expect(step.kind).toBe("survey");
+    expect(step.tone).toBe("urgent");
+    expect(step.urgency).toBe("Closes in 2 days");
+    expect(step.title).toBe("Pulse survey");
+  });
+
+  it("uses the soonest closing survey and counts the rest", () => {
+    const [step] = buildEmployeeNextSteps(
+      input({
+        ...settled,
+        openSurveys: [
+          { title: "Later", closesAt: new Date(now.getTime() + 20 * DAY) },
+          { title: "Sooner", closesAt: new Date(now.getTime() + 3 * DAY) },
+        ],
+      }),
+    );
+    expect(step.title).toBe("Sooner");
+    expect(step.description).toBe("2 surveys waiting for your response.");
+  });
+
+  it("shows outstanding Side Quest evidence and Hall of Fame steps", () => {
+    const steps = buildEmployeeNextSteps(
+      input({
+        ...settled,
+        outstandingSideQuests: 2,
+        hallOfFame: {
+          action: "nominate",
+          cycleTitle: "November",
+          closesAt: null,
+        },
+      }),
+    );
+    expect(steps.map((s) => s.kind)).toEqual(["side_quest", "hall_of_fame"]);
+    expect(steps[0].description).toBe(
+      "2 live Side Quests need evidence from you.",
+    );
+    expect(steps[1].actionLabel).toBe("Nominate");
+  });
+});
 
 describe("buildEmployeeNextSteps", () => {
   it("ranks the daily log first when today is not logged", () => {
