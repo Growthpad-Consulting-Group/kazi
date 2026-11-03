@@ -73,7 +73,7 @@ For Vercel deployments, add `SENTRY_AUTH_TOKEN` to both **Preview** and **Produc
 Migrations live in [`supabase/migrations`](supabase/migrations). Apply the linked database changes with:
 
 ```bash
-pnpm exec dotenv run -f .env.local -- pnpm dlx supabase db push
+pnpm exec dotenv run -f .env.local -- pnpm dlx supabase db push --remote
 ```
 
 Confirm that local and linked migrations match:
