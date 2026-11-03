@@ -16,6 +16,8 @@ type RoutineInput = {
   minutes?: unknown;
   cadence?: unknown;
   weekdays?: unknown;
+  endsOn?: unknown;
+  isActive?: unknown;
 };
 
 const CADENCES = ["daily", "weekdays", "weekly", "custom"] as const;
@@ -37,6 +39,8 @@ function validate(input: RoutineInput) {
         ),
       ].sort()
     : [];
+  const endsOn =
+    typeof input.endsOn === "string" && input.endsOn ? input.endsOn : null;
   if (!title || title.length > 200)
     return { error: "Give this routine a title up to 200 characters." };
   if (!DAILY_LOG_CATEGORIES.includes(category))
@@ -48,6 +52,8 @@ function validate(input: RoutineInput) {
     return { error: "Choose at least one day." };
   if (cadence === "weekly" && weekdays.length !== 1)
     return { error: "Choose one day for a weekly routine." };
+  if (endsOn && !/^\d{4}-\d{2}-\d{2}$/.test(endsOn))
+    return { error: "Choose a valid end date." };
   return {
     value: {
       title,
@@ -56,6 +62,7 @@ function validate(input: RoutineInput) {
       minutes,
       cadence,
       weekdays,
+      ends_on: endsOn,
     },
   };
 }
@@ -84,13 +91,54 @@ export async function GET() {
   if (user.error) return user.error;
   const { data, error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- migration has not regenerated Supabase types
     .from("recurring_work_templates")
-    .select("id, title, client, category, minutes, cadence, weekdays")
+    .select(
+      "id, title, client, category, minutes, cadence, weekdays, ends_on, is_active",
+    )
     .eq("user_id", user.userId)
-    .eq("is_active", true)
+    .order("is_active", { ascending: false })
     .order("created_at", { ascending: false });
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ routines: data ?? [] });
+  return NextResponse.json({
+    routines: (data ?? []).map((routine: Record<string, unknown>) => ({
+      ...routine,
+      endsOn: routine.ends_on ?? null,
+      isActive: routine.is_active !== false,
+    })),
+  });
+}
+
+function normalize(value: string | null) {
+  return (value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+async function duplicateRoutine(
+  userId: string,
+  value: {
+    title: string;
+    client: string | null;
+    category: DailyLogCategory;
+    cadence: Cadence;
+    weekdays: number[];
+  },
+  excludeId?: string,
+) {
+  const { data, error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- recurring-work controls are newer than generated Supabase types
+    .from("recurring_work_templates")
+    .select("id, title, client, category, cadence, weekdays")
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+  const duplicate = (data ?? []).find(
+    (routine: Record<string, unknown>) =>
+      routine.id !== excludeId &&
+      normalize(String(routine.title ?? "")) === normalize(value.title) &&
+      normalize(typeof routine.client === "string" ? routine.client : null) ===
+        normalize(value.client) &&
+      routine.category === value.category &&
+      routine.cadence === value.cadence &&
+      JSON.stringify(routine.weekdays ?? []) === JSON.stringify(value.weekdays),
+  );
+  return { duplicate };
 }
 
 export async function POST(req: Request) {
@@ -98,14 +146,33 @@ export async function POST(req: Request) {
   if (user.error) return user.error;
   const result = validate((await req.json().catch(() => null)) ?? {});
   if ("error" in result) return NextResponse.json(result, { status: 400 });
+  const existing = await duplicateRoutine(user.userId, result.value);
+  if (existing.error)
+    return NextResponse.json({ error: existing.error }, { status: 500 });
+  if (existing.duplicate)
+    return NextResponse.json(
+      { error: "This routine already exists. Edit the existing one instead." },
+      { status: 409 },
+    );
   const { data, error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- migration has not regenerated Supabase types
     .from("recurring_work_templates")
     .insert({ user_id: user.userId, ...result.value })
-    .select("id, title, client, category, minutes, cadence, weekdays")
+    .select(
+      "id, title, client, category, minutes, cadence, weekdays, ends_on, is_active",
+    )
     .single();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ routine: data }, { status: 201 });
+  return NextResponse.json(
+    {
+      routine: {
+        ...data,
+        endsOn: data.ends_on ?? null,
+        isActive: data.is_active !== false,
+      },
+    },
+    { status: 201 },
+  );
 }
 
 export async function PATCH(req: Request) {
@@ -117,20 +184,64 @@ export async function PATCH(req: Request) {
       { error: "A routine is required." },
       { status: 400 },
     );
+  if (typeof input.isActive === "boolean") {
+    const { data, error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- recurring-work controls are newer than generated Supabase types
+      .from("recurring_work_templates")
+      .update({
+        is_active: input.isActive,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.id)
+      .eq("user_id", user.userId)
+      .select(
+        "id, title, client, category, minutes, cadence, weekdays, ends_on, is_active",
+      )
+      .maybeSingle();
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data)
+      return NextResponse.json(
+        { error: "Routine not found." },
+        { status: 404 },
+      );
+    return NextResponse.json({
+      routine: {
+        ...data,
+        endsOn: data.ends_on ?? null,
+        isActive: data.is_active !== false,
+      },
+    });
+  }
   const result = validate(input);
   if ("error" in result) return NextResponse.json(result, { status: 400 });
+  const existing = await duplicateRoutine(user.userId, result.value, input.id);
+  if (existing.error)
+    return NextResponse.json({ error: existing.error }, { status: 500 });
+  if (existing.duplicate)
+    return NextResponse.json(
+      { error: "This routine already exists. Edit the existing one instead." },
+      { status: 409 },
+    );
   const { data, error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- migration has not regenerated Supabase types
     .from("recurring_work_templates")
     .update({ ...result.value, updated_at: new Date().toISOString() })
     .eq("id", input.id)
     .eq("user_id", user.userId)
-    .select("id, title, client, category, minutes, cadence, weekdays")
+    .select(
+      "id, title, client, category, minutes, cadence, weekdays, ends_on, is_active",
+    )
     .maybeSingle();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data)
     return NextResponse.json({ error: "Routine not found." }, { status: 404 });
-  return NextResponse.json({ routine: data });
+  return NextResponse.json({
+    routine: {
+      ...data,
+      endsOn: data.ends_on ?? null,
+      isActive: data.is_active !== false,
+    },
+  });
 }
 
 export async function DELETE(req: Request) {

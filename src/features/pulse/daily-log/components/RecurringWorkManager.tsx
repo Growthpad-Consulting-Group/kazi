@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import { ClientSelect } from "./ClientSelect";
 import {
@@ -20,6 +21,8 @@ export type RecurringWorkRoutine = {
   minutes: number;
   cadence: "daily" | "weekdays" | "weekly" | "custom";
   weekdays: number[];
+  endsOn: string | null;
+  isActive: boolean;
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -30,6 +33,7 @@ const EMPTY = {
   minutes: "30",
   cadence: "weekdays" as RecurringWorkRoutine["cadence"],
   weekdays: [1, 2, 3, 4, 5],
+  endsOn: "",
 };
 
 function formatMinutes(minutes: number) {
@@ -43,6 +47,8 @@ function formatMinutes(minutes: number) {
 }
 
 function isDue(routine: RecurringWorkRoutine, date: string) {
+  if (!routine.isActive || (routine.endsOn && routine.endsOn < date))
+    return false;
   const day = new Date(`${date}T12:00:00`).getDay();
   if (routine.cadence === "daily") return true;
   if (routine.cadence === "weekdays") return day >= 1 && day <= 5;
@@ -118,6 +124,7 @@ export function RecurringWorkManager({
       minutes: String(routine.minutes),
       cadence: routine.cadence,
       weekdays: routine.weekdays,
+      endsOn: routine.endsOn ?? "",
     });
     setOpen(true);
   };
@@ -172,6 +179,27 @@ export function RecurringWorkManager({
     setRoutines((current) => current.filter((item) => item.id !== routine.id));
     window.dispatchEvent(new Event("recurring-work-updated"));
     toast.success("Routine removed");
+  };
+  const setActive = async (
+    routine: RecurringWorkRoutine,
+    isActive: boolean,
+  ) => {
+    const response = await fetch("/api/pulse/daily-log/routines", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: routine.id, isActive }),
+    });
+    const payload = (await response.json().catch(() => null)) as {
+      routine?: RecurringWorkRoutine;
+      error?: string;
+    } | null;
+    if (!response.ok || !payload?.routine)
+      return toast.error(payload?.error ?? "Could not update this routine.");
+    setRoutines((current) =>
+      current.map((item) => (item.id === routine.id ? payload.routine! : item)),
+    );
+    window.dispatchEvent(new Event("recurring-work-updated"));
+    toast.success(isActive ? "Routine resumed" : "Routine paused");
   };
   const toggleDay = (day: number) =>
     setForm((current) => ({
@@ -268,11 +296,13 @@ export function RecurringWorkManager({
               </div>
             </label>
             <label className="block text-sm font-medium text-[var(--text-hi)]">
-              Expected duration
+              Expected duration{" "}
+              <span className="font-normal text-[var(--text-lo)]">Minutes</span>
               <input
                 type="number"
                 min="1"
                 max="1440"
+                inputMode="numeric"
                 value={form.minutes}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -328,6 +358,35 @@ export function RecurringWorkManager({
               </select>
             </label>
           </div>
+          <div>
+            <p className="text-sm font-medium text-[var(--text-hi)]">
+              Stop suggesting after{" "}
+              <span className="font-normal text-[var(--text-lo)]">
+                Optional
+              </span>
+            </p>
+            <div className="mt-1.5 flex items-center gap-2">
+              <DatePicker
+                value={form.endsOn}
+                onChange={(endsOn) =>
+                  setForm((current) => ({ ...current, endsOn }))
+                }
+                placeholder="No end date"
+                className="max-w-xs"
+              />
+              {form.endsOn && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((current) => ({ ...current, endsOn: "" }))
+                  }
+                  className="text-xs font-medium text-[var(--text-lo)] hover:text-[var(--text-hi)]"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
           {(form.cadence === "weekly" || form.cadence === "custom") && (
             <div>
               <p className="text-sm font-medium text-[var(--text-hi)]">
@@ -339,6 +398,8 @@ export function RecurringWorkManager({
                     key={day}
                     type="button"
                     onClick={() => toggleDay(index)}
+                    aria-pressed={form.weekdays.includes(index)}
+                    aria-label={`${day}${form.weekdays.includes(index) ? " selected" : " not selected"}`}
                     className={`h-9 min-w-9 rounded-lg text-xs font-medium ${form.weekdays.includes(index) ? "bg-brand-500 text-white" : "bg-[var(--surface-2)] text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}
                   >
                     {day}
@@ -397,11 +458,35 @@ export function RecurringWorkManager({
                               : routine.cadence === "weekly"
                                 ? "Weekly"
                                 : "Selected days"}
+                          {" · "}
+                          {routine.client ?? routine.category}
+                          {routine.client ? ` · ${routine.category}` : ""}
+                          {routine.endsOn
+                            ? ` · Ends ${new Date(`${routine.endsOn}T12:00:00`).toLocaleDateString("en-KE", { month: "short", day: "numeric" })}`
+                            : ""}
                         </span>
                       </span>
                       <Icon
                         icon="solar:pen-new-square-broken"
                         className="h-4 w-4 shrink-0 text-[var(--text-lo)]"
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActive(routine, !routine.isActive)}
+                      aria-label={`${routine.isActive ? "Pause" : "Resume"} ${routine.title}`}
+                      title={
+                        routine.isActive ? "Pause routine" : "Resume routine"
+                      }
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-lo)] transition-colors hover:bg-brand-500/10 hover:text-brand-600 dark:hover:text-brand-400"
+                    >
+                      <Icon
+                        icon={
+                          routine.isActive
+                            ? "solar:pause-circle-broken"
+                            : "solar:play-circle-broken"
+                        }
+                        className="h-4 w-4"
                       />
                     </button>
                     <button
