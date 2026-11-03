@@ -8,7 +8,8 @@ import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
-import { DailyLogReminder } from "@/features/pulse/daily-log/components/DailyLogReminder";
+import EmployeeNextStepQueue from "./EmployeeNextStepQueue";
+import { buildEmployeeNextSteps } from "../next-steps";
 
 type GoalSummary = {
   id: string;
@@ -42,6 +43,18 @@ function getCurrentWeekStart(): string {
   const day = d.getDay();
   d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
   return d.toISOString().slice(0, 10);
+}
+
+// Daily logs are recorded against the company's working timezone.
+function todayInWorkTimezone(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function weekLabel(weekStart: string) {
@@ -87,6 +100,7 @@ export default async function PulseDashboard() {
     oneOnOnesResult,
     feedbackResult,
     reportsResult,
+    todayLogResult,
   ] = await Promise.all([
     supabaseAdmin
       .from("checkins")
@@ -119,6 +133,13 @@ export default async function PulseDashboard() {
           .eq("manager_id", userId)
           .eq("is_active", true)
       : Promise.resolve({ data: [] as PersonSummary[] }),
+    // daily_activity_logs is typed without the newest columns; see daily-log/rewards.ts.
+    (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+      .from("daily_activity_logs")
+      .select("entries")
+      .eq("user_id", userId)
+      .eq("log_date", todayInWorkTimezone(now))
+      .maybeSingle(),
   ]);
 
   const checkin = checkinResult.data as CheckinSummary | null;
@@ -139,6 +160,24 @@ export default async function PulseDashboard() {
       (meeting) => meeting.scheduled_at && new Date(meeting.scheduled_at) < now,
     )
     .at(-1);
+
+  const todayEntries = (todayLogResult.data as { entries?: unknown } | null)
+    ?.entries;
+  const todayLogEntries = Array.isArray(todayEntries) ? todayEntries.length : 0;
+  const attentionOneOnOne = upcomingOneOnOne ?? mostRecentOneOnOne;
+  const nextSteps = isManager
+    ? []
+    : buildEmployeeNextSteps({
+        todayLogEntries,
+        checkinStatus: checkin?.status ?? null,
+        nextOneOnOneAt: upcomingOneOnOne?.scheduled_at
+          ? new Date(upcomingOneOnOne.scheduled_at)
+          : null,
+        openActionItems: (attentionOneOnOne?.action_items ?? []).filter(
+          (item) => !item.done,
+        ).length,
+        now,
+      });
 
   const senders = feedback.length
     ? await supabaseAdmin
@@ -278,9 +317,7 @@ export default async function PulseDashboard() {
                   className="h-4 w-4 text-brand-500 transition-transform group-hover:translate-x-0.5"
                 />
               </Link>
-            ) : (
-              <DailyLogReminder />
-            )}
+            ) : null}
           </div>
         </section>
 
@@ -317,7 +354,6 @@ export default async function PulseDashboard() {
                   ? `${MOODS[checkin.mood - 1]} Mood recorded`
                   : "Week of progress"
               }
-              href={checkinHref}
             />
           )}
           <StatCard
@@ -357,30 +393,7 @@ export default async function PulseDashboard() {
           />
         </section>
 
-        {!isManager && (
-          <Link
-            href={checkinHref}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition-colors hover:bg-[var(--surface-2)]"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-                <Icon icon={checkinStatus.icon} className="h-4 w-4" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-[var(--text-hi)]">
-                  This week&apos;s check-in
-                </span>
-                <span className="block text-xs text-[var(--text-lo)]">
-                  {checkin ? checkinStatus.label : "Share your weekly update"}
-                </span>
-              </span>
-            </span>
-            <Icon
-              icon="solar:arrow-right-broken"
-              className="h-4 w-4 shrink-0 text-[var(--text-lo)]"
-            />
-          </Link>
-        )}
+        {!isManager && <EmployeeNextStepQueue steps={nextSteps} />}
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.85fr)]">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle
@@ -652,11 +665,6 @@ export default async function PulseDashboard() {
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle icon="solar:bolt-broken" title="Keep moving" />
             <div className="grid grid-cols-2 gap-2">
-              <QuickLink
-                href="/pulse/checkins"
-                icon="solar:clipboard-check-broken"
-                label="Weekly check-in"
-              />
               <QuickLink
                 href="/pulse/goals"
                 icon="solar:target-broken"
