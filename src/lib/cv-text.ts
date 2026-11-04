@@ -1,19 +1,39 @@
 import mammoth from "mammoth";
-import { extractText } from "unpdf";
+import { extractText, getDocumentProxy, renderPageAsImage } from "unpdf";
+import { createWorker } from "tesseract.js";
 
-/**
- * Extract readable text from the CV formats accepted on the public application
- * form. Scanned, image-only PDFs come back with little or no text, and callers
- * reject those with a "not enough readable text" message. OCR was removed for
- * the Cloudflare Workers runtime: it needed native canvas and tesseract.js,
- * which cannot be bundled there.
- */
+const MIN_TEXT_LENGTH = 50;
+const OCR_MAX_PAGES = 5;
+
+async function ocrPdf(bytes: Uint8Array) {
+  const pdf = await getDocumentProxy(bytes);
+  const pageCount = Math.min(pdf.numPages, OCR_MAX_PAGES);
+  const worker = await createWorker("eng");
+  try {
+    const pages: string[] = [];
+    for (let page = 1; page <= pageCount; page++) {
+      const image = await renderPageAsImage(pdf, page, {
+        scale: 2,
+        canvasImport: () => import("@napi-rs/canvas"),
+      });
+      const { data } = await worker.recognize(Buffer.from(image));
+      pages.push(data.text);
+    }
+    return pages.join("\n").trim();
+  } finally {
+    await worker.terminate();
+  }
+}
+
+/** Extract readable text from the CV formats accepted on the public application form. Falls back to OCR for scanned PDFs. */
 export async function extractCvText(file: File, bytes: Uint8Array) {
   const extension = file.name.split(".").pop()?.toLowerCase();
 
   if (extension === "pdf" || file.type === "application/pdf") {
     const { text } = await extractText(bytes, { mergePages: true });
-    return text.trim();
+    const trimmed = text.trim();
+    if (trimmed.length >= MIN_TEXT_LENGTH) return trimmed;
+    return await ocrPdf(bytes);
   }
 
   if (

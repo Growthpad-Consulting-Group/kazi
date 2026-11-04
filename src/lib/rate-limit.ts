@@ -14,14 +14,9 @@ function keyPart(value: string) {
   return createHash("sha256").update(value).digest("base64url").slice(0, 32);
 }
 
-/**
- * The client address for rate limiting. Cloudflare sets cf-connecting-ip from
- * the real connection, so it is checked first. x-forwarded-for can be supplied
- * by the client, so its first entry is only a fallback.
- */
+/** Extract the first trusted proxy address; Vercel supplies x-forwarded-for. */
 export function requestIp(headers: Headers) {
   return (
-    headers.get("cf-connecting-ip")?.trim() ||
     headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     headers.get("x-real-ip")?.trim() ||
     "unknown"

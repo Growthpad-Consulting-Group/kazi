@@ -50,15 +50,4 @@ describe("request rate limits", () => {
       requestIp(new Headers({ "x-forwarded-for": "203.0.113.1, 70.41.3.18" })),
     ).toBe("203.0.113.1");
   });
-
-  it("prefers the Cloudflare client address over a client-supplied forwarded header", () => {
-    expect(
-      requestIp(
-        new Headers({
-          "cf-connecting-ip": "198.51.100.9",
-          "x-forwarded-for": "10.0.0.1",
-        }),
-      ),
-    ).toBe("198.51.100.9");
-  });
 });
