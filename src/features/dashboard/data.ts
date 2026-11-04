@@ -539,10 +539,10 @@ async function buildOrgOrTeamData(
     closes_at: string | null;
   }[];
   // Scheduled dates cover open jobs in the manager's department for team views.
+  // A team view with no department jobs gets an empty list, not every job.
   const scheduledJobSource = jobs.filter(
     (job) =>
-      job.status === "open" &&
-      (jobIds === null || jobIds.length === 0 || jobIds.includes(job.id)),
+      job.status === "open" && (jobIds === null || jobIds.includes(job.id)),
   );
 
   const candidates = (currentCandidatesRes.data ??
