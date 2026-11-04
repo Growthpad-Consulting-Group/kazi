@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getRequestSession } from "@/lib/request-session";
 import { DASHBOARD_ROLES, hasViewGrant } from "@/lib/rbac";
 
 export default async function DashboardLayout({
@@ -8,7 +7,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getRequestSession();
   if (
     !session ||
     (!DASHBOARD_ROLES.includes(session.user.role) &&

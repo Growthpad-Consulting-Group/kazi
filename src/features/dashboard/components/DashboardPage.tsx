@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { Avatar } from "@/components/ui/Avatar";
-import { authOptions } from "@/lib/auth";
+import { getRequestSession } from "@/lib/request-session";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import dynamic from "next/dynamic";
@@ -72,7 +71,7 @@ export default async function DashboardPage({
   const params = (await searchParams) ?? {};
   const range = resolveRange(params);
 
-  const session = await getServerSession(authOptions);
+  const session = await getRequestSession();
   const ctx = session?.user
     ? {
         userId: session.user.id,
