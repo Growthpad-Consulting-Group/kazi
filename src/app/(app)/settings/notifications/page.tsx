@@ -19,6 +19,12 @@ const DEFAULT_PREFS: NotifPrefs = {
   campaign_updates: true,
   side_quest_updates: true,
   system_announcements: true,
+  slack_enabled: true,
+  slack_delivery: "instant",
+  slack_quiet_start: null,
+  slack_quiet_end: null,
+  slack_timezone: "Africa/Nairobi",
+  slack_daily_brief: false,
 };
 
 export default async function NotificationsPage() {

@@ -46,7 +46,7 @@
   - Use own-data-only aggregation; never reveal peer performance comparisons here.
   - Acceptance: staff can review their progress before a 1-on-1 or performance review.
 
-- [ ] **7. Connect employee Pulse to Slack/Asana only when useful.**
+- [~] **7. Connect employee Pulse to Slack/Asana only when useful.** *(Slack delivery preferences, quiet hours and idempotent direct prompts are in place; the optional daily brief and selected Asana task-health signals remain.)*
   - Feed the action queue into the optional Slack daily brief with per-user preferences and quiet hours.
   - Include selected Asana task-health signals; do not create time entries automatically.
   - Acceptance: Slack provides a deep link to the same next action, not a competing workflow.

@@ -15,46 +15,46 @@
 
 ## P0 — Notification foundation and high-value actions
 
-- [ ] **1. Build a Slack delivery model.**
+- [x] **1. Build a Slack delivery model.**
   - Create migrations for `slack_member_links` (Kazi user ID, Slack member ID, last verified) and `slack_notification_deliveries` (event key, recipient, category, destination, status, Slack timestamp, error, delivered_at).
   - Resolve Slack members from work email once and cache the ID; do not call `users.lookupByEmail` for every message.
   - Add a shared `deliverSlackNotification()` service with idempotency, retry-safe status writes and structured Block Kit payloads.
   - Acceptance: a repeated event key results in one Slack message; an unavailable Slack user is recorded and does not fail Kazi.
 
-- [ ] **2. Add staff Slack preferences and quiet hours.**
+- [x] **2. Add staff Slack preferences and quiet hours.**
   - Extend notification settings with Slack enabled/disabled, instant versus digest delivery, enabled categories and local quiet hours.
   - Determine time zone from staff profile/location with an explicit editable override; fall back to Africa/Nairobi only when unknown.
   - Acceptance: users can opt out of non-critical Slack messages, and scheduled jobs defer messages outside quiet hours.
 
-- [~] **3. Add manager-action DMs.** *(partial: submitted weekly check-ins already DM the direct manager; blocker/low-mood priority treatment and approval notifications are not yet implemented)*
+- [x] **3. Add manager-action DMs.**
   - Notify the direct manager for a submitted weekly check-in, with a stronger callout only where blockers or low mood are present.
   - Notify the appropriate approver for overtime/TOIL requests, reward redemptions and side-quest evidence awaiting review.
   - Include “Review in Kazi” links; do not include private narrative content in the Slack preview.
   - Acceptance: one DM per action, routed to the real manager/approver, with no public-channel fallback.
 
-- [ ] **4. Add recruiting and interview DMs.**
+- [x] **4. Add recruiting and interview DMs.**
   - Notify the hiring owner/recruiter when a new application arrives and when AI screening completes or flags an exception.
   - Remind assigned interviewers about upcoming interviews and overdue scorecards.
   - Acceptance: recruiting messages contain candidate name, role and Kazi link only—never CV text or AI rationale.
 
-- [~] **5. Add scheduled 1-on-1 reminders.** *(partial: Kazi DMs both participants when a 1-on-1 is scheduled; there is no timezone-aware pre-meeting reminder or post-meeting follow-up yet)*
+- [~] **5. Add scheduled 1-on-1 reminders.** *(partial: both participants get one reminder about 90 minutes before a meeting, and the manager gets one follow-up when notes and actions are still empty an hour or more after it. Not yet deduplicated against calendar invitations.)*
   - Send participants a configurable reminder before the meeting and a follow-up if notes/actions are still incomplete after it.
   - Deduplicate against calendar invitations; Slack is a reminder, not a second calendar system.
   - Acceptance: both participants get exactly one reminder in their local time.
 
 ## P1 — Helpful daily rhythm and conversations
 
-- [ ] **6. Create timezone-aware digest workers.**
+- [x] **6. Create timezone-aware digest workers.**
   - Add authenticated scheduled routes and GitHub Actions/Vercel cron configuration for daily and weekly deliveries.
   - Use `slack_notification_deliveries` event keys to prevent retries or reruns from duplicating messages.
   - Acceptance: workers can be run manually, are safe to rerun, and report counts without exposing message content in logs.
 
-- [ ] **7. Send a personal daily Kazi brief.**
+- [~] **7. Send a personal daily Kazi brief.** *(partial: opt-in toggle in Settings → Notifications; covers today's 1-on-1s, goals due within three days, daily-log status and check-in status. Interviews and Asana due-today items are not included yet.)*
   - At each employee's chosen workday start, send an optional DM with today’s 1-on-1s/interviews, active goals, due work and daily-log status.
   - Suppress it when there is nothing actionable.
   - Acceptance: one compact message with one “Open today in Kazi” link; no empty digests.
 
-- [~] **8. Add check-in and manager cadence reminders.** *(partial: an existing cron creates in-app survey, Side Quest and weekly-digest notifications; it does not deliver these as preference-aware Slack reminders)*
+- [x] **8. Add check-in and manager cadence reminders.**
   - Friday: gently prompt only staff who have not submitted their weekly reflection.
   - Monday morning: send managers an actionable team pulse—missing check-ins, new blockers, pending review—without exposing sensitive details.
   - Friday afternoon: send managers a concise review queue.
@@ -66,7 +66,7 @@
   - Preserve the comment thread in Kazi; Slack replies are not treated as Kazi records in this phase.
   - Acceptance: mention sends one private alert and does not notify the author or duplicate names.
 
-- [ ] **10. Add survey and feedback lifecycle reminders.**
+- [~] **10. Add survey and feedback lifecycle reminders.** *(partial: survey launch and closing DMs go only to staff who have not responded; HR gets a privacy-safe Voice Out alert with no reporter, topic or message. Feedback-needs-response reminders are not yet built.)*
   - DM eligible staff when a survey launches and before it closes, only if they have not responded.
   - Notify HR privately when Voice Out or feedback needs a response; never identify an anonymous reporter.
   - Acceptance: anonymous Voice Out stays anonymous end-to-end.

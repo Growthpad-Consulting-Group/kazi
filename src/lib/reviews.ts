@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { sendSlackDirectMessage } from "@/lib/slack";
+import { deliverSlackNotification } from "@/lib/slack";
 
 export const NEXT_REVIEW_STATUS = {
   pending: "self_review",
@@ -86,11 +86,6 @@ export async function notifyOutstandingReviewers(
   ];
   if (!reviewerIds.length) return 0;
 
-  const { data: people } = await supabaseAdmin
-    .from("users")
-    .select("id, email")
-    .in("id", reviewerIds)
-    .eq("is_active", true);
   const label = STAGE_LABEL[stage];
   const due = new Date(`${options.dueDate}T12:00:00`).toLocaleDateString(
     "en-GB",
@@ -106,8 +101,20 @@ export async function notifyOutstandingReviewers(
   await supabaseAdmin
     .from("notifications")
     .insert(reviewerIds.map((userId) => ({ user_id: userId, message, link })));
-  for (const person of (people ?? []) as { id: string; email: string }[]) {
-    await sendSlackDirectMessage(person.email, message);
-  }
+  const reminderKind = options.opening
+    ? "open"
+    : options.overdue
+      ? "overdue"
+      : "due";
+  await Promise.all(
+    reviewerIds.map((reviewerId) =>
+      deliverSlackNotification({
+        eventKey: `review:${cycleId}:${stage}:${reminderKind}:${reviewerId}`,
+        recipientUserId: reviewerId,
+        category: options.opening ? "review_open" : "review_reminder",
+        text: message,
+      }),
+    ),
+  );
   return reviewerIds.length;
 }

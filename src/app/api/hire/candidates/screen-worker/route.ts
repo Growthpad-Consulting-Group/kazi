@@ -6,6 +6,8 @@ import { invalidateTables } from "@/lib/cache/invalidate";
 import { recordAiUsage } from "@/lib/ai-audit";
 import { hasCronAccess } from "@/lib/cron-auth";
 import { parseCvText } from "@/lib/candidate-cv";
+import { deliverSlackNotification } from "@/lib/slack";
+import { notifyRoles, RECRUITER_ROLES } from "@/lib/notifications";
 import type { CandidateStage } from "@/types/database";
 
 // Called by Vercel Cron (vercel.json) or an external scheduler.
@@ -16,6 +18,8 @@ const BATCH_SIZE = 5;
 
 type CandidateWithJob = {
   id: string;
+  full_name: string;
+  assigned_to: string | null;
   ai_score: number | null;
   stage: CandidateStage;
   cv_text: string | null;
@@ -35,7 +39,7 @@ async function screenOne(candidateId: string): Promise<void> {
   const { data, error } = await supabaseAdmin
     .from("candidates")
     .select(
-      "id, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)",
+      "id, full_name, assigned_to, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)",
     )
     .eq("id", candidateId)
     .single();
@@ -126,6 +130,52 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
       outputCharacters: raw.length,
       tokensUsed: completion.usage?.total_tokens,
     }),
+  ]);
+
+  const recipients = candidate.assigned_to
+    ? [candidate.assigned_to]
+    : ((
+        await supabaseAdmin
+          .from("users")
+          .select("id")
+          .in("role", RECRUITER_ROLES)
+          .eq("is_active", true)
+      ).data?.map((user) => user.id) ?? []);
+  const screeningLabel = result.shortlisted
+    ? "AI screening completed — shortlisted"
+    : "AI screening completed — review needed";
+  await Promise.all([
+    notifyRoles(
+      RECRUITER_ROLES,
+      `${screeningLabel}: ${candidate.full_name} for ${job.title}`,
+      `/hire/candidates/${candidate.id}`,
+    ),
+    ...recipients.map((recipientUserId) =>
+      deliverSlackNotification({
+        eventKey: `candidate-screened:${candidate.id}:${recipientUserId}`,
+        recipientUserId,
+        category: "candidate_screened",
+        text: `${screeningLabel}: ${candidate.full_name} for ${job.title}.`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*${candidate.full_name}* has completed AI screening for *${job.title}*.`,
+            },
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `<${process.env.PRODUCTION_APP_URL ?? "http://localhost:3000"}/hire/candidates/${candidate.id}|Review candidate in Kazi>`,
+              },
+            ],
+          },
+        ],
+      }),
+    ),
   ]);
 
   // The candidate's stage, score and shortlist flag all changed — drop the

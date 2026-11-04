@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import SettingsSection from "./SettingsSection";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +9,10 @@ import { saveNotificationPrefs, type NotifPrefs } from "../actions";
 interface Props {
   initial: NotifPrefs;
 }
+
+type TogglePreferenceKey = {
+  [Key in keyof NotifPrefs]: NotifPrefs[Key] extends boolean ? Key : never;
+}[keyof NotifPrefs];
 
 function Toggle({
   checked,
@@ -48,7 +51,7 @@ function Toggle({
 const GROUPS: {
   title: string;
   icon: string;
-  keys: (keyof NotifPrefs)[];
+  keys: TogglePreferenceKey[];
   labels: Partial<
     Record<keyof NotifPrefs, { label: string; description?: string }>
   >;
@@ -264,6 +267,91 @@ export default function NotificationsClient({ initial }: Props) {
               />
             </button>
           </div>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Slack delivery"
+        icon="solar:chat-round-dots-broken"
+      >
+        <div className="divide-y divide-[var(--border)]">
+          <Toggle
+            checked={prefs.slack_enabled}
+            onChange={(value) => set("slack_enabled", value)}
+            label="Slack notifications"
+            description="Receive the Kazi prompts you choose above as private Slack messages."
+          />
+          {prefs.slack_enabled && (
+            <div className="grid gap-3 py-4 sm:grid-cols-3">
+              <label className="text-xs font-medium text-[var(--text-hi)]">
+                Delivery
+                <select
+                  value={prefs.slack_delivery}
+                  onChange={(event) =>
+                    set(
+                      "slack_delivery",
+                      event.target.value as NotifPrefs["slack_delivery"],
+                    )
+                  }
+                  className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60"
+                >
+                  <option value="instant">Send when relevant</option>
+                  <option value="digest">Save for digest</option>
+                </select>
+              </label>
+              <label className="text-xs font-medium text-[var(--text-hi)]">
+                Quiet from
+                <input
+                  type="time"
+                  value={prefs.slack_quiet_start ?? ""}
+                  onChange={(event) =>
+                    set("slack_quiet_start", event.target.value || null)
+                  }
+                  className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60"
+                />
+              </label>
+              <label className="text-xs font-medium text-[var(--text-hi)]">
+                Quiet until
+                <input
+                  type="time"
+                  value={prefs.slack_quiet_end ?? ""}
+                  onChange={(event) =>
+                    set("slack_quiet_end", event.target.value || null)
+                  }
+                  className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60"
+                />
+              </label>
+              <label className="text-xs font-medium text-[var(--text-hi)] sm:col-span-3">
+                Time zone
+                <select
+                  value={prefs.slack_timezone}
+                  onChange={(event) =>
+                    set("slack_timezone", event.target.value)
+                  }
+                  className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none focus:border-brand-500/60"
+                >
+                  <option value="Africa/Nairobi">
+                    East Africa Time (Nairobi)
+                  </option>
+                  <option value="Africa/Accra">
+                    Greenwich Mean Time (Accra)
+                  </option>
+                  <option value="Africa/Johannesburg">
+                    South Africa Standard Time
+                  </option>
+                  <option value="Europe/London">United Kingdom time</option>
+                </select>
+              </label>
+              <div className="sm:col-span-3">
+                <Toggle
+                  checked={prefs.slack_daily_brief}
+                  onChange={(value) => set("slack_daily_brief", value)}
+                  label="Daily Kazi brief"
+                  description="One message at the start of your workday with today's 1-on-1s, goals due soon and anything left to log. Sent only when there is something to act on."
+                />
+              </div>
+            </div>
+          )}
         </div>
       </SettingsSection>
 

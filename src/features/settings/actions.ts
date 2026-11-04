@@ -104,6 +104,12 @@ export interface NotifPrefs {
   campaign_updates: boolean;
   side_quest_updates: boolean;
   system_announcements: boolean;
+  slack_enabled: boolean;
+  slack_delivery: "instant" | "digest";
+  slack_quiet_start: string | null;
+  slack_quiet_end: string | null;
+  slack_timezone: string;
+  slack_daily_brief: boolean;
 }
 
 export async function saveNotificationPrefs(prefs: NotifPrefs) {

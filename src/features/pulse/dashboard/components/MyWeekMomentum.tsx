@@ -95,7 +95,7 @@ export default function MyWeekMomentum({
           <Link
             key={tile.label}
             href={tile.href}
-            className="group rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-colors hover:bg-[var(--surface)]"
+            className="group rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/60 hover:shadow-md"
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-[var(--text-lo)]">

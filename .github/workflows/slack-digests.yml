@@ -1,0 +1,26 @@
+name: Slack Digests
+
+on:
+  schedule:
+    # Hourly, so each staff member's local workday window and quiet hours are
+    # checked against the current time. Each message is keyed, so reruns are safe.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run-slack-digests:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Verify credentials
+        if: env.CRON_SECRET == ''
+        run: |
+          echo "::error::CRON_SECRET is not configured in GitHub Actions."
+          exit 1
+      - name: Run scheduled Slack digests
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/integrations/slack/digests"

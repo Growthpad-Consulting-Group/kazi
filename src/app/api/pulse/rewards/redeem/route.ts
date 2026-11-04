@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { notifyRoles } from "@/lib/notifications";
+import { deliverSlackNotification } from "@/lib/slack";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -30,6 +31,21 @@ export async function POST(req: Request) {
     ["admin", "hr"],
     `${session.user.name ?? "A staff member"} requested: ${item?.name ?? "a reward"}`,
     "/pulse/rewards",
+  );
+  const { data: approvers } = await supabaseAdmin
+    .from("users")
+    .select("id")
+    .eq("is_active", true)
+    .in("role", ["admin", "hr"]);
+  await Promise.all(
+    (approvers ?? []).map((approver) =>
+      deliverSlackNotification({
+        eventKey: `reward-redemption:${redemptionId}:${approver.id}`,
+        recipientUserId: approver.id,
+        category: "reward_redemption",
+        text: `${session.user.name ?? "A staff member"} requested ${item?.name ?? "a reward"}.`,
+      }),
+    ),
   );
   return NextResponse.json({ id: redemptionId });
 }

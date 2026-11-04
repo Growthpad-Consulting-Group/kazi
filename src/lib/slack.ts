@@ -1,4 +1,217 @@
 import { supabaseAdmin } from "@/lib/supabase";
+import { isInQuietHours } from "@/lib/slack-schedule";
+
+type SlackBlocks = object[];
+type SlackPreference = {
+  slack_enabled: boolean;
+  slack_delivery: "instant" | "digest";
+  slack_quiet_start: string | null;
+  slack_quiet_end: string | null;
+  slack_timezone: string | null;
+  [key: string]: boolean | string | null;
+};
+
+const CATEGORY_PREFERENCE: Record<string, string> = {
+  checkin_submitted: "checkin_submitted",
+  checkin_reminder: "checkin_reminders",
+  one_on_one_scheduled: "one_on_one_scheduled",
+  one_on_one_reminder: "one_on_one_reminder",
+  survey_published: "survey_published",
+  campaign_update: "campaign_updates",
+  side_quest_update: "side_quest_updates",
+  goal_completed: "goal_completed",
+  goal_due_soon: "goal_due_soon",
+  review_open: "review_cycle_started",
+  review_reminder: "review_cycle_started",
+  daily_brief: "slack_daily_brief",
+};
+
+/** Categories that are sent only when the recipient has explicitly opted in. */
+const OPT_IN_CATEGORIES = new Set(["daily_brief"]);
+
+export type SlackDeliveryInput = {
+  eventKey: string;
+  recipientUserId: string;
+  category: string;
+  text: string;
+  blocks?: SlackBlocks;
+  /** Required manager/HR action can bypass a voluntary quiet-hours preference. */
+  critical?: boolean;
+  /**
+   * Set by scheduled digest workers, which already batch content. Digest-mode
+   * recipients still receive these, while instant-only messages are held back.
+   */
+  digest?: boolean;
+};
+
+async function recordSlackDelivery(
+  eventKey: string,
+  patch: Record<string, unknown>,
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table awaits generated types
+  await (supabaseAdmin as any)
+    .from("slack_notification_deliveries")
+    .update(patch)
+    .eq("event_key", eventKey);
+}
+
+/**
+ * Delivers one private Slack message at most once. The delivery row is reserved
+ * before calling Slack, so retries and concurrent requests cannot duplicate it.
+ */
+export async function deliverSlackNotification({
+  eventKey,
+  recipientUserId,
+  category,
+  text,
+  blocks,
+  critical = false,
+  digest = false,
+}: SlackDeliveryInput): Promise<"delivered" | "suppressed" | "failed"> {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return "suppressed";
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed tables await generated types
+  const db = supabaseAdmin as any;
+  const { data: recipient } = await supabaseAdmin
+    .from("users")
+    .select("id,email,is_active")
+    .eq("id", recipientUserId)
+    .maybeSingle();
+  if (!recipient?.is_active || !recipient.email) return "suppressed";
+
+  const { data: preferenceRow, error: preferenceError } = await db
+    .from("user_notification_preferences")
+    .select(
+      "slack_enabled,slack_delivery,slack_quiet_start,slack_quiet_end,slack_timezone,slack_daily_brief,checkin_submitted,checkin_reminders,one_on_one_scheduled,one_on_one_reminder,survey_published,campaign_updates,side_quest_updates,goal_completed,goal_due_soon",
+    )
+    .eq("user_id", recipientUserId)
+    .maybeSingle();
+  // If preferences cannot be read, the recipient's opt-outs are unknown. Hold the
+  // message rather than fall back to defaults that ignore those opt-outs.
+  if (preferenceError) return "suppressed";
+
+  const preferences: SlackPreference = {
+    slack_enabled: preferenceRow?.slack_enabled ?? true,
+    slack_delivery: preferenceRow?.slack_delivery ?? "instant",
+    slack_quiet_start: preferenceRow?.slack_quiet_start ?? null,
+    slack_quiet_end: preferenceRow?.slack_quiet_end ?? null,
+    slack_timezone: preferenceRow?.slack_timezone ?? "Africa/Nairobi",
+  };
+
+  const optInColumn = CATEGORY_PREFERENCE[category];
+  const suppressReason = !preferences.slack_enabled
+    ? "Slack notifications disabled by recipient"
+    : OPT_IN_CATEGORIES.has(category) && preferenceRow?.[optInColumn] !== true
+      ? "Recipient has not opted in to this message"
+      : optInColumn &&
+          !OPT_IN_CATEGORIES.has(category) &&
+          preferenceRow?.[optInColumn] === false
+        ? "Recipient disabled this notification category"
+        : !critical && !digest && preferences.slack_delivery === "digest"
+          ? "Recipient chose digest delivery"
+          : !critical &&
+              isInQuietHours(
+                preferences.slack_quiet_start,
+                preferences.slack_quiet_end,
+                preferences.slack_timezone,
+                new Date(),
+              )
+            ? "Deferred for recipient quiet hours"
+            : null;
+
+  const { error: reservationError } = await db
+    .from("slack_notification_deliveries")
+    .insert({
+      event_key: eventKey,
+      recipient_user_id: recipientUserId,
+      category,
+      status: "pending",
+    });
+  if (reservationError) return "suppressed";
+
+  if (suppressReason) {
+    await recordSlackDelivery(eventKey, {
+      status: "suppressed",
+      error: suppressReason,
+    });
+    return "suppressed";
+  }
+
+  try {
+    const { data: cachedLink } = await db
+      .from("slack_member_links")
+      .select("slack_member_id")
+      .eq("user_id", recipientUserId)
+      .maybeSingle();
+    let memberId = cachedLink?.slack_member_id as string | undefined;
+    if (!memberId) {
+      const lookup = await fetch(
+        `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(recipient.email)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const lookupJson = (await lookup.json()) as {
+        ok: boolean;
+        user?: { id: string };
+        error?: string;
+      };
+      if (!lookupJson.ok || !lookupJson.user?.id) {
+        await recordSlackDelivery(eventKey, {
+          status: "failed",
+          error: lookupJson.error ?? "Slack member not found",
+        });
+        return "failed";
+      }
+      memberId = lookupJson.user.id;
+      await db
+        .from("slack_member_links")
+        .upsert(
+          { user_id: recipientUserId, slack_member_id: memberId },
+          { onConflict: "user_id" },
+        );
+    }
+    const post = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify({
+        channel: memberId,
+        text,
+        ...(blocks ? { blocks } : {}),
+      }),
+    });
+    const postJson = (await post.json()) as {
+      ok: boolean;
+      ts?: string;
+      error?: string;
+    };
+    if (!postJson.ok) {
+      await recordSlackDelivery(eventKey, {
+        status: "failed",
+        error: postJson.error ?? "Slack rejected the message",
+      });
+      return "failed";
+    }
+    await recordSlackDelivery(eventKey, {
+      status: "delivered",
+      destination: memberId,
+      slack_timestamp: postJson.ts ?? null,
+      delivered_at: new Date().toISOString(),
+    });
+    return "delivered";
+  } catch (error) {
+    await recordSlackDelivery(eventKey, {
+      status: "failed",
+      error:
+        error instanceof Error
+          ? error.message.slice(0, 500)
+          : "Unknown Slack error",
+    });
+    return "failed";
+  }
+}
 
 /**
  * Direct-message a workspace member by email using the Slack bot token.
@@ -93,16 +306,20 @@ export async function sendOneOnOneSlackDMs(
   ];
 
   await Promise.all([
-    sendSlackDirectMessage(
-      manager.email,
-      `1-on-1 with ${report.name} scheduled for ${formattedDate}`,
-      dmBlocks(report.name),
-    ),
-    sendSlackDirectMessage(
-      report.email,
-      `1-on-1 with ${manager.name} scheduled for ${formattedDate}`,
-      dmBlocks(manager.name),
-    ),
+    deliverSlackNotification({
+      eventKey: `one-on-one-scheduled:${managerId}:${reportId}:${scheduledAt}:manager`,
+      recipientUserId: manager.id,
+      category: "one_on_one_scheduled",
+      text: `1-on-1 with ${report.name} scheduled for ${formattedDate}`,
+      blocks: dmBlocks(report.name),
+    }),
+    deliverSlackNotification({
+      eventKey: `one-on-one-scheduled:${managerId}:${reportId}:${scheduledAt}:report`,
+      recipientUserId: report.id,
+      category: "one_on_one_scheduled",
+      text: `1-on-1 with ${manager.name} scheduled for ${formattedDate}`,
+      blocks: dmBlocks(manager.name),
+    }),
   ]);
 }
 

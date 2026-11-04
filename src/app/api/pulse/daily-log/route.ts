@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { awardDailyLogRewards } from "@/features/pulse/daily-log/rewards";
 import { supabaseAdmin } from "@/lib/supabase";
+import { deliverSlackNotification } from "@/lib/slack";
 import {
   cleanText,
   clockToMinutes,
@@ -430,6 +431,12 @@ export async function POST(req: Request) {
         user_id: staff.manager_id,
         message: `Outside-hours work submitted for review on ${body.date}.`,
         link: "/pulse/checkins?tab=daily",
+      });
+      await deliverSlackNotification({
+        eventKey: `overtime-submitted:${session.user.id}:${body.date}:${outsideEntries.length}:${staff.manager_id}`,
+        recipientUserId: staff.manager_id,
+        category: "overtime_request",
+        text: `${session.user.name ?? "A staff member"} submitted outside-hours work for review on ${body.date}.`,
       });
     }
   }

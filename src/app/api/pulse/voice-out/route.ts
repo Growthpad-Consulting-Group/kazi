@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { notifyHrOfVoiceOutOnSlack } from "@/lib/slack-alerts";
 import type { VoiceOutPriority, VoiceOutStatus } from "@/types/database";
 
 const TOPICS = [
@@ -82,17 +83,23 @@ export async function POST(req: Request) {
 
   // Deliberately do not persist the session user ID. Voice Out must not be traceable
   // back to an employee through this application table or its operational UI.
-  const { error } = await supabaseAdmin.from("voice_out_reports").insert({
-    topic: topic as (typeof TOPICS)[number],
-    message,
-    attachments: body?.attachments ?? [],
-    allows_follow_up: allowsFollowUp,
-    reply_access_hash: replyAccessHash,
-    sentiment: (body?.sentiment ?? "neutral") as
-      "negative" | "neutral" | "positive",
-  });
+  const { data: created, error } = await supabaseAdmin
+    .from("voice_out_reports")
+    .insert({
+      topic: topic as (typeof TOPICS)[number],
+      message,
+      attachments: body?.attachments ?? [],
+      allows_follow_up: allowsFollowUp,
+      reply_access_hash: replyAccessHash,
+      sentiment: (body?.sentiment ?? "neutral") as
+        "negative" | "neutral" | "positive",
+    })
+    .select("id")
+    .single();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+  // Slack is a courtesy alert: it must not change the outcome of the report.
+  await notifyHrOfVoiceOutOnSlack(created.id);
   return NextResponse.json({ ok: true, accessCode });
 }
 

@@ -30,51 +30,47 @@ export default async function ProfilePage() {
     };
   };
 
-  const [
-    { data: user },
-    sigResult,
-    profileConnection,
-    passkeyResult,
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("users")
-      .select("job_title, location, avatar_url")
-      .eq("id", session.user.id)
-      .single(),
-    (supabaseAdmin as unknown as SignatureDb)
-      .from("signature_staff_profiles")
-      .select("photo_url")
-      .eq("user_id", session.user.id)
-      .maybeSingle(),
-    supabaseAdmin
-      .from("google_profile_connections")
-      .select("user_id")
-      .eq("user_id", session.user.id)
-      .maybeSingle(),
-    (
-      supabaseAdmin as unknown as {
-        from: (table: string) => {
-          select: (columns: string) => {
-            eq: (
-              column: string,
-              value: string,
-            ) => {
-              order: (
+  const [{ data: user }, sigResult, profileConnection, passkeyResult] =
+    await Promise.all([
+      supabaseAdmin
+        .from("users")
+        .select("job_title, location, avatar_url")
+        .eq("id", session.user.id)
+        .single(),
+      (supabaseAdmin as unknown as SignatureDb)
+        .from("signature_staff_profiles")
+        .select("photo_url")
+        .eq("user_id", session.user.id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("google_profile_connections")
+        .select("user_id")
+        .eq("user_id", session.user.id)
+        .maybeSingle(),
+      (
+        supabaseAdmin as unknown as {
+          from: (table: string) => {
+            select: (columns: string) => {
+              eq: (
                 column: string,
-                options: { ascending: boolean },
-              ) => Promise<{ data: unknown }>;
+                value: string,
+              ) => {
+                order: (
+                  column: string,
+                  options: { ascending: boolean },
+                ) => Promise<{ data: unknown }>;
+              };
             };
           };
-        };
-      }
-    )
-      .from("passkeys")
-      .select(
-        "id, device_type, backed_up, transports, device_label, created_at, last_used_at",
+        }
       )
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false }),
-  ]);
+        .from("passkeys")
+        .select(
+          "id, device_type, backed_up, transports, device_label, created_at, last_used_at",
+        )
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false }),
+    ]);
 
   const passwordRequired = await mustChangePassword(session.user.id);
   const userData = user as UserRow;

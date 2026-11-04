@@ -6,6 +6,7 @@ import { awardPoints } from "@/lib/award-points";
 import { awardQuarterlyXp } from "@/lib/award-xp";
 import { refreshSideQuestAchievements } from "@/lib/side-quest-achievements";
 import { isSideQuestOpen } from "@/lib/side-quest-lifecycle";
+import { deliverSlackNotification } from "@/lib/slack";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -18,7 +19,7 @@ export async function POST(req: Request, context: RouteContext) {
     supabaseAdmin
       .from("side_quests")
       .select(
-        "id, status, starts_at, ends_at, audience_type, audience_filters, points, xp_points, completion_mode, repeat_frequency, max_completions_per_period",
+        "id, status, starts_at, ends_at, audience_type, audience_filters, points, xp_points, completion_mode, repeat_frequency, max_completions_per_period, approver_id, title",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -154,6 +155,26 @@ export async function POST(req: Request, context: RouteContext) {
       createdBy: null,
     });
     await refreshSideQuestAchievements(session.user.id, id);
+  } else {
+    const approverIds = quest.approver_id
+      ? [quest.approver_id]
+      : ((
+          await supabaseAdmin
+            .from("users")
+            .select("id")
+            .eq("is_active", true)
+            .in("role", ["admin", "hr"])
+        ).data?.map((person) => person.id) ?? []);
+    await Promise.all(
+      approverIds.map((approverId) =>
+        deliverSlackNotification({
+          eventKey: `side-quest-evidence:${completion.id}:${approverId}`,
+          recipientUserId: approverId,
+          category: "side_quest_approval",
+          text: `${session.user.name ?? "A staff member"} submitted Side Quest evidence for ${quest.title ?? "a quest"}.`,
+        }),
+      ),
+    );
   }
   return NextResponse.json({ ok: true, status: completionStatus });
 }

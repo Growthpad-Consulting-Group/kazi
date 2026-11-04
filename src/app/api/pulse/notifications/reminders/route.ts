@@ -9,6 +9,10 @@ import {
 import { hasCronAccess } from "@/lib/cron-auth";
 import { audienceUserIds } from "@/features/pulse/surveys/audience";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import {
+  notifySurveyClosingOnSlack,
+  notifySurveyLaunchedOnSlack,
+} from "@/lib/slack-alerts";
 
 export async function POST(req: Request): Promise<Response> {
   // Auth: Bearer CRON_SECRET
@@ -37,10 +41,12 @@ export async function POST(req: Request): Promise<Response> {
     .lte("opens_at", nowIso)
     .select("id,title");
   for (const survey of scheduledToOpen ?? []) {
-    for (const userId of await audienceUserIds(survey.id)) {
+    const audience = await audienceUserIds(survey.id);
+    for (const userId of audience) {
       await notifySurveyPublished(userId, survey.title, survey.id);
       sent++;
     }
+    await notifySurveyLaunchedOnSlack(survey.id, survey.title, audience);
   }
   const { data: scheduledToClose } = await supabaseAdmin
     .from("surveys")
@@ -104,11 +110,9 @@ export async function POST(req: Request): Promise<Response> {
         supabaseAdmin
           .from("notifications")
           .select("user_id")
-          .like("message", `%${survey.title}%`)
-          .gte(
-            "created_at",
-            new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-          ),
+          // Only earlier closing-soon notices for this survey, with no time limit. The job runs daily,
+          // so a time window shorter than a day lets the same reminder repeat.
+          .like("message", `Survey closing soon%: ${survey.title}`),
       ]);
     const responded = new Set(
       (participants ?? []).map((participant) => participant.user_id),
@@ -116,11 +120,14 @@ export async function POST(req: Request): Promise<Response> {
     const remindedRecently = new Set(
       (recentNotifications ?? []).map((notification) => notification.user_id),
     );
+    const pending: string[] = [];
     for (const userId of await audienceUserIds(survey.id)) {
       if (responded.has(userId) || remindedRecently.has(userId)) continue;
       await notifySurveyClosingSoon(userId, survey.title, survey.closes_at!);
+      pending.push(userId);
       sent++;
     }
+    await notifySurveyClosingOnSlack(survey.id, survey.title, pending);
   }
 
   // ── 5. Weekly digest ──────────────────────────────────────────────────────

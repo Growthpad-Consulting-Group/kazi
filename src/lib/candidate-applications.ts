@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { notifyRoles, RECRUITER_ROLES } from "@/lib/notifications";
+import { deliverSlackNotification } from "@/lib/slack";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { ApplicationError } from "@/lib/application-error";
 
@@ -82,6 +83,39 @@ export async function notifyNewApplicant(
     RECRUITER_ROLES,
     `New application: ${input.full_name} for ${job.title}`,
     `/hire/candidates/${candidateId}`,
+  );
+  const { data: recruiters } = await supabaseAdmin
+    .from("users")
+    .select("id")
+    .in("role", RECRUITER_ROLES)
+    .eq("is_active", true);
+  await Promise.all(
+    (recruiters ?? []).map((recruiter) =>
+      deliverSlackNotification({
+        eventKey: `candidate-application:${candidateId}:${recruiter.id}`,
+        recipientUserId: recruiter.id,
+        category: "candidate_application",
+        text: `New application: ${input.full_name} for ${job.title}.`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `New application: *${input.full_name}* for *${job.title}*.`,
+            },
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `<${process.env.PRODUCTION_APP_URL ?? "http://localhost:3000"}/hire/candidates/${candidateId}|Review candidate in Kazi>`,
+              },
+            ],
+          },
+        ],
+      }),
+    ),
   );
 }
 

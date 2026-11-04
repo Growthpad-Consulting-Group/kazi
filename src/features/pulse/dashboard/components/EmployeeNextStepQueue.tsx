@@ -66,7 +66,7 @@ export default function EmployeeNextStepQueue({
               </span>
               <div className="min-w-0">
                 <span
-                  className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${TONE_PILL[primary.tone]}`}
+                  className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-semibold ${TONE_PILL[primary.tone]}`}
                 >
                   {primary.urgency}
                 </span>

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateUserCheckins } from "@/lib/cache/invalidate";
-import { sendSlackDirectMessage } from "@/lib/slack";
+import { deliverSlackNotification } from "@/lib/slack";
 import { notifyManagerOfCheckin } from "@/lib/notifications";
 import type { CheckinStatus } from "@/types/database";
 
@@ -85,14 +85,24 @@ export async function POST(req: Request) {
       const hasBlockers = Boolean(
         typeof blockers === "string" && blockers.trim(),
       );
+      const needsManagerAttention =
+        hasBlockers || (typeof mood === "number" && mood <= 2);
       await Promise.all([
-        sendSlackDirectMessage(
-          manager.email,
-          `${employee.name} submitted their weekly check-in for the week of ${weekLabel}`,
-          [
+        deliverSlackNotification({
+          eventKey: `checkin-submitted:${userId}:${weekStart}:manager:${manager.id}`,
+          recipientUserId: manager.id,
+          category: "checkin_submitted",
+          critical: needsManagerAttention,
+          text: `${employee.name} submitted their weekly check-in for the week of ${weekLabel}`,
+          blocks: [
             {
               type: "header",
-              text: { type: "plain_text", text: "Weekly Check-in Ready" },
+              text: {
+                type: "plain_text",
+                text: needsManagerAttention
+                  ? "Action needed: Weekly Check-in"
+                  : "Weekly Check-in Ready",
+              },
             },
             {
               type: "section",
@@ -111,7 +121,7 @@ export async function POST(req: Request) {
               ],
             },
           ],
-        ),
+        }),
         notifyManagerOfCheckin(manager.id, employee.name, userId, hasBlockers),
       ]);
     } catch (slackErr) {
