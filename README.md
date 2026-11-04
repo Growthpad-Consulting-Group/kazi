@@ -101,15 +101,7 @@ Set `AI_LOG_RETENTION_DAYS` to a whole number from 30 to 3650 to override the de
 
 Kazi is deployed to Vercel. Configure production variables there, including `CRON_SECRET`, Supabase, Redis, R2, email, AI, CAPTCHA, integration credentials.
 
-The repository also retains OpenNext/Cloudflare scripts for a separate deployment target:
-
-```bash
-pnpm build:cf
-pnpm preview
-pnpm deploy
-```
-
-Use one deployment path per environment; production currently uses Vercel.
+Use one deployment path per environment; production runs on Vercel.
 
 ## Project conventions
 

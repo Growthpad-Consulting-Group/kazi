@@ -3,8 +3,6 @@ node_modules
 out
 build
 coverage
-.open-next
-.wrangler
 supabase/.temp
 next-env.d.ts
 package-lock.json
