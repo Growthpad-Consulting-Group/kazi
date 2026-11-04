@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import type { FollowThroughItem } from "../follow-through-rank";
+import AsanaTaskCreator from "./AsanaTaskCreator";
 
 export default function FollowThroughCard({
   items,
@@ -60,6 +61,9 @@ export default function FollowThroughCard({
                   className="h-3.5 w-3.5 shrink-0 text-[var(--text-lo)] transition-transform group-hover:translate-x-0.5"
                 />
               </Link>
+              {entry.createFrom && (
+                <AsanaTaskCreator source={entry.createFrom} />
+              )}
             </li>
           ))}
         </ul>

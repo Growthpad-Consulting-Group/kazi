@@ -761,6 +761,12 @@ export interface Database {
           token_expires_at: string | null;
           created_at: string;
           updated_at: string;
+          // Added by migrations 20261104000016 and 20261104000019; optional until types are regenerated.
+          share_task_health_with_manager?: boolean;
+          last_synced_at?: string | null;
+          last_sync_error?: string | null;
+          selected_project_gids?: string[];
+          include_in_slack_brief?: boolean;
         };
         Insert: Omit<
           Database["public"]["Tables"]["asana_connections"]["Row"],

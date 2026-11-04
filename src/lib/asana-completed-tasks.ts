@@ -38,12 +38,17 @@ export async function getAsanaAccessToken({
   origin?: string;
 }): Promise<
   | { connected: false }
-  | { connected: true; workspaceGid: string; accessToken: string }
+  | {
+      connected: true;
+      workspaceGid: string;
+      accessToken: string;
+      selectedProjectGids: string[];
+    }
 > {
   const { data: connection } = await supabaseAdmin
     .from("asana_connections")
     .select(
-      "id, workspace_gid, access_token_ciphertext, refresh_token_ciphertext, token_expires_at",
+      "id, workspace_gid, access_token_ciphertext, refresh_token_ciphertext, token_expires_at, selected_project_gids",
     )
     .eq("user_id", userId)
     .maybeSingle();
@@ -76,6 +81,7 @@ export async function getAsanaAccessToken({
     connected: true,
     workspaceGid: connection.workspace_gid,
     accessToken,
+    selectedProjectGids: connection.selected_project_gids ?? [],
   };
 }
 

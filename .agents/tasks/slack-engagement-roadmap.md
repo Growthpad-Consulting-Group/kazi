@@ -91,19 +91,19 @@
   - Suppress Kazi Slack alerts for events already delivered through an enabled Asana-to-Slack rule, using an organisation setting and event-key deduplication.
   - Acceptance: no person receives the same task reminder from Asana and Kazi in the same reminder window.
 
-- [ ] **13. Add intentional Kazi-to-Asana action creation.**
+- [x] **13. Add intentional Kazi-to-Asana action creation.** *(Staff can add a 1-on-1 commitment or development-plan action to Asana, after choosing a project and seeing exactly what will be created. The task holds the action text and one Kazi link, and nothing else from their records. Each action can be turned into a task once, and the link is stored.)*
   - Add a user-confirmed “Create Asana task” / “Link Asana task” action for 1-on-1 commitments and development-plan actions.
   - Let the user choose workspace/project, assignee and due date; persist the returned Asana task GID plus the Kazi source record in `asana_task_links`.
   - Never push weekly check-ins, mood, blockers, feedback, Voice Out, rewards, performance reviews, candidate data or other private HR data to Asana.
   - Acceptance: a created task includes a non-sensitive Kazi deep link and is never created without a visible user confirmation.
 
-- [ ] **14. Add selected-project webhook ingestion with reconciliation.**
+- [x] **14. Add selected-project webhook ingestion with reconciliation.** *(Administrators subscribe Kazi to chosen projects only. Deliveries are checked against Asana's signature, stored once per event, and a scheduled job reads each project's event log to catch anything missed. Events are stored but do not yet trigger notifications, because the roadmap does not say which events should notify.)*
   - Subscribe only to explicitly selected projects/portfolios—not the entire workspace—and store webhook metadata, event keys and signing secrets securely.
   - Verify the Asana webhook handshake/signature, enqueue processing, and acknowledge within Asana’s response window.
   - Run a periodic reconciliation pull for subscribed resources because webhook delivery is at-most-once; record misses and retries without creating duplicate notifications.
   - Acceptance: webhook retries, duplicate events and a missed event result in at most one Kazi/Slack notification.
 
-- [ ] **15. Add Asana sync controls and auditability.**
+- [x] **15. Add Asana sync controls and auditability.** *(Settings shows the last successful sync and any error, lets staff choose projects and turn Asana counts in the Slack brief on or off, and offers disconnect. Admins see only how many connections are failing. Disconnect removes Kazi's stored tokens but does not revoke the grant in Asana.)*
   - Add connection health, last sync time, selected projects, delivery preference and disconnect/revoke controls to Settings → Integrations.
   - Add admin-only operational metrics for sync failures and notification suppression, without displaying task content to unauthorised staff.
   - Acceptance: staff can tell whether their own sync is working, and admins can diagnose integrations without accessing private work details.
@@ -120,18 +120,18 @@
   - Link to Kazi rather than displaying leaderboard or staff-sensitive details beyond the approved culture context.
   - Acceptance: one recap per week, skipped when there is no eligible content.
 
-- [ ] **18. Build Slack interactive actions.**
+- [~] **18. Build Slack interactive actions.** *(Verified Slack button clicks are accepted. The "Mark reviewed" button on a manager's check-in message is live, with permission checks. Acknowledge and Remind me later are not built. Needs SLACK_SIGNING_SECRET and the Interactivity URL set in the Slack app.)*
   - Upgrade from webhook-only delivery where needed: store bot/channel configuration securely, add `SLACK_SIGNING_SECRET`, verify Slack signatures, and implement an Interactivity request route.
   - Support safe actions first: “Open Kazi”, “Acknowledge”, “Mark reviewed”, and “Remind me later”. Write all state changes through Kazi permission checks.
   - Do not approve overtime, rewards, hires or performance actions directly from Slack until audit and confirmation design is complete.
   - Acceptance: invalid Slack signatures are rejected; every action is attributable and permission checked.
 
-- [ ] **19. Add on-demand Slack shortcuts and commands.**
+- [x] **19. Add on-demand Slack shortcuts and commands.** *(/kazi today, check-in, goals and timer reply privately with the person's own data only. The global message shortcut is deferred until the commands have been used, as the roadmap asks. Needs SLACK_SIGNING_SECRET and the slash command URL set in the Slack app.)*
   - Provide `/kazi today`, `/kazi check-in`, `/kazi goals` and `/kazi timer` as private, ephemeral responses with Kazi deep links.
   - Add a global “Open Kazi” message shortcut only after the above commands are stable.
   - Acceptance: commands expose only the invoking user’s own data unless they have a relevant manager/admin permission.
 
-- [ ] **20. Add Slack notification analytics and admin controls.**
+- [x] **20. Add Slack notification analytics and admin controls.** *(Settings → Slack delivery shows 30-day counts by category, the most common reasons messages were held back, per-category switches and a test send, limited to five an hour. A workspace-wide rate guard holds back bursts. Message contents are never shown.)*
   - Add an admin view for routing, delivery success/failure, suppression reasons and message volume by category—not message bodies.
   - Include per-category toggles, test-send capability and a rate-limit guardrail.
   - Acceptance: admins can diagnose a missing notification without viewing private content.

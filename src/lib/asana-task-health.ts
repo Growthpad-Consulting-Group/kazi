@@ -4,6 +4,7 @@ import {
   type CompletedAsanaTask,
 } from "@/lib/asana-completed-tasks";
 import { shiftDate } from "@/features/pulse/dashboard/my-week";
+import { recordAsanaSync } from "@/lib/asana-sync-state";
 import {
   classifyBlockedAsanaTasks,
   classifyOpenAsanaTasks,
@@ -13,6 +14,11 @@ import {
 
 export { classifyOpenAsanaTasks } from "@/lib/asana-task-health-utils";
 export type { AsanaTaskHealthItem } from "@/lib/asana-task-health-utils";
+
+type AsanaSearchPayload = {
+  data?: AsanaOpenTask[];
+  errors?: { message?: string }[];
+};
 
 const ASANA_API = "https://app.asana.com/api/1.0";
 const BLOCKED_CANDIDATE_LIMIT = 25;
@@ -57,18 +63,31 @@ export async function loadAsanaTaskHealth({
     limit: "30",
     opt_fields: "gid,name,due_on,permalink_url,projects.gid,projects.name",
   });
-  const response = await fetch(
-    `${ASANA_API}/workspaces/${access.workspaceGid}/tasks/search?${query}`,
-    { headers: { Authorization: `Bearer ${access.accessToken}` } },
-  );
-  const payload = (await response.json().catch(() => null)) as {
-    data?: AsanaOpenTask[];
-    errors?: { message?: string }[];
-  } | null;
-  if (!response.ok)
-    throw new Error(
-      payload?.errors?.[0]?.message ?? "Asana could not load task health.",
+  // Only the projects the person chose are read. With none chosen, all their work is read.
+  if (access.selectedProjectGids.length)
+    query.set("projects.any", access.selectedProjectGids.join(","));
+  let payload: AsanaSearchPayload | null = null;
+  try {
+    const response = await fetch(
+      `${ASANA_API}/workspaces/${access.workspaceGid}/tasks/search?${query}`,
+      { headers: { Authorization: `Bearer ${access.accessToken}` } },
     );
+    payload = (await response
+      .json()
+      .catch(() => null)) as AsanaSearchPayload | null;
+    if (!response.ok)
+      throw new Error(
+        payload?.errors?.[0]?.message ?? "Asana could not load task health.",
+      );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Asana could not load task health.";
+    await recordAsanaSync(userId, message);
+    throw error;
+  }
+  await recordAsanaSync(userId, null);
 
   const [completed, blocked] = await Promise.all([
     loadCompletedAsanaTasks({

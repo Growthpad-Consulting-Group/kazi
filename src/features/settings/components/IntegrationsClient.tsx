@@ -6,12 +6,17 @@ import toast from "react-hot-toast";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import { Button } from "@/components/ui/Button";
 import SettingsSection from "./SettingsSection";
+import AsanaSyncControls from "./AsanaSyncControls";
 
 interface AsanaConnection {
   connected: boolean;
   workspace?: string;
   connectedAt?: string;
   sharesWithManager?: boolean;
+  lastSyncedAt?: string | null;
+  lastSyncError?: string | null;
+  selectedProjects?: string[];
+  includeInSlackBrief?: boolean;
 }
 
 interface SlackStatus {
@@ -363,6 +368,14 @@ export default function IntegrationsClient({
             onConnect={connectAsana}
             onDisconnect={disconnectAsana}
           />
+          {asanaConnected && (
+            <AsanaSyncControls
+              lastSyncedAt={asana.lastSyncedAt ?? null}
+              lastSyncError={asana.lastSyncError ?? null}
+              selectedProjects={asana.selectedProjects ?? []}
+              includeInSlackBrief={asana.includeInSlackBrief ?? true}
+            />
+          )}
           {asanaConnected && (
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5">
               <input

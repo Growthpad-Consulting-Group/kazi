@@ -120,6 +120,17 @@ export async function POST(req: Request) {
                 },
               ],
             },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  action_id: "mark_checkin_reviewed",
+                  text: { type: "plain_text", text: "Mark reviewed" },
+                  value: `${userId}|${weekStart}`,
+                },
+              ],
+            },
           ],
         }),
         notifyManagerOfCheckin(manager.id, employee.name, userId, hasBlockers),

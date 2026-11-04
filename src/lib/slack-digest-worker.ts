@@ -158,6 +158,20 @@ export async function runSlackDigests(
   if (settingsRes.error)
     throw new Error("Company settings could not be loaded");
   const asanaRulesOn = settingsRes.data?.asana_slack_rules_enabled === true;
+  // Staff who turned off Asana counts in Settings never receive them in the brief.
+  const { data: asanaRows } = await db
+    .from("asana_connections")
+    .select("user_id, include_in_slack_brief");
+  const asanaOptOut = new Set(
+    (
+      (asanaRows ?? []) as {
+        user_id: string;
+        include_in_slack_brief: boolean | null;
+      }[]
+    )
+      .filter((row) => row.include_in_slack_brief === false)
+      .map((row) => row.user_id),
+  );
 
   const users = (usersRes.data ?? []) as UserRow[];
   const byId = new Map(users.map((user) => [user.id, user]));
@@ -216,7 +230,7 @@ export async function runSlackDigests(
         now,
         weekStart,
         counts,
-        asanaRulesOn,
+        asanaRulesOn || asanaOptOut.has(user.id),
       );
     }
 

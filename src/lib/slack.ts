@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { isInQuietHours } from "@/lib/slack-schedule";
+import { isOverLimit, RATE_LIMIT_PER_MINUTE } from "@/lib/slack-admin";
 
 type SlackBlocks = object[];
 type SlackPreference = {
@@ -170,26 +171,45 @@ export async function deliverSlackNotification({
     slack_timezone: preferenceRow?.slack_timezone ?? "Africa/Nairobi",
   };
 
+  // An administrator can switch a whole category off. A workspace-wide rate guard
+  // holds back bursts. Rate-limited messages are skipped without a record, so a
+  // later run can still send them.
+  const { data: control } = await db
+    .from("slack_category_controls")
+    .select("enabled")
+    .eq("category", category)
+    .maybeSingle();
+  const categoryDisabled = control?.enabled === false;
+  if (!categoryDisabled) {
+    const { count } = await db
+      .from("slack_notification_deliveries")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", new Date(Date.now() - 60_000).toISOString());
+    if (isOverLimit(count ?? 0, RATE_LIMIT_PER_MINUTE)) return "suppressed";
+  }
+
   const optInColumn = CATEGORY_PREFERENCE[category];
-  const suppressReason = !preferences.slack_enabled
-    ? "Slack notifications disabled by recipient"
-    : OPT_IN_CATEGORIES.has(category) && preferenceRow?.[optInColumn] !== true
-      ? "Recipient has not opted in to this message"
-      : optInColumn &&
-          !OPT_IN_CATEGORIES.has(category) &&
-          preferenceRow?.[optInColumn] === false
-        ? "Recipient disabled this notification category"
-        : !critical && !digest && preferences.slack_delivery === "digest"
-          ? "Recipient chose digest delivery"
-          : !critical &&
-              isInQuietHours(
-                preferences.slack_quiet_start,
-                preferences.slack_quiet_end,
-                preferences.slack_timezone,
-                new Date(),
-              )
-            ? "Deferred for recipient quiet hours"
-            : null;
+  const suppressReason = categoryDisabled
+    ? "Turned off for all staff by an administrator"
+    : !preferences.slack_enabled
+      ? "Slack notifications disabled by recipient"
+      : OPT_IN_CATEGORIES.has(category) && preferenceRow?.[optInColumn] !== true
+        ? "Recipient has not opted in to this message"
+        : optInColumn &&
+            !OPT_IN_CATEGORIES.has(category) &&
+            preferenceRow?.[optInColumn] === false
+          ? "Recipient disabled this notification category"
+          : !critical && !digest && preferences.slack_delivery === "digest"
+            ? "Recipient chose digest delivery"
+            : !critical &&
+                isInQuietHours(
+                  preferences.slack_quiet_start,
+                  preferences.slack_quiet_end,
+                  preferences.slack_timezone,
+                  new Date(),
+                )
+              ? "Deferred for recipient quiet hours"
+              : null;
 
   const { error: reservationError } = await db
     .from("slack_notification_deliveries")

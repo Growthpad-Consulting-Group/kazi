@@ -5,6 +5,12 @@ export type FollowThroughItem = {
   source: string;
   href: string;
   dueAt: Date | null;
+  /** Where the commitment came from, so it can become an Asana task. */
+  createFrom?: {
+    sourceType: "one_on_one_action" | "development_action";
+    sourceId: string;
+    actionIndex: number;
+  };
 };
 
 const MAX_ITEMS = 3;

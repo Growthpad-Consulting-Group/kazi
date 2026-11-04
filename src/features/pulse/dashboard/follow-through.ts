@@ -44,15 +44,25 @@ export async function loadFollowThrough(
           timeZone: "UTC",
         })
       : "Undated";
-    return (meeting.action_items ?? [])
-      .filter((item) => !item.done)
-      .map((item, index) => ({
-        id: `${meeting.id}:${index}`,
-        text: item.text,
-        source: `1-on-1 · ${label}`,
-        href: `/pulse/one-on-ones/${meeting.id}`,
-        dueAt: null,
-      }));
+    // The index is the item's real position, so it stays valid when Asana tasks are created from it.
+    return (meeting.action_items ?? []).flatMap((item, index) =>
+      item.done
+        ? []
+        : [
+            {
+              id: `${meeting.id}:${index}`,
+              text: item.text,
+              source: `1-on-1 · ${label}`,
+              href: `/pulse/one-on-ones/${meeting.id}`,
+              dueAt: null,
+              createFrom: {
+                sourceType: "one_on_one_action" as const,
+                sourceId: meeting.id,
+                actionIndex: index,
+              },
+            },
+          ],
+    );
   });
 
   const planItems: FollowThroughItem[] = (
@@ -63,15 +73,26 @@ export async function loadFollowThrough(
         { text: string; due_date: string | null; done: boolean }[] | null;
     }[]
   ).flatMap((plan) =>
-    (plan.actions ?? [])
-      .filter((action) => !action.done)
-      .map((action, index) => ({
-        id: `${plan.id}:${index}`,
-        text: action.text,
-        source: plan.title,
-        href: "/pulse/idps",
-        dueAt: action.due_date ? new Date(`${action.due_date}T23:59:59`) : null,
-      })),
+    (plan.actions ?? []).flatMap((action, index) =>
+      action.done
+        ? []
+        : [
+            {
+              id: `${plan.id}:${index}`,
+              text: action.text,
+              source: plan.title,
+              href: "/pulse/idps",
+              dueAt: action.due_date
+                ? new Date(`${action.due_date}T23:59:59`)
+                : null,
+              createFrom: {
+                sourceType: "development_action" as const,
+                sourceId: plan.id,
+                actionIndex: index,
+              },
+            },
+          ],
+    ),
   );
 
   return rankFollowThrough([...planItems, ...meetingItems]);

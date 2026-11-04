@@ -17,13 +17,19 @@ export default async function IntegrationsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: asanaRow } = (await (supabaseAdmin as any)
     .from("asana_connections")
-    .select("workspace_name, created_at, share_task_health_with_manager")
+    .select(
+      "workspace_name, created_at, share_task_health_with_manager, last_synced_at, last_sync_error, selected_project_gids, include_in_slack_brief",
+    )
     .eq("user_id", session.user.id)
     .maybeSingle()) as {
     data: {
       workspace_name?: string;
       created_at?: string;
       share_task_health_with_manager?: boolean;
+      last_synced_at?: string | null;
+      last_sync_error?: string | null;
+      selected_project_gids?: string[];
+      include_in_slack_brief?: boolean;
     } | null;
   };
 
@@ -67,6 +73,10 @@ export default async function IntegrationsPage() {
           workspace: asanaRow?.workspace_name,
           connectedAt: asanaRow?.created_at,
           sharesWithManager: Boolean(asanaRow?.share_task_health_with_manager),
+          lastSyncedAt: asanaRow?.last_synced_at ?? null,
+          lastSyncError: asanaRow?.last_sync_error ?? null,
+          selectedProjects: asanaRow?.selected_project_gids ?? [],
+          includeInSlackBrief: asanaRow?.include_in_slack_brief ?? true,
         }}
         canManageOrg={isAdmin}
         googleWorkspaceConnected={googleConnected}
