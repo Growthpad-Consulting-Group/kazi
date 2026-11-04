@@ -11,6 +11,7 @@ import {
 } from "@/lib/google-calendar";
 import { sendOneOnOneSlackDMs } from "@/lib/slack";
 import { notifyOneOnOneScheduled } from "@/lib/notifications";
+import { notifyPulseMentions } from "@/lib/pulse-mentions";
 
 type UserRow = { id: string; name: string; email: string };
 type OneOnOneParticipants = {
@@ -81,6 +82,20 @@ export async function PATCH(
     managerId: participants?.manager_id ?? undefined,
     reportId: participants?.report_id ?? undefined,
   });
+
+  if (typeof notes === "string") {
+    await notifyPulseMentions({
+      sourceType: "one_on_one_notes",
+      sourceId: id,
+      text: notes,
+      actorId: session.user.id,
+      allowedRecipientIds: [
+        participants.manager_id,
+        participants.report_id,
+      ].filter((participantId): participantId is string => !!participantId),
+      link: `/pulse/one-on-ones/${id}`,
+    });
+  }
 
   // Calendar sync (non-blocking)
   if (scheduledAt !== undefined && participants?.manager_id) {

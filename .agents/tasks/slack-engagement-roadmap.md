@@ -60,7 +60,7 @@
   - Friday afternoon: send managers a concise review queue.
   - Acceptance: reminders stop as soon as the check-in/review is complete.
 
-- [ ] **9. Add Kazi mentions and threaded conversation alerts.**
+- [~] **9. Add Kazi mentions and threaded conversation alerts.** *(privacy-safe `@Name` mentions now work in shared 1-on-1 notes for the other authorised participant; dedicated comments/threads for goals, feedback and review collaboration remain.)*
   - Introduce `@name` mentions in supported Kazi notes/comments (1-on-1s, goals, feedback and review collaboration where appropriate).
   - Parse only valid active staff mentions, create an in-app notification and DM the mentioned person with a direct deep link.
   - Preserve the comment thread in Kazi; Slack replies are not treated as Kazi records in this phase.
