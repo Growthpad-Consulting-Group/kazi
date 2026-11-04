@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import type { AttentionItem } from "../manager-queue";
+import { goHref } from "@/features/pulse/measurement";
 
 const URGENCY: Record<
   AttentionItem["urgency"],
@@ -87,7 +88,7 @@ export default function AttentionQueue({ items }: { items: AttentionItem[] }) {
                   </div>
                 </div>
                 <Link
-                  href={item.href}
+                  href={goHref("attention", item.id, item.href)}
                   className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--surface)] sm:self-center"
                 >
                   {item.actionLabel}

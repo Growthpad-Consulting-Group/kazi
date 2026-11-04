@@ -27,6 +27,12 @@ import CultureSpotlightCard from "./CultureSpotlightCard";
 import { loadCultureSpotlight } from "../culture-spotlight-data";
 import { loadFollowThrough } from "../follow-through";
 import FollowThroughCard from "./FollowThroughCard";
+import HomeModuleCards from "./HomeModuleCards";
+import {
+  loadHomeModuleCards,
+  loadHomeModuleSelection,
+} from "../home-module-data";
+import { recordQueueLifecycle } from "@/lib/pulse-queue-log";
 
 type GoalSummary = {
   id: string;
@@ -184,6 +190,15 @@ export default async function PulseDashboard() {
         ).length,
         now,
       });
+  if (!isManager)
+    await recordQueueLifecycle({
+      userId,
+      scope: "employee",
+      kinds: nextSteps.map((step) => step.kind),
+      now,
+    });
+  const homeModules = await loadHomeModuleSelection(userId);
+  const moduleCards = await loadHomeModuleCards(userId, homeModules, now);
   const [myWeek, cultureSpotlight, followThrough] = isManager
     ? [null, null, null]
     : await Promise.all([
@@ -270,6 +285,12 @@ export default async function PulseDashboard() {
       userId,
       weekStart,
     );
+    await recordQueueLifecycle({
+      userId,
+      scope: "attention",
+      kinds: attention.map((item) => item.id),
+      now,
+    });
     const [surveys, quests, candidates] = await Promise.all([
       can(session.user.role, "manage_surveys")
         ? (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- engagement tables have newer columns than generated types
@@ -510,6 +531,7 @@ export default async function PulseDashboard() {
             total={followThrough.total}
           />
         )}
+        {moduleCards.length > 0 && <HomeModuleCards cards={moduleCards} />}
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.85fr)]">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
             <SectionTitle
@@ -798,6 +820,11 @@ export default async function PulseDashboard() {
                 href="/pulse/impact"
                 icon="solar:graph-up-broken"
                 label="My impact"
+              />
+              <QuickLink
+                href="/pulse/customise"
+                icon="solar:widget-2-broken"
+                label="Customise home"
               />
             </div>
           </section>

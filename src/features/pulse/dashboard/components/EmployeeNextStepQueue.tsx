@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import type { NextStep } from "../next-steps";
+import { goHref } from "@/features/pulse/measurement";
 
 const KIND_ICON: Record<NextStep["kind"], string> = {
   review_acknowledgement: "solar:document-text-broken",
@@ -61,8 +62,8 @@ export default function EmployeeNextStepQueue({
         <>
           <div className="flex flex-col gap-4 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/25">
-                <Icon icon={KIND_ICON[primary.kind]} className="h-5 w-5" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                <Icon icon={KIND_ICON[primary.kind]} className="h-3.5 w-3.5" />
               </span>
               <div className="min-w-0">
                 <span
@@ -79,7 +80,7 @@ export default function EmployeeNextStepQueue({
               </div>
             </div>
             <Link
-              href={primary.href}
+              href={goHref("employee", primary.kind, primary.href)}
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600"
             >
               {primary.actionLabel}
@@ -92,7 +93,7 @@ export default function EmployeeNextStepQueue({
               {rest.map((step) => (
                 <li key={step.kind}>
                   <Link
-                    href={step.href}
+                    href={goHref("employee", step.kind, step.href)}
                     className="group flex items-center justify-between gap-3 py-3 transition-colors hover:text-brand-500"
                   >
                     <span className="flex min-w-0 items-center gap-3">

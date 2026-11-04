@@ -88,12 +88,12 @@
 
 ## P2 — Measurement and refinement
 
-- [ ] **14. Instrument Pulse usefulness, not surveillance.**
+- [x] **14. Instrument Pulse usefulness, not surveillance.** *(Queue items record when they appear and when they clear, and prompt clicks go through a validated redirect. Clicks store only the prompt kind and time. Admins see aggregates under Analytics → Prompt usefulness, and groups under five people are hidden. Requires migration 20261104000017 to be applied.)*
   - Measure aggregate completion of action-queue items, reminder suppression, clicked deep links and unresolved duration by category.
   - Do not track browsing behaviour, keystrokes or time spent reading sensitive pages.
   - Acceptance: the team can identify noisy or ineffective prompts without creating employee surveillance.
 
-- [ ] **15. Add configurable home modules after the core queue is proven.**
+- [x] **15. Add configurable home modules after the core queue is proven.** *(Staff can add optional cards for rewards, recognition, goals and upcoming 1-on-1s from Customise home. The action queue is always shown first and cannot be hidden. Requires migration 20261104000017 to be applied.)*
   - Let staff choose from approved optional modules such as rewards, recognition, goals or upcoming events.
   - Keep the action queue fixed and prioritised.
   - Acceptance: personalisation cannot hide mandatory or sensitive action items.
