@@ -243,6 +243,40 @@ export function buildHallOfFameClosingReminder(input: {
   };
 }
 
+/** A private guardrail for a timer that was probably left running. */
+export function buildTimerRunningReminder(input: {
+  task: string;
+  elapsedHours: number;
+  urgent: boolean;
+  appUrl: string;
+}): SlackMessage {
+  const text = input.urgent
+    ? `Your timer for ${input.task} has been running for about ${input.elapsedHours} hours. Stop it now so today's log stays accurate.`
+    : `Your timer for ${input.task} has been running for about ${input.elapsedHours} hours. Still working on it?`;
+  return {
+    text,
+    blocks: [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: input.urgent ? "Timer still running" : "Timer check-in",
+        },
+      },
+      { type: "section", text: { type: "mrkdwn", text } },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `<${input.appUrl}/pulse/checkins?tab=daily|Open and stop timer in Kazi>`,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 /** Released review results waiting for the employee's acknowledgement. */
 export function buildReviewAcknowledgementReminder(input: {
   outstanding: number;

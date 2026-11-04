@@ -212,12 +212,13 @@ export async function POST(request: Request) {
  * Claims are stored as { entry, merged }. Older claims hold the bare entry.
  */
 function storedStop(stored: unknown): {
-  entry: DailyLogEntry;
+  entry: DailyLogEntry | null;
   merged: boolean;
 } {
-  const value = stored as { entry?: DailyLogEntry; merged?: boolean };
+  const value = stored as { entry?: DailyLogEntry | null; merged?: boolean };
   if (value && typeof value.entry === "object")
     return { entry: value.entry, merged: value.merged === true };
+  if (value?.entry === null) return { entry: null, merged: false };
   return { entry: stored as DailyLogEntry, merged: false };
 }
 
@@ -269,9 +270,41 @@ async function stopTimer(
   const existing = await loadDailyEntries(owner.userId, row.log_date);
   if (!existing.ok)
     return respond(request, owner, { error: existing.error }, 500);
+  const usedMinutes = existing.entries.reduce(
+    (total, entry) => total + entry.minutes,
+    0,
+  );
+  const availableMinutes = Math.max(0, 24 * 60 - usedMinutes);
+  const capped = session.minutes > availableMinutes;
+
+  // A timer left running overnight must never become impossible to stop. Keep
+  // the time that fits the start day's remaining capacity; if the day is
+  // already full, close the timer without adding another invalid entry.
+  if (availableMinutes === 0) {
+    const cleared = await claimAndClearTimer({
+      owner,
+      timerId,
+      logDate: row.log_date,
+      stoppedAt,
+      entry: null,
+      merged: false,
+    });
+    if (!cleared.ok)
+      return respond(request, owner, { error: "Could not stop timer" }, 500);
+    return respond(request, owner, {
+      entry: null,
+      merged: false,
+      timer: null,
+      capped: true,
+      discarded: true,
+    });
+  }
+  const entryToMerge = capped
+    ? { ...session, minutes: availableMinutes }
+    : session;
   const { entries, resulting, merged } = mergeTimerEntry(
     existing.entries,
-    session,
+    entryToMerge,
   );
   const validated = validateDailyLogEntries(entries);
   if (!validated.ok)
@@ -331,7 +364,53 @@ async function stopTimer(
     .eq("user_id", owner.userId)
     .eq("timer_id", timerId);
 
-  return respond(request, owner, { entry: resulting, merged, timer: null });
+  return respond(request, owner, {
+    entry: resulting,
+    merged,
+    timer: null,
+    capped,
+  });
+}
+
+async function claimAndClearTimer({
+  owner,
+  timerId,
+  logDate,
+  stoppedAt,
+  entry,
+  merged,
+}: {
+  owner: Owner;
+  timerId: string;
+  logDate: string;
+  stoppedAt: Date;
+  entry: DailyLogEntry | null;
+  merged: boolean;
+}): Promise<{ ok: true } | { ok: false }> {
+  const { error: claimError } = await db.from("shared_timer_stops").insert({
+    user_id: owner.userId,
+    timer_id: timerId,
+    log_date: logDate,
+    entry: { entry, merged },
+    stopped_at: stoppedAt.toISOString(),
+  });
+  // Another tab may have claimed the same stop. Clearing again is safe and
+  // recovers the rare case where its final delete was interrupted.
+  if (claimError?.code === "23505") {
+    const { error: deleteError } = await db
+      .from("shared_active_timers")
+      .delete()
+      .eq("user_id", owner.userId)
+      .eq("timer_id", timerId);
+    return deleteError ? { ok: false } : { ok: true };
+  }
+  if (claimError) return { ok: false };
+  const { error: deleteError } = await db
+    .from("shared_active_timers")
+    .delete()
+    .eq("user_id", owner.userId)
+    .eq("timer_id", timerId);
+  return deleteError ? { ok: false } : { ok: true };
 }
 
 /** Clamp a client-reported stop time so it cannot precede the start or lie in the future. */

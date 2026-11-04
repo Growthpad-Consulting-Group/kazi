@@ -60,6 +60,10 @@
   - Friday afternoon: send managers a concise review queue.
   - Acceptance: reminders stop as soon as the check-in/review is complete.
 
+- [x] **8a. Add long-running timer guardrails.**
+  - Send the timer owner a private Slack check-in after eight hours and a stronger reminder at twenty hours, keyed per timer and respecting Slack preferences/quiet hours.
+  - Acceptance: an accidentally running timer can be stopped before it blocks the daily log; no timer details reach a public channel.
+
 - [x] **9. Add Kazi mentions and threaded conversation alerts.** *(`@Name` mentions in 1-on-1 notes, goal descriptions, public recognition and review text notify only the authorised people involved, with generic wording and no source text. Mentions attach to these existing text fields rather than new comment threads.)*
   - Introduce `@name` mentions in supported Kazi notes/comments (1-on-1s, goals, feedback and review collaboration where appropriate).
   - Parse only valid active staff mentions, create an in-app notification and DM the mentioned person with a direct deep link.

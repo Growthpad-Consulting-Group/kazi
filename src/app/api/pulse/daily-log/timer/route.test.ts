@@ -225,6 +225,44 @@ describe("shared timer API", () => {
     expect(body.entry.minutes).toBe(1);
   });
 
+  it("caps an overlong timer to the remaining capacity instead of trapping it", async () => {
+    store.tables.daily_activity_logs.push({
+      user_id: USER,
+      log_date: today,
+      entries: [
+        {
+          task: "Earlier work",
+          client: null,
+          category: "Projects",
+          minutes: 30,
+        },
+      ],
+    });
+    await PUT(
+      request("PUT", {
+        timer: timer({
+          startedAt: null,
+          running: false,
+          accumulatedMs: 24 * 60 * 60 * 1000,
+        }),
+      }),
+    );
+
+    const response = await POST(
+      request("POST", { action: "stop", timerId: TIMER_ID }),
+    );
+    const body = await response.json();
+    const entries = store.tables.daily_activity_logs[0].entries as {
+      minutes: number;
+    }[];
+    const total = entries.reduce((sum, entry) => sum + entry.minutes, 0);
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ capped: true, entry: { minutes: 1410 } });
+    expect(total).toBe(1440);
+    expect(store.tables.shared_active_timers).toHaveLength(0);
+  });
+
   it("resending a started timer with the same id is idempotent", async () => {
     await PUT(request("PUT", { timer: timer() }));
     const again = await PUT(request("PUT", { timer: timer() }));

@@ -814,8 +814,10 @@ export function DailyLogPage({
       }).catch(() => null);
       const json = (await response?.json().catch(() => null)) as {
         error?: string;
-        entry?: DailyLogEntry;
+        entry?: DailyLogEntry | null;
         merged?: boolean;
+        capped?: boolean;
+        discarded?: boolean;
       } | null;
       if (!response?.ok) {
         // Still running on the server, so put the timer back.
@@ -823,6 +825,12 @@ export function DailyLogPage({
         setActiveTimer(stopping);
         toast.error(
           json?.error ?? "Could not stop the timer. It is still running.",
+        );
+        return;
+      }
+      if (json?.discarded) {
+        toast.success(
+          "Timer stopped. No time was added because this day is already full.",
         );
         return;
       }
@@ -837,7 +845,11 @@ export function DailyLogPage({
         applyStoppedEntry(current, stopping.rowId, entry, merged),
       );
       setIsDirty(true);
-      toast.success(`Timer stopped at ${formatElapsed(totalMs)}.`);
+      toast.success(
+        json?.capped
+          ? "Timer stopped. Time was capped at the remaining capacity for that day."
+          : `Timer stopped at ${formatElapsed(totalMs)}.`,
+      );
     });
   };
 

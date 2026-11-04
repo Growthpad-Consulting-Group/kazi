@@ -8,6 +8,7 @@ import {
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
   buildOneOnOneReminder,
+  buildTimerRunningReminder,
 } from "./slack-digests";
 
 const appUrl = "https://kazi.example";
@@ -117,6 +118,32 @@ describe("Wall of Fame reminders", () => {
     expect(JSON.stringify(message.blocks)).toContain(
       "Open Wall of Fame in Kazi",
     );
+  });
+});
+
+describe("long-running timer reminders", () => {
+  it("keeps the timer reminder private, actionable and short", () => {
+    const reminder = buildTimerRunningReminder({
+      task: "Prepare client proposal",
+      elapsedHours: 8,
+      urgent: false,
+      appUrl,
+    });
+    expect(reminder.text).toContain("8 hours");
+    expect(JSON.stringify(reminder.blocks)).toContain(
+      "Open and stop timer in Kazi",
+    );
+  });
+
+  it("uses a stronger message before the daily limit", () => {
+    expect(
+      buildTimerRunningReminder({
+        task: "Prepare client proposal",
+        elapsedHours: 20,
+        urgent: true,
+        appUrl,
+      }).text,
+    ).toContain("Stop it now");
   });
 });
 

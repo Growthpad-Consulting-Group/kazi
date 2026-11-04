@@ -28,6 +28,7 @@ import {
   buildOneOnOneFollowUp,
   buildOneOnOneReminder,
   buildReviewAcknowledgementReminder,
+  buildTimerRunningReminder,
 } from "@/lib/slack-digests";
 import { buildCultureRecap } from "@/lib/culture-recap";
 
@@ -40,6 +41,8 @@ const REMINDER_LEAD_MINUTES = 90;
 const FOLLOW_UP_MIN_AGE_MINUTES = 60;
 const FOLLOW_UP_MAX_AGE_MINUTES = 180;
 const WORKING_DAYS_DEFAULT = [1, 2, 3, 4, 5];
+const TIMER_REMINDER_HOURS = 8;
+const TIMER_URGENT_REMINDER_HOURS = 20;
 
 export type DigestCounts = {
   delivered: number;
@@ -57,6 +60,7 @@ export type DigestCounts = {
   hallOfFameReminders: number;
   cultureRecaps: number;
   cultureAnnouncements: number;
+  timerReminders: number;
 };
 
 type UserRow = {
@@ -103,6 +107,7 @@ function emptyCounts(): DigestCounts {
     hallOfFameReminders: 0,
     cultureRecaps: 0,
     cultureAnnouncements: 0,
+    timerReminders: 0,
   };
 }
 
@@ -278,9 +283,84 @@ export async function runSlackDigests(
   await sendInterviewReminders(now, byId, prefs, counts);
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
   await sendHallOfFameClosingReminder(now, counts);
+  await sendLongRunningTimerReminders(now, byId, prefs, counts);
   await publishCultureAnnouncements(now, byId, prefs, counts);
   await sendWeeklyCultureRecap(now, byId, prefs, counts);
   return counts;
+}
+
+type SharedTimerRow = {
+  user_id: string;
+  timer_id: string;
+  timer: {
+    task?: string;
+    running?: boolean;
+    startedAt?: string | null;
+    accumulatedMs?: number;
+  };
+};
+
+/**
+ * A running timer is private work data, so this is intentionally a DM to its
+ * owner only. A normal check-in at eight hours and an urgent check at twenty
+ * hours make an accidental overnight timer recoverable before the daily limit.
+ */
+async function sendLongRunningTimerReminders(
+  now: Date,
+  byId: Map<string, UserRow>,
+  prefs: Map<string, PrefRow>,
+  counts: DigestCounts,
+) {
+  const { data, error } = await db
+    .from("shared_active_timers")
+    .select("user_id,timer_id,timer");
+  if (error) {
+    console.error("Could not load active timers for Slack reminders", error);
+    return;
+  }
+
+  for (const row of (data ?? []) as SharedTimerRow[]) {
+    const timer = row.timer;
+    if (!timer?.running || !timer.startedAt || !byId.has(row.user_id)) continue;
+    const preference = prefs.get(row.user_id);
+    if (preference?.slack_enabled === false) continue;
+    // Do not reserve the once-per-timer delivery while the owner is in quiet
+    // hours. A later hourly run can send it when their local quiet window ends.
+    if (
+      isInQuietHours(
+        preference?.slack_quiet_start ?? null,
+        preference?.slack_quiet_end ?? null,
+        preference?.slack_timezone ?? DEFAULT_TIMEZONE,
+        now,
+      )
+    )
+      continue;
+    const startedAt = new Date(timer.startedAt).getTime();
+    if (Number.isNaN(startedAt)) continue;
+    const elapsedMs = Math.max(
+      0,
+      (timer.accumulatedMs ?? 0) + now.getTime() - startedAt,
+    );
+    const elapsedHours = Math.floor(elapsedMs / 3_600_000);
+    if (elapsedHours < TIMER_REMINDER_HOURS) continue;
+    const urgent = elapsedHours >= TIMER_URGENT_REMINDER_HOURS;
+    const message = buildTimerRunningReminder({
+      task: timer.task?.trim() || "your current activity",
+      elapsedHours,
+      urgent,
+      appUrl: appUrl(),
+    });
+    const outcome = await deliverSlackNotification({
+      eventKey: `timer-running-${urgent ? "urgent" : "check"}:${row.timer_id}`,
+      recipientUserId: row.user_id,
+      category: "timer_reminder",
+      text: message.text,
+      blocks: message.blocks,
+      digest: true,
+    });
+    record(counts, outcome);
+    if (outcome === "delivered") counts.timerReminders += 1;
+  }
 }
 
 async function sendDailyBrief(
