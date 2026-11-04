@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- attachments are dynamic R2 images. */
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
 
@@ -16,7 +17,17 @@ export type VoiceOutReport = {
   allows_follow_up: boolean;
   attachments: string[];
   created_at: string;
+  handoffs?: VoiceOutHandoff[];
 };
+export type VoiceOutHandoff = {
+  id: string;
+  from_owner_name: string | null;
+  to_owner_name: string;
+  created_by_name: string;
+  note: string | null;
+  created_at: string;
+};
+export type VoiceOutOwner = { id: string; name: string };
 const topicLabels: Record<string, string> = {
   workplace: "Workplace",
   wellbeing: "Wellbeing",
@@ -25,7 +36,16 @@ const topicLabels: Record<string, string> = {
   other: "Other",
 };
 
-export function VoiceOutQueue({ reports }: { reports: VoiceOutReport[] }) {
+export function VoiceOutQueue({
+  reports,
+  owners,
+  viewerId,
+}: {
+  reports: VoiceOutReport[];
+  owners: VoiceOutOwner[];
+  viewerId: string;
+}) {
+  const router = useRouter();
   const [items, setItems] = useState(reports);
   const [saving, setSaving] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>(() =>
@@ -34,6 +54,13 @@ export function VoiceOutQueue({ reports }: { reports: VoiceOutReport[] }) {
     ),
   );
   const [replies, setReplies] = useState<Record<string, string>>({});
+  const [handoffOwners, setHandoffOwners] = useState<Record<string, string>>(
+    () =>
+      Object.fromEntries(
+        reports.map((report) => [report.id, report.owner_id ?? ""]),
+      ),
+  );
+  const [handoffNotes, setHandoffNotes] = useState<Record<string, string>>({});
 
   async function update(id: string, changes: Record<string, string | boolean>) {
     setSaving(id);
@@ -50,11 +77,16 @@ export function VoiceOutQueue({ reports }: { reports: VoiceOutReport[] }) {
             ? ({
                 ...item,
                 ...changes,
-                owner_id: changes.take_ownership ? "assigned" : item.owner_id,
+                owner_id: changes.take_ownership
+                  ? viewerId
+                  : typeof changes.owner_id === "string"
+                    ? changes.owner_id
+                    : item.owner_id,
               } as VoiceOutReport)
             : item,
         ),
       );
+      router.refresh();
     } finally {
       setSaving(null);
     }
@@ -150,6 +182,64 @@ export function VoiceOutQueue({ reports }: { reports: VoiceOutReport[] }) {
               </Button>
             </div>
           </div>
+          <div className="mt-4 grid gap-2 rounded-xl bg-[var(--surface-2)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
+            <select
+              aria-label="Assign case owner"
+              value={handoffOwners[report.id] ?? ""}
+              onChange={(event) =>
+                setHandoffOwners((current) => ({
+                  ...current,
+                  [report.id]: event.target.value,
+                }))
+              }
+              disabled={saving === report.id}
+              className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-hi)] outline-none focus:border-brand-500/60"
+            >
+              <option value="">Assign case owner…</option>
+              {owners.map((owner) => (
+                <option key={owner.id} value={owner.id}>
+                  {owner.name}
+                </option>
+              ))}
+            </select>
+            <input
+              value={handoffNotes[report.id] ?? ""}
+              onChange={(event) =>
+                setHandoffNotes((current) => ({
+                  ...current,
+                  [report.id]: event.target.value,
+                }))
+              }
+              maxLength={1000}
+              placeholder="Hand-off context (optional)"
+              className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-hi)] outline-none focus:border-brand-500/60"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={saving === report.id}
+              disabled={
+                !handoffOwners[report.id] ||
+                handoffOwners[report.id] === report.owner_id
+              }
+              onClick={() =>
+                update(report.id, {
+                  owner_id: handoffOwners[report.id],
+                  handoff_note: handoffNotes[report.id] ?? "",
+                })
+              }
+            >
+              {report.owner_id ? "Hand off" : "Assign"}
+            </Button>
+          </div>
+          {report.handoffs?.length ? (
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-lo)]">
+              Latest hand-off:{" "}
+              {report.handoffs[0].from_owner_name ?? "Unassigned"} →{" "}
+              {report.handoffs[0].to_owner_name}
+              {report.handoffs[0].note ? ` · ${report.handoffs[0].note}` : ""}
+            </p>
+          ) : null}
           <div className="mt-4 border-t border-[var(--border)] pt-4">
             <label className="text-xs font-semibold text-[var(--text-hi)]">
               Internal case note

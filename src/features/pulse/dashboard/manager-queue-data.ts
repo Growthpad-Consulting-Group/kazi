@@ -40,11 +40,12 @@ export async function loadManagerAttention({
   const canVoiceOut = can(role, "manage_voice_out");
   const canRewards = can(role, "manage_rewards");
   const canQuests = can(role, "manage_side_quests");
+  const canInterview = can(role, "conduct_interviews");
 
   const overtimeScopeIds: string[] | null =
     role === "manager" ? reportIds : canOvertime ? null : [];
 
-  const [overtime, voiceOut, reviews, redemptions, approvals] =
+  const [overtime, voiceOut, reviews, redemptions, approvals, interviews] =
     await Promise.all([
       overtimeScopeIds && !overtimeScopeIds.length
         ? Promise.resolve({ count: 0 })
@@ -84,7 +85,36 @@ export async function loadManagerAttention({
             .select("id", { count: "exact", head: true })
             .eq("status", "pending")
         : Promise.resolve({ count: null }),
+      canInterview
+        ? db
+            .from("candidate_interviews")
+            .select("candidate_id")
+            .contains("interviewer_ids", [userId])
+            .lt("scheduled_at", new Date().toISOString())
+            .limit(100)
+        : Promise.resolve({ data: null }),
     ]);
+
+  const interviewCandidateIds = [
+    ...new Set(
+      ((interviews.data ?? []) as { candidate_id: string }[]).map(
+        (interview) => interview.candidate_id,
+      ),
+    ),
+  ];
+  const submittedScorecards = interviewCandidateIds.length
+    ? await db
+        .from("interview_scorecards")
+        .select("candidate_id")
+        .eq("interviewer_id", userId)
+        .not("submitted_at", "is", null)
+        .in("candidate_id", interviewCandidateIds)
+    : { data: [] as { candidate_id: string }[] };
+  const submittedCandidateIds = new Set(
+    ((submittedScorecards.data ?? []) as { candidate_id: string }[]).map(
+      (scorecard) => scorecard.candidate_id,
+    ),
+  );
 
   const flaggedReports = teamCheckins.flatMap((checkin): Flag[] => {
     if (checkin.blockers?.trim())
@@ -101,6 +131,10 @@ export async function loadManagerAttention({
     checkinsAwaitingReview: teamCheckins.filter(
       (checkin) => checkin.status === "submitted",
     ).length,
+    overdueScorecards: canInterview
+      ? interviewCandidateIds.filter((id) => !submittedCandidateIds.has(id))
+          .length
+      : null,
     reviewsToComplete: reviews.count ?? 0,
     pendingRedemptions: redemptions.count ?? null,
     pendingQuestApprovals: approvals.count ?? null,

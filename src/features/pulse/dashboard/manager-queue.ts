@@ -3,6 +3,7 @@ export type AttentionKind =
   | "voice_out_case"
   | "overtime_request"
   | "checkin_review"
+  | "overdue_scorecard"
   | "review_to_complete"
   | "reward_redemption"
   | "side_quest_approval";
@@ -26,6 +27,8 @@ export type ManagerAttentionSignals = {
   pendingOvertime: number;
   /** Submitted check-ins from direct reports still awaiting review. */
   checkinsAwaitingReview: number;
+  /** Interview scorecards due after a completed interview. */
+  overdueScorecards: number | null;
   /** Performance reviews the viewer still has to complete. */
   reviewsToComplete: number;
   /** Pending reward redemptions, or null when the viewer cannot approve them. */
@@ -108,6 +111,18 @@ export function buildManagerAttention(
       urgency: "soon",
       actionLabel: "Review check-ins",
       href: "/pulse/checkins?tab=team",
+    });
+  }
+
+  if (signals.overdueScorecards) {
+    items.push({
+      id: "overdue_scorecard",
+      title:
+        plural(signals.overdueScorecards, "interview scorecard") + " overdue",
+      reason: "An interview has finished and your feedback is still needed.",
+      urgency: "urgent",
+      actionLabel: "Open interviews",
+      href: "/hire/candidates?stage=interview",
     });
   }
 

@@ -6,7 +6,12 @@ import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { VoiceOutForm } from "./VoiceOutForm";
-import { VoiceOutQueue, type VoiceOutReport } from "./VoiceOutQueue";
+import {
+  VoiceOutQueue,
+  type VoiceOutHandoff,
+  type VoiceOutOwner,
+  type VoiceOutReport,
+} from "./VoiceOutQueue";
 import { VoiceOutInsights, type VoiceOutInsight } from "./VoiceOutInsights";
 
 export default async function VoiceOutPage() {
@@ -14,7 +19,7 @@ export default async function VoiceOutPage() {
   if (!session) return null;
   const canManage = can(session.user.role, "manage_voice_out");
   const canViewInsights = can(session.user.role, "view_analytics");
-  const [queueResult, insightResult] = await Promise.all([
+  const [queueResult, insightResult, ownersResult] = await Promise.all([
     canManage
       ? supabaseAdmin
           .from("voice_out_reports")
@@ -29,10 +34,77 @@ export default async function VoiceOutPage() {
           .from("voice_out_reports")
           .select("topic, status, priority, sentiment, created_at")
       : Promise.resolve({ data: [] }),
+    canManage
+      ? supabaseAdmin
+          .from("users")
+          .select("id,name")
+          .eq("is_active", true)
+          .in("role", ["admin", "hr"])
+          .order("name")
+      : Promise.resolve({ data: [] }),
   ]);
   const data = queueResult.data;
   const reports = (data ?? []) as unknown as VoiceOutReport[];
+  const reportIds = reports.map((report) => report.id);
+  const { data: handoffRows } = reportIds.length
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table awaits generated types
+      await (supabaseAdmin as any)
+        .from("voice_out_handoffs")
+        .select(
+          "id,report_id,from_owner_id,to_owner_id,created_by,note,created_at",
+        )
+        .in("report_id", reportIds)
+        .order("created_at", { ascending: false })
+        .limit(200)
+    : { data: [] };
+  const handoffs = (handoffRows ?? []) as {
+    id: string;
+    report_id: string;
+    from_owner_id: string | null;
+    to_owner_id: string;
+    created_by: string;
+    note: string | null;
+    created_at: string;
+  }[];
+  const handoffUserIds = [
+    ...new Set(
+      handoffs.flatMap((handoff) =>
+        [handoff.from_owner_id, handoff.to_owner_id, handoff.created_by].filter(
+          (id): id is string => !!id,
+        ),
+      ),
+    ),
+  ];
+  const { data: handoffUsers } = handoffUserIds.length
+    ? await supabaseAdmin
+        .from("users")
+        .select("id,name")
+        .in("id", handoffUserIds)
+    : { data: [] };
+  const userNames = new Map(
+    (handoffUsers ?? []).map((user) => [user.id, user.name]),
+  );
+  const handoffsByReport = new Map<string, VoiceOutHandoff[]>();
+  for (const handoff of handoffs) {
+    const item: VoiceOutHandoff = {
+      id: handoff.id,
+      from_owner_name: handoff.from_owner_id
+        ? (userNames.get(handoff.from_owner_id) ?? "Former owner")
+        : null,
+      to_owner_name: userNames.get(handoff.to_owner_id) ?? "Assigned owner",
+      created_by_name: userNames.get(handoff.created_by) ?? "HR team",
+      note: handoff.note,
+      created_at: handoff.created_at,
+    };
+    handoffsByReport.set(handoff.report_id, [
+      ...(handoffsByReport.get(handoff.report_id) ?? []),
+      item,
+    ]);
+  }
+  for (const report of reports)
+    report.handoffs = handoffsByReport.get(report.id) ?? [];
   const insights = (insightResult.data ?? []) as unknown as VoiceOutInsight[];
+  const owners = (ownersResult.data ?? []) as VoiceOutOwner[];
   const open = reports.filter(
     (report) => report.status === "new" || report.status === "in_review",
   ).length;
@@ -112,7 +184,11 @@ export default async function VoiceOutPage() {
                   </p>
                 </div>
               </div>
-              <VoiceOutQueue reports={reports} />
+              <VoiceOutQueue
+                reports={reports}
+                owners={owners}
+                viewerId={session.user.id}
+              />
             </section>
           </>
         ) : (

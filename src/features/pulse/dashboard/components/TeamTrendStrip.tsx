@@ -30,8 +30,9 @@ export default function TeamTrendStrip({ trend }: { trend: TeamWeekTrend[] }) {
             </h2>
           </div>
           <p className="mt-2 text-xs text-[var(--text-lo)]">
-            Team-level check-in coverage, blockers and mood over eight weeks.
-            This is not a performance score for individuals.
+            Team-level check-in coverage, blockers, recognition and open
+            follow-through over eight weeks. This is not a performance score for
+            individuals.
           </p>
         </div>
         <Link
@@ -68,6 +69,9 @@ export default function TeamTrendStrip({ trend }: { trend: TeamWeekTrend[] }) {
               {week.averageMood === null
                 ? "No mood"
                 : `Mood ${week.averageMood}`}
+            </span>
+            <span className="text-[10px] text-[var(--text-lo)]">
+              {week.recognitions} kudos · {week.openActions} open
             </span>
             <span className="text-[10px] font-medium text-[var(--text-lo)]">
               {weekLabel(week.weekStart)}

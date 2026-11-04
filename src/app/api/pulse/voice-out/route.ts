@@ -107,6 +107,8 @@ export async function PATCH(req: Request) {
     priority?: string;
     internal_notes?: string;
     take_ownership?: boolean;
+    owner_id?: string;
+    handoff_note?: string;
     reply?: string;
   } | null;
   if (!body?.id)
@@ -138,6 +140,26 @@ export async function PATCH(req: Request) {
   if (typeof body.internal_notes === "string")
     update.internal_notes = body.internal_notes.trim() || null;
   if (body.take_ownership) update.owner_id = session.user.id;
+  if (typeof body.owner_id === "string" && body.owner_id) {
+    const { data: nextOwner } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("id", body.owner_id)
+      .eq("is_active", true)
+      .in("role", ["admin", "hr"])
+      .maybeSingle();
+    if (!nextOwner)
+      return NextResponse.json(
+        { error: "Choose an active HR or admin case owner." },
+        { status: 400 },
+      );
+    update.owner_id = nextOwner.id;
+  }
+  if (typeof body.handoff_note === "string" && body.handoff_note.length > 1000)
+    return NextResponse.json(
+      { error: "A hand-off note must be 1,000 characters or fewer." },
+      { status: 400 },
+    );
   if (body.reply?.trim()) {
     if (body.reply.trim().length > 2000)
       return NextResponse.json(
@@ -169,12 +191,39 @@ export async function PATCH(req: Request) {
     );
 
   if (Object.keys(update).length) {
-    const { error } = await supabaseAdmin
+    const { data: currentReport } = await supabaseAdmin
       .from("voice_out_reports")
-      .update(update)
-      .eq("id", body.id);
-    if (error)
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      .select("owner_id")
+      .eq("id", body.id)
+      .maybeSingle();
+    if (!currentReport)
+      return NextResponse.json({ error: "Report not found." }, { status: 404 });
+    if (update.owner_id && update.owner_id !== currentReport.owner_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table awaits generated types
+      const { error: handoffError } = await (supabaseAdmin as any).rpc(
+        "handoff_voice_out_report",
+        {
+          p_report_id: body.id,
+          p_to_owner_id: update.owner_id,
+          p_created_by: session.user.id,
+          p_note: body.handoff_note?.trim() || null,
+        },
+      );
+      if (handoffError)
+        return NextResponse.json(
+          { error: handoffError.message },
+          { status: 500 },
+        );
+      delete update.owner_id;
+    }
+    if (Object.keys(update).length) {
+      const { error } = await supabaseAdmin
+        .from("voice_out_reports")
+        .update(update)
+        .eq("id", body.id);
+      if (error)
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
   return NextResponse.json({ ok: true });
 }

@@ -44,6 +44,8 @@ describe("buildTeamTrend", () => {
       coverage: 50,
       blockers: 1,
       averageMood: 3,
+      recognitions: 0,
+      openActions: 0,
     });
   });
 
@@ -54,6 +56,8 @@ describe("buildTeamTrend", () => {
       coverage: 0,
       blockers: 0,
       averageMood: null,
+      recognitions: 0,
+      openActions: 0,
     });
   });
 

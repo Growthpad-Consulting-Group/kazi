@@ -9,6 +9,7 @@ const empty: ManagerAttentionSignals = {
   openVoiceOutCases: 0,
   pendingOvertime: 0,
   checkinsAwaitingReview: 0,
+  overdueScorecards: null,
   reviewsToComplete: 0,
   pendingRedemptions: null,
   pendingQuestApprovals: null,
@@ -67,5 +68,18 @@ describe("buildManagerAttention", () => {
       "side_quest_approval",
     ]);
     expect(items[1].title).toBe("4 reward redemptions");
+  });
+
+  it("surfaces overdue interviewer scorecards without candidate detail", () => {
+    const [item] = buildManagerAttention({
+      ...empty,
+      overdueScorecards: 2,
+    });
+    expect(item).toMatchObject({
+      id: "overdue_scorecard",
+      title: "2 interview scorecards overdue",
+      href: "/hire/candidates?stage=interview",
+    });
+    expect(item.reason).not.toMatch(/candidate/i);
   });
 });

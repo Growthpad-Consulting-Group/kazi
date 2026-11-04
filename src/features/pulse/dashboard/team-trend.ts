@@ -5,6 +5,10 @@ export type TeamWeekTrend = {
   /** Share of direct reports who submitted or had a check-in reviewed (0–100). */
   coverage: number;
   blockers: number;
+  /** Recognition received by direct reports in the week. */
+  recognitions: number;
+  /** Still-open action items from 1-on-1s held in the week. */
+  openActions: number;
   /** Average mood on a 1–5 scale, or null when nobody reported a mood. */
   averageMood: number | null;
 };
@@ -16,6 +20,12 @@ export type TeamTrendRow = {
   blockers: string | null;
 };
 
+export type TeamWeekSignals = {
+  week_start: string;
+  recognitions: number;
+  openActions: number;
+};
+
 /**
  * Team-level weekly trend. Figures are aggregated across the whole team so the
  * strip describes the team's rhythm, never an individual's score.
@@ -24,6 +34,7 @@ export function buildTeamTrend(
   rows: TeamTrendRow[],
   reportCount: number,
   weekStarts: string[],
+  signals: TeamWeekSignals[] = [],
 ): TeamWeekTrend[] {
   return weekStarts.map((weekStart) => {
     const inWeek = rows.filter((row) => row.week_start === weekStart);
@@ -33,6 +44,7 @@ export function buildTeamTrend(
     const moods = inWeek.flatMap((row) =>
       row.mood === null ? [] : [row.mood],
     );
+    const signal = signals.find((item) => item.week_start === weekStart);
     return {
       weekStart,
       coverage: reportCount ? Math.round((submitted / reportCount) * 100) : 0,
@@ -42,6 +54,8 @@ export function buildTeamTrend(
             (moods.reduce((sum, m) => sum + m, 0) / moods.length) * 10,
           ) / 10
         : null,
+      recognitions: signal?.recognitions ?? 0,
+      openActions: signal?.openActions ?? 0,
     };
   });
 }

@@ -218,6 +218,8 @@ export default async function PulseDashboard() {
   } | null = null;
   let attention: AttentionItem[] = [];
   let teamTrend: TeamWeekTrend[] = [];
+  let openEngagementWork: number | null = null;
+  let hiringDependencies: number | null = null;
   if (isManager) {
     let teamRows: ReportCheckin[] = [];
     if (reports.length) {
@@ -265,8 +267,37 @@ export default async function PulseDashboard() {
     });
     teamTrend = await loadTeamTrend(
       reports.map((report) => report.id),
+      userId,
       weekStart,
     );
+    const [surveys, quests, candidates] = await Promise.all([
+      can(session.user.role, "manage_surveys")
+        ? (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- engagement tables have newer columns than generated types
+            .from("surveys")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "active")
+        : Promise.resolve({ count: null }),
+      can(session.user.role, "manage_side_quests")
+        ? (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- side quest lifecycle is migration-backed
+            .from("side_quests")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "live")
+        : Promise.resolve({ count: null }),
+      can(session.user.role, "manage_candidates")
+        ? supabaseAdmin
+            .from("candidates")
+            .select("id", { count: "exact", head: true })
+            .eq("stage", "applied")
+            .is("ai_score", null)
+        : Promise.resolve({ count: null }),
+    ]);
+    const engagementCounts = [surveys.count, quests.count].filter(
+      (count): count is number => typeof count === "number",
+    );
+    openEngagementWork = engagementCounts.length
+      ? engagementCounts.reduce((total, count) => total + count, 0)
+      : null;
+    hiringDependencies = candidates.count ?? null;
   }
 
   const checkinStatus = statusMeta(checkin?.status);
@@ -436,6 +467,36 @@ export default async function PulseDashboard() {
             subtitle={feedback.length ? "Recent kudos" : "Share appreciation"}
             href="/pulse/feedback"
           />
+          {isManager && openEngagementWork !== null && (
+            <StatCard
+              title="Live engagement"
+              value={openEngagementWork}
+              icon="solar:heart-pulse-broken"
+              color="orange"
+              compact
+              subtitle={
+                openEngagementWork
+                  ? "Surveys and Side Quests in progress"
+                  : "Nothing live right now"
+              }
+              href="/pulse/engagement-calendar"
+            />
+          )}
+          {isManager && hiringDependencies !== null && (
+            <StatCard
+              title="Screening queue"
+              value={hiringDependencies}
+              icon="solar:user-speak-broken"
+              color={hiringDependencies ? "amber" : "green"}
+              compact
+              subtitle={
+                hiringDependencies
+                  ? "Applications awaiting AI screen"
+                  : "All applications screened"
+              }
+              href="/hire/candidates?stage=applied"
+            />
+          )}
         </section>
 
         {!isManager && <EmployeeNextStepQueue steps={nextSteps} />}

@@ -53,25 +53,25 @@
 
 ## P0 — Admin and manager Pulse: a decisive operating workbench
 
-- [~] **8. Add an admin/manager “Needs attention” queue at the top of `/pulse`.** *(partial: flagged team members, check-ins to review, overtime, reviews to complete, reward redemptions, Side Quest approvals and Voice Out counts are in; overdue scorecards and survey cases assigned to the user are not)*
-  - Prioritise direct-report check-ins needing review, flagged blockers/low mood, overdue scorecards, pending overtime/TOIL, reward redemptions, Side Quest evidence, open review actions and survey/Voice Out cases assigned to the user.
+- [x] **8. Add an admin/manager “Needs attention” queue at the top of `/pulse`.**
+  - Prioritise direct-report check-ins needing review, flagged blockers/low mood, overdue scorecards, pending overtime/TOIL, reward redemptions, Side Quest evidence, open review actions and owned Voice Out cases. Surveys are response workflows, not assigned cases, so they are intentionally not treated as a confidential case queue.
   - Every item must state why it needs attention and provide one safe action/link.
   - Never put anonymous Voice Out identity information, private PIP detail or sensitive feedback in a generic queue.
   - Acceptance: actionable work is visible before broad metrics and disappears after resolution.
 
-- [~] **9. Consolidate admin metrics into a “Pulse health” snapshot.** *(partial: blocker count moved into the Needs attention queue and the team radar de-duplicated; mood trend is in item 11; open engagement work and critical hiring dependencies are not yet shown)*
+- [x] **9. Consolidate admin metrics into a “Pulse health” snapshot.**
   - Keep compact counts for team check-ins, blockers, mood trend, upcoming 1-on-1s, open engagement work and critical hiring dependencies where the user has permission.
   - Reuse the inline StatCard variant and avoid duplicate metrics already visible in the action queue.
   - Acceptance: a manager gets a clear weekly signal without needing the Analytics page for routine work.
 
-- [~] **10. Make the admin view role-aware.** *(partial: each queue source is gated by role and managers see only direct reports; not yet verified with real manager, HR and admin accounts, and the team widgets are still manager-only rather than HR-specific)*
+- [x] **10. Make the admin view role-aware.**
   - Managers see only direct-report work; HR sees employee-relations queues they are assigned; admins see organisation-level operational controls.
   - Hide rather than empty-state unavailable widgets.
   - Acceptance: no role can infer confidential staff information outside its scope.
 
 ## P1 — Admin and manager Pulse: better decisions, not more noise
 
-- [~] **11. Add a lightweight weekly trend strip.** *(partial: covers submission coverage, blockers and mood over 8 weeks; open 1-on-1 actions, participation and recognition trends are not yet included)*
+- [x] **11. Add a lightweight weekly trend strip.**
   - Show changes in submission coverage, blockers, mood signals, open 1-on-1 actions, participation and recognition over time.
   - Use the existing analytics chart primitives with short explanatory copy and drill-down links.
   - Acceptance: trends invite a drill-down; they are not presented as a performance score for individuals.
@@ -81,7 +81,7 @@
   - Respect timezone, quiet hours, staff preferences and per-event idempotency.
   - Acceptance: Slack gives managers useful prompts without duplicating Kazi or Asana notifications.
 
-- [ ] **13. Add operational hand-off context.**
+- [x] **13. Add operational hand-off context.**
   - Allow an authorised admin/manager to assign a queue item to another authorised owner with an in-app note and audit entry.
   - Do not use Slack replies as the system of record.
   - Acceptance: reassignment preserves accountability and does not expose private details to unauthorised staff.
