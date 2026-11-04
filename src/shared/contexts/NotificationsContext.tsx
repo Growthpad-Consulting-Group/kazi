@@ -61,17 +61,47 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         JSON.stringify({ data: formatted, timestamp: Date.now() }),
       );
     } catch (error: unknown) {
+      // Keep the last good list so a transient failure doesn't clear it.
       console.warn("Notifications endpoint error:", (error as Error).message);
-      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // Poll only while this tab is visible. Focus and visibility changes sync
+    // once, so hidden tabs make no requests.
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const stop = () => {
+      if (interval !== undefined) clearInterval(interval);
+      interval = undefined;
+    };
+    const start = () => {
+      stop();
+      if (document.visibilityState !== "visible") return;
+      interval = setInterval(fetchNotifications, 30000);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifications();
+        start();
+      } else {
+        stop();
+      }
+    };
+    const onFocus = () => {
+      fetchNotifications();
+      start();
+    };
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    start();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [fetchNotifications]);
 
   const markNotificationAsRead = async (id: string) => {
