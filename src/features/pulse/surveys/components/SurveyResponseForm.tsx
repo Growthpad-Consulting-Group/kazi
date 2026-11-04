@@ -16,6 +16,15 @@ interface Props {
   }[];
 }
 
+function stableQuestionRank(questionId: string, surveyId: string) {
+  let hash = 2166136261;
+  for (const character of `${surveyId}:${questionId}`) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
 export function SurveyResponseForm({
   surveyId,
   questions,
@@ -30,9 +39,13 @@ export function SurveyResponseForm({
   const displayQuestions = useMemo(
     () =>
       randomizeQuestions
-        ? [...questions].sort(() => Math.random() - 0.5)
+        ? [...questions].sort(
+            (left, right) =>
+              stableQuestionRank(left.id, surveyId) -
+              stableQuestionRank(right.id, surveyId),
+          )
         : questions,
-    [questions, randomizeQuestions],
+    [questions, randomizeQuestions, surveyId],
   );
   const quizLimit = questions
     .filter((question) => question.type === "quiz")

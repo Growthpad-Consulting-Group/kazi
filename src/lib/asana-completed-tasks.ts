@@ -26,25 +26,25 @@ export type CompletedAsanaTasksResult =
   { connected: false } | { connected: true; tasks: CompletedAsanaTask[] };
 
 /**
- * Loads the user's completed Asana tasks for a date range starting at
- * `rangeStart` (YYYY-MM-DD, UTC) and spanning `rangeDays` days.
- * Refreshes the access token when needed. Throws when Asana is unreachable
- * or the connection has to be re-established; callers decide how to surface it.
+ * Resolves a usable token for a staff member's own Asana connection. This is
+ * deliberately kept server-only: callers receive the workspace id and token
+ * only long enough to make an Asana API request.
  */
-export async function loadCompletedAsanaTasks({
+export async function getAsanaAccessToken({
   userId,
-  rangeStart,
-  rangeDays,
   origin = "",
 }: {
   userId: string;
-  rangeStart: string;
-  rangeDays: number;
   origin?: string;
-}): Promise<CompletedAsanaTasksResult> {
+}): Promise<
+  | { connected: false }
+  | { connected: true; workspaceGid: string; accessToken: string }
+> {
   const { data: connection } = await supabaseAdmin
     .from("asana_connections")
-    .select("*")
+    .select(
+      "id, workspace_gid, access_token_ciphertext, refresh_token_ciphertext, token_expires_at",
+    )
     .eq("user_id", userId)
     .maybeSingle();
   if (!connection) return { connected: false };
@@ -72,6 +72,33 @@ export async function loadCompletedAsanaTasks({
       .eq("id", connection.id);
   }
 
+  return {
+    connected: true,
+    workspaceGid: connection.workspace_gid,
+    accessToken,
+  };
+}
+
+/**
+ * Loads the user's completed Asana tasks for a date range starting at
+ * `rangeStart` (YYYY-MM-DD, UTC) and spanning `rangeDays` days.
+ * Refreshes the access token when needed. Throws when Asana is unreachable
+ * or the connection has to be re-established; callers decide how to surface it.
+ */
+export async function loadCompletedAsanaTasks({
+  userId,
+  rangeStart,
+  rangeDays,
+  origin = "",
+}: {
+  userId: string;
+  rangeStart: string;
+  rangeDays: number;
+  origin?: string;
+}): Promise<CompletedAsanaTasksResult> {
+  const access = await getAsanaAccessToken({ userId, origin });
+  if (!access.connected) return access;
+
   const start = new Date(`${rangeStart}T00:00:00.000Z`);
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + rangeDays);
@@ -87,8 +114,8 @@ export async function loadCompletedAsanaTasks({
       "gid,name,completed_at,permalink_url,projects.gid,projects.name",
   });
   const response = await fetch(
-    `https://app.asana.com/api/1.0/workspaces/${connection.workspace_gid}/tasks/search?${query}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+    `https://app.asana.com/api/1.0/workspaces/${access.workspaceGid}/tasks/search?${query}`,
+    { headers: { Authorization: `Bearer ${access.accessToken}` } },
   );
   const payload = (await response.json().catch(() => null)) as {
     data?: AsanaTask[];

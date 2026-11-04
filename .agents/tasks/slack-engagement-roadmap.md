@@ -75,7 +75,7 @@
 
 > **System boundaries:** Asana remains the source of truth for project work. Kazi remains the source of truth for people operations, daily reporting, performance and engagement. Slack is the delivery surface for actionable prompts. Do not mirror every system event across the other two.
 
-- [~] **11. Pull selected Asana task-health signals into Kazi.** *(partial: employees can already import their completed Asana tasks into daily logs and weekly check-ins; there is no due/overdue/blocked task-health model yet)*
+- [~] **11. Pull selected Asana task-health signals into Kazi.** *(partial: staff now see their own due-today, overdue and recently completed Asana work in Pulse, using only the task title, project, due date and deep link. Completed work remains opt-in for daily-log/check-in imports; blocked/dependent work is not yet available.)*
   - Build a staff-facing task-health read model for tasks assigned to the connected Asana user: due today, overdue, completed recently, and explicitly blocked/dependent work where available.
   - Feed completed tasks into the existing daily-log and weekly check-in import experience; do not automatically create Kazi time entries.
   - Use task title, project, due date, completion state and Asana deep link only. Do not ingest task descriptions, comments or attachments by default.

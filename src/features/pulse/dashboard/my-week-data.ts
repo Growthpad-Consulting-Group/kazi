@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { loadCompletedAsanaTasks } from "@/lib/asana-completed-tasks";
+import { loadAsanaTaskHealth } from "@/lib/asana-task-health";
 import type { DailyLogEntry } from "@/features/pulse/daily-log/constants";
 import {
   averageGoalProgress,
@@ -50,10 +50,9 @@ export async function loadMyWeek({
     0,
   );
 
-  const asana = await loadCompletedAsanaTasks({
+  const asana = await loadAsanaTaskHealth({
     userId,
-    rangeStart: weekStart,
-    rangeDays: 7,
+    today,
   }).catch(() => ({ connected: false as const }));
 
   return {
@@ -67,6 +66,11 @@ export async function loadMyWeek({
       today,
     ),
     goalProgress: averageGoalProgress(goals),
-    asanaCompleted: asana.connected ? asana.tasks.length : null,
+    asanaCompleted: asana.connected
+      ? asana.health.completedRecently.filter(
+          (task) => task.completedAt >= `${weekStart}T00:00:00.000Z`,
+        ).length
+      : null,
+    asanaTaskHealth: asana.connected ? asana.health : null,
   };
 }

@@ -115,6 +115,83 @@ export default function MyWeekMomentum({
           </Link>
         ))}
       </div>
+      {summary.asanaTaskHealth &&
+        (summary.asanaTaskHealth.overdue.length > 0 ||
+          summary.asanaTaskHealth.dueToday.length > 0) && (
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold text-[var(--text-hi)]">
+                Asana task health
+              </p>
+              <span className="text-[11px] text-[var(--text-lo)]">
+                Your assigned work
+              </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {summary.asanaTaskHealth.overdue.length > 0 && (
+                <TaskList
+                  title={`${summary.asanaTaskHealth.overdue.length} overdue`}
+                  tone="text-red-600 dark:text-red-400"
+                  tasks={summary.asanaTaskHealth.overdue}
+                />
+              )}
+              {summary.asanaTaskHealth.dueToday.length > 0 && (
+                <TaskList
+                  title={`${summary.asanaTaskHealth.dueToday.length} due today`}
+                  tone="text-amber-600 dark:text-amber-400"
+                  tasks={summary.asanaTaskHealth.dueToday}
+                />
+              )}
+            </div>
+          </div>
+        )}
     </section>
+  );
+}
+
+function TaskList({
+  title,
+  tone,
+  tasks,
+}: {
+  title: string;
+  tone: string;
+  tasks: NonNullable<MyWeekSummary["asanaTaskHealth"]>["dueToday"];
+}) {
+  return (
+    <div className="rounded-lg bg-[var(--surface)] p-2.5">
+      <p className={`mb-1.5 text-[11px] font-semibold ${tone}`}>{title}</p>
+      <div className="space-y-1.5">
+        {tasks.slice(0, 3).map((task) => {
+          const content = (
+            <>
+              <p className="truncate text-xs font-medium text-[var(--text-hi)]">
+                {task.name}
+              </p>
+              {task.project && (
+                <p className="truncate text-[11px] text-[var(--text-lo)]">
+                  {task.project}
+                </p>
+              )}
+            </>
+          );
+          return task.url ? (
+            <a
+              key={task.id}
+              href={task.url}
+              target="_blank"
+              rel="noreferrer"
+              className="block rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--surface-2)]"
+            >
+              {content}
+            </a>
+          ) : (
+            <div key={task.id} className="px-1 py-0.5">
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

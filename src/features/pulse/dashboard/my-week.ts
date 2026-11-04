@@ -9,6 +9,30 @@ export type MyWeekSummary = {
   goalProgress: number | null;
   /** Completed Asana tasks this week, or null when Asana is not connected. */
   asanaCompleted: number | null;
+  /** Minimal staff-owned Asana task health, or null when Asana is not connected. */
+  asanaTaskHealth: {
+    dueToday: {
+      id: string;
+      name: string;
+      dueOn: string | null;
+      project: string | null;
+      url: string | null;
+    }[];
+    overdue: {
+      id: string;
+      name: string;
+      dueOn: string | null;
+      project: string | null;
+      url: string | null;
+    }[];
+    completedRecently: {
+      id: string;
+      name: string;
+      completedAt: string;
+      project: string | null;
+      url: string | null;
+    }[];
+  } | null;
 };
 
 export const WORKDAYS_PER_WEEK = 5;
