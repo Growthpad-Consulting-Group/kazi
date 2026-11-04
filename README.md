@@ -99,19 +99,17 @@ Set `AI_LOG_RETENTION_DAYS` to a whole number from 30 to 3650 to override the de
 
 ## Deployment
 
-Kazi deploys to Cloudflare Workers through OpenNext (`wrangler.jsonc`, `open-next.config.ts`). Set production variables as Worker secrets, including `NEXTAUTH_SECRET`, `CRON_SECRET`, Supabase, Redis, R2, email, AI, CAPTCHA and integration credentials. `NEXTAUTH_URL` is set in `wrangler.jsonc`.
+Kazi is deployed to Vercel. Configure production variables there, including `CRON_SECRET`, Supabase, Redis, R2, email, AI, CAPTCHA, integration credentials.
+
+The repository also retains OpenNext/Cloudflare scripts for a separate deployment target:
 
 ```bash
-pnpm build:cf   # OpenNext build into .open-next/
-pnpm preview    # run the Workers build locally
-pnpm deploy     # build and deploy with wrangler
+pnpm build:cf
+pnpm preview
+pnpm deploy
 ```
 
-Local preview reads variables from `.dev.vars`, which is git-ignored.
-
-Scheduled jobs run from cron-jobs.org and GitHub Actions, not from platform cron. See [`docs/cron-jobs-org-setup.md`](docs/cron-jobs-org-setup.md).
-
-Scanned, image-only CV PDFs are not OCR'd on Cloudflare. Applicants and recruiters see the "not enough readable text" message and must upload a text-based PDF or DOCX.
+Use one deployment path per environment; production currently uses Vercel.
 
 ## Project conventions
 
