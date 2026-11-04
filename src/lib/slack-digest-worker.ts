@@ -1,5 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { deliverSlackNotification } from "@/lib/slack";
+import {
+  deliverSlackNotification,
+  postSlackChannelNotification,
+} from "@/lib/slack";
 import {
   addDays,
   clockLabel,
@@ -14,6 +17,7 @@ import {
   buildCheckinNudge,
   buildDailyBrief,
   buildInterviewReminder,
+  buildHallOfFameClosingReminder,
   buildManagerMondayPulse,
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
@@ -42,6 +46,7 @@ export type DigestCounts = {
   oneOnOneFollowUps: number;
   interviewReminders: number;
   overdueScorecards: number;
+  hallOfFameReminders: number;
 };
 
 type UserRow = {
@@ -82,6 +87,7 @@ function emptyCounts(): DigestCounts {
     oneOnOneFollowUps: 0,
     interviewReminders: 0,
     overdueScorecards: 0,
+    hallOfFameReminders: 0,
   };
 }
 
@@ -215,6 +221,7 @@ export async function runSlackDigests(
   await sendOneOnOneFollowUps(now, byId, prefs, counts);
   await sendInterviewReminders(now, byId, prefs, counts);
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
+  await sendHallOfFameClosingReminder(now, counts);
   return counts;
 }
 
@@ -658,6 +665,30 @@ async function sendOverdueScorecardReminders(
       record(counts, outcome);
       if (outcome === "delivered") counts.overdueScorecards += 1;
     }
+  }
+}
+
+async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
+  const today = localClock(now, DEFAULT_TIMEZONE).date;
+  const closesOn = addDays(today, 3);
+  const { data } = await db
+    .from("hall_of_fame_cycles")
+    .select("id,closes_at")
+    .eq("status", "open")
+    .eq("closes_at", closesOn);
+  for (const cycle of (data ?? []) as { id: string; closes_at: string }[]) {
+    const message = buildHallOfFameClosingReminder({
+      daysRemaining: 3,
+      appUrl: appUrl(),
+    });
+    const outcome = await postSlackChannelNotification({
+      eventKey: `hall-of-fame-nominations-closing:${cycle.id}:${cycle.closes_at}`,
+      category: "hall_of_fame_nominations",
+      text: message.text,
+      blocks: message.blocks,
+    });
+    record(counts, outcome);
+    if (outcome === "delivered") counts.hallOfFameReminders += 1;
   }
 }
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCheckinNudge,
   buildDailyBrief,
+  buildHallOfFameClosingReminder,
   buildInterviewReminder,
   buildManagerMondayPulse,
   buildManagerReviewQueue,
@@ -103,5 +104,18 @@ describe("interview reminders", () => {
     expect(message.text).toContain("Amina Njeri");
     expect(message.text).toContain("Business Analyst");
     expect(JSON.stringify(message.blocks)).toContain("Open interviews in Kazi");
+  });
+});
+
+describe("Wall of Fame reminders", () => {
+  it("uses a culture-safe channel message and one deep link", () => {
+    const message = buildHallOfFameClosingReminder({
+      daysRemaining: 3,
+      appUrl,
+    });
+    expect(message.text).toContain("close in 3 days");
+    expect(JSON.stringify(message.blocks)).toContain(
+      "Open Wall of Fame in Kazi",
+    );
   });
 });

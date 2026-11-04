@@ -55,6 +55,77 @@ async function recordSlackDelivery(
     .eq("event_key", eventKey);
 }
 
+async function configuredCompanyWebhook(): Promise<string | null> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("slack_connections")
+      .select("webhook_url")
+      .limit(1)
+      .maybeSingle();
+    return data?.webhook_url ?? process.env.SLACK_WEBHOOK_URL ?? null;
+  } catch {
+    return process.env.SLACK_WEBHOOK_URL ?? null;
+  }
+}
+
+/**
+ * Posts an approved culture update to the configured company channel once.
+ * It uses the same delivery ledger as DMs, but stores no recipient or content.
+ */
+export async function postSlackChannelNotification({
+  eventKey,
+  category,
+  text,
+  blocks,
+}: Omit<SlackDeliveryInput, "recipientUserId" | "critical">): Promise<
+  "delivered" | "suppressed" | "failed"
+> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table awaits generated types
+  const db = supabaseAdmin as any;
+  const { error: reservationError } = await db
+    .from("slack_notification_deliveries")
+    .insert({ event_key: eventKey, category, status: "pending" });
+  if (reservationError) return "suppressed";
+
+  const webhookUrl = await configuredCompanyWebhook();
+  if (!webhookUrl) {
+    await recordSlackDelivery(eventKey, {
+      status: "suppressed",
+      error: "No company Slack webhook configured",
+    });
+    return "suppressed";
+  }
+  try {
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, ...(blocks ? { blocks } : {}) }),
+    });
+    if (!response.ok) {
+      await recordSlackDelivery(eventKey, {
+        status: "failed",
+        error: `Slack webhook returned ${response.status}`,
+      });
+      return "failed";
+    }
+    await recordSlackDelivery(eventKey, {
+      status: "delivered",
+      destination: "company-channel",
+      delivered_at: new Date().toISOString(),
+    });
+    return "delivered";
+  } catch (error) {
+    await recordSlackDelivery(eventKey, {
+      status: "failed",
+      error:
+        error instanceof Error
+          ? error.message.slice(0, 500)
+          : "Unknown Slack webhook error",
+    });
+    return "failed";
+  }
+}
+
 /**
  * Delivers one private Slack message at most once. The delivery row is reserved
  * before calling Slack, so retries and concurrent requests cannot duplicate it.
@@ -332,22 +403,7 @@ export async function postSlackMessage(
   text: string,
   blocks?: object[],
 ): Promise<void> {
-  let webhookUrl: string | null = null;
-
-  try {
-    const { data } = await supabaseAdmin
-      .from("slack_connections")
-      .select("webhook_url")
-      .limit(1)
-      .maybeSingle();
-    webhookUrl = data?.webhook_url ?? null;
-  } catch {
-    // DB error — fall through to env var
-  }
-
-  if (!webhookUrl) {
-    webhookUrl = process.env.SLACK_WEBHOOK_URL ?? null;
-  }
+  const webhookUrl = await configuredCompanyWebhook();
 
   if (!webhookUrl) return; // no-op
 

@@ -196,3 +196,29 @@ export function buildInterviewReminder(input: {
     ],
   };
 }
+
+export function buildHallOfFameClosingReminder(input: {
+  daysRemaining: number;
+  appUrl: string;
+}): SlackMessage {
+  const text = `Wall of Fame nominations close in ${input.daysRemaining} days. Take a moment to recognise impactful work at Growthpad.`;
+  return {
+    text,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Wall of Fame nominations" },
+      },
+      { type: "section", text: { type: "mrkdwn", text } },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `<${input.appUrl}/pulse/hall-of-fame|Open Wall of Fame in Kazi>`,
+          },
+        ],
+      },
+    ],
+  };
+}
