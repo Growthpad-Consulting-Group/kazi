@@ -119,3 +119,52 @@ describe("Wall of Fame reminders", () => {
     );
   });
 });
+
+describe("daily brief with Asana counts", () => {
+  it("shows Asana counts without task titles", () => {
+    const brief = buildDailyBrief({
+      firstName: "Amina",
+      meetings: [],
+      goalsDueSoon: 0,
+      logMissing: false,
+      checkinPending: false,
+      asanaDueToday: 2,
+      asanaOverdue: 1,
+      appUrl,
+    });
+    const serialised = JSON.stringify(brief!.blocks);
+    expect(brief!.text).toBe(
+      "Good morning Amina. Today in Kazi: 2 items to look at.",
+    );
+    expect(serialised).toContain("Asana overdue:* 1 task");
+    expect(serialised).toContain("Asana due today:* 2 tasks");
+  });
+
+  it("still suppresses when only zero Asana counts are present", () => {
+    expect(
+      buildDailyBrief({
+        firstName: "Amina",
+        meetings: [],
+        goalsDueSoon: 0,
+        logMissing: false,
+        checkinPending: false,
+        asanaDueToday: 0,
+        asanaOverdue: 0,
+        appUrl,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("Monday pulse queue lines", () => {
+  it("sends when only attention-queue items are waiting", () => {
+    const pulse = buildManagerMondayPulse({
+      missingCheckins: 0,
+      flagged: 0,
+      queueLines: ["3 reward redemptions"],
+      appUrl,
+    });
+    expect(pulse).not.toBeNull();
+    expect(JSON.stringify(pulse!.blocks)).toContain("3 reward redemptions");
+  });
+});

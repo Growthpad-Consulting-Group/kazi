@@ -1,4 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase";
+import { loadAsanaTaskHealth } from "@/lib/asana-task-health";
+import {
+  loadManagerAttention,
+  type ReportCheckin,
+} from "@/features/pulse/dashboard/manager-queue-data";
 import {
   deliverSlackNotification,
   postSlackChannelNotification,
@@ -53,6 +58,7 @@ type UserRow = {
   id: string;
   name: string;
   email: string;
+  role: string;
   manager_id: string | null;
 };
 type PrefRow = {
@@ -114,7 +120,7 @@ export async function runSlackDigests(
   const [usersRes, prefsRes, schedulesRes] = await Promise.all([
     supabaseAdmin
       .from("users")
-      .select("id, name, email, manager_id")
+      .select("id, name, email, role, manager_id")
       .eq("is_active", true),
     db
       .from("user_notification_preferences")
@@ -203,7 +209,7 @@ export async function runSlackDigests(
           QUIET_HOURS_CATCH_UP_MINUTES,
         )
       )
-        await sendManagerPulse(user, reports, weekStart, counts);
+        await sendManagerPulse(user, byId, reports, weekStart, counts);
       if (
         clock.weekday === 5 &&
         inCatchUpWindow(
@@ -285,6 +291,12 @@ async function sendDailyBrief(
     };
   });
 
+  // Asana is optional: when it is not connected or fails, the brief still goes out.
+  const asana = await loadAsanaTaskHealth({
+    userId: user.id,
+    today: clock.date,
+  }).catch(() => ({ connected: false as const }));
+
   const entries = (log.data?.entries ?? []) as unknown[];
   const message = buildDailyBrief({
     firstName: user.name.split(" ")[0] || "there",
@@ -294,6 +306,8 @@ async function sendDailyBrief(
     checkinPending: !["submitted", "reviewed"].includes(
       checkin.data?.status ?? "",
     ),
+    asanaDueToday: asana.connected ? asana.health.dueToday.length : 0,
+    asanaOverdue: asana.connected ? asana.health.overdue.length : 0,
     appUrl: appUrl(),
   });
   if (!message) return;
@@ -338,6 +352,7 @@ async function sendCheckinNudge(
 
 async function sendManagerPulse(
   manager: UserRow,
+  byId: Map<string, UserRow>,
   reports: string[],
   weekStart: string,
   counts: DigestCounts,
@@ -362,9 +377,30 @@ async function sendManagerPulse(
     (row) =>
       Boolean(row.blockers?.trim()) || (row.mood !== null && row.mood <= 2),
   ).length;
+  // The manager's own queue, reduced to counts. Names and blocker text stay in
+  // Kazi: the flagged and check-in items are already covered by this message.
+  const attention = await loadManagerAttention({
+    userId: manager.id,
+    role: manager.role as Parameters<typeof loadManagerAttention>[0]["role"],
+    reportIds: reports,
+    teamCheckins: rows.map((row) => ({
+      user_id: row.user_id,
+      name: byId.get(row.user_id)?.name ?? "A team member",
+      status: row.status as ReportCheckin["status"],
+      mood: row.mood,
+      blockers: row.blockers,
+    })),
+  }).catch(() => []);
+  const queueLines = attention
+    .filter(
+      (item) => !["flagged_team_member", "checkin_review"].includes(item.id),
+    )
+    .map((item) => item.title);
+
   const message = buildManagerMondayPulse({
     missingCheckins: reports.filter((id) => !submitted.has(id)).length,
     flagged,
+    queueLines,
     appUrl: appUrl(),
   });
   if (!message) return;

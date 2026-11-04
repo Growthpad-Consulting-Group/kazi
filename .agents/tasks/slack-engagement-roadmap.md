@@ -49,7 +49,7 @@
   - Use `slack_notification_deliveries` event keys to prevent retries or reruns from duplicating messages.
   - Acceptance: workers can be run manually, are safe to rerun, and report counts without exposing message content in logs.
 
-- [~] **7. Send a personal daily Kazi brief.** *(partial: opt-in toggle in Settings → Notifications; covers today's 1-on-1s, goals due within three days, daily-log status and check-in status. Interviews and Asana due-today items are not included yet.)*
+- [x] **7. Send a personal daily Kazi brief.** *(opt-in toggle in Settings → Notifications; covers today's 1-on-1s, goals due within three days, Asana due-today and overdue counts, daily-log status and check-in status. Interview reminders are sent as their own DMs under item 4, so they are not repeated in the brief.)*
   - At each employee's chosen workday start, send an optional DM with today’s 1-on-1s/interviews, active goals, due work and daily-log status.
   - Suppress it when there is nothing actionable.
   - Acceptance: one compact message with one “Open today in Kazi” link; no empty digests.
@@ -81,7 +81,7 @@
   - Use task title, project, due date, completion state and Asana deep link only. Do not ingest task descriptions, comments or attachments by default.
   - Acceptance: staff can see a current, privacy-minimised summary without Kazi becoming a second project manager.
 
-- [ ] **12. Add Asana-aware Slack digests.**
+- [~] **12. Add Asana-aware Slack digests.** *(partial: the personal daily brief includes due-today and overdue counts, with no task titles. Manager task-health signals, and suppressing Kazi alerts for events already sent by an Asana rule, are not built.)*
   - Include a concise, optional “due today”/“overdue” section in the personal daily Kazi brief.
   - Include a manager task-health signal only when manager access to the relevant Asana work has been explicitly approved; otherwise notify the task owner only.
   - Suppress Kazi Slack alerts for events already delivered through an enabled Asana-to-Slack rule, using an organisation setting and event-key deduplication.

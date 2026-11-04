@@ -46,7 +46,7 @@
   - Use own-data-only aggregation; never reveal peer performance comparisons here.
   - Acceptance: staff can review their progress before a 1-on-1 or performance review.
 
-- [~] **7. Connect employee Pulse to Slack/Asana only when useful.** *(Slack delivery preferences, quiet hours and idempotent direct prompts are in place; the optional daily brief and selected Asana task-health signals remain.)*
+- [x] **7. Connect employee Pulse to Slack/Asana only when useful.**
   - Feed the action queue into the optional Slack daily brief with per-user preferences and quiet hours.
   - Include selected Asana task-health signals; do not create time entries automatically.
   - Acceptance: Slack provides a deep link to the same next action, not a competing workflow.
@@ -76,7 +76,7 @@
   - Use the existing analytics chart primitives with short explanatory copy and drill-down links.
   - Acceptance: trends invite a drill-down; they are not presented as a performance score for individuals.
 
-- [ ] **12. Add proactive, preference-aware Slack summaries.**
+- [x] **12. Add proactive, preference-aware Slack summaries.**
   - Deliver the manager action queue through an optional Monday/Friday Slack digest and immediate DMs only for high-value new actions.
   - Respect timezone, quiet hours, staff preferences and per-event idempotency.
   - Acceptance: Slack gives managers useful prompts without duplicating Kazi or Asana notifications.

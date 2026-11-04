@@ -12,6 +12,9 @@ export function buildDailyBrief(input: {
   goalsDueSoon: number;
   logMissing: boolean;
   checkinPending: boolean;
+  /** Counts from the owner's own Asana work. Task titles are never included. */
+  asanaDueToday?: number;
+  asanaOverdue?: number;
   appUrl: string;
 }): SlackMessage | null {
   const lines: string[] = [];
@@ -24,6 +27,14 @@ export function buildDailyBrief(input: {
   if (input.goalsDueSoon > 0)
     lines.push(
       `*Goals due soon:* ${input.goalsDueSoon} ${input.goalsDueSoon === 1 ? "goal" : "goals"} due in the next few days`,
+    );
+  if (input.asanaOverdue && input.asanaOverdue > 0)
+    lines.push(
+      `*Asana overdue:* ${input.asanaOverdue} ${input.asanaOverdue === 1 ? "task" : "tasks"} past due`,
+    );
+  if (input.asanaDueToday && input.asanaDueToday > 0)
+    lines.push(
+      `*Asana due today:* ${input.asanaDueToday} ${input.asanaDueToday === 1 ? "task" : "tasks"}`,
     );
   if (input.logMissing) lines.push("*Daily log:* today is not logged yet");
   if (input.checkinPending)
@@ -71,9 +82,17 @@ export function buildCheckinNudge(appUrl: string): SlackMessage {
 export function buildManagerMondayPulse(input: {
   missingCheckins: number;
   flagged: number;
+  /** Counts-only lines from the manager's Needs attention queue. */
+  queueLines?: string[];
   appUrl: string;
 }): SlackMessage | null {
-  if (input.missingCheckins === 0 && input.flagged === 0) return null;
+  const queueLines = input.queueLines ?? [];
+  if (
+    input.missingCheckins === 0 &&
+    input.flagged === 0 &&
+    queueLines.length === 0
+  )
+    return null;
   const lines: string[] = [];
   if (input.missingCheckins > 0)
     lines.push(
@@ -83,6 +102,7 @@ export function buildManagerMondayPulse(input: {
     lines.push(
       `*Needs a look:* ${input.flagged} ${input.flagged === 1 ? "check-in" : "check-ins"} flagged a blocker or low mood this week`,
     );
+  for (const line of queueLines) lines.push(`*Also waiting:* ${line}`);
   return {
     text: "Your team pulse for the week",
     blocks: [
