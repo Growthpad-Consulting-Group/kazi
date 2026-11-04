@@ -421,26 +421,6 @@ async function buildOrgOrTeamData(
     // No jobs in this department — return empty
   }
 
-  let rangeCandidatesQ = supabaseAdmin
-    .from("candidates")
-    .select("id, applied_at")
-    .gte("applied_at", start)
-    .lte("applied_at", end);
-  if (jobIds !== null && jobIds.length > 0) {
-    rangeCandidatesQ = rangeCandidatesQ.in("job_id", jobIds);
-  }
-
-  let scheduledJobsQ = supabaseAdmin
-    .from("jobs")
-    .select("id, title, published_at, closes_at")
-    .eq("status", "open")
-    .or(
-      `published_at.gte.${now.toISOString()},closes_at.gte.${now.toISOString()}`,
-    );
-  if (jobIds !== null && jobIds.length > 0) {
-    scheduledJobsQ = scheduledJobsQ.in("id", jobIds);
-  }
-
   // Build employees query — scoped by manager for team view
   let employeesQ = supabaseAdmin
     .from("users")
@@ -483,17 +463,13 @@ async function buildOrgOrTeamData(
   }
 
   // Build goals query — scoped by direct reports for team view
-  let atRiskGoalsQ = supabaseAdmin
-    .from("goals")
-    .select("id")
-    .eq("status", "at_risk");
+  // One goals query serves both the breakdown and the at-risk count.
   let allGoalsQ = supabaseAdmin.from("goals").select("id, status");
   if (
     view === "team" &&
     directReportIds !== null &&
     directReportIds.length > 0
   ) {
-    atRiskGoalsQ = atRiskGoalsQ.in("owner_id", directReportIds);
     allGoalsQ = allGoalsQ.in("owner_id", directReportIds);
   }
 
@@ -513,26 +489,22 @@ async function buildOrgOrTeamData(
   // Start the photo lookup now so it runs alongside the other queries, not after them.
   const signaturePromise = signaturePhotos();
   const [
-    rangeCandidatesRes,
-    currentJobsRes,
+    jobsRes,
     currentCandidatesRes,
     employeesRes,
     reviewsRes,
     scorecardsRes,
     checkinsRes,
     pulseHistoryRes,
-    goalsRes,
-    conversationsRes,
-    scheduledJobsRes,
     allGoalsRes,
+    conversationsRes,
     newHiresRes,
     activeSurveysRes,
   ] = await Promise.all([
-    // Only fetch range candidates if we have jobIds or no filter
-    jobIds !== null && jobIds.length === 0
-      ? Promise.resolve({ data: [] })
-      : rangeCandidatesQ,
-    supabaseAdmin.from("jobs").select("id, status"),
+    // Every job once: the job counts and the scheduled-dates list both use it.
+    supabaseAdmin
+      .from("jobs")
+      .select("id, title, status, published_at, closes_at"),
     jobIds !== null && jobIds.length === 0
       ? Promise.resolve({ data: [] })
       : candidatesQ,
@@ -542,15 +514,15 @@ async function buildOrgOrTeamData(
       .select("id", { count: "exact" })
       .gte("created_at", start)
       .lte("created_at", end),
+    // Only submitted scorecards are read; that is all the queue needs.
     supabaseAdmin
       .from("interview_scorecards")
-      .select("candidate_id, submitted_at"),
+      .select("candidate_id, submitted_at")
+      .not("submitted_at", "is", null),
     checkinsQ,
     pulseHistoryQ,
-    atRiskGoalsQ,
-    conversationsQ,
-    scheduledJobsRes_placeholder(scheduledJobsQ),
     allGoalsQ,
+    conversationsQ,
     newHiresQ,
     supabaseAdmin
       .from("surveys")
@@ -559,13 +531,31 @@ async function buildOrgOrTeamData(
       .limit(5),
   ]);
 
-  const jobs = currentJobsRes.data ?? [];
+  const jobs = (jobsRes.data ?? []) as {
+    id: string;
+    title: string;
+    status: string;
+    published_at: string | null;
+    closes_at: string | null;
+  }[];
+  // Scheduled dates cover open jobs in the manager's department for team views.
+  const scheduledJobSource = jobs.filter(
+    (job) =>
+      job.status === "open" &&
+      (jobIds === null || jobIds.length === 0 || jobIds.includes(job.id)),
+  );
+
   const candidates = (currentCandidatesRes.data ??
     []) as unknown as (RecentCandidate & {
     shortlisted?: boolean;
     hired_user_id?: string | null;
   })[];
-  const rangeCandidates = rangeCandidatesRes.data ?? [];
+  const rangeStart = new Date(start).getTime();
+  const rangeEnd = new Date(end).getTime();
+  const rangeCandidates = candidates.filter((candidate) => {
+    const appliedAt = new Date(candidate.applied_at).getTime();
+    return appliedAt >= rangeStart && appliedAt <= rangeEnd;
+  });
 
   // Aggregate every candidate-derived metric from the single fetch above.
   const stageCounts = new Map<string, number>();
@@ -774,18 +764,7 @@ async function buildOrgOrTeamData(
     (checkin) =>
       checkin.status === "submitted" || checkin.status === "reviewed",
   ).length;
-  const scheduledJobs = (
-    (
-      scheduledJobsRes as {
-        data: Array<{
-          id: string;
-          title: string;
-          published_at: string | null;
-          closes_at: string | null;
-        }> | null;
-      }
-    ).data ?? []
-  )
+  const scheduledJobs = scheduledJobSource
     .flatMap((job) => [
       ...(job.published_at && new Date(job.published_at) >= now
         ? [
@@ -821,6 +800,7 @@ async function buildOrgOrTeamData(
     )
     .slice(0, 5);
   const allGoals = allGoalsRes.data ?? [];
+  const atRiskGoals = allGoals.filter((g) => g.status === "at_risk").length;
   const goalsBreakdown = {
     onTrack: allGoals.filter((g) => g.status === "in_progress").length,
     atRisk: allGoals.filter((g) => g.status === "at_risk").length,
@@ -913,7 +893,7 @@ async function buildOrgOrTeamData(
         lowMood: checkins.filter((checkin) => (checkin.mood ?? 5) <= 2).length,
         blockers: checkins.filter((checkin) => !!checkin.blockers?.trim())
           .length,
-        atRiskGoals: goalsRes.data?.length ?? 0,
+        atRiskGoals,
       },
       scheduledJobs,
       goals: goalsBreakdown,
@@ -921,10 +901,4 @@ async function buildOrgOrTeamData(
       activeSurveys,
     },
   };
-}
-
-// Typed helper to satisfy TypeScript for the scheduledJobs query result
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function scheduledJobsRes_placeholder(q: any): Promise<any> {
-  return q;
 }
