@@ -210,6 +210,35 @@ async function signaturePhotos(): Promise<Map<string, string>> {
   );
 }
 
+type DashboardRpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
+type CandidateStats = {
+  stageCounts: Record<string, number>;
+  activePipeline: number;
+  pendingScreen: number;
+  hired: number;
+  rolePipeline: {
+    role: string;
+    applied: number;
+    screened: number;
+    interview: number;
+    offer: number;
+    total: number;
+  }[];
+  stageAging: { stage: string; count: number; averageDays: number }[];
+  averageDaysToHire: number | null;
+  stalledCandidates: number;
+  hiresAwaitingStaffRecord: number;
+  rangeCandidates: { id: string; applied_at: string }[];
+  recent: RecentCandidate[];
+  interviewQueue: RecentCandidate[];
+};
+
 export async function getDashboardData(
   range: DashboardRange,
   ctx?: DashboardContext,
@@ -377,9 +406,6 @@ async function buildOrgOrTeamData(
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
   const now = new Date();
-  const fourteenDaysAgo = new Date(
-    now.getTime() - 14 * 24 * 60 * 60 * 1000,
-  ).toISOString();
   const sixWeeksAgo = new Date(now);
   sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -407,18 +433,6 @@ async function buildOrgOrTeamData(
       .eq("manager_id", ctx.userId)
       .eq("is_active", true);
     directReportIds = (reports ?? []).map((r) => r.id);
-  }
-
-  // Build candidate query
-  let candidatesQ = supabaseAdmin
-    .from("candidates")
-    .select(
-      "id, full_name, stage, applied_at, ai_score, shortlisted, hired_user_id, jobs(title)",
-    );
-  if (jobIds !== null && jobIds.length > 0) {
-    candidatesQ = candidatesQ.in("job_id", jobIds);
-  } else if (jobIds !== null && jobIds.length === 0) {
-    // No jobs in this department — return empty
   }
 
   // Build employees query — scoped by manager for team view
@@ -490,10 +504,9 @@ async function buildOrgOrTeamData(
   const signaturePromise = signaturePhotos();
   const [
     jobsRes,
-    currentCandidatesRes,
+    candidateStatsRes,
     employeesRes,
     reviewsRes,
-    scorecardsRes,
     checkinsRes,
     pulseHistoryRes,
     allGoalsRes,
@@ -505,20 +518,23 @@ async function buildOrgOrTeamData(
     supabaseAdmin
       .from("jobs")
       .select("id, title, status, published_at, closes_at"),
-    jobIds !== null && jobIds.length === 0
-      ? Promise.resolve({ data: [] })
-      : candidatesQ,
+    // Candidate figures are computed in the database (dashboard_candidate_stats).
+    // Team views pass the department's job ids; an empty list gives zeros.
+    (supabaseAdmin as unknown as DashboardRpcClient).rpc(
+      "dashboard_candidate_stats",
+      {
+        p_job_ids: jobIds,
+        p_now: now.toISOString(),
+        p_range_start: start,
+        p_range_end: end,
+      },
+    ),
     employeesQ,
     supabaseAdmin
       .from("performance_reviews")
       .select("id", { count: "exact" })
       .gte("created_at", start)
       .lte("created_at", end),
-    // Only submitted scorecards are read; that is all the queue needs.
-    supabaseAdmin
-      .from("interview_scorecards")
-      .select("candidate_id, submitted_at")
-      .not("submitted_at", "is", null),
     checkinsQ,
     pulseHistoryQ,
     allGoalsQ,
@@ -545,30 +561,15 @@ async function buildOrgOrTeamData(
       job.status === "open" && (jobIds === null || jobIds.includes(job.id)),
   );
 
-  const candidates = (currentCandidatesRes.data ??
-    []) as unknown as (RecentCandidate & {
-    shortlisted?: boolean;
-    hired_user_id?: string | null;
-  })[];
-  const rangeStart = new Date(start).getTime();
-  const rangeEnd = new Date(end).getTime();
-  const rangeCandidates = candidates.filter((candidate) => {
-    const appliedAt = new Date(candidate.applied_at).getTime();
-    return appliedAt >= rangeStart && appliedAt <= rangeEnd;
-  });
-
-  // Aggregate every candidate-derived metric from the single fetch above.
-  const stageCounts = new Map<string, number>();
-  let activePipeline = 0;
-  let pendingScreen = 0;
-  let hired = 0;
-
-  for (const c of candidates) {
-    stageCounts.set(c.stage, (stageCounts.get(c.stage) ?? 0) + 1);
-    if (c.stage !== "hired" && c.stage !== "rejected") activePipeline += 1;
-    if (c.stage === "applied" && c.ai_score === null) pendingScreen += 1;
-    if (c.stage === "hired") hired += 1;
-  }
+  if (candidateStatsRes.error) throw candidateStatsRes.error;
+  const stats = candidateStatsRes.data as CandidateStats;
+  const rangeCandidates = stats.rangeCandidates;
+  const stageCounts = new Map<string, number>(
+    Object.entries(stats.stageCounts),
+  );
+  const activePipeline = stats.activePipeline;
+  const pendingScreen = stats.pendingScreen;
+  const hired = stats.hired;
 
   const pipeline: PipelineStage[] = STAGES.map((stage) => ({
     stage,
@@ -606,66 +607,15 @@ async function buildOrgOrTeamData(
   }
 
   // ── Chart series ───────────────────────────────────────────────────────────
-  const roles = new Map<
-    string,
-    {
-      role: string;
-      applied: number;
-      screened: number;
-      interview: number;
-      offer: number;
-    }
-  >();
-  for (const candidate of candidates) {
-    if (
-      !(["applied", "screened", "interview", "offer"] as const).includes(
-        candidate.stage as "applied" | "screened" | "interview" | "offer",
-      )
-    )
-      continue;
-    const role = candidate.jobs?.title ?? "Unassigned";
-    const entry = roles.get(role) ?? {
-      role,
-      applied: 0,
-      screened: 0,
-      interview: 0,
-      offer: 0,
-    };
-    entry[candidate.stage as "applied" | "screened" | "interview" | "offer"] +=
-      1;
-    roles.set(role, entry);
-  }
-  const rolePipeline = [...roles.values()]
-    .sort(
-      (a, b) =>
-        b.applied +
-        b.screened +
-        b.interview +
-        b.offer -
-        (a.applied + a.screened + a.interview + a.offer),
-    )
-    .slice(0, 5);
+  const rolePipeline = stats.rolePipeline.map((row) => ({
+    role: row.role,
+    applied: row.applied,
+    screened: row.screened,
+    interview: row.interview,
+    offer: row.offer,
+  }));
 
-  const stageAging = (
-    ["applied", "screened", "interview", "offer"] as const
-  ).map((stage) => {
-    const inStage = candidates.filter((candidate) => candidate.stage === stage);
-    return {
-      stage,
-      count: inStage.length,
-      averageDays: inStage.length
-        ? Math.round(
-            inStage.reduce(
-              (sum, candidate) =>
-                sum +
-                (now.getTime() - new Date(candidate.applied_at).getTime()) /
-                  (24 * 60 * 60 * 1000),
-              0,
-            ) / inStage.length,
-          )
-        : 0,
-    };
-  });
+  const stageAging = stats.stageAging;
 
   const weeklyPulse = new Map<
     string,
@@ -697,68 +647,12 @@ async function buildOrgOrTeamData(
       : null,
   }));
 
-  // ── Recent candidates ─────────────────────────────────────────────────
-  const recent = [...candidates]
-    .sort(
-      (a, b) =>
-        new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime(),
-    )
-    .slice(0, 8)
-    .map((c) => ({
-      id: c.id,
-      full_name: c.full_name,
-      stage: c.stage,
-      applied_at: c.applied_at,
-      ai_score: c.ai_score,
-      jobs: c.jobs,
-    }));
-
-  const submittedScorecards = new Set(
-    (scorecardsRes.data ?? [])
-      .filter((sc) => sc.submitted_at)
-      .map((sc) => sc.candidate_id),
-  );
-  const interviewQueue = candidates
-    .filter(
-      (candidate) =>
-        candidate.stage === "interview" &&
-        !submittedScorecards.has(candidate.id),
-    )
-    .sort(
-      (a, b) =>
-        new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime(),
-    )
-    .slice(0, 5)
-    .map((candidate) => ({
-      id: candidate.id,
-      full_name: candidate.full_name,
-      stage: candidate.stage,
-      applied_at: candidate.applied_at,
-      ai_score: candidate.ai_score,
-      jobs: candidate.jobs,
-    }));
-  const hiredCandidates = candidates.filter(
-    (candidate) => candidate.stage === "hired",
-  );
-  const averageDaysToHire = hiredCandidates.length
-    ? Math.round(
-        hiredCandidates.reduce(
-          (sum, candidate) =>
-            sum +
-            (now.getTime() - new Date(candidate.applied_at).getTime()) /
-              (24 * 60 * 60 * 1000),
-          0,
-        ) / hiredCandidates.length,
-      )
-    : null;
-  const stalledCandidates = candidates.filter(
-    (candidate) =>
-      !["hired", "rejected"].includes(candidate.stage) &&
-      candidate.applied_at < fourteenDaysAgo,
-  ).length;
-  const hiresAwaitingStaffRecord = candidates.filter(
-    (candidate) => candidate.stage === "hired" && !candidate.hired_user_id,
-  ).length;
+  // ── Recent candidates and the interview queue ─────────────────────────
+  const recent = stats.recent;
+  const interviewQueue = stats.interviewQueue;
+  const averageDaysToHire = stats.averageDaysToHire;
+  const stalledCandidates = stats.stalledCandidates;
+  const hiresAwaitingStaffRecord = stats.hiresAwaitingStaffRecord;
   const checkins = checkinsRes.data ?? [];
   const submittedCheckins = checkins.filter(
     (checkin) =>
