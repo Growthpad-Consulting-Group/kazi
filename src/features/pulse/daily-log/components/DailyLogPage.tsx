@@ -59,7 +59,8 @@ type AsanaTask = { id: string; name: string; project: string | null };
 // The server owns the active timer. This key is only a recovery cache for
 // when the timer API cannot be reached.
 const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
-const TIMER_POLL_MS = 5000;
+// Only polled while a timer is running in this tab. Idle or hidden tabs make no requests.
+const TIMER_POLL_MS = 15000;
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
@@ -335,6 +336,10 @@ export function DailyLogPage({
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const activeTimerRef = useRef<ActiveTimer | null>(null);
+  const pollControlsRef = useRef<{
+    schedule: () => void;
+    clear: () => void;
+  } | null>(null);
   const rowsRef = useRef<Row[]>([]);
   const isDirtyRef = useRef(false);
   // Timer changes made here win over polls that started before them.
@@ -570,20 +575,56 @@ export function DailyLogPage({
       reconcile(shared);
     };
 
+    let pollId: number | undefined;
+    const clearPoll = () => {
+      if (pollId !== undefined) window.clearTimeout(pollId);
+      pollId = undefined;
+    };
+    // Poll only while a timer is running and the tab is visible. Focus and
+    // visibility changes still sync once, so other windows' timers appear.
+    const schedulePoll = () => {
+      clearPoll();
+      if (cancelled || document.visibilityState !== "visible") return;
+      if (!activeTimerRef.current) return;
+      pollId = window.setTimeout(async () => {
+        pollId = undefined;
+        await sync();
+        schedulePoll();
+      }, TIMER_POLL_MS);
+    };
+    pollControlsRef.current = { schedule: schedulePoll, clear: clearPoll };
+
     const onVisible = () => {
-      if (document.visibilityState === "visible") sync();
+      if (document.visibilityState === "visible") {
+        sync();
+        schedulePoll();
+      } else {
+        clearPoll();
+      }
+    };
+    const onFocus = () => {
+      sync();
+      schedulePoll();
     };
     sync();
-    const interval = window.setInterval(sync, TIMER_POLL_MS);
+    schedulePoll();
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", sync);
+    window.addEventListener("focus", onFocus);
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      clearPoll();
+      pollControlsRef.current = null;
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", sync);
+      window.removeEventListener("focus", onFocus);
     };
   }, [date, isReviewer]);
+
+  // Start polling when a timer begins in this tab, and stop when none runs.
+  const hasActiveTimer = Boolean(activeTimer);
+  useEffect(() => {
+    if (hasActiveTimer) pollControlsRef.current?.schedule();
+    else pollControlsRef.current?.clear();
+  }, [hasActiveTimer]);
 
   useEffect(() => {
     if (!activeTimer) return;
