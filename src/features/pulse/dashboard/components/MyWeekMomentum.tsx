@@ -68,11 +68,8 @@ export default function MyWeekMomentum({
   ];
 
   return (
-    <section
-      aria-labelledby="my-week-heading"
-      className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20"
-    >
-      <div className="grid border-b border-[var(--border)] lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.58fr)]">
+    <section aria-labelledby="my-week-heading" className="space-y-4">
+      <div className="grid overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.58fr)]">
         <div className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -125,7 +122,7 @@ export default function MyWeekMomentum({
               {Array.from({ length: WORKDAYS_PER_WEEK }, (_, index) => (
                 <span
                   key={index}
-                  className={`h-1.5 flex-1 rounded-full ${index < summary.workdaysLogged ? "bg-gradient-to-r from-brand-500 to-orange-400" : "bg-[var(--border)]"}`}
+                  className={`h-1.5 flex-1 rounded-full ${index < summary.workdaysLogged ? "bg-brand-500" : "bg-[var(--border)]"}`}
                 />
               ))}
             </div>
@@ -158,7 +155,7 @@ export default function MyWeekMomentum({
       </div>
 
       {hasAsanaAttention && summary.asanaTaskHealth && (
-        <div className="bg-[var(--surface-2)] p-4 sm:p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
@@ -229,9 +226,9 @@ function TaskList({
   tasks: NonNullable<MyWeekSummary["asanaTaskHealth"]>["dueToday"];
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className={`text-xs font-semibold ${tone}`}>{title}</p>
+        <p className={`text-sm font-semibold ${tone}`}>{title}</p>
         <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 font-mono text-[11px] font-semibold text-[var(--text-lo)]">
           {count}
         </span>
@@ -240,7 +237,7 @@ function TaskList({
         {tasks.slice(0, 3).map((task) => {
           const content = (
             <>
-              <p className="truncate text-xs font-medium text-[var(--text-hi)]">
+              <p className="truncate text-sm font-medium text-[var(--text-hi)]">
                 {task.name}
               </p>
               {task.project && (

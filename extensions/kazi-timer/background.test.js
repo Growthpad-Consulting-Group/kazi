@@ -583,6 +583,17 @@ describe("Kazi Timer automatic reconnect", () => {
 });
 
 describe("Kazi Timer today's tasks", () => {
+  it("marks an expired or revoked connection for direct reconnection", async () => {
+    session.kaziAccessToken = "revoked-token";
+    globalThis.fetch = vi.fn(async () => ({ ok: false, status: 403 }));
+    await loadWorker();
+
+    const today = await message({ type: "list-today" });
+
+    expect(today).toMatchObject({ connected: false, reconnect: true });
+    expect(session.kaziAccessToken).toBeUndefined();
+  });
+
   it("lists today's logged tasks when connected", async () => {
     session.kaziAccessToken = "token";
     globalThis.fetch = vi.fn(async () =>

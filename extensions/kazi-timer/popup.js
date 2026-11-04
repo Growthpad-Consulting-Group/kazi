@@ -6,6 +6,7 @@ let ticker = null;
 let clients = [];
 let selectedClient = "";
 let activeClientIndex = -1;
+let reconnectNeeded = false;
 
 function clientInput() {
   return $("#client-search");
@@ -142,6 +143,14 @@ async function renderToday() {
   const empty = $("#today-empty");
   list.replaceChildren();
   $("#today").hidden = !today.connected;
+  if (today.reconnect) {
+    connected = false;
+    reconnectNeeded = true;
+    $("#connect").textContent = "Reconnect Kazi";
+    $("#notice").textContent = today.error;
+    render();
+    return;
+  }
   if (!today.connected) return;
   if (today.error) {
     $("#notice").textContent = today.error;
@@ -208,6 +217,7 @@ async function load() {
   const state = await send("get-state");
   activeTimer = state.timer || null;
   connected = state.connected;
+  reconnectNeeded = false;
   $("#queued").textContent = state.queued ? `${state.queued} queued` : "";
   $("#connect").textContent = state.connected ? "Disconnect" : "Connect Kazi";
   $("#notice").textContent = state.connected
@@ -389,9 +399,12 @@ $("#clear-client").addEventListener("click", () => {
 $("#connect").addEventListener("click", async () => {
   $("#connect").disabled = true;
   try {
-    const state = await send(
-      (await send("get-state")).connected ? "disconnect" : "connect",
-    );
+    const action = reconnectNeeded
+      ? "connect"
+      : (await send("get-state")).connected
+        ? "disconnect"
+        : "connect";
+    const state = await send(action);
     $("#notice").textContent = state.connected
       ? `Kazi connected${state.synced ? `. Synced ${state.synced} queued task${state.synced === 1 ? "" : "s"}.` : "."}`
       : "Kazi disconnected. Timer entries remain on this browser until you reconnect.";

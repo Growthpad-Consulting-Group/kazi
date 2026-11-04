@@ -220,8 +220,12 @@ async function sharedTimerRequest(method, body) {
   } catch {
     throw new KaziUnreachable(OFFLINE_MESSAGE);
   }
-  // The token expires after 12 hours. Forget it so the next tick reconnects.
-  if (response.status === 401) await chrome.storage.session.remove(TOKEN_KEY);
+  // Kazi tokens expire after 12 hours. A forbidden response is also terminal
+  // for this install (for example after its server-side session is revoked),
+  // so the popup can offer a direct reconnect instead of a misleading
+  // Disconnect action.
+  if (response.status === 401 || response.status === 403)
+    await chrome.storage.session.remove(TOKEN_KEY);
   return {
     ok: response.ok,
     status: response.status,
@@ -363,6 +367,16 @@ async function listToday() {
     `${KAZI_URL}/api/extensions/kazi-timer/today?date=${date}`,
     { headers: { Authorization: `Bearer ${token}` } },
   ).catch(() => null);
+  if (response?.status === 401 || response?.status === 403) {
+    await chrome.storage.session.remove(TOKEN_KEY);
+    return {
+      entries: [],
+      editable: false,
+      connected: false,
+      reconnect: true,
+      error: "Your Kazi connection needs to be refreshed.",
+    };
+  }
   if (!response?.ok)
     return {
       entries: [],
@@ -542,7 +556,10 @@ async function handleMessage(message) {
     if (timer) return { error: "A timer is already active" };
     const now = new Date().toISOString();
     // Resume continues a row already in today's log, so its time is the start.
-    const baseMinutes = Math.max(0, Math.round(Number(message.baseMinutes) || 0));
+    const baseMinutes = Math.max(
+      0,
+      Math.round(Number(message.baseMinutes) || 0),
+    );
     const baseMs = baseMinutes * 60_000;
     const next = {
       id: crypto.randomUUID(),
