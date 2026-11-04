@@ -16,7 +16,6 @@ Kazi is Growthpad’s internal people-operations suite. It combines hiring, staf
 - Upstash Redis for cache and background screening queues
 - Cloudflare R2 for CV storage
 - Google Calendar, Asana, Gmail, Slack, Resend, Groq, and reCAPTCHA integrations
-- Sentry for privacy-reduced error monitoring and performance tracing
 
 ## Local development
 
@@ -56,17 +55,6 @@ Set the required values in `.env.local`. Never commit this file or any credentia
 | Asana                 | `ASANA_CLIENT_ID`, `ASANA_CLIENT_SECRET`, `ASANA_REDIRECT_URI`, `ASANA_TOKEN_ENCRYPTION_KEY`                                                                                                                                                                                                                                                          |
 | Slack                 | `SLACK_BOT_TOKEN`, `SLACK_WEBHOOK_URL`                                                                                                                                                                                                                                                                                                                |
 | Optional integrations | `GIPHY_API_KEY`, `CAREERS_REVALIDATE_SECRET`, `CAREERS_REVALIDATE_URL`                                                                                                                                                                                                                                                                                |
-
-### Sentry
-
-Sentry is configured in `sentry.server.config.ts`, `sentry.edge.config.ts`, and `src/instrumentation-client.ts`.
-
-- User information, request bodies, sensitive headers, cookies, query parameters, database query data, and AI inputs/outputs are disabled.
-- Production traces are sampled at 10%; local development samples at 100%.
-- Session Replay is intentionally disabled because Kazi contains staff and candidate data.
-- `.env.sentry-build-plugin` is an ignored local file used only for source-map uploads during local builds.
-
-For Vercel deployments, add `SENTRY_AUTH_TOKEN` to both **Preview** and **Production** environment variables. It is a build-time secret: do not expose it to the browser or commit it. The project DSN is configured by the Sentry SDK and is safe to be public.
 
 ## Database and seed data
 
@@ -111,7 +99,7 @@ Set `AI_LOG_RETENTION_DAYS` to a whole number from 30 to 3650 to override the de
 
 ## Deployment
 
-Kazi is deployed to Vercel. Configure production variables there, including `CRON_SECRET`, Supabase, Redis, R2, email, AI, CAPTCHA, integration credentials, and `SENTRY_AUTH_TOKEN`.
+Kazi is deployed to Vercel. Configure production variables there, including `CRON_SECRET`, Supabase, Redis, R2, email, AI, CAPTCHA, integration credentials.
 
 The repository also retains OpenNext/Cloudflare scripts for a separate deployment target:
 

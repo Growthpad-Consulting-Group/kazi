@@ -1,11 +1,4 @@
-import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
-
-// Runtime Sentry reporting uses the public DSN and remains enabled. Build-time
-// release/source-map uploads call Sentry's API and can retry for minutes when
-// that API is unavailable, so only enable them deliberately in CI once the
-// token and network path have been verified.
-const uploadSentryArtifacts = process.env.SENTRY_UPLOAD_SOURCE_MAPS === "true";
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -25,7 +18,7 @@ const nextConfig: NextConfig = {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com https://*.ingest.de.sentry.io https://api.iconify.design",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google.com https://api.iconify.design",
       "frame-src 'self' https://www.google.com",
     ].join("; ");
     return [
@@ -110,50 +103,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  // For all available options, see:
-  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
-
-  org: "growthpad-limited",
-
-  project: "kazi",
-
-  // Passing an empty value prevents the plugin from implicitly picking up a
-  // SENTRY_AUTH_TOKEN from the build environment when uploads are disabled.
-  authToken: uploadSentryArtifacts ? process.env.SENTRY_AUTH_TOKEN : "",
-
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Source-map uploads are intentionally opt-in. This preserves normal error
-  // reporting while ensuring a transient Sentry API outage cannot delay a
-  // Vercel deployment by several minutes.
-  widenClientFileUpload: uploadSentryArtifacts,
-  sourcemaps: { disable: !uploadSentryArtifacts },
-  release: uploadSentryArtifacts
-    ? undefined
-    : { create: false, finalize: false, setCommits: false, deploy: false },
-
-  // Uncomment to route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  // tunnelRoute: "/monitoring",
-
-  webpack: {
-    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-    // See the following for more information:
-    // https://docs.sentry.io/product/crons/
-    // https://vercel.com/docs/cron-jobs
-    automaticVercelMonitors: true,
-
-    // Tree-shaking options for reducing bundle size
-    treeshake: {
-      // Automatically tree-shake Sentry logger statements to reduce bundle size
-      removeDebugLogging: true,
-    },
-  },
-});
+export default nextConfig;
