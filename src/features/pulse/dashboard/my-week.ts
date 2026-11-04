@@ -25,6 +25,13 @@ export type MyWeekSummary = {
       project: string | null;
       url: string | null;
     }[];
+    blocked: {
+      id: string;
+      name: string;
+      dueOn: string | null;
+      project: string | null;
+      url: string | null;
+    }[];
     completedRecently: {
       id: string;
       name: string;

@@ -27,7 +27,9 @@ import {
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
   buildOneOnOneReminder,
+  buildReviewAcknowledgementReminder,
 } from "@/lib/slack-digests";
+import { buildCultureRecap } from "@/lib/culture-recap";
 
 const DEFAULT_TIMEZONE = "Africa/Nairobi";
 const WINDOW_MINUTES = 60;
@@ -51,7 +53,10 @@ export type DigestCounts = {
   oneOnOneFollowUps: number;
   interviewReminders: number;
   overdueScorecards: number;
+  reviewAcknowledgementReminders: number;
   hallOfFameReminders: number;
+  cultureRecaps: number;
+  cultureAnnouncements: number;
 };
 
 type UserRow = {
@@ -68,6 +73,7 @@ type PrefRow = {
   slack_quiet_end: string | null;
   slack_timezone: string | null;
   slack_daily_brief: boolean;
+  culture_announcements: boolean | null;
 };
 type ScheduleRow = {
   user_id: string;
@@ -93,7 +99,10 @@ function emptyCounts(): DigestCounts {
     oneOnOneFollowUps: 0,
     interviewReminders: 0,
     overdueScorecards: 0,
+    reviewAcknowledgementReminders: 0,
     hallOfFameReminders: 0,
+    cultureRecaps: 0,
+    cultureAnnouncements: 0,
   };
 }
 
@@ -125,7 +134,7 @@ export async function runSlackDigests(
     db
       .from("user_notification_preferences")
       .select(
-        "user_id, slack_enabled, slack_quiet_start, slack_quiet_end, slack_timezone, slack_daily_brief",
+        "user_id, slack_enabled, slack_quiet_start, slack_quiet_end, slack_timezone, slack_daily_brief, culture_announcements",
       ),
     db
       .from("staff_work_schedules")
@@ -133,6 +142,17 @@ export async function runSlackDigests(
   ]);
   if (usersRes.error) throw new Error("Active staff could not be loaded");
   if (prefsRes.error) throw new Error("Slack preferences could not be loaded");
+
+  // When an Asana-to-Slack rule already sends task reminders, the brief leaves
+  // Asana counts out. If the setting cannot be read, nothing is sent.
+  const settingsRes = await db
+    .from("company_settings")
+    .select("asana_slack_rules_enabled")
+    .eq("id", "default")
+    .maybeSingle();
+  if (settingsRes.error)
+    throw new Error("Company settings could not be loaded");
+  const asanaRulesOn = settingsRes.data?.asana_slack_rules_enabled === true;
 
   const users = (usersRes.data ?? []) as UserRow[];
   const byId = new Map(users.map((user) => [user.id, user]));
@@ -183,7 +203,16 @@ export async function runSlackDigests(
         QUIET_HOURS_CATCH_UP_MINUTES,
       )
     ) {
-      await sendDailyBrief(user, byId, clock, timezone, now, weekStart, counts);
+      await sendDailyBrief(
+        user,
+        byId,
+        clock,
+        timezone,
+        now,
+        weekStart,
+        counts,
+        asanaRulesOn,
+      );
     }
 
     if (
@@ -198,6 +227,20 @@ export async function runSlackDigests(
       await sendCheckinNudge(user, clock, weekStart, counts);
     }
 
+    // Released review results stay visible until acknowledged, so nudge on
+    // Monday and Thursday mornings. The reminder stops once acknowledged.
+    if (
+      (clock.weekday === 1 || clock.weekday === 4) &&
+      inCatchUpWindow(
+        clock,
+        startMinutes,
+        WINDOW_MINUTES,
+        QUIET_HOURS_CATCH_UP_MINUTES,
+      )
+    ) {
+      await sendReviewAcknowledgementReminder(user, clock, counts);
+    }
+
     const reports = reportsByManager.get(user.id) ?? [];
     if (reports.length) {
       if (
@@ -209,7 +252,14 @@ export async function runSlackDigests(
           QUIET_HOURS_CATCH_UP_MINUTES,
         )
       )
-        await sendManagerPulse(user, byId, reports, weekStart, counts);
+        await sendManagerPulse(
+          user,
+          byId,
+          reports,
+          weekStart,
+          clock.date,
+          counts,
+        );
       if (
         clock.weekday === 5 &&
         inCatchUpWindow(
@@ -228,6 +278,8 @@ export async function runSlackDigests(
   await sendInterviewReminders(now, byId, prefs, counts);
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
   await sendHallOfFameClosingReminder(now, counts);
+  await publishCultureAnnouncements(now, byId, prefs, counts);
+  await sendWeeklyCultureRecap(now, byId, prefs, counts);
   return counts;
 }
 
@@ -239,6 +291,7 @@ async function sendDailyBrief(
   now: Date,
   weekStart: string,
   counts: DigestCounts,
+  asanaRulesOn: boolean,
 ) {
   const dayStart = new Date(now.getTime() - 36 * 3_600_000).toISOString();
   const dayEnd = new Date(now.getTime() + 36 * 3_600_000).toISOString();
@@ -292,10 +345,12 @@ async function sendDailyBrief(
   });
 
   // Asana is optional: when it is not connected or fails, the brief still goes out.
-  const asana = await loadAsanaTaskHealth({
-    userId: user.id,
-    today: clock.date,
-  }).catch(() => ({ connected: false as const }));
+  const asana = asanaRulesOn
+    ? { connected: false as const }
+    : await loadAsanaTaskHealth({
+        userId: user.id,
+        today: clock.date,
+      }).catch(() => ({ connected: false as const }));
 
   const entries = (log.data?.entries ?? []) as unknown[];
   const message = buildDailyBrief({
@@ -350,11 +405,45 @@ async function sendCheckinNudge(
   if (outcome === "delivered") counts.checkinNudges += 1;
 }
 
+async function sendReviewAcknowledgementReminder(
+  user: UserRow,
+  clock: LocalClock,
+  counts: DigestCounts,
+) {
+  // Only results that have been released and that the employee has not acknowledged.
+  const { data } = await db
+    .from("performance_reviews")
+    .select("id, reviewer_id, review_cycles!inner(results_released_at)")
+    .eq("reviewee_id", user.id)
+    .is("employee_acknowledged_at", null)
+    .not("review_cycles.results_released_at", "is", null);
+  const outstanding = ((data ?? []) as { reviewer_id: string }[]).filter(
+    (review) => review.reviewer_id !== user.id,
+  ).length;
+  const message = buildReviewAcknowledgementReminder({
+    outstanding,
+    appUrl: appUrl(),
+  });
+  if (!message) return;
+
+  const outcome = await deliverSlackNotification({
+    eventKey: `review-ack:${user.id}:${clock.date}`,
+    recipientUserId: user.id,
+    category: "review_open",
+    text: message.text,
+    blocks: message.blocks,
+    digest: true,
+  });
+  record(counts, outcome);
+  if (outcome === "delivered") counts.reviewAcknowledgementReminders += 1;
+}
+
 async function sendManagerPulse(
   manager: UserRow,
   byId: Map<string, UserRow>,
   reports: string[],
   weekStart: string,
+  today: string,
   counts: DigestCounts,
 ) {
   const { data } = await supabaseAdmin
@@ -396,6 +485,28 @@ async function sendManagerPulse(
       (item) => !["flagged_team_member", "checkin_review"].includes(item.id),
     )
     .map((item) => item.title);
+
+  // Only team members who chose to share get an Asana count, and only as a number.
+  const { data: sharing } = await db
+    .from("asana_connections")
+    .select("user_id")
+    .in("user_id", reports)
+    .eq("share_task_health_with_manager", true);
+  let asanaOverdue = 0;
+  let sharers = 0;
+  for (const row of (sharing ?? []) as { user_id: string }[]) {
+    const health = await loadAsanaTaskHealth({
+      userId: row.user_id,
+      today,
+    }).catch(() => ({ connected: false as const }));
+    if (!health.connected || health.health.overdue.length === 0) continue;
+    sharers += 1;
+    asanaOverdue += health.health.overdue.length;
+  }
+  if (asanaOverdue > 0)
+    queueLines.push(
+      `${asanaOverdue} overdue Asana ${asanaOverdue === 1 ? "task" : "tasks"} across ${sharers} ${sharers === 1 ? "person" : "people"} who shared their count`,
+    );
 
   const message = buildManagerMondayPulse({
     missingCheckins: reports.filter((id) => !submitted.has(id)).length,
@@ -458,7 +569,7 @@ async function sendOneOnOneReminders(
   ).toISOString();
   const { data } = await supabaseAdmin
     .from("one_on_ones")
-    .select("id, manager_id, report_id, scheduled_at")
+    .select("id, manager_id, report_id, scheduled_at, google_event_id")
     .gt("scheduled_at", now.toISOString())
     .lte("scheduled_at", until);
 
@@ -467,7 +578,11 @@ async function sendOneOnOneReminders(
     manager_id: string;
     report_id: string;
     scheduled_at: string;
+    google_event_id: string | null;
   }[]) {
+    // A calendar invitation already reaches both participants with its own
+    // reminder. Slack adds a reminder only for meetings without an invite.
+    if (meeting.google_event_id) continue;
     for (const [recipient, other] of [
       [meeting.manager_id, meeting.report_id],
       [meeting.report_id, meeting.manager_id],
@@ -730,4 +845,231 @@ async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
 
 function appUrl() {
   return process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+}
+
+// ── Culture announcements (company channel) ─────────────────────────────────
+// Only the approved events below reach the channel. Names appear only for
+// people who opted in to culture announcements. Everything else is a count.
+
+function optedIn(prefs: Map<string, PrefRow>, userId: string) {
+  return prefs.get(userId)?.culture_announcements === true;
+}
+
+/** Wall of Fame winners and newly live Side Quests are posted as they happen. */
+async function publishCultureAnnouncements(
+  now: Date,
+  byId: Map<string, UserRow>,
+  prefs: Map<string, PrefRow>,
+  counts: DigestCounts,
+) {
+  const since = new Date(now.getTime() - 26 * 3_600_000).toISOString();
+
+  const { data: winners } = await db
+    .from("hall_of_fame_winners")
+    .select("id, nominee_id, category, published_at")
+    .gte("published_at", since);
+  for (const winner of (winners ?? []) as {
+    id: string;
+    nominee_id: string;
+    category: string;
+    published_at: string;
+  }[]) {
+    const name = optedIn(prefs, winner.nominee_id)
+      ? byId.get(winner.nominee_id)?.name
+      : undefined;
+    const text = name
+      ? `${name} has been named a Wall of Fame winner. Congratulations!`
+      : "A teammate has been named a Wall of Fame winner. Congratulations!";
+    const outcome = await postSlackChannelNotification({
+      eventKey: `culture:wall-of-fame:${winner.id}`,
+      category: "culture_wall_of_fame",
+      text,
+      blocks: [
+        {
+          type: "section",
+          text: { type: "mrkdwn", text },
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `<${appUrl()}/pulse/hall-of-fame|See the Wall of Fame>`,
+            },
+          ],
+        },
+      ],
+    });
+    record(counts, outcome);
+    if (outcome === "delivered") counts.cultureAnnouncements += 1;
+  }
+
+  const { data: quests } = await supabaseAdmin
+    .from("side_quests")
+    .select("id, title, starts_at")
+    .eq("status", "live")
+    .gte("starts_at", since);
+  for (const quest of (quests ?? []) as {
+    id: string;
+    title: string;
+  }[]) {
+    const text = `A new Side Quest is live: ${quest.title}`;
+    const outcome = await postSlackChannelNotification({
+      eventKey: `culture:side-quest:${quest.id}`,
+      category: "culture_side_quest",
+      text,
+      blocks: [
+        { type: "section", text: { type: "mrkdwn", text } },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `<${appUrl()}/pulse/side-quests|Take a look in Kazi>`,
+            },
+          ],
+        },
+      ],
+    });
+    record(counts, outcome);
+    if (outcome === "delivered") counts.cultureAnnouncements += 1;
+  }
+}
+
+/** Monday morning recap of the previous week. Posted once per week, skipped when empty. */
+async function sendWeeklyCultureRecap(
+  now: Date,
+  byId: Map<string, UserRow>,
+  prefs: Map<string, PrefRow>,
+  counts: DigestCounts,
+) {
+  const clock = localClock(now, DEFAULT_TIMEZONE);
+  if (
+    clock.weekday !== 1 ||
+    !inCatchUpWindow(
+      clock,
+      9 * 60,
+      WINDOW_MINUTES,
+      QUIET_HOURS_CATCH_UP_MINUTES,
+    )
+  )
+    return;
+
+  const thisWeek = weekStartOf(clock.date, clock.weekday);
+  const lastWeek = addDays(thisWeek, -7);
+  const from = `${lastWeek}T00:00:00.000Z`;
+  const to = `${thisWeek}T00:00:00.000Z`;
+
+  const [recognitions, milestones, goals, winners, quests, completions] =
+    await Promise.all([
+      supabaseAdmin
+        .from("feedback")
+        .select("to_user_id, campaign_id")
+        .eq("visibility", "public")
+        .gte("created_at", from)
+        .lt("created_at", to),
+      db
+        .from("milestones")
+        .select("user_id")
+        .gte("milestone_date", lastWeek)
+        .lt("milestone_date", thisWeek),
+      supabaseAdmin
+        .from("goals")
+        .select("owner_id")
+        .eq("status", "completed")
+        .gte("updated_at", from)
+        .lt("updated_at", to),
+      db
+        .from("hall_of_fame_winners")
+        .select("nominee_id")
+        .gte("published_at", from)
+        .lt("published_at", to),
+      supabaseAdmin.from("side_quests").select("title").eq("status", "live"),
+      db
+        .from("side_quest_completions")
+        .select("id")
+        .eq("status", "approved")
+        .gte("completed_at", from)
+        .lt("completed_at", to),
+    ]);
+
+  const namesFor = (ids: (string | null)[]) => [
+    ...new Set(
+      ids
+        .filter(
+          (id): id is string => Boolean(id) && optedIn(prefs, id as string),
+        )
+        .map((id) => byId.get(id)?.name)
+        .filter((name): name is string => Boolean(name)),
+    ),
+  ];
+  // Recognition tied to a campaign for a narrower audience stays out of the channel.
+  const restrictedCampaigns = new Set(
+    (
+      ((
+        await db
+          .from("recognition_campaigns")
+          .select("id")
+          .neq("audience_type", "company")
+      ).data ?? []) as { id: string }[]
+    ).map((campaign) => campaign.id),
+  );
+  const recognitionRows = (
+    (recognitions.data ?? []) as {
+      to_user_id: string;
+      campaign_id: string | null;
+    }[]
+  ).filter(
+    (row) => !row.campaign_id || !restrictedCampaigns.has(row.campaign_id),
+  );
+  const milestoneRows = (milestones.data ?? []) as { user_id: string }[];
+  const goalRows = (goals.data ?? []) as { owner_id: string | null }[];
+  const winnerRows = (winners.data ?? []) as { nominee_id: string }[];
+
+  const recap = buildCultureRecap({
+    recognitions: {
+      count: recognitionRows.length,
+      optedInNames: namesFor(recognitionRows.map((row) => row.to_user_id)),
+    },
+    milestones: {
+      count: milestoneRows.length,
+      optedInNames: namesFor(milestoneRows.map((row) => row.user_id)),
+    },
+    goalsCompleted: {
+      count: goalRows.length,
+      optedInNames: namesFor(goalRows.map((row) => row.owner_id)),
+    },
+    sideQuests: {
+      liveTitles: ((quests.data ?? []) as { title: string }[]).map(
+        (quest) => quest.title,
+      ),
+      completedThisWeek: ((completions.data ?? []) as unknown[]).length,
+    },
+    wallOfFameWinners: {
+      count: winnerRows.length,
+      optedInNames: namesFor(winnerRows.map((row) => row.nominee_id)),
+    },
+  });
+  if (!recap) return;
+
+  const link = `${appUrl()}/pulse`;
+  const text = `${recap.text}: ${recap.lines.length} update${recap.lines.length === 1 ? "" : "s"}`;
+  const outcome = await postSlackChannelNotification({
+    eventKey: `culture-recap:${lastWeek}`,
+    category: "culture_recap",
+    text,
+    blocks: [
+      { type: "header", text: { type: "plain_text", text: recap.text } },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: recap.lines.join("\n") },
+      },
+      {
+        type: "context",
+        elements: [{ type: "mrkdwn", text: `<${link}|Open Kazi>` }],
+      },
+    ],
+  });
+  record(counts, outcome);
+  if (outcome === "delivered") counts.cultureRecaps += 1;
 }

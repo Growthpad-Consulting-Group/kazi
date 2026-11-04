@@ -110,6 +110,7 @@ export interface NotifPrefs {
   slack_quiet_end: string | null;
   slack_timezone: string;
   slack_daily_brief: boolean;
+  culture_announcements: boolean;
 }
 
 export async function saveNotificationPrefs(prefs: NotifPrefs) {
@@ -168,6 +169,7 @@ export interface CompanySettings {
   timezone: string;
   fiscal_year_start: number;
   culture_leaderboards_enabled: boolean;
+  asana_slack_rules_enabled: boolean;
 }
 
 export async function saveCompanySettings(values: CompanySettings) {
@@ -191,6 +193,7 @@ export async function saveCompanySettings(values: CompanySettings) {
       timezone: values.timezone || "Africa/Nairobi",
       fiscal_year_start: values.fiscal_year_start,
       culture_leaderboards_enabled: values.culture_leaderboards_enabled,
+      asana_slack_rules_enabled: values.asana_slack_rules_enabled,
       updated_at: new Date().toISOString(),
     })
     .eq("id", "default");

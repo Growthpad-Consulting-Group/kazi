@@ -17,10 +17,14 @@ export default async function IntegrationsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: asanaRow } = (await (supabaseAdmin as any)
     .from("asana_connections")
-    .select("workspace_name, created_at")
+    .select("workspace_name, created_at, share_task_health_with_manager")
     .eq("user_id", session.user.id)
     .maybeSingle()) as {
-    data: { workspace_name?: string; created_at?: string } | null;
+    data: {
+      workspace_name?: string;
+      created_at?: string;
+      share_task_health_with_manager?: boolean;
+    } | null;
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,6 +66,7 @@ export default async function IntegrationsPage() {
           connected: Boolean(asanaRow),
           workspace: asanaRow?.workspace_name,
           connectedAt: asanaRow?.created_at,
+          sharesWithManager: Boolean(asanaRow?.share_task_health_with_manager),
         }}
         canManageOrg={isAdmin}
         googleWorkspaceConnected={googleConnected}

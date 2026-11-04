@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateOwnerGoals } from "@/lib/cache/invalidate";
-import { postSlackMessage } from "@/lib/slack";
 import { canManageGoal } from "@/lib/goal-permissions";
 import type { GoalStatus } from "@/types/database";
 
@@ -100,7 +99,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   const ownerId = before?.owner_id ?? "";
   const parentId = before?.parent_id ?? null;
-  const goalTitle = before?.title ?? "a goal";
 
   const { error } = await supabaseAdmin
     .from("goals")
@@ -140,44 +138,6 @@ export async function PATCH(req: Request) {
     );
   }
 
-  // Slack Block Kit notification when a goal is completed (non-blocking)
-  if (update.status === "completed" && ownerId) {
-    try {
-      const { data: userRow } = await supabaseAdmin
-        .from("users")
-        .select("name")
-        .eq("id", ownerId)
-        .maybeSingle();
-      const ownerName =
-        (userRow as unknown as { name: string } | null)?.name ?? "Someone";
-      const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
-
-      await postSlackMessage(
-        `🎯 ${ownerName} just completed their goal: ${goalTitle}`,
-        [
-          {
-            type: "header",
-            text: { type: "plain_text", text: "🎯 Goal Completed" },
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `*${ownerName}* just completed their goal: *${goalTitle}*`,
-            },
-          },
-          {
-            type: "context",
-            elements: [
-              { type: "mrkdwn", text: `<${appUrl}/pulse/goals|View in Kazi>` },
-            ],
-          },
-        ],
-      );
-    } catch (slackErr) {
-      console.error("Slack notification failed (non-blocking)", slackErr);
-    }
-  }
-
+  // Goal completions are summarised in the weekly culture recap, not posted as they happen.
   return NextResponse.json({ ok: true });
 }

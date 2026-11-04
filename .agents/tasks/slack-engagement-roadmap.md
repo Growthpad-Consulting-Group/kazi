@@ -37,7 +37,7 @@
   - Remind assigned interviewers about upcoming interviews and overdue scorecards.
   - Acceptance: recruiting messages contain candidate name, role and Kazi link only—never CV text or AI rationale.
 
-- [~] **5. Add scheduled 1-on-1 reminders.** *(partial: both participants get one reminder about 90 minutes before a meeting, and the manager gets one follow-up when notes and actions are still empty an hour or more after it. Not yet deduplicated against calendar invitations.)*
+- [x] **5. Add scheduled 1-on-1 reminders.** *(Both participants get one reminder about 90 minutes before a meeting, unless a calendar invitation already covers the meeting. The manager gets one follow-up when notes and actions are still empty an hour or more after it.)*
   - Send participants a configurable reminder before the meeting and a follow-up if notes/actions are still incomplete after it.
   - Deduplicate against calendar invitations; Slack is a reminder, not a second calendar system.
   - Acceptance: both participants get exactly one reminder in their local time.
@@ -60,13 +60,13 @@
   - Friday afternoon: send managers a concise review queue.
   - Acceptance: reminders stop as soon as the check-in/review is complete.
 
-- [~] **9. Add Kazi mentions and threaded conversation alerts.** *(privacy-safe `@Name` mentions now work in shared 1-on-1 notes for the other authorised participant; dedicated comments/threads for goals, feedback and review collaboration remain.)*
+- [x] **9. Add Kazi mentions and threaded conversation alerts.** *(`@Name` mentions in 1-on-1 notes, goal descriptions, public recognition and review text notify only the authorised people involved, with generic wording and no source text. Mentions attach to these existing text fields rather than new comment threads.)*
   - Introduce `@name` mentions in supported Kazi notes/comments (1-on-1s, goals, feedback and review collaboration where appropriate).
   - Parse only valid active staff mentions, create an in-app notification and DM the mentioned person with a direct deep link.
   - Preserve the comment thread in Kazi; Slack replies are not treated as Kazi records in this phase.
   - Acceptance: mention sends one private alert and does not notify the author or duplicate names.
 
-- [~] **10. Add survey and feedback lifecycle reminders.** *(partial: survey launch and closing DMs go only to staff who have not responded; HR gets a privacy-safe Voice Out alert with no reporter, topic or message. Feedback-needs-response reminders are not yet built.)*
+- [x] **10. Add survey and feedback lifecycle reminders.** *(Survey launch and closing DMs go only to staff who have not responded. Released review results that are not yet acknowledged get a reminder on Monday and Thursday mornings. HR gets a Voice Out alert with no reporter, topic or message.)*
   - DM eligible staff when a survey launches and before it closes, only if they have not responded.
   - Notify HR privately when Voice Out or feedback needs a response; never identify an anonymous reporter.
   - Acceptance: anonymous Voice Out stays anonymous end-to-end.
@@ -75,13 +75,13 @@
 
 > **System boundaries:** Asana remains the source of truth for project work. Kazi remains the source of truth for people operations, daily reporting, performance and engagement. Slack is the delivery surface for actionable prompts. Do not mirror every system event across the other two.
 
-- [~] **11. Pull selected Asana task-health signals into Kazi.** *(partial: staff now see their own due-today, overdue and recently completed Asana work in Pulse, using only the task title, project, due date and deep link. Completed work remains opt-in for daily-log/check-in imports; blocked/dependent work is not yet available.)*
+- [x] **11. Pull selected Asana task-health signals into Kazi.** *(Staff see their own due-today, overdue, blocked and recently completed Asana work in Pulse, using only the title, project, due date, state and deep link. Completed work stays opt-in for daily-log and check-in imports.)*
   - Build a staff-facing task-health read model for tasks assigned to the connected Asana user: due today, overdue, completed recently, and explicitly blocked/dependent work where available.
   - Feed completed tasks into the existing daily-log and weekly check-in import experience; do not automatically create Kazi time entries.
   - Use task title, project, due date, completion state and Asana deep link only. Do not ingest task descriptions, comments or attachments by default.
   - Acceptance: staff can see a current, privacy-minimised summary without Kazi becoming a second project manager.
 
-- [~] **12. Add Asana-aware Slack digests.** *(partial: the personal daily brief includes due-today and overdue counts, with no task titles. Manager task-health signals, and suppressing Kazi alerts for events already sent by an Asana rule, are not built.)*
+- [x] **12. Add Asana-aware Slack digests.** *(The personal daily brief shows due-today and overdue counts without task titles. A manager sees only counts, and only from team members who chose to share. Kazi leaves Asana counts out of its brief when an admin has set that an Asana-to-Slack rule already sends them.)*
   - Include a concise, optional “due today”/“overdue” section in the personal daily Kazi brief.
   - Include a manager task-health signal only when manager access to the relevant Asana work has been explicitly approved; otherwise notify the task owner only.
   - Suppress Kazi Slack alerts for events already delivered through an enabled Asana-to-Slack rule, using an organisation setting and event-key deduplication.
@@ -106,12 +106,12 @@
 
 ## P2 — Culture, recognition and compelling Slack experiences
 
-- [~] **16. Add opt-in culture-channel announcements.** *(partial: completed goals can post to the configured company webhook; culture routing, opt-ins and the remaining eligible event types are not implemented)*
+- [x] **16. Add opt-in culture-channel announcements.** *(Wall of Fame winners and newly live Side Quests post as they happen. Recognition, milestones and goal completions are batched into the weekly recap. Names appear only for people who opted in. Recognition tied to a restricted campaign is left out.)*
   - Publish recognition, milestones, goal completions, approved Wall of Fame winners and newly live side quests to the configured culture/company channel.
   - Respect campaign visibility and user opt-ins; batch low-priority celebrations into a weekly recap.
   - Acceptance: no PIP, review, candidate or private feedback event can use this channel.
 
-- [ ] **17. Create a weekly culture recap.**
+- [x] **17. Create a weekly culture recap.** *(One recap each Monday for the previous week, posted only when there is something to share. It counts everything and names only people who opted in.)*
   - Post a compact, opt-in recap of recognition, milestone celebrations, open side quests and completed quests.
   - Link to Kazi rather than displaying leaderboard or staff-sensitive details beyond the approved culture context.
   - Acceptance: one recap per week, skipped when there is no eligible content.

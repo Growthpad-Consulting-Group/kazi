@@ -11,6 +11,7 @@ interface AsanaConnection {
   connected: boolean;
   workspace?: string;
   connectedAt?: string;
+  sharesWithManager?: boolean;
 }
 
 interface SlackStatus {
@@ -133,6 +134,9 @@ export default function IntegrationsClient({
   canManageOrg,
 }: Props) {
   const [asanaConnected, setAsanaConnected] = useState(asana.connected);
+  const [asanaShares, setAsanaShares] = useState(
+    Boolean(asana.sharesWithManager),
+  );
 
   // Slack state
   const [slackConnected, setSlackConnected] = useState(slackStatus.connected);
@@ -214,6 +218,26 @@ export default function IntegrationsClient({
     // Return here after OAuth so user doesn't land in check-ins
     window.location.href =
       "/api/integrations/asana/connect?returnTo=/settings/integrations";
+  }
+
+  async function setAsanaSharing(share: boolean) {
+    const previous = asanaShares;
+    setAsanaShares(share);
+    const res = await fetch("/api/integrations/asana/share", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ share }),
+    });
+    if (!res.ok) {
+      setAsanaShares(previous);
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? "Could not update Asana sharing");
+    }
+    toast.success(
+      share
+        ? "Your manager can now see your overdue Asana count"
+        : "Your manager no longer sees your Asana count",
+    );
   }
 
   async function disconnectAsana() {
@@ -339,6 +363,25 @@ export default function IntegrationsClient({
             onConnect={connectAsana}
             onDisconnect={disconnectAsana}
           />
+          {asanaConnected && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5">
+              <input
+                type="checkbox"
+                checked={asanaShares}
+                onChange={(event) => setAsanaSharing(event.target.checked)}
+                className="mt-0.5 rounded"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-[var(--text-hi)]">
+                  Share my overdue Asana count with my manager
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-[var(--text-lo)]">
+                  Your manager sees only how many of your tasks are overdue each
+                  Monday, never task names. Off by default.
+                </span>
+              </span>
+            </label>
+          )}
           <IntegrationCard
             icon="solar:stopwatch-broken"
             name="Kazi Timer (browser extension)"

@@ -28,7 +28,8 @@ export default function MyWeekMomentum({
   const hasAsanaAttention =
     summary.asanaTaskHealth &&
     (summary.asanaTaskHealth.overdue.length > 0 ||
-      summary.asanaTaskHealth.dueToday.length > 0);
+      summary.asanaTaskHealth.dueToday.length > 0 ||
+      summary.asanaTaskHealth.blocked.length > 0);
   const metrics: Metric[] = [
     {
       label: "Tracked",
@@ -75,13 +76,13 @@ export default function MyWeekMomentum({
         <div className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/20">
-                <Icon icon="solar:graph-up-broken" className="h-5 w-5" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                <Icon icon="solar:graph-up-broken" className="h-3.5 w-3.5" />
               </span>
               <div>
                 <h2
                   id="my-week-heading"
-                  className="text-base font-semibold text-[var(--text-hi)]"
+                  className="text-sm font-semibold text-[var(--text-hi)]"
                 >
                   My week
                 </h2>
@@ -160,7 +161,7 @@ export default function MyWeekMomentum({
         <div className="bg-[var(--surface-2)] p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+              <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
                 <Icon
                   icon="solar:calendar-mark-broken"
                   className="h-3.5 w-3.5"
@@ -170,7 +171,7 @@ export default function MyWeekMomentum({
                 <h3 className="text-sm font-semibold text-[var(--text-hi)]">
                   Asana task health
                 </h3>
-                <p className="text-[11px] text-[var(--text-lo)]">
+                <p className="text-xs text-[var(--text-lo)]">
                   Assigned work that needs attention
                 </p>
               </div>
@@ -199,6 +200,14 @@ export default function MyWeekMomentum({
                 count={summary.asanaTaskHealth.dueToday.length}
                 tone="text-amber-600 dark:text-amber-400"
                 tasks={summary.asanaTaskHealth.dueToday}
+              />
+            )}
+            {summary.asanaTaskHealth.blocked.length > 0 && (
+              <TaskList
+                title="Blocked by other work"
+                count={summary.asanaTaskHealth.blocked.length}
+                tone="text-[var(--text-lo)]"
+                tasks={summary.asanaTaskHealth.blocked}
               />
             )}
           </div>

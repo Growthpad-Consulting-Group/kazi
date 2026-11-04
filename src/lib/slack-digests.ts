@@ -242,3 +242,30 @@ export function buildHallOfFameClosingReminder(input: {
     ],
   };
 }
+
+/** Released review results waiting for the employee's acknowledgement. */
+export function buildReviewAcknowledgementReminder(input: {
+  outstanding: number;
+  appUrl: string;
+}): SlackMessage | null {
+  if (input.outstanding === 0) return null;
+  const text =
+    input.outstanding === 1
+      ? "Your review results are ready. Read them and add your response in Kazi."
+      : `${input.outstanding} review results are ready. Read them and add your response in Kazi.`;
+  return {
+    text,
+    blocks: [
+      { type: "section", text: { type: "mrkdwn", text } },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `<${input.appUrl}/pulse/reviews|Read your results>`,
+          },
+        ],
+      },
+    ],
+  };
+}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyReviewMentions } from "@/lib/pulse-mentions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -19,12 +20,13 @@ export async function PATCH(
   // Verify reviewer owns this review
   const { data: existing } = await supabaseAdmin
     .from("performance_reviews")
-    .select("reviewer_id, review_type, cycle_id, submitted_at")
+    .select("reviewer_id, reviewee_id, review_type, cycle_id, submitted_at")
     .eq("id", id)
     .single();
 
   const review = existing as unknown as {
     reviewer_id: string;
+    reviewee_id: string;
     review_type: keyof typeof REVIEW_TYPE_STAGE;
     cycle_id: string;
     submitted_at: string | null;
@@ -143,6 +145,18 @@ export async function PATCH(
     actor_id: session.user.id,
     action: body.submitted_at ? "review_submitted" : "review_saved",
   });
+  if (body.strengths !== undefined || body.development_areas !== undefined) {
+    const text = [body.strengths, body.development_areas]
+      .filter((value): value is string => typeof value === "string")
+      .join("\n");
+    await notifyReviewMentions({
+      reviewId: id,
+      text,
+      actorId: session.user.id,
+      reviewerId: review.reviewer_id,
+      revieweeId: review.reviewee_id,
+    });
+  }
   await invalidateTables("performance_reviews");
   return NextResponse.json({ ok: true });
 }

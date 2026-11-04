@@ -521,7 +521,7 @@ export function TeamActivity() {
                             </p>
                           </div>
                           {attentionNeeded ? (
-                            <span className="shrink-0 rounded-lg bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                            <span className="shrink-0 rounded-lg bg-red-500/10 px-2.5 py-1 text-sm font-semibold text-red-600 dark:text-red-400">
                               Needs support
                             </span>
                           ) : member.daysLogged ? (

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyGoalMentions } from "@/lib/pulse-mentions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -78,6 +79,13 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: error.message }, { status: 500 });
 
   await invalidateOwnerGoals(goal.owner_id ?? "");
+  if (goal.owner_id && typeof body?.description === "string")
+    await notifyGoalMentions({
+      goalId: id,
+      ownerId: goal.owner_id,
+      text: body.description,
+      actorId: session.user.id,
+    });
   return NextResponse.json({ ok: true });
 }
 

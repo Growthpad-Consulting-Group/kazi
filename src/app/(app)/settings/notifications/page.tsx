@@ -25,6 +25,7 @@ const DEFAULT_PREFS: NotifPrefs = {
   slack_quiet_end: null,
   slack_timezone: "Africa/Nairobi",
   slack_daily_brief: false,
+  culture_announcements: false,
 };
 
 export default async function NotificationsPage() {

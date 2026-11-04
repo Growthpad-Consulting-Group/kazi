@@ -239,6 +239,33 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
         </label>
       </SettingsSection>
 
+      <SettingsSection
+        title="Asana and Slack reminders"
+        description="Avoid sending the same task reminder twice"
+        icon="logos:asana"
+        iconBg="bg-[var(--surface-2)] text-[var(--text-hi)]"
+      >
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-[var(--surface-2)] p-3.5">
+          <input
+            type="checkbox"
+            checked={fields.asana_slack_rules_enabled}
+            onChange={(event) =>
+              set("asana_slack_rules_enabled", event.target.checked)
+            }
+            className="mt-0.5 rounded"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-[var(--text-hi)]">
+              An Asana-to-Slack rule already posts task reminders
+            </span>
+            <span className="mt-1 block text-xs leading-relaxed text-[var(--text-lo)]">
+              When on, Kazi leaves Asana due and overdue counts out of its Slack
+              daily brief, so staff do not receive them twice.
+            </span>
+          </span>
+        </label>
+      </SettingsSection>
+
       {/* Locale */}
       <SettingsSection
         title="Locale & calendar"

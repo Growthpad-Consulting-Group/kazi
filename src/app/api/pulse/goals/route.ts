@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyGoalMentions } from "@/lib/pulse-mentions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -153,34 +154,45 @@ export async function POST(req: Request) {
       ? body.target_unit.trim().slice(0, 40)
       : null;
 
-  const { error } = await supabaseAdmin.from("goals").insert({
-    title,
-    description:
-      typeof body?.description === "string" && body.description.trim()
-        ? body.description.trim()
-        : null,
-    level: goalLevel,
-    owner_id: ownerId,
-    parent_id: parentId,
-    due_date:
-      typeof body?.due_date === "string" && body.due_date
-        ? body.due_date
-        : null,
-    target_value: targetValue,
-    current_value: currentValue,
-    target_unit: targetUnit,
-    progress:
-      targetValue && currentValue !== null
-        ? Math.max(
-            0,
-            Math.min(100, Math.round((currentValue / targetValue) * 100)),
-          )
-        : undefined,
-    created_by: session.user.id,
-  });
+  const { data: createdGoal, error } = await supabaseAdmin
+    .from("goals")
+    .insert({
+      title,
+      description:
+        typeof body?.description === "string" && body.description.trim()
+          ? body.description.trim()
+          : null,
+      level: goalLevel,
+      owner_id: ownerId,
+      parent_id: parentId,
+      due_date:
+        typeof body?.due_date === "string" && body.due_date
+          ? body.due_date
+          : null,
+      target_value: targetValue,
+      current_value: currentValue,
+      target_unit: targetUnit,
+      progress:
+        targetValue && currentValue !== null
+          ? Math.max(
+              0,
+              Math.min(100, Math.round((currentValue / targetValue) * 100)),
+            )
+          : undefined,
+      created_by: session.user.id,
+    })
+    .select("id")
+    .single();
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
   await invalidateOwnerGoals(ownerId ?? "");
+  if (ownerId && createdGoal && typeof body?.description === "string")
+    await notifyGoalMentions({
+      goalId: createdGoal.id,
+      ownerId,
+      text: body.description,
+      actorId: session.user.id,
+    });
   return NextResponse.json({ ok: true });
 }

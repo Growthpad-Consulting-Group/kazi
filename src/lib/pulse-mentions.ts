@@ -2,6 +2,8 @@ import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase";
 import { deliverSlackNotification } from "@/lib/slack";
 
+const DEFAULT_MESSAGE = "You were mentioned in shared 1-on-1 notes.";
+
 function hasMention(text: string, name: string) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`(^|\\s)@${escaped}(?=$|[\\s,.;:!?])`, "i").test(text);
@@ -10,6 +12,8 @@ function hasMention(text: string, name: string) {
 /**
  * Records only authorised @mentions. The notification never contains the
  * source text, preventing an alert from becoming a side channel for notes.
+ * Only active staff in `allowedRecipientIds` can be notified, and the author
+ * is never notified of their own mention.
  */
 export async function notifyPulseMentions({
   sourceType,
@@ -18,6 +22,7 @@ export async function notifyPulseMentions({
   actorId,
   allowedRecipientIds,
   link,
+  message = DEFAULT_MESSAGE,
 }: {
   sourceType: string;
   sourceId: string;
@@ -25,6 +30,8 @@ export async function notifyPulseMentions({
   actorId: string;
   allowedRecipientIds: string[];
   link: string;
+  /** Generic wording for the alert. It must never quote the source text. */
+  message?: string;
 }) {
   const clean = text.trim();
   const recipientIds = [...new Set(allowedRecipientIds)].filter(
@@ -67,7 +74,7 @@ export async function notifyPulseMentions({
     supabaseAdmin.from("notifications").insert(
       createdRecipientIds.map((userId) => ({
         user_id: userId,
-        message: "You were mentioned in shared 1-on-1 notes.",
+        message,
         link,
       })),
     ),
@@ -76,8 +83,88 @@ export async function notifyPulseMentions({
         eventKey: `pulse-mention:${sourceType}:${sourceId}:${bodyHash}:${recipientUserId}`,
         recipientUserId,
         category: "mention",
-        text: "You were mentioned in shared 1-on-1 notes.",
+        text: message,
       }),
     ),
   ]);
+}
+
+/** Goal descriptions: the owner and the owner's manager can be mentioned. */
+export async function notifyGoalMentions({
+  goalId,
+  ownerId,
+  text,
+  actorId,
+}: {
+  goalId: string;
+  ownerId: string;
+  text: string;
+  actorId: string;
+}) {
+  const { data: owner } = await supabaseAdmin
+    .from("users")
+    .select("manager_id")
+    .eq("id", ownerId)
+    .maybeSingle();
+  await notifyPulseMentions({
+    sourceType: "goal_description",
+    sourceId: goalId,
+    text,
+    actorId,
+    allowedRecipientIds: [ownerId, owner?.manager_id].filter(
+      (id): id is string => Boolean(id),
+    ),
+    link: "/pulse/goals",
+    message: "You were mentioned in a goal.",
+  });
+}
+
+/** Public recognition: any active staff member can be mentioned, as the message is public. */
+export async function notifyFeedbackMentions({
+  feedbackId,
+  text,
+  actorId,
+}: {
+  feedbackId: string;
+  text: string;
+  actorId: string;
+}) {
+  const { data: staff } = await supabaseAdmin
+    .from("users")
+    .select("id")
+    .eq("is_active", true);
+  await notifyPulseMentions({
+    sourceType: "feedback_message",
+    sourceId: feedbackId,
+    text,
+    actorId,
+    allowedRecipientIds: (staff ?? []).map((row) => row.id),
+    link: "/pulse/feedback",
+    message: "You were mentioned in a recognition message.",
+  });
+}
+
+/** Review comments: only the two participants of the review can be mentioned. */
+export async function notifyReviewMentions({
+  reviewId,
+  text,
+  actorId,
+  reviewerId,
+  revieweeId,
+}: {
+  reviewId: string;
+  text: string;
+  actorId: string;
+  reviewerId: string;
+  revieweeId: string;
+}) {
+  await notifyPulseMentions({
+    sourceType: "review_text",
+    sourceId: reviewId,
+    text,
+    actorId,
+    allowedRecipientIds: [reviewerId, revieweeId],
+    link: "/pulse/reviews",
+    message: "You were mentioned in a performance review.",
+  });
 }

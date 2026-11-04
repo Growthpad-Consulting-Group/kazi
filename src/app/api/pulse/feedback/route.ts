@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyFeedbackMentions } from "@/lib/pulse-mentions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -121,6 +122,12 @@ export async function POST(req: Request) {
       { error: recipientsError.message },
       { status: 500 },
     );
+  if (visibility === "public" && feedback)
+    await notifyFeedbackMentions({
+      feedbackId: feedback.id,
+      text: message.trim(),
+      actorId: from_user_id,
+    });
   // The recipient's private list changed; the public wall only if it was public.
   await Promise.all(
     recipientIds.map((recipientId) =>

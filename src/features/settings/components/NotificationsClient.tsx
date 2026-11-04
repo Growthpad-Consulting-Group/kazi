@@ -270,6 +270,17 @@ export default function NotificationsClient({ initial }: Props) {
         </div>
       </SettingsSection>
 
+      <SettingsSection title="Company culture" icon="solar:cup-star-broken">
+        <div className="divide-y divide-[var(--border)]">
+          <Toggle
+            checked={prefs.culture_announcements}
+            onChange={(value) => set("culture_announcements", value)}
+            label="Name me in company celebrations"
+            description="Allow your name in the weekly culture recap and Wall of Fame posts in the company Slack channel. When off, those posts count your achievement without naming you."
+          />
+        </div>
+      </SettingsSection>
+
       <SettingsSection
         title="Slack delivery"
         icon="solar:chat-round-dots-broken"

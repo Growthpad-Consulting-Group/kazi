@@ -46,3 +46,29 @@ describe("classifyOpenAsanaTasks", () => {
     ]);
   });
 });
+
+describe("classifyBlockedAsanaTasks", () => {
+  it("marks a task blocked only when a dependency is incomplete", async () => {
+    const { classifyBlockedAsanaTasks } =
+      await import("./asana-task-health-utils");
+    const result = classifyBlockedAsanaTasks(
+      [
+        {
+          gid: "a",
+          name: "Waiting on API",
+          due_on: null,
+          dependencyIds: ["d1"],
+        },
+        {
+          gid: "b",
+          name: "Done dependency",
+          due_on: null,
+          dependencyIds: ["d2"],
+        },
+        { gid: "c", name: "No dependencies", due_on: null, dependencyIds: [] },
+      ],
+      new Set(["d1"]),
+    );
+    expect(result.map((item) => item.id)).toEqual(["a"]);
+  });
+});

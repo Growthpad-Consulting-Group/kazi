@@ -362,14 +362,14 @@ export default async function PulseDashboard() {
                 href={isManager ? "/pulse/checkins" : checkinHref}
                 className="group flex min-w-64 items-center gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-3.5 transition-colors hover:bg-brand-500/10"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-lg shadow-brand-500/25">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
                   <Icon
                     icon={
                       isManager
                         ? "solar:users-group-two-rounded-broken"
                         : checkinStatus.icon
                     }
-                    className="h-5 w-5"
+                    className="h-3.5 w-3.5"
                   />
                 </span>
                 <span className="min-w-0 flex-1">

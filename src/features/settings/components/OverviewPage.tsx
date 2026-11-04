@@ -19,6 +19,7 @@ const DEFAULTS: CompanySettings = {
   timezone: "Africa/Nairobi",
   fiscal_year_start: 1,
   culture_leaderboards_enabled: false,
+  asana_slack_rules_enabled: false,
 };
 
 export default async function OverviewPage() {
@@ -39,7 +40,7 @@ export default async function OverviewPage() {
     (supabaseAdmin as any)
       .from("company_settings")
       .select(
-        "company_name, logo_url, website, industry, company_size, country, timezone, fiscal_year_start, culture_leaderboards_enabled",
+        "company_name, logo_url, website, industry, company_size, country, timezone, fiscal_year_start, culture_leaderboards_enabled, asana_slack_rules_enabled",
       )
       .eq("id", "default")
       .maybeSingle(),
