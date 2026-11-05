@@ -120,13 +120,13 @@
   - Link to Kazi rather than displaying leaderboard or staff-sensitive details beyond the approved culture context.
   - Acceptance: one recap per week, skipped when there is no eligible content.
 
-- [~] **18. Build Slack interactive actions.** *(Verified Slack button clicks are accepted. The "Mark reviewed" button on a manager's check-in message is live, with permission checks. Acknowledge and Remind me later are not built. Needs SLACK_SIGNING_SECRET and the Interactivity URL set in the Slack app.)*
+- [x] **18. Build Slack interactive actions.** *(Signed button clicks are accepted and every action is permission checked. Check-in DMs have "Mark reviewed" and "Remind me later". Review-results DMs have "Acknowledge" when exactly one review is waiting, plus "Remind me later". A snooze re-checks the item before sending again, four hours later. Needs SLACK_SIGNING_SECRET and the Interactivity URL set in the Slack app.)*
   - Upgrade from webhook-only delivery where needed: store bot/channel configuration securely, add `SLACK_SIGNING_SECRET`, verify Slack signatures, and implement an Interactivity request route.
   - Support safe actions first: “Open Kazi”, “Acknowledge”, “Mark reviewed”, and “Remind me later”. Write all state changes through Kazi permission checks.
   - Do not approve overtime, rewards, hires or performance actions directly from Slack until audit and confirmation design is complete.
   - Acceptance: invalid Slack signatures are rejected; every action is attributable and permission checked.
 
-- [x] **19. Add on-demand Slack shortcuts and commands.** *(/kazi today, check-in, goals and timer reply privately with the person's own data only. The global message shortcut is deferred until the commands have been used, as the roadmap asks. Needs SLACK_SIGNING_SECRET and the slash command URL set in the Slack app.)*
+- [x] **19. Add on-demand Slack shortcuts and commands.** *(/kazi today, check-in, goals and timer reply privately with the person's own data only. The global "Open Kazi" message shortcut (callback_id `open_kazi`) replies privately with a Kazi link and never reads the message. Needs SLACK_SIGNING_SECRET, the slash command URL and the shortcut registered in the Slack app.)*
   - Provide `/kazi today`, `/kazi check-in`, `/kazi goals` and `/kazi timer` as private, ephemeral responses with Kazi deep links.
   - Add a global “Open Kazi” message shortcut only after the above commands are stable.
   - Acceptance: commands expose only the invoking user’s own data unless they have a relevant manager/admin permission.

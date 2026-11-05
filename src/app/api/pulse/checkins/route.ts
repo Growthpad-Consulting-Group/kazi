@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateUserCheckins } from "@/lib/cache/invalidate";
 import { deliverSlackNotification } from "@/lib/slack";
+import { remindLaterButton } from "@/lib/slack-digests";
 import { notifyManagerOfCheckin } from "@/lib/notifications";
 import type { CheckinStatus } from "@/types/database";
 
@@ -129,6 +130,7 @@ export async function POST(req: Request) {
                   text: { type: "plain_text", text: "Mark reviewed" },
                   value: `${userId}|${weekStart}`,
                 },
+                remindLaterButton("checkin_review", `${userId}|${weekStart}`),
               ],
             },
           ],

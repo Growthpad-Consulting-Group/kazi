@@ -280,6 +280,8 @@ export function buildTimerRunningReminder(input: {
 /** Released review results waiting for the employee's acknowledgement. */
 export function buildReviewAcknowledgementReminder(input: {
   outstanding: number;
+  // Set only when exactly one review is outstanding, so Acknowledge can act on it.
+  singleReviewId?: string | null;
   appUrl: string;
 }): SlackMessage | null {
   if (input.outstanding === 0) return null;
@@ -287,10 +289,21 @@ export function buildReviewAcknowledgementReminder(input: {
     input.outstanding === 1
       ? "Your review results are ready. Read them and add your response in Kazi."
       : `${input.outstanding} review results are ready. Read them and add your response in Kazi.`;
+  const buttons: Record<string, unknown>[] = [];
+  if (input.outstanding === 1 && input.singleReviewId)
+    buttons.push({
+      type: "button",
+      action_id: "acknowledge_review",
+      style: "primary",
+      text: { type: "plain_text", text: "Acknowledge" },
+      value: input.singleReviewId,
+    });
+  buttons.push(remindLaterButton("review_acknowledgement", "open"));
   return {
     text,
     blocks: [
       { type: "section", text: { type: "mrkdwn", text } },
+      { type: "actions", elements: buttons },
       {
         type: "context",
         elements: [
@@ -298,6 +311,54 @@ export function buildReviewAcknowledgementReminder(input: {
             type: "mrkdwn",
             text: `<${input.appUrl}/pulse/reviews|Read your results>`,
           },
+        ],
+      },
+    ],
+  };
+}
+
+/** Button value format is `kind|target`; the interactive route validates both parts. */
+export function remindLaterButton(
+  kind: "review_acknowledgement" | "checkin_review",
+  target: string,
+): Record<string, unknown> {
+  return {
+    type: "button",
+    action_id: "snooze_reminder",
+    text: { type: "plain_text", text: "Remind me later" },
+    value: `${kind}|${target}`,
+  };
+}
+
+export function buildCheckinReviewReminder(input: {
+  appUrl: string;
+  employeeId: string;
+  weekStart: string;
+}): SlackMessage {
+  const text = "A weekly check-in is still waiting for your review in Kazi.";
+  return {
+    text,
+    blocks: [
+      { type: "section", text: { type: "mrkdwn", text } },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            action_id: "mark_checkin_reviewed",
+            text: { type: "plain_text", text: "Mark reviewed" },
+            value: `${input.employeeId}|${input.weekStart}`,
+          },
+          remindLaterButton(
+            "checkin_review",
+            `${input.employeeId}|${input.weekStart}`,
+          ),
+        ],
+      },
+      {
+        type: "context",
+        elements: [
+          { type: "mrkdwn", text: `<${input.appUrl}/pulse/checkins|Open check-ins>` },
         ],
       },
     ],

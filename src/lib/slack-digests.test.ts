@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCheckinNudge,
+  buildCheckinReviewReminder,
   buildDailyBrief,
   buildHallOfFameClosingReminder,
   buildInterviewReminder,
@@ -8,6 +9,7 @@ import {
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
   buildOneOnOneReminder,
+  buildReviewAcknowledgementReminder,
   buildTimerRunningReminder,
 } from "./slack-digests";
 
@@ -193,5 +195,36 @@ describe("Monday pulse queue lines", () => {
     });
     expect(pulse).not.toBeNull();
     expect(JSON.stringify(pulse!.blocks)).toContain("3 reward redemptions");
+  });
+});
+
+describe("review acknowledgement buttons", () => {
+  it("offers Acknowledge only when exactly one review is outstanding", () => {
+    const single = buildReviewAcknowledgementReminder({
+      outstanding: 1,
+      singleReviewId: "review-1",
+      appUrl,
+    });
+    expect(JSON.stringify(single!.blocks)).toContain("acknowledge_review");
+    expect(JSON.stringify(single!.blocks)).toContain("snooze_reminder");
+
+    const several = buildReviewAcknowledgementReminder({
+      outstanding: 2,
+      singleReviewId: null,
+      appUrl,
+    });
+    expect(JSON.stringify(several!.blocks)).not.toContain("acknowledge_review");
+    expect(JSON.stringify(several!.blocks)).toContain("snooze_reminder");
+  });
+
+  it("keeps check-in reminder buttons to one review action and one snooze", () => {
+    const message = buildCheckinReviewReminder({
+      appUrl,
+      employeeId: "emp-1",
+      weekStart: "2026-11-02",
+    });
+    const serialised = JSON.stringify(message.blocks);
+    expect(serialised).toContain("mark_checkin_reviewed");
+    expect(serialised).toContain("checkin_review|emp-1|2026-11-02");
   });
 });

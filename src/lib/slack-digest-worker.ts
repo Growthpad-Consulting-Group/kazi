@@ -20,6 +20,7 @@ import {
 } from "@/lib/slack-schedule";
 import {
   buildCheckinNudge,
+  buildCheckinReviewReminder,
   buildDailyBrief,
   buildInterviewReminder,
   buildHallOfFameClosingReminder,
@@ -61,6 +62,7 @@ export type DigestCounts = {
   cultureRecaps: number;
   cultureAnnouncements: number;
   timerReminders: number;
+  snoozedReminders: number;
 };
 
 type UserRow = {
@@ -108,6 +110,7 @@ function emptyCounts(): DigestCounts {
     cultureRecaps: 0,
     cultureAnnouncements: 0,
     timerReminders: 0,
+    snoozedReminders: 0,
   };
 }
 
@@ -298,6 +301,7 @@ export async function runSlackDigests(
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
   await sendHallOfFameClosingReminder(now, counts);
   await sendLongRunningTimerReminders(now, byId, prefs, counts);
+  await sendDueSnoozedReminders(now, counts);
   await publishCultureAnnouncements(now, byId, prefs, counts);
   await sendWeeklyCultureRecap(now, byId, prefs, counts);
   return counts;
@@ -499,23 +503,34 @@ async function sendCheckinNudge(
   if (outcome === "delivered") counts.checkinNudges += 1;
 }
 
+/** Released results the person has not acknowledged, excluding reviews they wrote. */
+async function outstandingReviewAcknowledgements(userId: string) {
+  // Only results that have been released and that the employee has not acknowledged.
+  const { data } = await db
+    .from("performance_reviews")
+    .select("id, reviewer_id, review_cycles!inner(results_released_at)")
+    .eq("reviewee_id", userId)
+    .is("employee_acknowledged_at", null)
+    .not("review_cycles.results_released_at", "is", null);
+  const open = ((data ?? []) as { id: string; reviewer_id: string }[]).filter(
+    (review) => review.reviewer_id !== userId,
+  );
+  return {
+    outstanding: open.length,
+    singleReviewId: open.length === 1 ? open[0].id : null,
+  };
+}
+
 async function sendReviewAcknowledgementReminder(
   user: UserRow,
   clock: LocalClock,
   counts: DigestCounts,
 ) {
-  // Only results that have been released and that the employee has not acknowledged.
-  const { data } = await db
-    .from("performance_reviews")
-    .select("id, reviewer_id, review_cycles!inner(results_released_at)")
-    .eq("reviewee_id", user.id)
-    .is("employee_acknowledged_at", null)
-    .not("review_cycles.results_released_at", "is", null);
-  const outstanding = ((data ?? []) as { reviewer_id: string }[]).filter(
-    (review) => review.reviewer_id !== user.id,
-  ).length;
+  const { outstanding, singleReviewId } =
+    await outstandingReviewAcknowledgements(user.id);
   const message = buildReviewAcknowledgementReminder({
     outstanding,
+    singleReviewId,
     appUrl: appUrl(),
   });
   if (!message) return;
@@ -934,6 +949,81 @@ async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
     });
     record(counts, outcome);
     if (outcome === "delivered") counts.hallOfFameReminders += 1;
+  }
+}
+
+/**
+ * Sends "Remind me later" snoozes that are due. Each one is re-checked first:
+ * a review acknowledged or a check-in reviewed in the meantime is dropped
+ * silently. Every due snooze is marked sent whatever the outcome, so a
+ * suppressed or failed reminder is never retried in a loop.
+ */
+async function sendDueSnoozedReminders(
+  now: Date,
+  counts: DigestCounts,
+) {
+  const { data } = await db
+    .from("slack_reminder_snoozes")
+    .select("id, user_id, kind, target_id")
+    .is("sent_at", null)
+    .lte("remind_after", now.toISOString())
+    .limit(200);
+  const rows = (data ?? []) as {
+    id: string;
+    user_id: string;
+    kind: "review_acknowledgement" | "checkin_review";
+    target_id: string;
+  }[];
+
+  for (const row of rows) {
+    let message: ReturnType<typeof buildReviewAcknowledgementReminder> = null;
+    let category: "review_open" | "checkin_reminder" = "review_open";
+
+    if (row.kind === "review_acknowledgement") {
+      const { outstanding, singleReviewId } =
+        await outstandingReviewAcknowledgements(row.user_id);
+      message = buildReviewAcknowledgementReminder({
+        outstanding,
+        singleReviewId,
+        appUrl: appUrl(),
+      });
+    } else {
+      const [employeeId, weekStart] = row.target_id.split("|");
+      if (employeeId && weekStart) {
+        const { data: checkin } = await db
+          .from("checkins")
+          .select("status")
+          .eq("user_id", employeeId)
+          .eq("week_start", weekStart)
+          .maybeSingle();
+        if (checkin?.status === "submitted") {
+          message = buildCheckinReviewReminder({
+            appUrl: appUrl(),
+            employeeId,
+            weekStart,
+          });
+          category = "checkin_reminder";
+        }
+      }
+    }
+
+    if (message) {
+      const outcome = await deliverSlackNotification({
+        eventKey: `snooze:${row.id}`,
+        recipientUserId: row.user_id,
+        category,
+        text: message.text,
+        blocks: message.blocks,
+        digest: true,
+      });
+      record(counts, outcome);
+      if (outcome === "delivered") counts.snoozedReminders += 1;
+    }
+
+    await db
+      .from("slack_reminder_snoozes")
+      .update({ sent_at: now.toISOString() })
+      .eq("id", row.id);
   }
 }
 
