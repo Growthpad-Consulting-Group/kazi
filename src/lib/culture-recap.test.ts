@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { buildCultureRecap, type CultureRecapInput } from "./culture-recap";
 
 const empty: CultureRecapInput = {
+  checkins: { submitted: 0, eligibleStaff: 0 },
+  focusedMinutes: 0,
   recognitions: { count: 0, optedInNames: [] },
   milestones: { count: 0, optedInNames: [] },
   goalsCompleted: { count: 0, optedInNames: [] },
@@ -24,6 +26,18 @@ describe("buildCultureRecap", () => {
     expect(recap!.lines).toEqual([
       "*Recognition:* 4 recognitions shared (Amina)",
       "*Goals completed:* 2 goals",
+    ]);
+  });
+
+  it("includes only aggregate weekly work signals", () => {
+    const recap = buildCultureRecap({
+      ...empty,
+      checkins: { submitted: 9, eligibleStaff: 11 },
+      focusedMinutes: 7_575,
+    });
+    expect(recap!.lines).toEqual([
+      "*Weekly updates:* 9/11 shared",
+      "*Focused work:* 126h 15m logged",
     ]);
   });
 

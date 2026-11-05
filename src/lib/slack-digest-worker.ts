@@ -1144,38 +1144,56 @@ async function sendWeeklyCultureRecap(
   const from = `${lastWeek}T00:00:00.000Z`;
   const to = `${thisWeek}T00:00:00.000Z`;
 
-  const [recognitions, milestones, goals, winners, quests, completions] =
-    await Promise.all([
-      supabaseAdmin
-        .from("feedback")
-        .select("to_user_id, campaign_id")
-        .eq("visibility", "public")
-        .gte("created_at", from)
-        .lt("created_at", to),
-      db
-        .from("milestones")
-        .select("user_id")
-        .gte("milestone_date", lastWeek)
-        .lt("milestone_date", thisWeek),
-      supabaseAdmin
-        .from("goals")
-        .select("owner_id")
-        .eq("status", "completed")
-        .gte("updated_at", from)
-        .lt("updated_at", to),
-      db
-        .from("hall_of_fame_winners")
-        .select("nominee_id")
-        .gte("published_at", from)
-        .lt("published_at", to),
-      supabaseAdmin.from("side_quests").select("title").eq("status", "live"),
-      db
-        .from("side_quest_completions")
-        .select("id")
-        .eq("status", "approved")
-        .gte("completed_at", from)
-        .lt("completed_at", to),
-    ]);
+  const [
+    recognitions,
+    milestones,
+    goals,
+    winners,
+    quests,
+    completions,
+    checkins,
+    dailyLogs,
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("feedback")
+      .select("to_user_id, campaign_id")
+      .eq("visibility", "public")
+      .gte("created_at", from)
+      .lt("created_at", to),
+    db
+      .from("milestones")
+      .select("user_id")
+      .gte("milestone_date", lastWeek)
+      .lt("milestone_date", thisWeek),
+    supabaseAdmin
+      .from("goals")
+      .select("owner_id")
+      .eq("status", "completed")
+      .gte("updated_at", from)
+      .lt("updated_at", to),
+    db
+      .from("hall_of_fame_winners")
+      .select("nominee_id")
+      .gte("published_at", from)
+      .lt("published_at", to),
+    supabaseAdmin.from("side_quests").select("title").eq("status", "live"),
+    db
+      .from("side_quest_completions")
+      .select("id")
+      .eq("status", "approved")
+      .gte("completed_at", from)
+      .lt("completed_at", to),
+    supabaseAdmin
+      .from("checkins")
+      .select("user_id")
+      .eq("week_start", lastWeek)
+      .in("status", ["submitted", "reviewed"]),
+    db
+      .from("daily_activity_logs")
+      .select("entries")
+      .gte("log_date", lastWeek)
+      .lt("log_date", thisWeek),
+  ]);
 
   const namesFor = (ids: (string | null)[]) => [
     ...new Set(
@@ -1209,8 +1227,27 @@ async function sendWeeklyCultureRecap(
   const milestoneRows = (milestones.data ?? []) as { user_id: string }[];
   const goalRows = (goals.data ?? []) as { owner_id: string | null }[];
   const winnerRows = (winners.data ?? []) as { nominee_id: string }[];
+  const submittedCheckins = new Set(
+    ((checkins.data ?? []) as { user_id: string }[]).map(
+      (checkin) => checkin.user_id,
+    ),
+  ).size;
+  const focusedMinutes = ((dailyLogs.data ?? []) as { entries: unknown }[])
+    .flatMap((row) => (Array.isArray(row.entries) ? row.entries : []))
+    .reduce(
+      (total, entry) =>
+        total +
+        (typeof entry === "object" &&
+        entry !== null &&
+        typeof (entry as { minutes?: unknown }).minutes === "number"
+          ? Math.max(0, (entry as { minutes: number }).minutes)
+          : 0),
+      0,
+    );
 
   const recap = buildCultureRecap({
+    checkins: { submitted: submittedCheckins, eligibleStaff: byId.size },
+    focusedMinutes,
     recognitions: {
       count: recognitionRows.length,
       optedInNames: namesFor(recognitionRows.map((row) => row.to_user_id)),

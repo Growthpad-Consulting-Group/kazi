@@ -3,6 +3,10 @@
 // reviews, candidates or private feedback.
 
 export type CultureRecapInput = {
+  /** Submitted weekly check-ins, shared only as an aggregate coverage figure. */
+  checkins: { submitted: number; eligibleStaff: number };
+  /** Aggregate minutes from daily logs. No individual work data is included. */
+  focusedMinutes: number;
   /** Public recognition received this week, with names of opted-in recipients. */
   recognitions: { count: number; optedInNames: string[] };
   /** Work milestones celebrated this week. */
@@ -30,11 +34,25 @@ function namesLine(names: string[]) {
   return ` (${names.slice(0, 3).join(", ")} and ${names.length - 3} more)`;
 }
 
+function durationLabel(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours === 0) return `${remainder}m`;
+  return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+}
+
 /** Returns null when there is nothing to celebrate, so an empty recap is never posted. */
 export function buildCultureRecap(
   input: CultureRecapInput,
 ): CultureRecap | null {
   const lines: string[] = [];
+
+  if (input.checkins.eligibleStaff > 0)
+    lines.push(
+      `*Weekly updates:* ${input.checkins.submitted}/${input.checkins.eligibleStaff} shared`,
+    );
+  if (input.focusedMinutes > 0)
+    lines.push(`*Focused work:* ${durationLabel(input.focusedMinutes)} logged`);
 
   if (input.recognitions.count > 0)
     lines.push(
