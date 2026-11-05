@@ -29,6 +29,7 @@ import { loadCultureSpotlight } from "../culture-spotlight-data";
 import { loadFollowThrough } from "../follow-through";
 import FollowThroughCard from "./FollowThroughCard";
 import HomeModuleCards from "./HomeModuleCards";
+import CustomiseHomeButton from "./CustomiseHomeButton";
 import {
   loadHomeModuleCards,
   loadHomeModuleSelection,
@@ -871,11 +872,7 @@ export default async function PulseDashboard() {
                 icon="solar:graph-up-broken"
                 label="My impact"
               />
-              <QuickLink
-                href="/pulse/customise"
-                icon="solar:widget-2-broken"
-                label="Customise home"
-              />
+              <CustomiseHomeButton initial={homeModules} />
             </div>
           </section>
         </div>

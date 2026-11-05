@@ -5,8 +5,10 @@ import { HOME_MODULES, type HomeModuleId } from "../home-modules";
 
 export default function HomeModulesForm({
   initial,
+  onSaved,
 }: {
   initial: HomeModuleId[];
+  onSaved?: () => void;
 }) {
   const [selected, setSelected] = useState<HomeModuleId[]>(initial);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
@@ -29,6 +31,7 @@ export default function HomeModulesForm({
         body: JSON.stringify({ modules: selected }),
       });
       setStatus(response.ok ? "saved" : "error");
+      if (response.ok) onSaved?.();
     } catch {
       setStatus("error");
     }

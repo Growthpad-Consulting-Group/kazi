@@ -40,7 +40,10 @@ export async function resolveSlackLink(
     .from("users")
     .select("id")
     // Escape LIKE wildcards so an underscore in an address cannot match another user.
-    .ilike("email", email.replace(/[\\%_]/g, (char) => `\\${char}`))
+    .ilike(
+      "email",
+      email.replace(/[\\%_]/g, (char) => `\\${char}`),
+    )
     .eq("is_active", true)
     .maybeSingle();
   if (!match) return null;
