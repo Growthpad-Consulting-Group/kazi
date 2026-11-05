@@ -21,6 +21,7 @@ import type { AttentionItem } from "../manager-queue";
 import { loadTeamTrend } from "../team-trend-data";
 import type { TeamWeekTrend } from "../team-trend";
 import TeamTrendStrip from "./TeamTrendStrip";
+import TeamDailyActivityCard from "./TeamDailyActivityCard";
 import AttentionQueue from "./AttentionQueue";
 import MyWeekMomentum from "./MyWeekMomentum";
 import CultureSpotlightCard from "./CultureSpotlightCard";
@@ -233,6 +234,12 @@ export default async function PulseDashboard() {
   } | null = null;
   let attention: AttentionItem[] = [];
   let teamTrend: TeamWeekTrend[] = [];
+  let teamDailyActivity: {
+    staffLogged: number;
+    totalStaff: number;
+    minutes: number;
+    tasks: number;
+  } | null = null;
   let openEngagementWork: number | null = null;
   let hiringDependencies: number | null = null;
   if (isManager) {
@@ -285,6 +292,40 @@ export default async function PulseDashboard() {
       userId,
       weekStart,
     );
+    if (reports.length) {
+      // daily_activity_logs has migration-backed fields not yet in generated types.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: dailyRows } = await (supabaseAdmin as any)
+        .from("daily_activity_logs")
+        .select("user_id, entries")
+        .in(
+          "user_id",
+          reports.map((report) => report.id),
+        )
+        .eq("log_date", todayInWorkTimezone(now));
+      const rows = (dailyRows ?? []) as {
+        user_id: string;
+        entries: { minutes?: number }[] | null;
+      }[];
+      const logged = rows.filter((row) => (row.entries ?? []).length > 0);
+      teamDailyActivity = {
+        staffLogged: new Set(logged.map((row) => row.user_id)).size,
+        totalStaff: reports.length,
+        minutes: logged.reduce(
+          (total, row) =>
+            total +
+            (row.entries ?? []).reduce(
+              (minutes, entry) => minutes + (entry.minutes ?? 0),
+              0,
+            ),
+          0,
+        ),
+        tasks: logged.reduce(
+          (total, row) => total + (row.entries ?? []).length,
+          0,
+        ),
+      };
+    }
     await recordQueueLifecycle({
       userId,
       scope: "attention",
@@ -705,54 +746,63 @@ export default async function PulseDashboard() {
         </div>
 
         {isManager && team && (
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-                    <Icon
-                      icon="solar:users-group-two-rounded-broken"
-                      className="h-3.5 w-3.5"
-                    />
-                  </span>
-                  <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-                    Team radar
-                  </h2>
+          <div className="grid gap-5 xl:grid-cols-2">
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                      <Icon
+                        icon="solar:users-group-two-rounded-broken"
+                        className="h-3.5 w-3.5"
+                      />
+                    </span>
+                    <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                      Team radar
+                    </h2>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--text-lo)]">
+                    A quiet read on this week&apos;s check-ins and support
+                    needs.
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-[var(--text-lo)]">
-                  A quiet read on this week&apos;s check-ins and support needs.
-                </p>
+                <Link
+                  href="/pulse/checkins"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
+                >
+                  Review check-ins{" "}
+                  <Icon
+                    icon="solar:arrow-right-broken"
+                    className="h-3.5 w-3.5"
+                  />
+                </Link>
               </div>
-              <Link
-                href="/pulse/checkins"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
-              >
-                Review check-ins{" "}
-                <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <MiniMetric
-                label="Submitted"
-                value={`${team.submitted}/${team.total}`}
-                tone="orange"
-              />
-              <MiniMetric
-                label="Not yet submitted"
-                value={team.total - team.submitted}
-                tone="amber"
-              />
-              <MiniMetric
-                label="Average mood"
-                value={
-                  team.avgMood === null
-                    ? "—"
-                    : `${MOODS[Math.max(0, Math.min(4, Math.round(team.avgMood) - 1))]} ${team.avgMood}`
-                }
-                tone="blue"
-              />
-            </div>
-          </section>
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <MiniMetric
+                  label="Submitted"
+                  value={`${team.submitted}/${team.total}`}
+                  tone="orange"
+                />
+                <MiniMetric
+                  label="Not yet submitted"
+                  value={team.total - team.submitted}
+                  tone="amber"
+                />
+                <MiniMetric
+                  label="Average mood"
+                  value={
+                    team.avgMood === null
+                      ? "—"
+                      : `${MOODS[Math.max(0, Math.min(4, Math.round(team.avgMood) - 1))]} ${team.avgMood}`
+                  }
+                  tone="blue"
+                />
+              </div>
+            </section>
+            {teamDailyActivity && (
+              <TeamDailyActivityCard activity={teamDailyActivity} />
+            )}
+          </div>
         )}
         {isManager && teamTrend.length > 0 && reports.length > 0 && (
           <TeamTrendStrip trend={teamTrend} />

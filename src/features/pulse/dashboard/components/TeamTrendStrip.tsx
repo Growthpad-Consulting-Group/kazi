@@ -21,6 +21,7 @@ export default function TeamTrendStrip({ trend }: { trend: TeamWeekTrend[] }) {
   const latest = trend.at(-1);
   const previous = trend.at(-2);
   if (!latest) return null;
+  const hasCurrentReflections = latest.coverage > 0;
 
   const currentMood =
     latest.averageMood === null ? "—" : `${latest.averageMood.toFixed(1)}/5`;
@@ -36,9 +37,7 @@ export default function TeamTrendStrip({ trend }: { trend: TeamWeekTrend[] }) {
             <Icon icon="solar:graph-up-broken" className="h-5 w-5" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-brand-500">
-              Team pulse
-            </p>
+            <p className="text-sm font-semibold text-brand-500">Team pulse</p>
             <h2
               id="team-trend-heading"
               className="mt-0.5 text-base font-semibold text-[var(--text-hi)]"
@@ -64,23 +63,31 @@ export default function TeamTrendStrip({ trend }: { trend: TeamWeekTrend[] }) {
           <p className="text-xs font-medium text-[var(--text-lo)]">This week</p>
           <div className="mt-2 flex items-end justify-between gap-3">
             <p className="font-mono text-4xl font-bold tracking-tight text-[var(--text-hi)]">
-              {latest.coverage}
-              <span className="text-xl text-[var(--text-lo)]">%</span>
+              {hasCurrentReflections ? latest.coverage : "—"}
+              {hasCurrentReflections && (
+                <span className="text-xl text-[var(--text-lo)]">%</span>
+              )}
             </p>
             <span
               className={`mb-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${latest.coverage >= 80 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}
             >
-              {trendLabel(latest.coverage, previous?.coverage)}
+              {hasCurrentReflections
+                ? trendLabel(latest.coverage, previous?.coverage)
+                : "Awaiting first reflection"}
             </span>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--border)]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-brand-500 to-orange-400 transition-[width] duration-500"
-              style={{ width: `${latest.coverage}%` }}
+              style={{
+                width: `${hasCurrentReflections ? latest.coverage : 0}%`,
+              }}
             />
           </div>
           <p className="mt-3 text-[11px] text-[var(--text-lo)]">
-            Check-in coverage for week of {weekLabel(latest.weekStart)}
+            {hasCurrentReflections
+              ? `Check-in coverage for week of ${weekLabel(latest.weekStart)}`
+              : "Coverage appears once a weekly reflection is submitted."}
           </p>
         </div>
 
@@ -96,7 +103,7 @@ export default function TeamTrendStrip({ trend }: { trend: TeamWeekTrend[] }) {
                 <span
                   className={`font-mono text-[11px] font-bold ${current ? "text-brand-500" : "text-[var(--text-lo)]"}`}
                 >
-                  {week.coverage}%
+                  {week.coverage ? `${week.coverage}%` : "—"}
                 </span>
                 <div className="flex h-28 w-full items-end rounded-lg bg-[var(--surface-2)] p-1">
                   <div
