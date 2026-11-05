@@ -36,7 +36,7 @@ export default function TeamTrendStrip({ trend }: { trend: TeamWeekTrend[] }) {
             <Icon icon="solar:graph-up-broken" className="h-5 w-5" />
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-500">
+            <p className="text-sm font-semibold text-brand-500">
               Team pulse
             </p>
             <h2

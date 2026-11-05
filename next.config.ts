@@ -77,6 +77,25 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Firefox self-distributed updates require a signed XPI served with the
+      // installable add-on content type; the JSON manifest stays revalidatable.
+      {
+        source: "/extensions/kazi-timer/firefox/updates.json",
+        headers: [
+          { key: "Content-Type", value: "application/json; charset=utf-8" },
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+        ],
+      },
+      {
+        source: "/extensions/kazi-timer/firefox/:path*.xpi",
+        headers: [
+          { key: "Content-Type", value: "application/x-xpinstall" },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
     ];
   },
   serverExternalPackages: ["@napi-rs/canvas", "tesseract.js"],

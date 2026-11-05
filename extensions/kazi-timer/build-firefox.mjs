@@ -11,6 +11,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 const run = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
@@ -33,7 +34,9 @@ const chromeManifest = JSON.parse(
   await readFile(join(here, "manifest.json"), "utf8"),
 );
 
-const { update_url: _chromeUpdateUrl, ...rest } = chromeManifest;
+const rest = Object.fromEntries(
+  Object.entries(chromeManifest).filter(([key]) => key !== "update_url"),
+);
 const manifest = {
   ...rest,
   background: { scripts: ["background.js"] },
@@ -56,8 +59,8 @@ const manifest = {
   },
 };
 
-// Firefox checks that each icon matches its declared size. The source icon is
-// larger, so each size is generated here (macOS sips).
+// Firefox checks that each icon matches its declared size. Canvas keeps this
+// release step portable across local macOS and GitHub's Linux runners.
 const SIZES = [16, 32, 48, 128];
 
 await rm(join(here, "build"), { recursive: true, force: true });
@@ -68,15 +71,15 @@ for (const file of FILES) {
     filter: (source) => !EXCLUDE.test(source),
   });
 }
+const sourceIcon = await loadImage(join(here, "icons", "kazi.png"));
 for (const size of SIZES) {
-  await run("sips", [
-    "-z",
-    String(size),
-    String(size),
-    join(here, "icons", "kazi.png"),
-    "--out",
+  const canvas = createCanvas(size, size);
+  const context = canvas.getContext("2d");
+  context.drawImage(sourceIcon, 0, 0, size, size);
+  await writeFile(
     join(out, "icons", `kazi-${size}.png`),
-  ]);
+    await canvas.encode("png"),
+  );
 }
 manifest.icons = Object.fromEntries(
   SIZES.map((size) => [String(size), `icons/kazi-${size}.png`]),
