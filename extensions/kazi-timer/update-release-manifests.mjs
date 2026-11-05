@@ -21,7 +21,10 @@ const firefoxUpdates = new URL(
   import.meta.url,
 );
 const xml = await readFile(chromeUpdates, "utf8");
-const nextXml = xml.replace(/version="[^"]+"/, `version="${version}"`);
+const nextXml = xml.replace(
+  /(<updatecheck[\s\S]*?\bversion=")[^"]+("[\s\S]*?\/>)/,
+  `$1${version}$2`,
+);
 if (nextXml === xml) throw new Error("Chrome update manifest has no version");
 await writeFile(chromeUpdates, nextXml);
 
