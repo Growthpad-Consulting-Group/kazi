@@ -59,9 +59,6 @@ type AsanaTask = { id: string; name: string; project: string | null };
 // The server owns the active timer. This key is only a recovery cache for
 // when the timer API cannot be reached.
 const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
-// Only polled while a timer is running in this tab. Idle or hidden tabs make no requests.
-const TIMER_POLL_MS = 15000;
-
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
 const newRowId = () =>
@@ -336,13 +333,9 @@ export function DailyLogPage({
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const activeTimerRef = useRef<ActiveTimer | null>(null);
-  const pollControlsRef = useRef<{
-    schedule: () => void;
-    clear: () => void;
-  } | null>(null);
   const rowsRef = useRef<Row[]>([]);
   const isDirtyRef = useRef(false);
-  // Timer changes made here win over polls that started before them.
+  // Timer changes made here win over a simultaneous focus or storage refresh.
   const lastLocalTimerChange = useRef(0);
   const pendingTimerRequests = useRef(0);
   const { confirmNavigation, setUnsaved, setCallbacks } = useUnsavedChanges();
@@ -487,8 +480,9 @@ export function DailyLogPage({
     };
   }, [date, isReviewer, reloadKey]);
 
-  // Reconcile with the server every few seconds, so pause, resume and stop
-  // from the extension (or another tab) appear here without a reload.
+  // Reconcile when this view becomes relevant again, instead of polling while
+  // a timer runs. Elapsed time is calculated locally from the start timestamp;
+  // the server is only needed for lifecycle events and cross-window recovery.
   useEffect(() => {
     if (isReviewer) return;
     let cancelled = false;
@@ -575,56 +569,23 @@ export function DailyLogPage({
       reconcile(shared);
     };
 
-    let pollId: number | undefined;
-    const clearPoll = () => {
-      if (pollId !== undefined) window.clearTimeout(pollId);
-      pollId = undefined;
-    };
-    // Poll only while a timer is running and the tab is visible. Focus and
-    // visibility changes still sync once, so other windows' timers appear.
-    const schedulePoll = () => {
-      clearPoll();
-      if (cancelled || document.visibilityState !== "visible") return;
-      if (!activeTimerRef.current) return;
-      pollId = window.setTimeout(async () => {
-        pollId = undefined;
-        await sync();
-        schedulePoll();
-      }, TIMER_POLL_MS);
-    };
-    pollControlsRef.current = { schedule: schedulePoll, clear: clearPoll };
-
     const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        sync();
-        schedulePoll();
-      } else {
-        clearPoll();
-      }
+      if (document.visibilityState === "visible") void sync();
     };
-    const onFocus = () => {
-      sync();
-      schedulePoll();
+    const onFocus = () => void sync();
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === TIMER_STORAGE_KEY) void sync();
     };
-    sync();
-    schedulePoll();
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
     return () => {
       cancelled = true;
-      clearPoll();
-      pollControlsRef.current = null;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
     };
   }, [date, isReviewer]);
-
-  // Start polling when a timer begins in this tab, and stop when none runs.
-  const hasActiveTimer = Boolean(activeTimer);
-  useEffect(() => {
-    if (hasActiveTimer) pollControlsRef.current?.schedule();
-    else pollControlsRef.current?.clear();
-  }, [hasActiveTimer]);
 
   useEffect(() => {
     if (!activeTimer) return;

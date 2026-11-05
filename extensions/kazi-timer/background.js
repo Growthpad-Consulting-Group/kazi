@@ -436,9 +436,11 @@ chrome.runtime.onStartup.addListener(async () => {
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === TICK_ALARM) {
     await reconnectSilently();
-    await refreshFromServer();
     await refreshBadge();
-    await syncQueue();
+    // The elapsed clock is derived locally from startedAt. Polling Kazi here
+    // made every installed browser invoke a Vercel function every 30 seconds.
+    // Only wake the network when there is a completed offline timer to deliver.
+    if ((await pendingStops()).length) await syncQueue();
   }
 });
 chrome.storage.onChanged.addListener(refreshBadge);

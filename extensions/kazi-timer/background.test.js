@@ -139,6 +139,32 @@ describe("Kazi Timer background worker", () => {
     });
   });
 
+  it("updates a running badge without polling Kazi on every recovery tick", async () => {
+    session.kaziAccessToken = "token";
+    local.timer = {
+      id: "11111111-1111-4111-8111-111111111111",
+      logDate: "2026-11-05",
+      task: "Write proposal",
+      client: null,
+      category: "Projects",
+      startedAt: new Date(700_000).toISOString(),
+      accumulatedMs: 0,
+      running: true,
+      source: "extension",
+      updatedAt: new Date(700_000).toISOString(),
+    };
+    const kazi = fakeKazi();
+    await loadWorker();
+
+    await listeners.alarm({ name: "kazi-timer-tick" });
+
+    expect(
+      kazi.calls.filter(
+        (call) => call.url === SHARED_URL && call.method === "GET",
+      ),
+    ).toHaveLength(0);
+  });
+
   it("revokes the extension session on sign-out but preserves unsynced work", async () => {
     session.kaziAccessToken = "revocable-token";
     local.completedEntries = [{ id: "queued-entry" }];
