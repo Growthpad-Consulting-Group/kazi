@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
 import { verifySlackSignature } from "@/lib/slack-signature";
+import { resolveSlackLink } from "@/lib/slack-links";
 
 const SNOOZE_HOURS = 4;
 const SNOOZE_KINDS = ["review_acknowledgement", "checkin_review"] as const;
@@ -68,11 +69,7 @@ export async function POST(request: Request) {
   const action = payload?.actions?.[0];
   const slackUserId = payload?.user?.id ?? "";
 
-  const { data: link } = await db
-    .from("slack_member_links")
-    .select("user_id")
-    .eq("slack_member_id", slackUserId)
-    .maybeSingle();
+  const link = await resolveSlackLink(slackUserId);
 
   // Global "Open Kazi" message shortcut. It returns a private link only and never
   // reads or stores the message it was used on.

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { resolveSlackLink } from "@/lib/slack-links";
 import { verifySlackSignature } from "@/lib/slack-signature";
 import { localClock, weekStartOf } from "@/lib/slack-schedule";
 
@@ -118,12 +119,7 @@ export async function POST(request: Request) {
   const slackUserId = params.get("user_id") ?? "";
   const command = (params.get("text") ?? "").trim().toLowerCase();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table
-  const { data: link } = await (supabaseAdmin as any)
-    .from("slack_member_links")
-    .select("user_id")
-    .eq("slack_member_id", slackUserId)
-    .maybeSingle();
+  const link = await resolveSlackLink(slackUserId);
   if (!link)
     return reply(
       "Your Slack account is not linked to Kazi yet. Ask your administrator to connect it.",
