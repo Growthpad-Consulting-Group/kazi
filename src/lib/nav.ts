@@ -45,6 +45,11 @@ export const sidebarNavGroups: NavGroup[] = [
         label: "Campaigns",
       },
       {
+        href: "/pulse/coffee-chats",
+        icon: "solar:cup-hot-broken",
+        label: "Coffee chats",
+      },
+      {
         href: "/pulse/side-quests",
         icon: "solar:cup-star-broken",
         label: "Side Quests",

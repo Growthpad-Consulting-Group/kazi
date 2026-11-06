@@ -266,6 +266,35 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
         </label>
       </SettingsSection>
 
+      <SettingsSection
+        title="Coffee chat matching"
+        description="Keep optional cross-team connections fresh"
+        icon="solar:cup-hot-broken"
+        iconBg="bg-brand-500/10 text-brand-500"
+      >
+        <label className="block max-w-xs">
+          <span className="mb-1.5 block text-xs font-semibold text-[var(--text-hi)]">
+            Avoid repeat pairings for
+          </span>
+          <select
+            value={fields.coffee_chat_repeat_months}
+            onChange={(event) =>
+              set("coffee_chat_repeat_months", Number(event.target.value))
+            }
+            className={inputCls}
+          >
+            {[1, 2, 3, 4, 6, 9, 12].map((months) => (
+              <option key={months} value={months}>
+                {months} month{months === 1 ? "" : "s"}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs text-[var(--text-lo)]">
+            Direct reporting lines are always excluded from coffee chat matches.
+          </span>
+        </label>
+      </SettingsSection>
+
       {/* Locale */}
       <SettingsSection
         title="Locale & calendar"

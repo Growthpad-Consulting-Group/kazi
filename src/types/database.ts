@@ -536,6 +536,9 @@ export interface Database {
           status:
             "draft" | "upcoming" | "live" | "paused" | "completed" | "archived";
           visual_color: string;
+          template_key: string | null;
+          point_rule: string | null;
+          slack_copy: string | null;
           created_by: string;
           created_at: string;
           updated_at: string;
@@ -552,6 +555,9 @@ export interface Database {
           | "ends_at"
           | "status"
           | "visual_color"
+          | "template_key"
+          | "point_rule"
+          | "slack_copy"
         > & {
           goal?: string | null;
           audience_filters?: string[];
@@ -561,6 +567,9 @@ export interface Database {
           status?:
             "draft" | "upcoming" | "live" | "paused" | "completed" | "archived";
           visual_color?: string;
+          template_key?: string | null;
+          point_rule?: string | null;
+          slack_copy?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["recognition_campaigns"]["Insert"]

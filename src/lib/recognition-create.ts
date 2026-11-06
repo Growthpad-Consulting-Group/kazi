@@ -4,7 +4,6 @@ import {
   invalidatePublicFeedback,
   invalidateUserPrivateFeedback,
 } from "@/lib/cache/invalidate";
-import { awardPoints } from "@/lib/award-points";
 import { runAutomationEvent } from "@/lib/automations";
 import { notifyRecognitionReceived } from "@/lib/notifications";
 import {
@@ -214,22 +213,6 @@ export async function createRecognition(
         });
       })(),
     ]);
-  }
-
-  // Award +5 points to giver for public recognition (non-blocking)
-  if (visibility === "public") {
-    try {
-      await awardPoints({
-        userId: input.fromUserId,
-        amount: 5,
-        reason: "Public recognition given",
-        referenceType: "feedback",
-        referenceId: feedback.id,
-        createdBy: null,
-      });
-    } catch {
-      /* non-blocking */
-    }
   }
 
   await runAutomationEvent({

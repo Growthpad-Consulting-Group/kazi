@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can, userCan } from "@/lib/rbac";
+import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const AUDIENCES = [
@@ -42,6 +42,9 @@ export async function POST(request: Request) {
     ends_at?: string;
     value_ids?: string[];
     audience_filters?: string[];
+    template_key?: string | null;
+    point_rule?: string | null;
+    slack_copy?: string | null;
   } | null;
   if (
     !body?.name?.trim() ||
@@ -74,6 +77,9 @@ export async function POST(request: Request) {
       value_ids: body.value_ids ?? [],
       status: initialStatus,
       created_by: session.user.id,
+      template_key: body.template_key?.trim() || null,
+      point_rule: body.point_rule?.trim() || null,
+      slack_copy: body.slack_copy?.trim() || null,
     })
     .select("id")
     .single();

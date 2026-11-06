@@ -170,6 +170,7 @@ export interface CompanySettings {
   fiscal_year_start: number;
   culture_leaderboards_enabled: boolean;
   asana_slack_rules_enabled: boolean;
+  coffee_chat_repeat_months: number;
 }
 
 export async function saveCompanySettings(values: CompanySettings) {
@@ -194,6 +195,10 @@ export async function saveCompanySettings(values: CompanySettings) {
       fiscal_year_start: values.fiscal_year_start,
       culture_leaderboards_enabled: values.culture_leaderboards_enabled,
       asana_slack_rules_enabled: values.asana_slack_rules_enabled,
+      coffee_chat_repeat_months: Math.max(
+        1,
+        Math.min(12, values.coffee_chat_repeat_months || 3),
+      ),
       updated_at: new Date().toISOString(),
     })
     .eq("id", "default");

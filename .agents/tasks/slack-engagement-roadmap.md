@@ -145,27 +145,27 @@
   - Save through Kazi’s existing public-recognition API, then send the recipient DM and company-channel post already in place.
   - Acceptance: recognition created in Slack appears immediately in Kazi with the same permissions, campaign validation, privacy controls and audit trail as web-created recognition.
 
-- [ ] **22. Add an optional cross-team connection match.**
+- [x] **22. Add an optional cross-team connection match.** *(Staff can opt in at Pulse → Coffee chats. Admins generate the monthly private matches; direct reporting lines and recent pairings are excluded. Slack introduces each pair with a calendar-template link, never creates an event, and each staff member can accept, skip, request a rematch, or opt out.)*
   - Let staff opt into a monthly “Growthpad coffee chat” pairing; avoid repeat pairings for a configurable period and exclude reporting-line pairs by default.
   - Deliver a private Slack introduction with an optional Google Calendar scheduling link, not an automatic calendar event.
   - Acceptance: the match can be skipped, rematched or opted out of; no private staff data is exposed.
 
-- [ ] **23. Add recognition programme templates.**
+- [x] **23. Add recognition programme templates.** *(Campaign creation now offers editable starters for client wins, project launches, values spotlights, onboarding welcomes and monthly peer appreciation. Templates prefill the ordinary campaign form; values, audience, schedule, guidance point rule and Slack copy remain editable, with no hidden automation or reward.)*
   - Provide reusable campaign starters for client wins, project launches, values spotlights, onboarding welcomes and monthly peer appreciation.
   - Let HR customise values, audience, schedule, point rules and Slack copy before activating a template.
   - Acceptance: creating from a template produces an ordinary editable Kazi campaign—no hidden automation or duplicated rewards.
 
-- [ ] **24. Evaluate a read-only recognition display mode.**
+- [x] **24. Evaluate a read-only recognition display mode.** *(Written evaluation in `.agents/tasks/culture-evaluations-24-25.md`. Recommendation: no screen yet. Pilot as a company-channel weekly digest first.)*
   - Create a screen-safe, auto-refreshing “Kazi Recognition Wall” for an office TV or all-hands display, using only public opted-in recognition and approved Wall of Fame outcomes.
   - Include a privacy-safe empty state and a simple display URL protected by a dedicated viewing role or device token.
   - Acceptance: it cannot expose private feedback, performance data, daily logs, candidate data or admin controls.
 
-- [ ] **25. Reassess gift-card marketplace and public API only after reward operations mature.**
+- [x] **25. Reassess gift-card marketplace and public API only after reward operations mature.** *(Written reassessment in `.agents/tasks/culture-evaluations-24-25.md`. Recommendation: keep the curated catalogue; no gift cards or public API until an owner, budget and security review exist.)*
   - Document country, tax, fulfilment, accounting, fraud and refund requirements for global gift cards; keep the curated reward catalogue as the default meanwhile.
   - Define a narrow API surface and OAuth/service-account model only for validated integration demand.
   - Acceptance: neither project starts without an owner, budget, security review and a concrete Growthpad use case.
 
-- [ ] **26. Avoid recognition-volume incentives.**
+- [x] **26. Avoid recognition-volume incentives.** *(Removed the automatic +5 points for public recognition and reversed only unspent legacy recognition-award lots, preserving redeemed rewards and the audit trail.)*
   - Keep recognition quality tied to values, project impact and manager/HR review where points are involved; do not introduce daily transferable “tacos”.
   - Review reward-ledger reports quarterly for low-value recognition patterns before adding any new earning rule.
   - Acceptance: no point rule is added solely for sending or receiving a high volume of recognition.

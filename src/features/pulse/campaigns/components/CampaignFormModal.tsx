@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/Button";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import type { Database } from "@/types/database";
 import type { AudienceOptions } from "@/features/pulse/side-quests/components/SideQuestFormModal";
+import {
+  CAMPAIGN_TEMPLATES,
+  type CampaignTemplate,
+} from "../campaignTemplates";
 
 type Campaign = Database["public"]["Tables"]["recognition_campaigns"]["Row"];
 type ValueOption = { id: string; name: string };
@@ -34,15 +38,23 @@ function CampaignForm({
   values,
   options,
   onDone,
+  template,
 }: {
   campaign?: Campaign;
   values: ValueOption[];
   options: AudienceOptions;
   onDone: () => void;
+  template?: CampaignTemplate;
 }) {
   const router = useRouter();
-  const [name, setName] = useState(campaign?.name ?? "");
-  const [goal, setGoal] = useState(campaign?.goal ?? "");
+  const [name, setName] = useState(campaign?.name ?? template?.name ?? "");
+  const [goal, setGoal] = useState(campaign?.goal ?? template?.goal ?? "");
+  const [pointRule, setPointRule] = useState(
+    campaign?.point_rule ?? template?.pointRule ?? "",
+  );
+  const [slackCopy, setSlackCopy] = useState(
+    campaign?.slack_copy ?? template?.slackCopy ?? "",
+  );
   const [audience, setAudience] = useState<Campaign["audience_type"]>(
     campaign?.audience_type ?? "company",
   );
@@ -100,6 +112,9 @@ function CampaignForm({
             starts_at: startsAt || null,
             ends_at: endsAt || null,
             value_ids: valueIds,
+            template_key: template?.key ?? campaign?.template_key ?? null,
+            point_rule: pointRule,
+            slack_copy: slackCopy,
           }),
         },
       );
@@ -258,6 +273,31 @@ function CampaignForm({
           </div>
         </fieldset>
       )}
+      <label className="block text-xs font-semibold text-[var(--text-hi)]">
+        Point rule{" "}
+        <span className="font-normal text-[var(--text-lo)]">Optional</span>
+        <input
+          value={pointRule}
+          onChange={(event) => setPointRule(event.target.value)}
+          placeholder="e.g. No automatic points; manager may award points"
+          className={inputClass}
+        />
+        <span className="mt-1 block font-normal text-[11px] text-[var(--text-lo)]">
+          This is campaign guidance only. It never creates a reward or
+          automation.
+        </span>
+      </label>
+      <label className="block text-xs font-semibold text-[var(--text-hi)]">
+        Slack copy{" "}
+        <span className="font-normal text-[var(--text-lo)]">Optional</span>
+        <textarea
+          rows={2}
+          value={slackCopy}
+          onChange={(event) => setSlackCopy(event.target.value)}
+          placeholder="Prompt staff with the context for this campaign"
+          className={`${inputClass} resize-y`}
+        />
+      </label>
       {error && <p className="text-xs font-medium text-red-500">{error}</p>}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] pt-4">
         {campaign && campaign.status !== "archived" ? (
@@ -294,28 +334,60 @@ export function NewCampaignButton({
   options: AudienceOptions;
 }) {
   const [open, setOpen] = useState(false);
+  const [template, setTemplate] = useState<CampaignTemplate | undefined>();
   return (
     <>
       <Button
         size="sm"
         icon="solar:add-circle-broken"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setTemplate(undefined);
+          setOpen(true);
+        }}
       >
         New campaign
       </Button>
       <SimpleModal
         open={open}
         onClose={() => setOpen(false)}
-        title="New recognition campaign"
+        title={
+          template ? `Start with ${template.name}` : "New recognition campaign"
+        }
         icon="solar:flag-2-broken"
         maxWidth="max-w-lg"
       >
         {open && (
-          <CampaignForm
-            values={values}
-            options={options}
-            onDone={() => setOpen(false)}
-          />
+          <>
+            {!template && (
+              <div className="mb-4 grid gap-2 sm:grid-cols-2">
+                <p className="sm:col-span-2 text-xs text-[var(--text-lo)]">
+                  Start with a proven programme, then customise every detail
+                  before saving.
+                </p>
+                {CAMPAIGN_TEMPLATES.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setTemplate(item)}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-left transition hover:border-brand-500/40 hover:bg-brand-500/[0.04]"
+                  >
+                    <span className="block text-xs font-semibold text-[var(--text-hi)]">
+                      {item.name}
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-lo)]">
+                      {item.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <CampaignForm
+              values={values}
+              options={options}
+              template={template}
+              onDone={() => setOpen(false)}
+            />
+          </>
         )}
       </SimpleModal>
     </>

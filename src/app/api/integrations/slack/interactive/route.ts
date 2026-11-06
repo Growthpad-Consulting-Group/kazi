@@ -35,6 +35,46 @@ async function replyToResponseUrl(
   }).catch(() => undefined);
 }
 
+/**
+ * Slack returns HTTP 200 even when `views.open` rejects a modal (for example,
+ * when an app token or shortcut configuration is stale). Check its JSON body
+ * so the person who invoked the shortcut is not left without feedback.
+ */
+async function openRecognitionModal(triggerId: string, responseUrl?: string) {
+  try {
+    const options = await loadRecognitionOptions();
+    const response = await fetch("https://slack.com/api/views.open", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN ?? ""}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify({
+        trigger_id: triggerId,
+        view: buildRecognitionModal(options),
+      }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      ok?: boolean;
+      error?: string;
+    } | null;
+
+    if (response.ok && body?.ok) return;
+
+    console.error(
+      "[Slack] recognise_teammate views.open failed:",
+      body?.error ?? `HTTP ${response.status}`,
+    );
+  } catch (error) {
+    console.error("[Slack] recognise_teammate views.open failed", error);
+  }
+
+  await replyToResponseUrl(
+    responseUrl,
+    "Could not open the recognition form. Please try again, or open Kazi and recognise your teammate there.",
+  );
+}
+
 async function canReviewCheckin(actorId: string, employeeId: string) {
   const [{ data: actor }, { data: employee }] = await Promise.all([
     supabaseAdmin
@@ -96,18 +136,7 @@ export async function POST(request: Request) {
     }
     if (payload.callback_id === RECOGNITION_CALLBACK_ID && payload.trigger_id) {
       // Opens the modal. Submission is handled below; the message is not read.
-      const options = await loadRecognitionOptions();
-      await fetch("https://slack.com/api/views.open", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN ?? ""}`,
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: JSON.stringify({
-          trigger_id: payload.trigger_id,
-          view: buildRecognitionModal(options),
-        }),
-      }).catch(() => undefined);
+      await openRecognitionModal(payload.trigger_id, payload.response_url);
     }
     if (payload.callback_id === "open_kazi") {
       const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
