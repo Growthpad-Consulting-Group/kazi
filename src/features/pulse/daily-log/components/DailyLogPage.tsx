@@ -803,6 +803,8 @@ export function DailyLogPage({
     const totalMs = timerElapsedMs(stopping, stoppedAt);
     cacheActiveTimer(null);
     setActiveTimer(null);
+    // One toast with a fixed id: it shows "please wait" and is replaced by the outcome.
+    const toastId = toast.loading("Please wait while we stop your timer…");
 
     void runTimerRequest(async () => {
       const response = await fetch("/api/pulse/daily-log/timer", {
@@ -827,12 +829,14 @@ export function DailyLogPage({
         setActiveTimer(stopping);
         toast.error(
           json?.error ?? "Could not stop the timer. It is still running.",
+          { id: toastId },
         );
         return;
       }
       if (json?.discarded) {
         toast.success(
           "Timer stopped. No time was added because this day is already full.",
+          { id: toastId },
         );
         return;
       }
@@ -851,6 +855,7 @@ export function DailyLogPage({
         json?.capped
           ? "Timer stopped. Time was capped at the remaining capacity for that day."
           : `Timer stopped at ${formatElapsed(totalMs)}.`,
+        { id: toastId },
       );
     });
   };

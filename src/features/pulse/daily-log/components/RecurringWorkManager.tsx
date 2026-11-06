@@ -75,6 +75,9 @@ export function RecurringWorkManager({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<RecurringWorkRoutine | null>(null);
+  const [routineToRemove, setRoutineToRemove] =
+    useState<RecurringWorkRoutine | null>(null);
+  const [removing, setRemoving] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
   const due = useMemo(
@@ -164,21 +167,35 @@ export function RecurringWorkManager({
       setSaving(false);
     }
   };
-  const remove = async (routine: RecurringWorkRoutine) => {
-    if (!window.confirm(`Remove “${routine.title}” from your routines?`))
-      return;
-    const response = await fetch(
-      `/api/pulse/daily-log/routines?id=${routine.id}`,
-      { method: "DELETE" },
-    );
-    const payload = (await response.json().catch(() => null)) as {
-      error?: string;
-    } | null;
-    if (!response.ok)
-      return toast.error(payload?.error ?? "Could not remove this routine.");
-    setRoutines((current) => current.filter((item) => item.id !== routine.id));
-    window.dispatchEvent(new Event("recurring-work-updated"));
-    toast.success("Routine removed");
+  const remove = async () => {
+    if (!routineToRemove) return;
+    setRemoving(true);
+    try {
+      const response = await fetch(
+        `/api/pulse/daily-log/routines?id=${routineToRemove.id}`,
+        { method: "DELETE" },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(payload?.error ?? "Could not remove this routine.");
+      setRoutines((current) =>
+        current.filter((item) => item.id !== routineToRemove.id),
+      );
+      setRoutineToRemove(null);
+      setEditing(null);
+      window.dispatchEvent(new Event("recurring-work-updated"));
+      toast.success("Routine removed");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not remove this routine.",
+      );
+    } finally {
+      setRemoving(false);
+    }
   };
   const setActive = async (
     routine: RecurringWorkRoutine,
@@ -412,7 +429,9 @@ export function RecurringWorkManager({
             {editing ? (
               <button
                 type="button"
-                onClick={() => remove(editing)}
+                onClick={() => {
+                  setRoutineToRemove(editing);
+                }}
                 className="text-sm font-medium text-red-500 hover:underline"
               >
                 Remove
@@ -491,7 +510,7 @@ export function RecurringWorkManager({
                     </button>
                     <button
                       type="button"
-                      onClick={() => remove(routine)}
+                      onClick={() => setRoutineToRemove(routine)}
                       aria-label={`Remove ${routine.title}`}
                       title="Remove routine"
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-lo)] transition-colors hover:bg-red-500/10 hover:text-red-500"
@@ -506,6 +525,36 @@ export function RecurringWorkManager({
               </div>
             </div>
           )}
+        </div>
+      </SimpleModal>
+
+      <SimpleModal
+        open={Boolean(routineToRemove)}
+        onClose={() => !removing && setRoutineToRemove(null)}
+        title="Remove routine?"
+        icon="solar:trash-bin-minimalistic-broken"
+        maxWidth="max-w-sm"
+      >
+        <p className="text-sm leading-6 text-[var(--text-lo)]">
+          &ldquo;{routineToRemove?.title}&rdquo; will no longer appear as a
+          suggestion. Work you have already logged stays unchanged.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button
+            variant="secondary"
+            disabled={removing}
+            onClick={() => setRoutineToRemove(null)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            icon="solar:trash-bin-minimalistic-broken"
+            loading={removing}
+            onClick={remove}
+          >
+            Remove routine
+          </Button>
         </div>
       </SimpleModal>
     </>

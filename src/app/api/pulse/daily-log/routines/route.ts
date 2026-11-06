@@ -253,12 +253,16 @@ export async function DELETE(req: Request) {
       { error: "A routine is required." },
       { status: 400 },
     );
-  const { error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- migration has not regenerated Supabase types
+  const { data, error } = await (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- migration has not regenerated Supabase types
     .from("recurring_work_templates")
-    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .delete()
     .eq("id", id)
-    .eq("user_id", user.userId);
+    .eq("user_id", user.userId)
+    .select("id")
+    .maybeSingle();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data)
+    return NextResponse.json({ error: "Routine not found." }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
