@@ -140,7 +140,7 @@
 
 > **Decision:** Kazi already covers the core recognition, values, rewards, milestones, quests, leaderboards, analytics and Slack delivery loop. These are selective improvements, not a second “taco economy”.
 
-- [ ] **21. Add a Slack-native “Recognise teammate” shortcut.**
+- [x] **21. Add a Slack-native “Recognise teammate” shortcut.** *(A message shortcut with callback ID `recognise_teammate` opens a modal: colleague, company value, optional live campaign and message. It creates public recognition through the same shared rules as the web form. Image upload is not included. Needs the shortcut registered in the Slack app.)*
   - Offer a message/global shortcut that opens a modal to choose a colleague, company value, message and optional image.
   - Save through Kazi’s existing public-recognition API, then send the recipient DM and company-channel post already in place.
   - Acceptance: recognition created in Slack appears immediately in Kazi with the same permissions, campaign validation, privacy controls and audit trail as web-created recognition.

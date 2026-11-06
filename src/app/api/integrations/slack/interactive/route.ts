@@ -3,6 +3,13 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { can } from "@/lib/rbac";
 import { verifySlackSignature } from "@/lib/slack-signature";
 import { resolveSlackLink } from "@/lib/slack-links";
+import { createRecognition } from "@/lib/recognition-create";
+import { loadRecognitionOptions } from "@/lib/slack-recognition-modal";
+import {
+  RECOGNITION_CALLBACK_ID,
+  buildRecognitionModal,
+  readRecognitionSubmission,
+} from "@/lib/slack-recognition-view";
 
 const SNOOZE_HOURS = 4;
 const SNOOZE_KINDS = ["review_acknowledgement", "checkin_review"] as const;
@@ -15,8 +22,12 @@ function ephemeral(text: string) {
 }
 
 /** Shortcut replies go to Slack's own response URL, and only to Slack's host. */
-async function replyToResponseUrl(responseUrl: string | undefined, text: string) {
-  if (!responseUrl || !responseUrl.startsWith("https://hooks.slack.com/")) return;
+async function replyToResponseUrl(
+  responseUrl: string | undefined,
+  text: string,
+) {
+  if (!responseUrl || !responseUrl.startsWith("https://hooks.slack.com/"))
+    return;
   await fetch(responseUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -62,9 +73,11 @@ export async function POST(request: Request) {
   ) as {
     type?: string;
     callback_id?: string;
+    trigger_id?: string;
     response_url?: string;
     user?: { id?: string };
     actions?: { action_id?: string; value?: string }[];
+    view?: { callback_id?: string; state?: unknown };
   } | null;
   const action = payload?.actions?.[0];
   const slackUserId = payload?.user?.id ?? "";
@@ -81,15 +94,42 @@ export async function POST(request: Request) {
       );
       return new NextResponse(null, { status: 200 });
     }
+    if (payload.callback_id === RECOGNITION_CALLBACK_ID && payload.trigger_id) {
+      // Opens the modal. Submission is handled below; the message is not read.
+      const options = await loadRecognitionOptions();
+      await fetch("https://slack.com/api/views.open", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN ?? ""}`,
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify({
+          trigger_id: payload.trigger_id,
+          view: buildRecognitionModal(options),
+        }),
+      }).catch(() => undefined);
+    }
     if (payload.callback_id === "open_kazi") {
       const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
-      await replyToResponseUrl(payload.response_url, `Open Kazi: ${appUrl}/pulse`);
+      await replyToResponseUrl(
+        payload.response_url,
+        `Open Kazi: ${appUrl}/pulse`,
+      );
     }
     return new NextResponse(null, { status: 200 });
   }
 
-  if (!link)
-    return ephemeral("Your Slack account is not linked to Kazi.");
+  if (
+    payload?.type === "view_submission" &&
+    payload.view?.callback_id === RECOGNITION_CALLBACK_ID
+  ) {
+    return handleRecognitionSubmission(
+      link?.user_id ?? null,
+      payload as Parameters<typeof readRecognitionSubmission>[0],
+    );
+  }
+
+  if (!link) return ephemeral("Your Slack account is not linked to Kazi.");
 
   if (action?.action_id === "mark_checkin_reviewed" && action.value) {
     const [employeeId, weekStart] = action.value.split("|");
@@ -150,7 +190,9 @@ export async function POST(request: Request) {
       actor_id: link.user_id,
       action: "employee_acknowledged",
     });
-    return ephemeral("Acknowledged in Kazi. Add a response there if you want to.");
+    return ephemeral(
+      "Acknowledged in Kazi. Add a response there if you want to.",
+    );
   }
 
   if (action?.action_id === "snooze_reminder" && action.value) {
@@ -184,9 +226,60 @@ export async function POST(request: Request) {
       },
       { onConflict: "user_id,kind,target_id" },
     );
-    if (error) return ephemeral("Could not save the reminder. Try again later.");
+    if (error)
+      return ephemeral("Could not save the reminder. Try again later.");
     return ephemeral(`OK, I will remind you in ${SNOOZE_HOURS} hours.`);
   }
 
   return ephemeral("That action is not available.");
+}
+
+/**
+ * Creates public recognition from the Slack modal through the same shared rules
+ * as the web form. Errors are shown inside the modal next to the field that needs fixing.
+ */
+async function handleRecognitionSubmission(
+  senderUserId: string | null,
+  payload: Parameters<typeof readRecognitionSubmission>[0],
+) {
+  if (!senderUserId) return NextResponse.json({ response_action: "clear" });
+  const submission = readRecognitionSubmission(payload);
+  if (!submission.recipientSlackId)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { recipient: "Choose a colleague." },
+    });
+  if (!submission.message)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { message: "Add a message." },
+    });
+
+  const recipient = await resolveSlackLink(submission.recipientSlackId);
+  if (!recipient)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { recipient: "That colleague is not linked to Kazi yet." },
+    });
+
+  const { data: sender } = await supabaseAdmin
+    .from("users")
+    .select("name")
+    .eq("id", senderUserId)
+    .maybeSingle();
+  const result = await createRecognition({
+    fromUserId: senderUserId,
+    senderName: (sender?.name as string | undefined) ?? "A colleague",
+    recipientIds: [recipient.user_id],
+    message: submission.message,
+    visibility: "public",
+    valueId: submission.valueId,
+    campaignId: submission.campaignId,
+  });
+  if (!result.ok)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { message: result.error },
+    });
+  return NextResponse.json({ response_action: "clear" });
 }
