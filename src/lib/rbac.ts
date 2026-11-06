@@ -65,7 +65,16 @@ export type Permission =
 // Which roles hold each permission.
 const PERMISSION_MAP: Record<Permission, readonly UserRole[]> = {
   // People
-  view_people: ["admin", "hr", "manager"],
+  // The staff directory is a shared internal workspace. Sensitive details on
+  // individual profiles remain separately scoped.
+  view_people: [
+    "admin",
+    "hr",
+    "hiring_manager",
+    "manager",
+    "interviewer",
+    "employee",
+  ],
   manage_people: ["admin", "hr"],
   manage_roles: ["admin"],
 

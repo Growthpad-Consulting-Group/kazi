@@ -3,6 +3,7 @@
 
 export const KNOWN_CATEGORIES = [
   "checkin_submitted",
+  "checkin_confirmation",
   "checkin_reminder",
   "one_on_one_scheduled",
   "one_on_one_reminder",

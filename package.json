@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "seed:admin": "dotenv run -f .env.local -- tsx scripts/seed-admin.ts",
+    "slack:backfill-checkin-confirmations": "dotenv run -f .env.local -- tsx scripts/backfill-checkin-submission-confirmations.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

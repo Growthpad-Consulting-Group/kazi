@@ -60,7 +60,8 @@ export function CheckinForm({
   const [wins, setWins] = useState(existing?.wins ?? dailyWins);
   const [priorities, setPriorities] = useState(existing?.priorities ?? "");
   const [blockers, setBlockers] = useState(existing?.blockers ?? dailyBlockers);
-  const [mood, setMood] = useState<number>(existing?.mood ?? 3);
+  // New check-ins start at "Good" (4). Existing entries keep their saved mood.
+  const [mood, setMood] = useState<number>(existing?.mood ?? 4);
   const [saving, setSaving] = useState(false);
   const [savedAction, setSavedAction] = useState<"draft" | "submitted" | null>(
     null,

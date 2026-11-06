@@ -170,6 +170,37 @@ export function buildCheckinNudge(appUrl: string): SlackMessage {
   };
 }
 
+/** A private receipt for the staff member who has just submitted their update. */
+export function buildCheckinSubmissionConfirmation(input: {
+  appUrl: string;
+  weekStart: string;
+}): SlackMessage {
+  const weekLabel = new Date(`${input.weekStart}T12:00:00Z`).toLocaleDateString(
+    "en-KE",
+    { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" },
+  );
+  const text = `Your weekly check-in for the week of ${weekLabel} has been submitted to your manager.`;
+  return {
+    text,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Weekly check-in submitted" },
+      },
+      { type: "section", text: { type: "mrkdwn", text } },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `<${input.appUrl}/pulse/checkins?tab=checkins|View your submitted check-in in Kazi>`,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export function buildManagerMondayPulse(input: {
   missingCheckins: number;
   flagged: number;
@@ -452,7 +483,10 @@ export function buildCheckinReviewReminder(input: {
       {
         type: "context",
         elements: [
-          { type: "mrkdwn", text: `<${input.appUrl}/pulse/checkins|Open check-ins>` },
+          {
+            type: "mrkdwn",
+            text: `<${input.appUrl}/pulse/checkins|Open check-ins>`,
+          },
         ],
       },
     ],

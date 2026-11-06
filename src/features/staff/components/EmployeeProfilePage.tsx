@@ -110,6 +110,9 @@ export default async function EmployeeProfilePage({
     ? ["admin", "hr"].includes(session.user.role)
     : false;
   const isSelf = session?.user.id === id;
+  const canViewDateOfBirth =
+    isSelf ||
+    (session ? ["admin", "hr", "manager"].includes(session.user.role) : false);
   // Other people's pulse, performance and development records are for managers and HR.
   // Everyone else sees the overview of a colleague, and their own full profile.
   const seesAllTabs =
@@ -126,17 +129,34 @@ export default async function EmployeeProfilePage({
   const { data: userData, error } = await supabaseAdmin
     .from("users")
     .select(
-      "id, name, email, role, department, job_title, location, manager_id, start_date, date_of_birth, avatar_url",
+      [
+        "id",
+        "name",
+        "email",
+        "role",
+        "department",
+        "job_title",
+        "location",
+        "manager_id",
+        "start_date",
+        ...(canViewDateOfBirth ? ["date_of_birth"] : []),
+        "avatar_url",
+      ].join(", "),
     )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!userData) notFound();
-  const user = userData as User;
+  const selectedUser = userData as unknown as User;
+  const user = {
+    ...selectedUser,
+    date_of_birth: canViewDateOfBirth ? selectedUser.date_of_birth : null,
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- newer table has not regenerated Supabase types
   const { data: grantRows } = await (supabaseAdmin as any)
     .from("user_permissions")
     .select("permission")
-    .eq("user_id", id); // eslint-disable-line @typescript-eslint/no-explicit-any -- newer table
+    .eq("user_id", id);
   const extraPermissions = ((grantRows ?? []) as { permission: string }[]).map(
     (row) => row.permission,
   );

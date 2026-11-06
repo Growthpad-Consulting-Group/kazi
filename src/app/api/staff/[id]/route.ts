@@ -116,7 +116,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 /** Removes access without destroying the staff member's historical HR record. */
 export async function DELETE(_request: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "view_people")) {
+  if (!session || !can(session.user.role, "manage_people")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

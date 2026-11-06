@@ -3,7 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateUserCheckins } from "@/lib/cache/invalidate";
-import { deliverSlackNotification } from "@/lib/slack";
+import {
+  deliverCheckinSubmissionConfirmation,
+  deliverSlackNotification,
+} from "@/lib/slack";
 import { remindLaterButton } from "@/lib/slack-digests";
 import { notifyManagerOfCheckin } from "@/lib/notifications";
 import type { CheckinStatus } from "@/types/database";
@@ -56,8 +59,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   await invalidateUserCheckins(userId);
   if (status === "submitted" && existing?.status !== "submitted") {
-    // Send the check-in privately to the assigned manager; company-wide
-    // channels must never receive employee progress, mood, or blockers.
+    // Confirm receipt to the sender, then privately notify the assigned manager.
+    // Company-wide channels must never receive employee progress, mood or blockers.
     try {
       const { data: userRow } = await supabaseAdmin
         .from("users")
@@ -68,14 +71,23 @@ export async function POST(req: Request) {
         name: string;
         manager_id: string | null;
       } | null;
-      if (!employee?.manager_id) return NextResponse.json({ ok: true });
+      const tasks: Promise<unknown>[] = [
+        deliverCheckinSubmissionConfirmation({ userId, weekStart }),
+      ];
+      if (!employee?.manager_id) {
+        await Promise.all(tasks);
+        return NextResponse.json({ ok: true });
+      }
       const { data: manager } = await supabaseAdmin
         .from("users")
         .select("id, name, email")
         .eq("id", employee.manager_id)
         .eq("is_active", true)
         .maybeSingle();
-      if (!manager) return NextResponse.json({ ok: true });
+      if (!manager) {
+        await Promise.all(tasks);
+        return NextResponse.json({ ok: true });
+      }
       const weekLabel = new Date(weekStart).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
@@ -88,7 +100,7 @@ export async function POST(req: Request) {
       );
       const needsManagerAttention =
         hasBlockers || (typeof mood === "number" && mood <= 2);
-      await Promise.all([
+      tasks.push(
         deliverSlackNotification({
           eventKey: `checkin-submitted:${userId}:${weekStart}:manager:${manager.id}`,
           recipientUserId: manager.id,
@@ -136,7 +148,8 @@ export async function POST(req: Request) {
           ],
         }),
         notifyManagerOfCheckin(manager.id, employee.name, userId, hasBlockers),
-      ]);
+      );
+      await Promise.all(tasks);
     } catch (slackErr) {
       console.error("Slack notification failed (non-blocking)", slackErr);
     }

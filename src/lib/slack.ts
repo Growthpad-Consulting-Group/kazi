@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { isInQuietHours } from "@/lib/slack-schedule";
 import { isOverLimit, RATE_LIMIT_PER_MINUTE } from "@/lib/slack-admin";
+import { buildCheckinSubmissionConfirmation } from "@/lib/slack-digests";
 
 type SlackBlocks = object[];
 type SlackPreference = {
@@ -302,6 +303,48 @@ export async function deliverSlackNotification({
     });
     return "failed";
   }
+}
+
+/** Send the submitter a private, content-free receipt for their weekly check-in. */
+export async function deliverCheckinSubmissionConfirmation(input: {
+  userId: string;
+  weekStart: string;
+}) {
+  const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+  const message = buildCheckinSubmissionConfirmation({
+    appUrl,
+    weekStart: input.weekStart,
+  });
+  return deliverSlackNotification({
+    eventKey: `checkin-submitted:${input.userId}:${input.weekStart}:submitter`,
+    recipientUserId: input.userId,
+    category: "checkin_confirmation",
+    // A receipt is immediate and should not be held for a digest or quiet hours.
+    critical: true,
+    ...message,
+  });
+}
+
+/**
+ * One-time safe replay for prior weekly submissions. The delivery ledger keeps
+ * this idempotent, so it can be rerun without sending duplicate DMs.
+ */
+export async function backfillCheckinSubmissionConfirmations() {
+  const { data, error } = await supabaseAdmin
+    .from("checkins")
+    .select("user_id, week_start")
+    .in("status", ["submitted", "reviewed"]);
+  if (error) throw new Error(error.message);
+
+  const counts = { delivered: 0, suppressed: 0, failed: 0 };
+  for (const checkin of data ?? []) {
+    const outcome = await deliverCheckinSubmissionConfirmation({
+      userId: checkin.user_id,
+      weekStart: checkin.week_start,
+    });
+    counts[outcome] += 1;
+  }
+  return { attempted: (data ?? []).length, ...counts };
 }
 
 /**

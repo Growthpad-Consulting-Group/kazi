@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCheckinNudge,
+  buildCheckinSubmissionConfirmation,
   buildCheckinReviewReminder,
   buildDailyBrief,
   buildHallOfFameClosingReminder,
@@ -95,6 +96,20 @@ describe("one-on-one and nudge messages", () => {
       buildOneOnOneReminder({ withName: "Juma", time: "14:00", appUrl }).text,
     ).toBe("1-on-1 with Juma starts at 14:00.");
     expect(buildCheckinNudge(appUrl).blocks).toHaveLength(2);
+  });
+});
+
+describe("weekly check-in confirmations", () => {
+  it("confirms submission without including private check-in content", () => {
+    const message = buildCheckinSubmissionConfirmation({
+      appUrl,
+      weekStart: "2026-11-02",
+    });
+    expect(message.text).toContain("has been submitted to your manager");
+    expect(message.text).not.toContain("blocker");
+    expect(JSON.stringify(message.blocks)).toContain(
+      "View your submitted check-in in Kazi",
+    );
   });
 });
 
