@@ -129,6 +129,12 @@ describe("Wall of Fame reminders", () => {
       buildHallOfFameClosingReminder({ daysRemaining: 1, appUrl }).text,
     ).toContain("close in 1 day.");
   });
+
+  it("uses closing-day wording when the cycle closes today", () => {
+    expect(
+      buildHallOfFameClosingReminder({ daysRemaining: 0, appUrl }).text,
+    ).toContain("close today.");
+  });
 });
 
 describe("recognition messages", () => {

@@ -931,7 +931,7 @@ async function sendOverdueScorecardReminders(
 
 async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
   const today = localClock(now, DEFAULT_TIMEZONE).date;
-  for (const daysRemaining of [3, 1]) {
+  for (const daysRemaining of [3, 0]) {
     const closesOn = addDays(today, daysRemaining);
     const { data } = await db
       .from("hall_of_fame_cycles")
@@ -944,8 +944,8 @@ async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
         appUrl: appUrl(),
       });
       const outcome = await postSlackChannelNotification({
-        // Keep the original 3-day event key stable, while allowing one final
-        // reminder for the same cycle without duplicate hourly deliveries.
+        // Keep the original 3-day event key stable, while allowing one closing
+        // day reminder for the same cycle without duplicate hourly deliveries.
         eventKey:
           daysRemaining === 3
             ? `hall-of-fame-nominations-closing:${cycle.id}:${cycle.closes_at}`
