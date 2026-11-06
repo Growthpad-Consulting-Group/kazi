@@ -9,6 +9,8 @@ import {
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
   buildOneOnOneReminder,
+  buildPublicRecognitionMessage,
+  buildRecognitionReceivedMessage,
   buildReviewAcknowledgementReminder,
   buildTimerRunningReminder,
 } from "./slack-digests";
@@ -120,6 +122,43 @@ describe("Wall of Fame reminders", () => {
     expect(JSON.stringify(message.blocks)).toContain(
       "Open Wall of Fame in Kazi",
     );
+  });
+});
+
+describe("recognition messages", () => {
+  it("keeps the recipient notification private and actionable", () => {
+    const message = buildRecognitionReceivedMessage({
+      senderName: "Duncan",
+      valueName: "Customer focus",
+      message: "You made the client feel heard.",
+      appUrl,
+    });
+    expect(message.text).toBe("Duncan recognised you for Customer focus.");
+    expect(JSON.stringify(message.blocks)).toContain(
+      "View recognition in Kazi",
+    );
+  });
+
+  it("includes an image only when a public recipient is named", () => {
+    const named = buildPublicRecognitionMessage({
+      recipientName: "Antony",
+      senderName: "Duncan",
+      valueName: "Customer focus",
+      message: "Excellent work.",
+      mediaUrl: "https://example.com/celebrate.gif",
+      appUrl,
+    });
+    expect(named.text).toContain("Antony was recognised by Duncan");
+    expect(JSON.stringify(named.blocks)).toContain("celebrate.gif");
+
+    const anonymous = buildPublicRecognitionMessage({
+      recipientName: null,
+      senderName: null,
+      message: "Excellent work.",
+      mediaUrl: "https://example.com/celebrate.gif",
+      appUrl,
+    });
+    expect(JSON.stringify(anonymous.blocks)).not.toContain("celebrate.gif");
   });
 });
 

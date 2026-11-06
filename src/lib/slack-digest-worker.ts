@@ -28,6 +28,7 @@ import {
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
   buildOneOnOneReminder,
+  buildPublicRecognitionMessage,
   buildReviewAcknowledgementReminder,
   buildTimerRunningReminder,
 } from "@/lib/slack-digests";
@@ -1046,6 +1047,7 @@ async function publishCultureAnnouncements(
   prefs: Map<string, PrefRow>,
   counts: DigestCounts,
 ) {
+  await publishRecentPublicRecognitions(now, byId, prefs, counts);
   const since = new Date(now.getTime() - 26 * 3_600_000).toISOString();
 
   const { data: winners } = await db
@@ -1114,6 +1116,63 @@ async function publishCultureAnnouncements(
           ],
         },
       ],
+    });
+    record(counts, outcome);
+    if (outcome === "delivered") counts.cultureAnnouncements += 1;
+  }
+}
+
+/** Backfills recent public recognition once, then lets the ledger prevent repeats. */
+async function publishRecentPublicRecognitions(
+  now: Date,
+  byId: Map<string, UserRow>,
+  prefs: Map<string, PrefRow>,
+  counts: DigestCounts,
+) {
+  const since = new Date(now.getTime() - 7 * 24 * 3_600_000).toISOString();
+  const [{ data: recognitions }, { data: values }] = await Promise.all([
+    supabaseAdmin
+      .from("feedback")
+      .select("id,from_user_id,to_user_id,message,value_id,media_url")
+      .eq("visibility", "public")
+      .gte("created_at", since),
+    supabaseAdmin.from("recognition_values").select("id,name"),
+  ]);
+  const valueNames = new Map(
+    ((values ?? []) as { id: string; name: string }[]).map((value) => [
+      value.id,
+      value.name,
+    ]),
+  );
+  for (const recognition of (recognitions ?? []) as {
+    id: string;
+    from_user_id: string;
+    to_user_id: string;
+    message: string;
+    value_id: string | null;
+    media_url: string | null;
+  }[]) {
+    const recipientName = optedIn(prefs, recognition.to_user_id)
+      ? (byId.get(recognition.to_user_id)?.name ?? null)
+      : null;
+    const senderName = optedIn(prefs, recognition.from_user_id)
+      ? (byId.get(recognition.from_user_id)?.name ?? null)
+      : null;
+    const message = buildPublicRecognitionMessage({
+      recipientName,
+      senderName,
+      valueName: recognition.value_id
+        ? valueNames.get(recognition.value_id)
+        : null,
+      message: recognition.message,
+      mediaUrl: recognition.media_url,
+      appUrl: appUrl(),
+    });
+    const outcome = await postSlackChannelNotification({
+      eventKey: `culture:recognition:${recognition.id}`,
+      category: "culture_recognition",
+      text: message.text,
+      blocks: message.blocks,
     });
     record(counts, outcome);
     if (outcome === "delivered") counts.cultureAnnouncements += 1;

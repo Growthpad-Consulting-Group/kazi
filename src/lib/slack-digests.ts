@@ -6,6 +6,97 @@ export type SlackMessage = { text: string; blocks: object[] };
 
 export type BriefMeeting = { withName: string; time: string };
 
+function slackQuote(value: string) {
+  return value
+    .trim()
+    .split("\n")
+    .map((line) => `> ${line}`)
+    .join("\n");
+}
+
+export function buildRecognitionReceivedMessage(input: {
+  senderName: string;
+  valueName?: string | null;
+  message: string;
+  appUrl: string;
+}): SlackMessage {
+  const value = input.valueName ? ` for *${input.valueName}*` : "";
+  const text = `${input.senderName} recognised you${input.valueName ? ` for ${input.valueName}` : ""}.`;
+  return {
+    text,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "You were recognised" },
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*${input.senderName}* recognised you${value}.\n${slackQuote(input.message)}`,
+        },
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `<${input.appUrl}/pulse/feedback|View recognition in Kazi>`,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+export function buildPublicRecognitionMessage(input: {
+  recipientName: string | null;
+  senderName: string | null;
+  valueName?: string | null;
+  message: string;
+  mediaUrl?: string | null;
+  appUrl: string;
+}): SlackMessage {
+  const recipient = input.recipientName ?? "A teammate";
+  const sender = input.senderName ?? "a teammate";
+  const value = input.valueName ? ` for *${input.valueName}*` : "";
+  const text = input.recipientName
+    ? `${recipient} was recognised by ${sender}${input.valueName ? ` for ${input.valueName}` : ""}.`
+    : `A teammate was recognised${input.valueName ? ` for ${input.valueName}` : ""}.`;
+  const blocks: object[] = [
+    {
+      type: "header",
+      text: { type: "plain_text", text: "Recognition wall" },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: input.recipientName
+          ? `*${recipient}* was recognised by *${sender}*${value}.\n${slackQuote(input.message)}`
+          : `A teammate received recognition${value}.`,
+      },
+    },
+  ];
+  if (input.recipientName && input.mediaUrl?.startsWith("https://")) {
+    blocks.push({
+      type: "image",
+      image_url: input.mediaUrl,
+      alt_text: "Recognition image",
+    });
+  }
+  blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "mrkdwn",
+        text: `<${input.appUrl}/pulse/feedback|Celebrate in Kazi>`,
+      },
+    ],
+  });
+  return { text, blocks };
+}
+
 export function buildDailyBrief(input: {
   firstName: string;
   meetings: BriefMeeting[];

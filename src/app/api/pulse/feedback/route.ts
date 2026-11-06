@@ -10,6 +10,14 @@ import {
 import { awardPoints } from "@/lib/award-points";
 import { runAutomationEvent } from "@/lib/automations";
 import { notifyRecognitionReceived } from "@/lib/notifications";
+import {
+  buildPublicRecognitionMessage,
+  buildRecognitionReceivedMessage,
+} from "@/lib/slack-digests";
+import {
+  deliverSlackNotification,
+  postSlackChannelNotification,
+} from "@/lib/slack";
 import type { FeedbackVisibility } from "@/types/database";
 
 export async function POST(req: Request) {
@@ -57,7 +65,7 @@ export async function POST(req: Request) {
     );
   const { data: recipients } = await supabaseAdmin
     .from("users")
-    .select("id")
+    .select("id,name")
     .in("id", recipientIds)
     .eq("is_active", true);
   if ((recipients?.length ?? 0) !== recipientIds.length)
@@ -65,11 +73,13 @@ export async function POST(req: Request) {
       { error: "One or more recipients are unavailable." },
       { status: 400 },
     );
+  let recognitionValues: { id: string; name: string }[] = [];
   if (visibility === "public") {
     const { data: values } = await supabaseAdmin
       .from("recognition_values")
-      .select("id")
+      .select("id,name")
       .eq("is_active", true);
+    recognitionValues = values ?? [];
     if ((values?.length ?? 0) > 0 && !value_id)
       return NextResponse.json(
         { error: "Choose the value this recognition represents." },
@@ -135,6 +145,65 @@ export async function POST(req: Request) {
     ),
   );
   if (visibility === "public") await invalidatePublicFeedback();
+  if (visibility === "public") {
+    const valueName = recognitionValues.find(
+      (value) => value.id === value_id,
+    )?.name;
+    const recipientById = new Map(
+      (recipients ?? []).map((recipient) => [recipient.id, recipient]),
+    );
+    const { data: culturePrefs } = await supabaseAdmin
+      .from("user_notification_preferences")
+      .select("user_id,culture_announcements")
+      .in("user_id", [from_user_id, ...recipientIds]);
+    const cultureOptIns = new Set(
+      (culturePrefs ?? [])
+        .filter((pref: { culture_announcements: boolean | null }) =>
+          Boolean(pref.culture_announcements),
+        )
+        .map((pref: { user_id: string }) => pref.user_id),
+    );
+    const senderName = session.user.name ?? "A colleague";
+    const appUrl = process.env.PRODUCTION_APP_URL ?? "http://localhost:3000";
+    await Promise.all([
+      ...recipientIds.map((recipientId) => {
+        const messageForRecipient = buildRecognitionReceivedMessage({
+          senderName,
+          valueName,
+          message: message.trim(),
+          appUrl,
+        });
+        return deliverSlackNotification({
+          eventKey: `recognition-dm:${feedback.id}:${recipientId}`,
+          recipientUserId: recipientId,
+          category: "recognition_received",
+          text: messageForRecipient.text,
+          blocks: messageForRecipient.blocks,
+          // Recognition is timely even for staff who otherwise chose digest
+          // delivery. Quiet hours and the global Slack switch still apply.
+          digest: true,
+        });
+      }),
+      (() => {
+        const channelMessage = buildPublicRecognitionMessage({
+          recipientName: cultureOptIns.has(recipientIds[0])
+            ? (recipientById.get(recipientIds[0])?.name ?? null)
+            : null,
+          senderName: cultureOptIns.has(from_user_id) ? senderName : null,
+          valueName,
+          message: message.trim(),
+          mediaUrl: media_url ?? null,
+          appUrl,
+        });
+        return postSlackChannelNotification({
+          eventKey: `culture:recognition:${feedback.id}`,
+          category: "culture_recognition",
+          text: channelMessage.text,
+          blocks: channelMessage.blocks,
+        });
+      })(),
+    ]);
+  }
   // Award +5 points to giver for public recognition (non-blocking)
   if (visibility === "public") {
     try {

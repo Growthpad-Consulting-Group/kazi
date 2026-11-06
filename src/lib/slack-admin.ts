@@ -18,6 +18,7 @@ export const KNOWN_CATEGORIES = [
   "voice_out",
   "interview",
   "culture_recap",
+  "culture_recognition",
   "culture_wall_of_fame",
   "culture_side_quest",
   "hall_of_fame_nominations",
