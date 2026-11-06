@@ -931,25 +931,32 @@ async function sendOverdueScorecardReminders(
 
 async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
   const today = localClock(now, DEFAULT_TIMEZONE).date;
-  const closesOn = addDays(today, 3);
-  const { data } = await db
-    .from("hall_of_fame_cycles")
-    .select("id,closes_at")
-    .eq("status", "open")
-    .eq("closes_at", closesOn);
-  for (const cycle of (data ?? []) as { id: string; closes_at: string }[]) {
-    const message = buildHallOfFameClosingReminder({
-      daysRemaining: 3,
-      appUrl: appUrl(),
-    });
-    const outcome = await postSlackChannelNotification({
-      eventKey: `hall-of-fame-nominations-closing:${cycle.id}:${cycle.closes_at}`,
-      category: "hall_of_fame_nominations",
-      text: message.text,
-      blocks: message.blocks,
-    });
-    record(counts, outcome);
-    if (outcome === "delivered") counts.hallOfFameReminders += 1;
+  for (const daysRemaining of [3, 1]) {
+    const closesOn = addDays(today, daysRemaining);
+    const { data } = await db
+      .from("hall_of_fame_cycles")
+      .select("id,closes_at")
+      .eq("status", "open")
+      .eq("closes_at", closesOn);
+    for (const cycle of (data ?? []) as { id: string; closes_at: string }[]) {
+      const message = buildHallOfFameClosingReminder({
+        daysRemaining,
+        appUrl: appUrl(),
+      });
+      const outcome = await postSlackChannelNotification({
+        // Keep the original 3-day event key stable, while allowing one final
+        // reminder for the same cycle without duplicate hourly deliveries.
+        eventKey:
+          daysRemaining === 3
+            ? `hall-of-fame-nominations-closing:${cycle.id}:${cycle.closes_at}`
+            : `hall-of-fame-nominations-closing-final:${cycle.id}:${cycle.closes_at}`,
+        category: "hall_of_fame_nominations",
+        text: message.text,
+        blocks: message.blocks,
+      });
+      record(counts, outcome);
+      if (outcome === "delivered") counts.hallOfFameReminders += 1;
+    }
   }
 }
 

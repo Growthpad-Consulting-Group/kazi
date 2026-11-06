@@ -312,7 +312,8 @@ export function buildHallOfFameClosingReminder(input: {
   daysRemaining: number;
   appUrl: string;
 }): SlackMessage {
-  const text = `Wall of Fame nominations close in ${input.daysRemaining} days. Take a moment to recognise impactful work at Growthpad.`;
+  const dayLabel = input.daysRemaining === 1 ? "day" : "days";
+  const text = `Wall of Fame nominations close in ${input.daysRemaining} ${dayLabel}. Take a moment to recognise impactful work at Growthpad.`;
   return {
     text,
     blocks: [

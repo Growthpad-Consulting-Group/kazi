@@ -123,6 +123,12 @@ describe("Wall of Fame reminders", () => {
       "Open Wall of Fame in Kazi",
     );
   });
+
+  it("uses singular wording for the final-day reminder", () => {
+    expect(
+      buildHallOfFameClosingReminder({ daysRemaining: 1, appUrl }).text,
+    ).toContain("close in 1 day.");
+  });
 });
 
 describe("recognition messages", () => {
