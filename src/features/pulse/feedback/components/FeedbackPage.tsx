@@ -9,6 +9,17 @@ import { FeedbackWall } from "./FeedbackWall";
 import { SendRecognitionButton } from "./SendRecognitionButton";
 
 type UserRow = { id: string; name: string };
+type FeedbackReaction = { feedback_id: string; user_id: string; emoji: string };
+type FeedbackReactionDatabase = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      in: (
+        column: string,
+        values: string[],
+      ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+    };
+  };
+};
 
 export default async function FeedbackPage() {
   const session = await getServerSession(authOptions);
@@ -58,6 +69,17 @@ export default async function FeedbackPage() {
     name: string;
     member_ids: string[];
   }[];
+  const reactionDatabase = supabaseAdmin as unknown as FeedbackReactionDatabase;
+  const { data: reactionData } = kudos.length
+    ? await reactionDatabase
+        .from("feedback_reactions")
+        .select("feedback_id, user_id, emoji")
+        .in(
+          "feedback_id",
+          kudos.map((item) => item.id),
+        )
+    : { data: [] };
+  const reactions = (reactionData ?? []) as FeedbackReaction[];
   const receivedByYou = kudos.filter(
     (item) => item.to_user_id === session.user.id,
   ).length;
@@ -112,7 +134,12 @@ export default async function FeedbackPage() {
           />
         </section>
 
-        <FeedbackWall kudos={kudos} values={values} />
+        <FeedbackWall
+          kudos={kudos}
+          values={values}
+          reactions={reactions}
+          currentUserId={session.user.id}
+        />
 
         <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20">
           <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">

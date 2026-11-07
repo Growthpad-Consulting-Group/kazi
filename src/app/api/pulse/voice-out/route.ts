@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { notifyHrOfVoiceOutOnSlack } from "@/lib/slack-alerts";
+import { notifyRoles } from "@/lib/notifications";
 import type { VoiceOutPriority, VoiceOutStatus } from "@/types/database";
 
 const TOPICS = [
@@ -98,6 +99,11 @@ export async function POST(req: Request) {
     .single();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+  await notifyRoles(
+    ["admin", "hr"],
+    "A new anonymous Voice Out report needs a response.",
+    "/pulse/voice-out",
+  );
   // Slack is a courtesy alert: it must not change the outcome of the report.
   await notifyHrOfVoiceOutOnSlack(created.id);
   return NextResponse.json({ ok: true, accessCode });

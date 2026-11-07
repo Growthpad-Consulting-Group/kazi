@@ -8,7 +8,10 @@ import {
   deliverSlackNotification,
 } from "@/lib/slack";
 import { remindLaterButton } from "@/lib/slack-digests";
-import { notifyManagerOfCheckin } from "@/lib/notifications";
+import {
+  notifyCheckinSubmissionReceived,
+  notifyManagerOfCheckin,
+} from "@/lib/notifications";
 import type { CheckinStatus } from "@/types/database";
 
 export async function POST(req: Request) {
@@ -73,6 +76,7 @@ export async function POST(req: Request) {
       } | null;
       const tasks: Promise<unknown>[] = [
         deliverCheckinSubmissionConfirmation({ userId, weekStart }),
+        notifyCheckinSubmissionReceived(userId, weekStart),
       ];
       if (!employee?.manager_id) {
         await Promise.all(tasks);

@@ -11,6 +11,23 @@ import type { UserRole } from "@/types/database";
 /** Roles that receive hiring/recruiter notifications. */
 export const RECRUITER_ROLES: UserRole[] = ["admin", "hr", "hiring_manager"];
 
+async function createNotifications(
+  rows: { user_id: string; message: string; link?: string | null }[],
+): Promise<void> {
+  if (!rows.length) return;
+  const { error } = await supabaseAdmin.from("notifications").insert(rows);
+  if (error) {
+    // A notification must never roll back the action that produced it.
+    console.error("Could not create in-app notification", error.message);
+    return;
+  }
+  await Promise.all(
+    [...new Set(rows.map((row) => row.user_id))].map(
+      invalidateUserNotifications,
+    ),
+  );
+}
+
 /**
  * Send an in-app notification to all active users whose role is in `roles`.
  */
@@ -25,9 +42,13 @@ export async function notifyRoles(
     .in("role", roles)
     .eq("is_active", true);
   if (!users?.length) return;
-  await supabaseAdmin
-    .from("notifications")
-    .insert(users.map((u) => ({ user_id: u.id, message, link: link ?? null })));
+  await createNotifications(
+    users.map((user) => ({
+      user_id: user.id,
+      message,
+      link: link ?? null,
+    })),
+  );
 }
 
 export async function notifyRecognitionReceived(
@@ -36,11 +57,13 @@ export async function notifyRecognitionReceived(
   message: string,
 ): Promise<void> {
   const preview = message.length > 80 ? `${message.slice(0, 80)}…` : message;
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `${fromName} recognised you: "${preview}"`,
-    link: "/pulse/feedback",
-  });
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `${fromName} recognised you: "${preview}"`,
+      link: "/pulse/feedback",
+    },
+  ]);
 }
 
 export async function notifyOneOnOneScheduled(
@@ -67,7 +90,7 @@ export async function notifyOneOnOneScheduled(
     timeZone: "UTC",
   });
   const link = `/pulse/one-on-ones/${meetingId}`;
-  await supabaseAdmin.from("notifications").insert([
+  await createNotifications([
     {
       user_id: managerId,
       message: `1-on-1 with ${report.name} scheduled for ${when}`,
@@ -79,10 +102,6 @@ export async function notifyOneOnOneScheduled(
       link,
     },
   ]);
-  await Promise.all([
-    invalidateUserNotifications(managerId),
-    invalidateUserNotifications(reportId),
-  ]);
 }
 
 export async function notifyManagerOfCheckin(
@@ -91,12 +110,30 @@ export async function notifyManagerOfCheckin(
   employeeId: string,
   hasBlockers: boolean,
 ): Promise<void> {
-  await supabaseAdmin.from("notifications").insert({
-    user_id: managerId,
-    message: `${employeeName} submitted their weekly check-in${hasBlockers ? " with a blocker" : ""}.`,
-    link: `/pulse/checkins?user=${employeeId}`,
-  });
-  await invalidateUserNotifications(managerId);
+  await createNotifications([
+    {
+      user_id: managerId,
+      message: `${employeeName} submitted their weekly check-in${hasBlockers ? " with a blocker" : ""}.`,
+      link: `/pulse/checkins?user=${employeeId}`,
+    },
+  ]);
+}
+
+export async function notifyCheckinSubmissionReceived(
+  userId: string,
+  weekStart: string,
+): Promise<void> {
+  const weekLabel = new Date(`${weekStart}T12:00:00Z`).toLocaleDateString(
+    "en-KE",
+    { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" },
+  );
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `Weekly check-in submitted for the week of ${weekLabel}.`,
+      link: "/pulse/checkins?tab=checkins",
+    },
+  ]);
 }
 
 export async function notifyMilestone(
@@ -114,22 +151,22 @@ export async function notifyMilestone(
   } else {
     label = "Service achievement";
   }
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `Milestone: ${label}`,
-    link: "/pulse",
-  });
+  await createNotifications([
+    { user_id: userId, message: `Milestone: ${label}`, link: "/pulse" },
+  ]);
 }
 
 export async function notifyCampaignLive(
   userId: string,
   campaignName: string,
 ): Promise<void> {
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `Campaign now live: ${campaignName}`,
-    link: "/pulse/campaigns",
-  });
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `Campaign now live: ${campaignName}`,
+      link: "/pulse/campaigns",
+    },
+  ]);
 }
 
 export async function notifyQuestEndingSoon(
@@ -141,20 +178,23 @@ export async function notifyQuestEndingSoon(
     day: "numeric",
     month: "short",
   });
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `Side Quest ending soon (${dt}): ${questTitle}`,
-    link: "/pulse/side-quests",
-  });
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `Side Quest ending soon (${dt}): ${questTitle}`,
+      link: "/pulse/side-quests",
+    },
+  ]);
 }
 
 export async function notifyQuestLive(userId: string, questTitle: string) {
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `New Side Quest: ${questTitle}`,
-    link: "/pulse/side-quests",
-  });
-  await invalidateUserNotifications(userId);
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `New Side Quest: ${questTitle}`,
+      link: "/pulse/side-quests",
+    },
+  ]);
 }
 
 export async function notifySurveyClosingSoon(
@@ -166,11 +206,13 @@ export async function notifySurveyClosingSoon(
     day: "numeric",
     month: "short",
   });
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `Survey closing soon (${dt}): ${surveyTitle}`,
-    link: "/pulse/surveys",
-  });
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `Survey closing soon (${dt}): ${surveyTitle}`,
+      link: "/pulse/surveys",
+    },
+  ]);
 }
 
 export async function notifySurveyPublished(
@@ -178,12 +220,13 @@ export async function notifySurveyPublished(
   surveyTitle: string,
   surveyId: string,
 ): Promise<void> {
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `New survey: ${surveyTitle}`,
-    link: `/pulse/surveys/${surveyId}`,
-  });
-  await invalidateUserNotifications(userId);
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `New survey: ${surveyTitle}`,
+      link: `/pulse/surveys/${surveyId}`,
+    },
+  ]);
 }
 
 export async function notifyWeeklyDigest(
@@ -202,9 +245,11 @@ export async function notifyWeeklyDigest(
     );
   }
   if (!parts.length) return;
-  await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
-    message: `Your week: ${parts.join(", ")}.`,
-    link: "/pulse",
-  });
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `Your week: ${parts.join(", ")}.`,
+      link: "/pulse",
+    },
+  ]);
 }
