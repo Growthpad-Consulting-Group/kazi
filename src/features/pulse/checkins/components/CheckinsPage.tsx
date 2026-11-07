@@ -4,7 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { Accordion } from "@/components/ui/Accordion";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import type { Checkin } from "@/types/database";
 import {
   getDailyWeekSummary,
   getMyCheckins,
@@ -336,35 +338,7 @@ export default async function CheckinsPage({
                     Recent check-ins
                   </h2>
                 </div>
-                {pastCheckins.length ? (
-                  <div className="mt-4 space-y-2">
-                    {pastCheckins.map((checkin) => (
-                      <div
-                        key={checkin.id}
-                        className="flex items-center justify-between gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"
-                      >
-                        <div>
-                          <p className="text-xs font-semibold text-[var(--text-hi)]">
-                            {new Date(
-                              `${checkin.week_start}T12:00:00`,
-                            ).toLocaleDateString("en-KE", {
-                              day: "numeric",
-                              month: "short",
-                            })}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
-                            {checkin.mood
-                              ? `${MOODS[checkin.mood - 1]} ${checkin.status}`
-                              : checkin.status}
-                          </p>
-                        </div>
-                        <StatusBadge status={checkin.status} compact />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyHistory />
-                )}
+                <CheckinHistory checkins={pastCheckins} />
               </section>
             </aside>
           </div>
@@ -440,35 +414,7 @@ export default async function CheckinsPage({
                   Recent check-ins
                 </h2>
               </div>
-              {pastCheckins.length ? (
-                <div className="mt-4 space-y-2">
-                  {pastCheckins.map((checkin) => (
-                    <div
-                      key={checkin.id}
-                      className="flex items-center justify-between gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5"
-                    >
-                      <div>
-                        <p className="text-xs font-semibold text-[var(--text-hi)]">
-                          {new Date(
-                            `${checkin.week_start}T12:00:00`,
-                          ).toLocaleDateString("en-KE", {
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
-                          {checkin.mood
-                            ? `${MOODS[checkin.mood - 1]} ${checkin.status}`
-                            : checkin.status}
-                        </p>
-                      </div>
-                      <StatusBadge status={checkin.status} compact />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyHistory />
-              )}
+              <CheckinHistory checkins={pastCheckins} />
             </section>
             <section className="rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] p-4">
               <div className="flex gap-2.5">
@@ -565,6 +511,167 @@ function EmptyHistory() {
       />
       <p className="mt-2 text-sm text-[var(--text-lo)]">
         Your submitted check-ins will build a useful history here.
+      </p>
+    </div>
+  );
+}
+
+function formatMinutes(total: number) {
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  return hours && minutes
+    ? `${hours}h ${minutes}m`
+    : hours
+      ? `${hours}h`
+      : `${minutes}m`;
+}
+
+async function CheckinHistory({ checkins }: { checkins: Checkin[] }) {
+  if (!checkins.length) return <EmptyHistory />;
+  const histories = await Promise.all(
+    checkins.map(async (checkin) => ({
+      checkin,
+      dailySummary: await getDailyWeekSummary(
+        checkin.user_id,
+        checkin.week_start,
+      ),
+    })),
+  );
+  return (
+    <div className="mt-4 space-y-2">
+      {histories.map(({ checkin, dailySummary }) => {
+        const dateLabel = new Date(
+          `${checkin.week_start}T12:00:00`,
+        ).toLocaleDateString("en-KE", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        return (
+          <Accordion
+            key={checkin.id}
+            title={dateLabel}
+            subtitle={
+              checkin.mood
+                ? `${MOODS[checkin.mood - 1]} ${checkin.status}`
+                : checkin.status
+            }
+            icon="solar:clipboard-check-broken"
+            badge={<StatusBadge status={checkin.status} compact />}
+            className="bg-[var(--surface-2)]"
+          >
+            <div className="grid gap-3 text-xs sm:grid-cols-2">
+              <HistorySection title="Wins" value={checkin.wins} />
+              <HistorySection title="Priorities" value={checkin.priorities} />
+              <HistorySection title="Blockers" value={checkin.blockers} />
+              <HistorySection
+                title="Mood"
+                value={
+                  checkin.mood
+                    ? `${MOODS[checkin.mood - 1]} ${checkin.mood}/5`
+                    : null
+                }
+              />
+            </div>
+            {checkin.manager_comment && (
+              <div className="mt-3 rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                  Manager feedback
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-[var(--text-hi)]">
+                  {checkin.manager_comment}
+                </p>
+              </div>
+            )}
+            {dailySummary.days.length > 0 && (
+              <details className="group mt-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-xs marker:hidden transition-colors hover:bg-[var(--surface-2)]">
+                  <span className="flex min-w-0 items-center gap-2 text-[var(--text-hi)]">
+                    <Icon
+                      icon="solar:notebook-broken"
+                      className="h-4 w-4 shrink-0 text-brand-500"
+                    />
+                    <span className="font-semibold">Work logged</span>
+                    <span className="text-[var(--text-lo)]">
+                      {dailySummary.daysLogged}/5 days ·{" "}
+                      {formatMinutes(dailySummary.totalMinutes)}
+                    </span>
+                  </span>
+                  <Icon
+                    icon="solar:alt-arrow-down-broken"
+                    className="h-4 w-4 shrink-0 text-[var(--text-lo)] transition-transform duration-200 group-open:rotate-180"
+                  />
+                </summary>
+                <div className="max-h-80 space-y-3 overflow-y-auto border-t border-[var(--border)] px-3 py-3 pr-2">
+                  {[...dailySummary.days]
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map((day) => {
+                      const date = new Date(`${day.date}T12:00:00`);
+                      const total = day.entries.reduce(
+                        (sum, entry) => sum + entry.minutes,
+                        0,
+                      );
+                      return (
+                        <div key={day.date}>
+                          <div className="mb-1.5 flex items-center justify-between gap-2">
+                            <p className="text-[11px] font-semibold text-[var(--text-hi)]">
+                              {date.toLocaleDateString("en-KE", {
+                                weekday: "long",
+                                day: "numeric",
+                                month: "short",
+                              })}
+                            </p>
+                            <span className="font-mono text-[10px] text-[var(--text-lo)]">
+                              {formatMinutes(total)}
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {day.entries.map((entry, index) => (
+                              <div
+                                key={`${entry.task}-${index}`}
+                                className="flex items-start justify-between gap-3 rounded-lg border border-transparent bg-[var(--surface-2)] px-2.5 py-2 transition-colors hover:border-brand-500/35 hover:bg-brand-500/[0.035]"
+                              >
+                                <div className="min-w-0">
+                                  <p className="truncate text-[11px] font-medium text-[var(--text-hi)]">
+                                    {entry.task}
+                                  </p>
+                                  <p className="mt-0.5 truncate text-[10px] text-[var(--text-lo)]">
+                                    {[entry.client, entry.category]
+                                      .filter(Boolean)
+                                      .join(" · ") || "Work log"}
+                                  </p>
+                                </div>
+                                <span className="shrink-0 font-mono text-[10px] text-[var(--text-lo)]">
+                                  {formatMinutes(entry.minutes)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </details>
+            )}
+          </Accordion>
+        );
+      })}
+    </div>
+  );
+}
+
+function HistorySection({
+  title,
+  value,
+}: {
+  title: string;
+  value: string | null;
+}) {
+  return (
+    <div className="rounded-lg border border-transparent bg-[var(--surface)] p-2.5 transition-colors hover:border-brand-500/35 hover:bg-brand-500/[0.035]">
+      <p className="font-semibold text-[var(--text-hi)]">{title}</p>
+      <p className="mt-1 whitespace-pre-wrap leading-relaxed text-[var(--text-lo)]">
+        {value || "Nothing shared."}
       </p>
     </div>
   );

@@ -255,45 +255,84 @@ export function DailyLogHistory({
   selected: string;
   onSelect: (date: string) => void;
 }) {
+  const orderedLogs = [...logs].sort((a, b) => a.date.localeCompare(b.date));
+  const loggedDays = orderedLogs.filter((log) => log.entries.length > 0);
+  const totalMinutes = orderedLogs.reduce(
+    (total, log) =>
+      total + log.entries.reduce((sum, entry) => sum + entry.minutes, 0),
+    0,
+  );
   return (
     <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20 sm:p-6">
-      <p className="text-sm font-semibold text-[var(--text-lo)]">Last 7 days</p>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
-        {logs.map((log) => {
-          const total = log.entries.reduce(
-            (sum, entry) => sum + entry.minutes,
-            0,
-          );
-          const active = log.date === selected;
-          return (
-            <li key={log.date}>
-              <div
-                className={`rounded-2xl transition-shadow ${active ? "ring-2 ring-brand-500/50" : ""}`}
-              >
-                <StatCard
-                  variant="inline"
-                  compact
-                  title={new Date(`${log.date}T12:00:00`).toLocaleDateString(
-                    "en-GB",
-                    { weekday: "short", day: "numeric", month: "short" },
-                  )}
-                  value={total ? formatMinutes(total) : "—"}
-                  subtitle={
-                    log.mood
-                      ? `${MOODS[log.mood - 1]} ${MOOD_LABELS[log.mood - 1]}`
-                      : log.entries.length
-                        ? "Logged"
-                        : "Not logged"
-                  }
-                  icon="solar:calendar-broken"
-                  color="orange"
-                  onClick={() => onSelect(log.date)}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-[var(--text-lo)]">
+          This workweek
+        </p>
+        <span className="rounded-full bg-brand-500/[0.08] px-2.5 py-1 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
+          {loggedDays.length}/5 days logged
+        </span>
+      </div>
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_15rem]">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {orderedLogs.map((log) => {
+            const total = log.entries.reduce(
+              (sum, entry) => sum + entry.minutes,
+              0,
+            );
+            const active = log.date === selected;
+            return (
+              <li key={log.date}>
+                <div
+                  className={`rounded-2xl transition-shadow ${active ? "ring-2 ring-brand-500/50" : ""}`}
+                >
+                  <StatCard
+                    variant="inline"
+                    compact
+                    title={new Date(`${log.date}T12:00:00`).toLocaleDateString(
+                      "en-GB",
+                      {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      },
+                    )}
+                    value={total ? formatMinutes(total) : "—"}
+                    subtitle={
+                      log.mood
+                        ? `${MOODS[log.mood - 1]} ${MOOD_LABELS[log.mood - 1]}`
+                        : log.entries.length
+                          ? "Logged"
+                          : "Not logged"
+                    }
+                    icon="solar:calendar-broken"
+                    color="orange"
+                    inlineStacked
+                    onClick={() => onSelect(log.date)}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex items-center gap-3 rounded-2xl border border-brand-500/15 bg-brand-500/[0.045] px-4 py-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+            <Icon icon="solar:chart-square-broken" className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">
+              Week total
+            </p>
+            <p className="mt-0.5 text-lg font-bold text-[var(--text-hi)]">
+              {formatMinutes(totalMinutes)}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--text-lo)]">
+              {loggedDays.length === 5
+                ? "All workdays logged"
+                : `${5 - loggedDays.length} workday${5 - loggedDays.length === 1 ? "" : "s"} remaining`}
+            </p>
+          </div>
+        </div>
+      </div>
       <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-lo)]">
         <Icon icon="solar:info-circle-broken" className="h-3.5 w-3.5" /> Days
         without a log show a dash.

@@ -21,6 +21,24 @@ interface Props {
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
+function weekRangeLabel(weekStart: string) {
+  const start = new Date(`${weekStart}T12:00:00`);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 4);
+  const sameMonth = start.getMonth() === end.getMonth();
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startLabel = start.toLocaleDateString("en-KE", {
+    day: "numeric",
+    ...(sameMonth ? {} : { month: "short" }),
+  });
+  const endLabel = end.toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  return `${startLabel}–${endLabel}${sameYear ? ` ${end.getFullYear()}` : ""}`;
+}
+
 function hasMoodAlert(
   checkins: CheckinWithUser[],
   userId: string,
@@ -60,16 +78,19 @@ function formatMinutes(total: number) {
 
 export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
   const router = useRouter();
-
-  const thisWeek = checkins.filter((c) => c.week_start === weekStart);
-  const previous = checkins.filter((c) => c.week_start !== weekStart);
+  const availableWeeks = Array.from(
+    new Set([weekStart, ...checkins.map((checkin) => checkin.week_start)]),
+  ).sort((a, b) => b.localeCompare(a));
+  const [selectedWeekStart, setSelectedWeekStart] = useState(weekStart);
+  const selectedWeekIndex = availableWeeks.indexOf(selectedWeekStart);
+  const thisWeek = checkins.filter(
+    (checkin) => checkin.week_start === selectedWeekStart,
+  );
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
-  const [aiSummary, setAiSummary] = useState<string | null>(
-    thisWeek.find((c) => c.ai_summary)?.ai_summary ?? null,
-  );
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [summarising, setSummarising] = useState(false);
   const [filter, setFilter] = useState<
     "all" | "review" | "attention" | "reviewed"
@@ -77,17 +98,17 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
 
   const awaitingReview = thisWeek.filter((c) => c.status !== "reviewed").length;
   const lowMood = thisWeek.filter((c) =>
-    hasMoodAlert(checkins, c.user_id, weekStart),
+    hasMoodAlert(checkins, c.user_id, selectedWeekStart),
   ).length;
   const repeatedBlockers = thisWeek.filter((c) =>
-    hasBlockerAlert(checkins, c.user_id, weekStart),
+    hasBlockerAlert(checkins, c.user_id, selectedWeekStart),
   ).length;
   const visibleCheckins = thisWeek.filter((checkin) => {
     if (filter === "review") return checkin.status !== "reviewed";
     if (filter === "attention")
       return (
-        hasMoodAlert(checkins, checkin.user_id, weekStart) ||
-        hasBlockerAlert(checkins, checkin.user_id, weekStart)
+        hasMoodAlert(checkins, checkin.user_id, selectedWeekStart) ||
+        hasBlockerAlert(checkins, checkin.user_id, selectedWeekStart)
       );
     if (filter === "reviewed") return checkin.status === "reviewed";
     return true;
@@ -99,7 +120,7 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
       const res = await fetch("/api/pulse/ai-summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekStart }),
+        body: JSON.stringify({ weekStart: selectedWeekStart }),
       });
       const data = (await res.json().catch(() => null)) as {
         summary?: string;
@@ -108,6 +129,18 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
     } finally {
       setSummarising(false);
     }
+  }
+
+  const activeAiSummary =
+    aiSummary ??
+    thisWeek.find((checkin) => checkin.ai_summary)?.ai_summary ??
+    null;
+  function selectWeek(nextWeek: string) {
+    setSelectedWeekStart(nextWeek);
+    setExpanded(null);
+    setComment("");
+    setAiSummary(null);
+    setFilter("all");
   }
 
   async function submitReview(checkinId: string) {
@@ -151,17 +184,57 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
               </div>
             </div>
           </div>
-          {thisWeek.length > 0 && (
-            <Button
-              size="sm"
-              variant="primary"
-              icon="solar:magic-stick-3-broken"
-              loading={summarising}
-              onClick={generateSummary}
-            >
-              {summarising ? "Summarising…" : "Team summary"}
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-sm">
+              <button
+                type="button"
+                aria-label="Previous check-in week"
+                disabled={selectedWeekIndex >= availableWeeks.length - 1}
+                onClick={() =>
+                  selectWeek(availableWeeks[selectedWeekIndex + 1])
+                }
+                className="rounded-lg p-1.5 text-[var(--text-lo)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                <Icon icon="solar:alt-arrow-left-broken" className="h-4 w-4" />
+              </button>
+              <select
+                value={selectedWeekStart}
+                onChange={(event) => selectWeek(event.target.value)}
+                aria-label="Select check-in week"
+                className="max-w-44 appearance-none bg-transparent px-1 text-xs font-semibold text-[var(--text-hi)] outline-none sm:max-w-none"
+              >
+                {availableWeeks.map((item) => (
+                  <option key={item} value={item}>
+                    {item === weekStart
+                      ? `This week · ${weekRangeLabel(item)}`
+                      : weekRangeLabel(item)}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                aria-label="Next check-in week"
+                disabled={selectedWeekIndex <= 0}
+                onClick={() =>
+                  selectWeek(availableWeeks[selectedWeekIndex - 1])
+                }
+                className="rounded-lg p-1.5 text-[var(--text-lo)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)] disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                <Icon icon="solar:alt-arrow-right-broken" className="h-4 w-4" />
+              </button>
+            </div>
+            {thisWeek.length > 0 && (
+              <Button
+                size="sm"
+                variant="primary"
+                icon="solar:magic-stick-3-broken"
+                loading={summarising}
+                onClick={generateSummary}
+              >
+                {summarising ? "Summarising…" : "Team summary"}
+              </Button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -204,40 +277,42 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
         />
       </div>
 
-      {dailySummary && dailySummary.daysLogged > 0 && (
-        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.045] px-5 py-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-              <Icon icon="solar:notebook-broken" className="h-4.5 w-4.5" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-hi)]">
-                Daily reporting this week
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--text-lo)]">
-                {dailySummary.staffLogged} staff logged work across{" "}
-                {dailySummary.daysLogged} day
-                {dailySummary.daysLogged === 1 ? "" : "s"}.
-              </p>
+      {selectedWeekStart === weekStart &&
+        dailySummary &&
+        dailySummary.daysLogged > 0 && (
+          <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.045] px-5 py-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                <Icon icon="solar:notebook-broken" className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-hi)]">
+                  Daily reporting this week
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                  {dailySummary.staffLogged} staff logged work across{" "}
+                  {dailySummary.daysLogged} day
+                  {dailySummary.daysLogged === 1 ? "" : "s"}.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-xl bg-[var(--surface)] px-3 py-2 font-mono text-sm font-bold text-brand-500">
-              {formatMinutes(dailySummary.totalMinutes)}
-            </span>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon="solar:arrow-right-broken"
-              onClick={() => router.push("/pulse/checkins?tab=daily")}
-            >
-              View activity
-            </Button>
-          </div>
-        </section>
-      )}
+            <div className="flex items-center gap-2">
+              <span className="rounded-xl bg-[var(--surface)] px-3 py-2 font-mono text-sm font-bold text-brand-500">
+                {formatMinutes(dailySummary.totalMinutes)}
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                icon="solar:arrow-right-broken"
+                onClick={() => router.push("/pulse/checkins?tab=daily")}
+              >
+                View activity
+              </Button>
+            </div>
+          </section>
+        )}
 
-      {aiSummary && (
+      {activeAiSummary && (
         <section className="rounded-2xl border border-blue-500/15 bg-blue-500/5 p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
           <div className="flex gap-2.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
@@ -248,7 +323,7 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
                 AI team summary
               </p>
               <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-hi)]">
-                {aiSummary}
+                {activeAiSummary}
               </p>
             </div>
           </div>
@@ -292,12 +367,12 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
               const moodAlert = hasMoodAlert(
                 checkins,
                 checkin.user_id,
-                weekStart,
+                selectedWeekStart,
               );
               const blockerAlert = hasBlockerAlert(
                 checkins,
                 checkin.user_id,
-                weekStart,
+                selectedWeekStart,
               );
 
               return (
@@ -477,12 +552,6 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
           </div>
         )}
       </section>
-      {previous.length > 0 && (
-        <p className="px-1 text-xs text-[var(--text-lo)]">
-          {previous.length} check-in{previous.length === 1 ? "" : "s"} from
-          previous weeks are available in history.
-        </p>
-      )}
     </div>
   );
 }
@@ -550,6 +619,7 @@ function ReadSection({
 }
 
 function DailyWorkBreakdown({ summary }: { summary: DailyWeekSummary }) {
+  const days = [...summary.days].sort((a, b) => a.date.localeCompare(b.date));
   return (
     <section className="mt-3 rounded-xl border border-brand-500/15 bg-brand-500/[0.04] p-3">
       <div className="flex items-center justify-between gap-3">
@@ -565,7 +635,7 @@ function DailyWorkBreakdown({ summary }: { summary: DailyWeekSummary }) {
         </span>
       </div>
       <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
-        {summary.days.map((day, dayIndex) => (
+        {days.map((day, dayIndex) => (
           <Accordion
             key={day.date}
             title={new Date(`${day.date}T12:00:00`).toLocaleDateString(
@@ -577,7 +647,7 @@ function DailyWorkBreakdown({ summary }: { summary: DailyWeekSummary }) {
             badge={formatMinutes(
               day.entries.reduce((total, entry) => total + entry.minutes, 0),
             )}
-            defaultOpen={dayIndex === summary.days.length - 1}
+            defaultOpen={dayIndex === days.length - 1}
             className="transition-colors hover:border-brand-500/40"
           >
             <div className="grid grid-cols-[minmax(0,1fr)_6rem_5rem_3.5rem] gap-2 px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-lo)]">

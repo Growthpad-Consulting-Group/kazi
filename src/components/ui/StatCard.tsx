@@ -59,6 +59,8 @@ interface StatCardProps {
   href?: string;
   onClick?: () => void;
   compact?: boolean;
+  /** Stacks the label above the value within the inline variant. */
+  inlineStacked?: boolean;
 }
 
 /** Stat card with two visual variants: "gradient" (default, bold icon) and "flat" (quiet, tinted icon). */
@@ -72,6 +74,7 @@ export default function StatCard({
   href,
   onClick,
   compact = false,
+  inlineStacked = false,
 }: StatCardProps) {
   const palette = styles[color];
   const className = `group relative block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left shadow-xl shadow-slate-200/40 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:shadow-black/20 ${compact ? "p-3" : "p-4"}`;
@@ -85,16 +88,29 @@ export default function StatCard({
           <Icon icon={icon} className="h-4 w-4" />
         </span>
         <div className="min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <p
-              className={`font-bold capitalize leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}
-            >
-              {value}
-            </p>
-            <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
-              {title}
-            </p>
-          </div>
+          {inlineStacked ? (
+            <>
+              <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                {title}
+              </p>
+              <p
+                className={`mt-1 font-bold capitalize leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}
+              >
+                {value}
+              </p>
+            </>
+          ) : (
+            <div className="flex items-baseline gap-1.5">
+              <p
+                className={`font-bold capitalize leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}
+              >
+                {value}
+              </p>
+              <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                {title}
+              </p>
+            </div>
+          )}
           {subtitle && (
             <p className="mt-1 truncate text-xs text-[var(--text-lo)]">
               {subtitle}
