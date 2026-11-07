@@ -258,7 +258,9 @@ export async function getCachedPrivateFeedback(
     async () => {
       const { data, error } = await supabaseAdmin
         .from("feedback")
-        .select("*, from:from_user_id(name), to:to_user_id(name)")
+        .select(
+          "*, from:from_user_id(name, avatar_url), to:to_user_id(name, avatar_url)",
+        )
         .eq("to_user_id", userId)
         .eq("visibility", "private")
         .order("created_at", { ascending: false });
@@ -275,7 +277,9 @@ export async function getCachedPublicFeedback(
   return cached("pulse", publicFeedbackCacheKey(limit), "dynamic", async () => {
     const { data, error } = await supabaseAdmin
       .from("feedback")
-      .select("*, from:from_user_id(name), to:to_user_id(name)")
+      .select(
+        "*, from:from_user_id(name, avatar_url), to:to_user_id(name, avatar_url)",
+      )
       .eq("visibility", "public")
       .order("created_at", { ascending: false })
       .limit(limit);

@@ -13,8 +13,8 @@ import {
 import type { Feedback, FeedbackVisibility } from "@/types/database";
 
 export type FeedbackWithUsers = Feedback & {
-  from: { name: string } | null;
-  to: { name: string } | null;
+  from: { name: string; avatar_url?: string | null } | null;
+  to: { name: string; avatar_url?: string | null } | null;
 };
 
 export async function getPublicFeedback(

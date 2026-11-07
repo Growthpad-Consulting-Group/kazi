@@ -22,8 +22,8 @@ export function SendRecognitionButton(props: Props) {
         open={open}
         onClose={() => setOpen(false)}
         title="Share feedback"
-        subtitle="Make it specific, timely, and useful."
-        icon="solar:heart-broken"
+        subtitle="Make a moment of great work visible."
+        icon="solar:star-fall-broken"
         maxWidth="max-w-xl"
       >
         {open && <SendFeedbackForm {...props} onSent={() => setOpen(false)} />}
