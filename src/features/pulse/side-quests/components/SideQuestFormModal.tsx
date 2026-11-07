@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/Button";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import { ModalAside } from "@/components/ui/ModalAside";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import type { Database } from "@/types/database";
 
@@ -545,10 +546,39 @@ export function NewSideQuestButton({ options }: { options: AudienceOptions }) {
         onClose={() => setOpen(false)}
         title="New Side Quest"
         icon="solar:cup-star-broken"
-        maxWidth="max-w-lg"
+        maxWidth="max-w-5xl"
+        bodyClassName="max-h-[calc(80vh-65px)] overflow-y-auto p-0"
       >
         {open && (
-          <SideQuestForm options={options} onDone={() => setOpen(false)} />
+          <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
+            <ModalAside
+              title="Make participation meaningful"
+              description="A clear challenge, evidence rule and audience makes recognition fair and easy to manage."
+              items={[
+                {
+                  icon: "solar:document-text-broken",
+                  label: "Set a clear outcome",
+                  detail:
+                    "Tell staff exactly what a completed quest looks like.",
+                },
+                {
+                  icon: "solar:shield-check-broken",
+                  label: "Choose verification",
+                  detail:
+                    "Use evidence or approval whenever points need a human check.",
+                },
+                {
+                  icon: "solar:users-group-rounded-broken",
+                  label: "Target deliberately",
+                  detail:
+                    "Keep the audience relevant and the schedule realistic.",
+                },
+              ]}
+            />
+            <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
+              <SideQuestForm options={options} onDone={() => setOpen(false)} />
+            </div>
+          </div>
         )}
       </SimpleModal>
     </>
@@ -672,14 +702,37 @@ export function EditSideQuestButton({
         onClose={() => setOpen(false)}
         title="Edit Side Quest"
         icon="solar:pen-broken"
-        maxWidth="max-w-lg"
+        maxWidth="max-w-5xl"
+        bodyClassName="max-h-[calc(80vh-65px)] overflow-y-auto p-0"
       >
         {open && (
-          <SideQuestForm
-            quest={quest}
-            options={options}
-            onDone={() => setOpen(false)}
-          />
+          <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
+            <ModalAside
+              title="Keep the challenge trustworthy"
+              description="Changes affect future completions. Make sure the scope, evidence and reward still line up."
+              items={[
+                {
+                  icon: "solar:calendar-broken",
+                  label: "Review its window",
+                  detail:
+                    "Avoid leaving a live quest open longer than intended.",
+                },
+                {
+                  icon: "solar:shield-check-broken",
+                  label: "Protect the points",
+                  detail:
+                    "Use evidence or an approver for work that cannot self-confirm.",
+                },
+              ]}
+            />
+            <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
+              <SideQuestForm
+                quest={quest}
+                options={options}
+                onDone={() => setOpen(false)}
+              />
+            </div>
+          </div>
         )}
       </SimpleModal>
       <SimpleModal

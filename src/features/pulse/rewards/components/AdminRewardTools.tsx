@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import CreatableSelect from "react-select/creatable";
 import { Button } from "@/components/ui/Button";
+import { ModalAside } from "@/components/ui/ModalAside";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import StatCard from "@/components/ui/StatCard";
 import { useFileDrop } from "@/lib/useFileDrop";
@@ -416,10 +417,42 @@ export function NewRewardButton({ categories }: { categories: string[] }) {
         onClose={() => setOpen(false)}
         title="Add a reward"
         icon="solar:add-circle-broken"
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-5xl"
+        bodyClassName="max-h-[calc(80vh-65px)] overflow-y-auto p-0"
       >
         {open && (
-          <RewardForm categories={categories} onDone={() => setOpen(false)} />
+          <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
+            <ModalAside
+              title="Make it worth working towards"
+              description="Set a clear reward, realistic points cost and fulfilment detail so staff know what to expect."
+              items={[
+                {
+                  icon: "solar:star-fall-broken",
+                  label: "Price it deliberately",
+                  detail:
+                    "Balance the points cost against the effort it takes to earn.",
+                },
+                {
+                  icon: "solar:shop-broken",
+                  label: "Plan fulfilment",
+                  detail:
+                    "Add stock, vendor and delivery instructions where needed.",
+                },
+                {
+                  icon: "solar:gallery-broken",
+                  label: "Show the reward",
+                  detail:
+                    "A simple image helps people understand what they are earning.",
+                },
+              ]}
+            />
+            <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
+              <RewardForm
+                categories={categories}
+                onDone={() => setOpen(false)}
+              />
+            </div>
+          </div>
         )}
       </SimpleModal>
     </>
@@ -742,14 +775,37 @@ export function CatalogueManager({
         onClose={() => setEditing(null)}
         title={editing ? `Edit ${editing.name}` : "Edit reward"}
         icon="solar:pen-broken"
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-5xl"
+        bodyClassName="max-h-[calc(80vh-65px)] overflow-y-auto p-0"
       >
         {editing && (
-          <RewardForm
-            item={editing}
-            categories={categories}
-            onDone={() => setEditing(null)}
-          />
+          <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
+            <ModalAside
+              title="Keep fulfilment clear"
+              description="Changes apply to future redemptions. Preserve a simple, reliable experience for staff."
+              items={[
+                {
+                  icon: "solar:box-broken",
+                  label: "Check availability",
+                  detail:
+                    "Hide unavailable rewards instead of deleting their history.",
+                },
+                {
+                  icon: "solar:bill-list-broken",
+                  label: "Confirm the cost",
+                  detail:
+                    "Keep the points cost and fulfilment cost accurate for reporting.",
+                },
+              ]}
+            />
+            <div className="px-5 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
+              <RewardForm
+                item={editing}
+                categories={categories}
+                onDone={() => setEditing(null)}
+              />
+            </div>
+          </div>
         )}
       </SimpleModal>
       <SimpleModal

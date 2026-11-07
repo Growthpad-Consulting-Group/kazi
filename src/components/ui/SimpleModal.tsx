@@ -100,6 +100,7 @@ export function SimpleModal({
             <GlassPanel
               mode={mode}
               className="rounded-2xl overflow-hidden bg-[var(--surface)]"
+              contentClassName="gap-0"
             >
               {/* Header */}
               {header ?? (

@@ -22,6 +22,7 @@ function useGlassFilter() {
 interface Props {
   mode?: "light" | "dark";
   className?: string;
+  contentClassName?: string;
   children: React.ReactNode;
   shadow?: string;
 }
@@ -29,6 +30,7 @@ interface Props {
 export default function GlassPanel({
   mode = "light",
   className = "",
+  contentClassName = "",
   shadow,
   children,
 }: Props) {
@@ -57,7 +59,9 @@ export default function GlassPanel({
           className={`absolute inset-0 rounded-[inherit] ${mode === "dark" ? "border border-white/[0.03]" : "border ring-inset border-white/10 ring-white/40"}`}
         />
       </div>
-      <div className="relative flex flex-col min-h-0 flex-1 gap-4">
+      <div
+        className={`relative flex min-h-0 flex-1 flex-col ${contentClassName || "gap-4"}`}
+      >
         {children}
       </div>
     </div>
