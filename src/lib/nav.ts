@@ -38,7 +38,11 @@ export const sidebarNavGroups: NavGroup[] = [
         icon: "solar:checklist-broken",
         label: "Check-ins",
       },
-      { href: "/pulse/feedback", icon: "solar:star-broken", label: "Feedback" },
+      {
+        href: "/pulse/feedback",
+        icon: "solar:star-broken",
+        label: "Team Recognition",
+      },
       {
         href: "/pulse/campaigns",
         icon: "solar:flag-2-broken",

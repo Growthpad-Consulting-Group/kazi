@@ -90,8 +90,8 @@ export default async function FeedbackPage() {
   return (
     <>
       <SetPageHeader
-        title="Recognition"
-        description="Celebrate great work and share feedback with your team."
+        title="Team Recognition"
+        description="Celebrate great work and recognise the people on your team."
         icon="solar:star-fall-broken"
         trailing={
           <SendRecognitionButton
