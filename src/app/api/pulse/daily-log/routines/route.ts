@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   DAILY_LOG_CATEGORIES,
@@ -73,16 +72,6 @@ async function currentUser() {
     return {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };
-  if (can(session.user.role, "manage_checkins")) {
-    return {
-      error: NextResponse.json(
-        {
-          error: "Daily routines are available to staff who submit daily logs.",
-        },
-        { status: 403 },
-      ),
-    };
-  }
   return { userId: session.user.id };
 }
 

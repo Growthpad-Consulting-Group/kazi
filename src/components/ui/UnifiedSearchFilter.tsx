@@ -69,9 +69,17 @@ export default function UnifiedSearchFilter({
   const containerRef = useRef<HTMLDivElement>(null);
   const externalRef = useRef(false);
 
+  const clearAll = () => {
+    setInput("");
+    setActiveFilters([]);
+    onSearchChange?.("");
+    onFilterChange([]);
+  };
+
   useEffect(() => {
     if (initialFilters) {
       externalRef.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- parent stat cards and table controls can replace the active filter set.
       setActiveFilters(initialFilters);
     }
   }, [initialFilters]);
@@ -227,7 +235,9 @@ export default function UnifiedSearchFilter({
               key={i}
               onClick={(e) => {
                 e.stopPropagation();
-                setActiveFilters((p) => p.filter((_, j) => j !== i));
+                const next = activeFilters.filter((_, j) => j !== i);
+                setActiveFilters(next);
+                onFilterChange(next);
               }}
               className="inline-flex items-center gap-1 rounded-full border border-brand-500/30 bg-brand-500/10 px-2.5 py-0.5 text-xs font-medium text-brand-500 whitespace-nowrap hover:bg-brand-500/20 transition-colors"
             >
@@ -263,8 +273,7 @@ export default function UnifiedSearchFilter({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setInput("");
-              setActiveFilters([]);
+              clearAll();
             }}
             className="shrink-0 text-[var(--text-lo)] hover:text-[var(--text-hi)]"
           >

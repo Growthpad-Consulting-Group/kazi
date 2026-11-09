@@ -92,7 +92,9 @@ const PERMISSION_MAP: Record<Permission, readonly UserRole[]> = {
   manage_surveys: ["admin", "hr"],
   manage_voice_out: ["admin", "hr"],
   manage_recognition_campaigns: ["admin", "hr"],
-  manage_side_quests: ["admin", "hr", "manager"],
+  // Side Quests can target the whole company, so managers need an explicit
+  // individual grant before they can create or run them.
+  manage_side_quests: ["admin", "hr"],
   manage_rewards: ["admin", "hr"],
   manage_automations: ["admin", "hr"],
   manage_reviews: ["admin", "hr"],
@@ -193,6 +195,5 @@ export const DASHBOARD_ROLES: UserRole[] = [
   "admin",
   "hr",
   "hiring_manager",
-  "manager",
   "interviewer",
 ];

@@ -46,7 +46,7 @@ export default function TeamDailyActivityCard({
           </div>
         </div>
         <Link
-          href="/pulse/checkins?tab=daily"
+          href="/pulse/checkins?tab=team&teamView=activity"
           className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
         >
           View activity

@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import ReCAPTCHA from "react-google-recaptcha";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { SimpleModal } from "@/components/ui/SimpleModal";
+import { DASHBOARD_ROLES } from "@/lib/rbac";
 
 const SUPPORT_EMAIL = "njue.duncan@growthpad.net";
 
@@ -74,7 +75,9 @@ export default function LoginPage({
         { id: loadingToast, icon: "✅" },
       );
       const role = session?.user?.role;
-      router.push(role === "employee" ? "/pulse" : "/dashboard");
+      router.push(
+        role && DASHBOARD_ROLES.includes(role) ? "/dashboard" : "/pulse",
+      );
     } catch (err: unknown) {
       toast.error((err as Error).message, { id: loadingToast, icon: "❌" });
       recaptchaRef.current?.reset();
@@ -109,7 +112,10 @@ export default function LoginPage({
           "Passkey was not recognised. Try Google or your password.",
         );
       const session = await getSession();
-      router.push(session?.user?.role === "employee" ? "/pulse" : "/dashboard");
+      const role = session?.user?.role;
+      router.push(
+        role && DASHBOARD_ROLES.includes(role) ? "/dashboard" : "/pulse",
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Passkey sign-in failed.",

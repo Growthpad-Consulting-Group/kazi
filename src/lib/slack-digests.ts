@@ -150,19 +150,27 @@ export function buildDailyBrief(input: {
   };
 }
 
-export function buildCheckinNudge(appUrl: string): SlackMessage {
-  const text =
-    "Your weekly reflection is still open. A few minutes now helps your manager and keeps your week on track.";
+export function buildCheckinNudge(input: {
+  firstName?: string;
+  appUrl: string;
+}): SlackMessage {
+  const text = `${input.firstName ? `Hi ${input.firstName} — ` : ""}your weekly reflection is still open. A few minutes now gives your manager a useful view of the week.`;
   return {
     text,
     blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Weekly reflection" },
+      },
       { type: "section", text: { type: "mrkdwn", text } },
       {
-        type: "context",
+        type: "actions",
         elements: [
           {
-            type: "mrkdwn",
-            text: `<${appUrl}/pulse/checkins|Open weekly check-in>`,
+            type: "button",
+            style: "primary",
+            text: { type: "plain_text", text: "Complete check-in" },
+            url: `${input.appUrl}/pulse/checkins?tab=checkins`,
           },
         ],
       },
@@ -202,6 +210,7 @@ export function buildCheckinSubmissionConfirmation(input: {
 }
 
 export function buildManagerMondayPulse(input: {
+  firstName?: string;
   missingCheckins: number;
   flagged: number;
   /** Counts-only lines from the manager's Needs attention queue. */
@@ -216,6 +225,10 @@ export function buildManagerMondayPulse(input: {
   )
     return null;
   const lines: string[] = [];
+  if (input.firstName)
+    lines.push(
+      `Hi ${input.firstName} — here is where your direct reports stand this week.`,
+    );
   if (input.missingCheckins > 0)
     lines.push(
       `*Check-ins outstanding:* ${input.missingCheckins} of your team ${input.missingCheckins === 1 ? "has" : "have"} not submitted yet`,
@@ -226,9 +239,19 @@ export function buildManagerMondayPulse(input: {
     );
   for (const line of queueLines) lines.push(`*Also waiting:* ${line}`);
   return {
-    text: "Your team pulse for the week",
+    text: input.firstName
+      ? `${input.firstName}, your team pulse needs attention`
+      : "Your team pulse for the week",
     blocks: [
-      { type: "header", text: { type: "plain_text", text: "Team pulse" } },
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: input.firstName
+            ? `${input.firstName}'s team pulse`
+            : "Team pulse",
+        },
+      },
       { type: "section", text: { type: "mrkdwn", text: lines.join("\n") } },
       {
         type: "context",
@@ -244,21 +267,28 @@ export function buildManagerMondayPulse(input: {
 }
 
 export function buildManagerReviewQueue(input: {
+  firstName?: string;
   awaitingReview: number;
   appUrl: string;
 }): SlackMessage | null {
   if (input.awaitingReview === 0) return null;
-  const text = `${input.awaitingReview} ${input.awaitingReview === 1 ? "check-in is" : "check-ins are"} waiting for your review before the weekend.`;
+  const text = `${input.firstName ? `Hi ${input.firstName} — ` : ""}${input.awaitingReview} direct-report ${input.awaitingReview === 1 ? "check-in is" : "check-ins are"} ready for your review before the weekend.`;
   return {
     text,
     blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Friday review queue" },
+      },
       { type: "section", text: { type: "mrkdwn", text } },
       {
-        type: "context",
+        type: "actions",
         elements: [
           {
-            type: "mrkdwn",
-            text: `<${input.appUrl}/pulse/checkins?tab=team|Review in Kazi>`,
+            type: "button",
+            style: "primary",
+            text: { type: "plain_text", text: "Review check-ins" },
+            url: `${input.appUrl}/pulse/checkins?tab=team`,
           },
         ],
       },
@@ -267,21 +297,31 @@ export function buildManagerReviewQueue(input: {
 }
 
 export function buildOneOnOneReminder(input: {
+  firstName?: string;
   withName: string;
   time: string;
+  meetingId?: string;
   appUrl: string;
 }): SlackMessage {
-  const text = `1-on-1 with ${input.withName} starts at ${input.time}.`;
+  const text = `${input.firstName ? `Hi ${input.firstName} — ` : ""}your 1-on-1 with ${input.withName} starts at ${input.time}.`;
   return {
     text,
     blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Upcoming 1-on-1" },
+      },
       { type: "section", text: { type: "mrkdwn", text } },
       {
-        type: "context",
+        type: "actions",
         elements: [
           {
-            type: "mrkdwn",
-            text: `<${input.appUrl}/pulse/one-on-ones|Prepare in Kazi>`,
+            type: "button",
+            style: "primary",
+            text: { type: "plain_text", text: "Prepare in Kazi" },
+            url: input.meetingId
+              ? `${input.appUrl}/pulse/one-on-ones/${input.meetingId}`
+              : `${input.appUrl}/pulse/one-on-ones`,
           },
         ],
       },
@@ -290,21 +330,28 @@ export function buildOneOnOneReminder(input: {
 }
 
 export function buildOneOnOneFollowUp(input: {
+  firstName?: string;
   withName: string;
   appUrl: string;
   meetingId: string;
 }): SlackMessage {
-  const text = `Add notes and action items for your 1-on-1 with ${input.withName}.`;
+  const text = `${input.firstName ? `Hi ${input.firstName} — ` : ""}add notes and action items from your 1-on-1 with ${input.withName}.`;
   return {
     text,
     blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "1-on-1 follow-up" },
+      },
       { type: "section", text: { type: "mrkdwn", text } },
       {
-        type: "context",
+        type: "actions",
         elements: [
           {
-            type: "mrkdwn",
-            text: `<${input.appUrl}/pulse/one-on-ones/${input.meetingId}|Update the 1-on-1>`,
+            type: "button",
+            style: "primary",
+            text: { type: "plain_text", text: "Add notes" },
+            url: `${input.appUrl}/pulse/one-on-ones/${input.meetingId}`,
           },
         ],
       },
@@ -313,25 +360,41 @@ export function buildOneOnOneFollowUp(input: {
 }
 
 export function buildInterviewReminder(input: {
+  firstName?: string;
   candidateName: string;
   roleTitle: string;
   time: string;
   overdue?: boolean;
+  candidateId?: string;
   appUrl: string;
 }): SlackMessage {
   const text = input.overdue
-    ? `Your scorecard for ${input.candidateName}'s ${input.roleTitle} interview is overdue.`
-    : `Interview with ${input.candidateName} for ${input.roleTitle} starts at ${input.time}.`;
+    ? `${input.firstName ? `Hi ${input.firstName} — ` : ""}your scorecard for ${input.candidateName}'s ${input.roleTitle} interview is overdue.`
+    : `${input.firstName ? `Hi ${input.firstName} — ` : ""}your interview with ${input.candidateName} for ${input.roleTitle} starts at ${input.time}.`;
   return {
     text,
     blocks: [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: input.overdue ? "Scorecard overdue" : "Upcoming interview",
+        },
+      },
       { type: "section", text: { type: "mrkdwn", text } },
       {
-        type: "context",
+        type: "actions",
         elements: [
           {
-            type: "mrkdwn",
-            text: `<${input.appUrl}/hire/candidates|Open interviews in Kazi>`,
+            type: "button",
+            style: "primary",
+            text: {
+              type: "plain_text",
+              text: input.overdue ? "Complete scorecard" : "Open interview kit",
+            },
+            url: input.candidateId
+              ? `${input.appUrl}/hire/candidates/${input.candidateId}/interview`
+              : `${input.appUrl}/hire/candidates`,
           },
         ],
       },
@@ -404,6 +467,7 @@ export function buildTimerRunningReminder(input: {
 
 /** Released review results waiting for the employee's acknowledgement. */
 export function buildReviewAcknowledgementReminder(input: {
+  firstName?: string;
   outstanding: number;
   // Set only when exactly one review is outstanding, so Acknowledge can act on it.
   singleReviewId?: string | null;
@@ -412,8 +476,8 @@ export function buildReviewAcknowledgementReminder(input: {
   if (input.outstanding === 0) return null;
   const text =
     input.outstanding === 1
-      ? "Your review results are ready. Read them and add your response in Kazi."
-      : `${input.outstanding} review results are ready. Read them and add your response in Kazi.`;
+      ? `${input.firstName ? `Hi ${input.firstName} — ` : ""}your review results are ready. Read them and add your response in Kazi.`
+      : `${input.firstName ? `Hi ${input.firstName} — ` : ""}${input.outstanding} review results are ready. Read them and add your response in Kazi.`;
   const buttons: Record<string, unknown>[] = [];
   if (input.outstanding === 1 && input.singleReviewId)
     buttons.push({
@@ -427,6 +491,10 @@ export function buildReviewAcknowledgementReminder(input: {
   return {
     text,
     blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Review results ready" },
+      },
       { type: "section", text: { type: "mrkdwn", text } },
       { type: "actions", elements: buttons },
       {
@@ -456,14 +524,20 @@ export function remindLaterButton(
 }
 
 export function buildCheckinReviewReminder(input: {
+  firstName?: string;
+  employeeName?: string;
   appUrl: string;
   employeeId: string;
   weekStart: string;
 }): SlackMessage {
-  const text = "A weekly check-in is still waiting for your review in Kazi.";
+  const text = `${input.firstName ? `Hi ${input.firstName} — ` : ""}${input.employeeName ? `${input.employeeName}'s weekly check-in is` : "a weekly check-in is"} still waiting for your review.`;
   return {
     text,
     blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Check-in ready for review" },
+      },
       { type: "section", text: { type: "mrkdwn", text } },
       {
         type: "actions",

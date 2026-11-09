@@ -138,7 +138,7 @@ export default function CoffeeChatsPage() {
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
                     <Icon icon="solar:cup-hot-broken" className="h-4 w-4" />
                   </span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-500">
+                  <span className="text-sm font-semibold text-brand-500">
                     {month}
                   </span>
                 </div>
@@ -175,7 +175,7 @@ export default function CoffeeChatsPage() {
               </div>
             </div>
             <aside className="rounded-2xl border border-brand-500/15 bg-brand-500/[0.04] p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-500">
+              <p className="text-sm font-semibold text-brand-500">
                 The rhythm
               </p>
               <ol className="mt-3 space-y-3">

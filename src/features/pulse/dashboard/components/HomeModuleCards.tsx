@@ -16,7 +16,7 @@ export default function HomeModuleCards({
         <Link
           key={card.id}
           href={card.href}
-          className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:bg-[var(--surface-2)]"
+          className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface-2)]"
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-medium text-[var(--text-lo)]">

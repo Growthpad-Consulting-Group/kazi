@@ -115,6 +115,10 @@ function emptyCounts(): DigestCounts {
   };
 }
 
+function firstName(user: UserRow | undefined) {
+  return user?.name.trim().split(/\s+/)[0] || undefined;
+}
+
 function record(
   counts: DigestCounts,
   outcome: "delivered" | "suppressed" | "failed",
@@ -302,7 +306,7 @@ export async function runSlackDigests(
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
   await sendHallOfFameClosingReminder(now, counts);
   await sendLongRunningTimerReminders(now, byId, prefs, counts);
-  await sendDueSnoozedReminders(now, counts);
+  await sendDueSnoozedReminders(now, byId, counts);
   await publishCultureAnnouncements(now, byId, prefs, counts);
   await sendWeeklyCultureRecap(now, byId, prefs, counts);
   return counts;
@@ -492,12 +496,16 @@ async function sendCheckinNudge(
     .maybeSingle();
   if (["submitted", "reviewed"].includes(data?.status ?? "")) return;
 
+  const message = buildCheckinNudge({
+    firstName: firstName(user),
+    appUrl: appUrl(),
+  });
   const outcome = await deliverSlackNotification({
     eventKey: `checkin-nudge:${user.id}:${weekStart}`,
     recipientUserId: user.id,
     category: "checkin_reminder",
-    text: "Your weekly reflection is still open.",
-    blocks: buildCheckinNudge(appUrl()).blocks,
+    text: message.text,
+    blocks: message.blocks,
     digest: true,
   });
   record(counts, outcome);
@@ -530,6 +538,7 @@ async function sendReviewAcknowledgementReminder(
   const { outstanding, singleReviewId } =
     await outstandingReviewAcknowledgements(user.id);
   const message = buildReviewAcknowledgementReminder({
+    firstName: firstName(user),
     outstanding,
     singleReviewId,
     appUrl: appUrl(),
@@ -619,6 +628,7 @@ async function sendManagerPulse(
     );
 
   const message = buildManagerMondayPulse({
+    firstName: manager.name.split(" ")[0] || undefined,
     missingCheckins: reports.filter((id) => !submitted.has(id)).length,
     flagged,
     queueLines,
@@ -651,6 +661,7 @@ async function sendReviewQueue(
     .eq("week_start", weekStart)
     .eq("status", "submitted");
   const message = buildManagerReviewQueue({
+    firstName: firstName(manager),
     awaitingReview: count ?? 0,
     appUrl: appUrl(),
   });
@@ -713,8 +724,10 @@ async function sendOneOnOneReminders(
         continue;
       const timezone = pref?.slack_timezone ?? DEFAULT_TIMEZONE;
       const message = buildOneOnOneReminder({
+        firstName: firstName(person),
         withName: otherPerson.name,
         time: clockLabel(new Date(meeting.scheduled_at), timezone),
+        meetingId: meeting.id,
         appUrl: appUrl(),
       });
       const outcome = await deliverSlackNotification({
@@ -776,6 +789,7 @@ async function sendOneOnOneFollowUps(
     )
       continue;
     const message = buildOneOnOneFollowUp({
+      firstName: firstName(manager),
       withName: report.name,
       appUrl: appUrl(),
       meetingId: meeting.id,
@@ -846,9 +860,11 @@ async function sendInterviewReminders(
       if (!interviewer || pref?.slack_enabled === false) continue;
       const timezone = pref?.slack_timezone ?? DEFAULT_TIMEZONE;
       const message = buildInterviewReminder({
+        firstName: firstName(interviewer),
         candidateName: candidate.full_name,
         roleTitle: candidate.jobs?.title ?? "this role",
         time: clockLabel(new Date(interview.scheduled_at), timezone),
+        candidateId: candidate.id,
         appUrl: appUrl(),
       });
       const outcome = await deliverSlackNotification({
@@ -909,10 +925,12 @@ async function sendOverdueScorecardReminders(
       )
         continue;
       const message = buildInterviewReminder({
+        firstName: firstName(byId.get(interviewerId)),
         candidateName: candidate.full_name,
         roleTitle: candidate.jobs?.title ?? "this role",
         time: "",
         overdue: true,
+        candidateId: candidate.id,
         appUrl: appUrl(),
       });
       const outcome = await deliverSlackNotification({
@@ -971,6 +989,7 @@ async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
  */
 async function sendDueSnoozedReminders(
   now: Date,
+  byId: Map<string, UserRow>,
   counts: DigestCounts,
 ) {
   const { data } = await db
@@ -994,6 +1013,7 @@ async function sendDueSnoozedReminders(
       const { outstanding, singleReviewId } =
         await outstandingReviewAcknowledgements(row.user_id);
       message = buildReviewAcknowledgementReminder({
+        firstName: firstName(byId.get(row.user_id)),
         outstanding,
         singleReviewId,
         appUrl: appUrl(),
@@ -1010,6 +1030,8 @@ async function sendDueSnoozedReminders(
         if (checkin?.status === "submitted") {
           message = buildCheckinReviewReminder({
             appUrl: appUrl(),
+            firstName: firstName(byId.get(row.user_id)),
+            employeeName: byId.get(employeeId)?.name,
             employeeId,
             weekStart,
           });

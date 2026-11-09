@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
@@ -27,15 +28,29 @@ export default async function Page({
     user?: string;
     report?: string;
     view?: string;
+    teamView?: string;
+    week?: string;
   }>;
 }) {
   const session = await getServerSession(authOptions);
   const isManager = session ? can(session.user.role, "manage_checkins") : false;
 
-  const { tab, user, report, view } = await searchParams;
-  const activeTab = tab ?? (user ? "checkins" : isManager ? "team" : "daily");
+  const { tab, user, report, view, teamView, week } = await searchParams;
+  if (isManager && !user && tab === "checkins") {
+    redirect("/pulse/checkins?view=reflection");
+  }
+  // Managers have two distinct workflows here: their own work and their
+  // team's work. Keep legacy personal check-in links working, but surface
+  // them under My work instead of creating another near-identical top tab.
+  const personalReflection = isManager && !user && view === "reflection";
+  const viewingReportCheckin = isManager && !!user;
+  const activeTab = personalReflection
+    ? "daily"
+    : viewingReportCheckin
+      ? "team"
+      : (tab ?? "daily");
   const weeklyCheckin =
-    session && !isManager && activeTab === "daily"
+    session && activeTab === "daily"
       ? await supabaseAdmin
           .from("checkins")
           .select("status")
@@ -48,25 +63,31 @@ export default async function Page({
     weeklyCheckin.data?.status === "reviewed";
 
   const TABS = [
-    { id: "daily", label: "Daily log", icon: "solar:notebook-broken" },
+    {
+      id: "daily",
+      label: isManager ? "My work" : "Daily log",
+      icon: "solar:notebook-broken",
+      clearParams: isManager ? ["view", "teamView"] : undefined,
+    },
     ...(isManager
       ? [
           {
             id: "team",
-            label: "Weekly check-ins",
+            label: "Team",
             icon: "solar:users-group-two-rounded-broken",
+            clearParams: ["teamView"],
           },
         ]
       : []),
-    ...(isManager
-      ? []
-      : [
+    ...(!isManager
+      ? [
           {
             id: "checkins",
             label: "Weekly check-in",
             icon: "solar:checklist-minimalistic-broken",
           },
-        ]),
+        ]
+      : []),
     { id: "goals", label: "Goals", icon: "solar:target-broken" },
     {
       id: "one-on-ones",
@@ -89,16 +110,30 @@ export default async function Page({
           view={view === "upcoming" ? "upcoming" : undefined}
         />
       )}
-      {activeTab === "team" && <CheckinsPage userId={user} teamOnly />}
-      {activeTab === "daily" && (
-        <DailyLogPage
-          isReviewer={isManager}
-          weeklyCheckinSubmitted={weeklyCheckinSubmitted}
-        />
-      )}
+      {activeTab === "team" &&
+        (viewingReportCheckin ? (
+          <CheckinsPage userId={user} selectedWeekStart={week} />
+        ) : teamView === "activity" ? (
+          <DailyLogPage isReviewer weeklyCheckinSubmitted={false} />
+        ) : (
+          <CheckinsPage userId={user} teamOnly />
+        ))}
+      {activeTab === "daily" &&
+        (personalReflection ? (
+          <CheckinsPage selectedWeekStart={week} />
+        ) : (
+          <DailyLogPage
+            weeklyCheckinSubmitted={weeklyCheckinSubmitted}
+            weeklyCheckinHref={
+              isManager
+                ? "/pulse/checkins?view=reflection"
+                : "/pulse/checkins?tab=checkins"
+            }
+          />
+        ))}
       {(activeTab === "checkins" ||
         !["goals", "one-on-ones", "team", "daily"].includes(activeTab)) && (
-        <CheckinsPage userId={user} />
+        <CheckinsPage userId={user} selectedWeekStart={week} />
       )}
     </div>
   );

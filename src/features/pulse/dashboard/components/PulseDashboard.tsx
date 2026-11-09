@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { Avatar } from "@/components/ui/Avatar";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import EmployeeNextStepQueue from "./EmployeeNextStepQueue";
@@ -21,7 +22,6 @@ import type { AttentionItem } from "../manager-queue";
 import { loadTeamTrend } from "../team-trend-data";
 import type { TeamWeekTrend } from "../team-trend";
 import TeamTrendStrip from "./TeamTrendStrip";
-import TeamDailyActivityCard from "./TeamDailyActivityCard";
 import AttentionQueue from "./AttentionQueue";
 import MyWeekMomentum from "./MyWeekMomentum";
 import CultureSpotlightCard from "./CultureSpotlightCard";
@@ -59,7 +59,12 @@ type FeedbackSummary = {
   message: string;
   emoji: string | null;
 };
-type PersonSummary = { id: string; name: string; job_title: string | null };
+type PersonSummary = {
+  id: string;
+  name: string;
+  job_title: string | null;
+  avatar_url: string | null;
+};
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
@@ -142,7 +147,7 @@ export default async function PulseDashboard() {
     isManager
       ? supabaseAdmin
           .from("users")
-          .select("id, name, job_title")
+          .select("id, name, job_title, avatar_url")
           .eq("manager_id", userId)
           .eq("is_active", true)
       : Promise.resolve({ data: [] as PersonSummary[] }),
@@ -235,14 +240,7 @@ export default async function PulseDashboard() {
   } | null = null;
   let attention: AttentionItem[] = [];
   let teamTrend: TeamWeekTrend[] = [];
-  let teamDailyActivity: {
-    staffLogged: number;
-    totalStaff: number;
-    minutes: number;
-    tasks: number;
-  } | null = null;
-  let openEngagementWork: number | null = null;
-  let hiringDependencies: number | null = null;
+  const reportCheckins = new Map<string, CheckinSummary>();
   if (isManager) {
     let teamRows: ReportCheckin[] = [];
     if (reports.length) {
@@ -264,6 +262,7 @@ export default async function PulseDashboard() {
           blockers: row.blockers,
         }),
       );
+      for (const row of teamRows) reportCheckins.set(row.user_id, row);
       const moods = teamRows.flatMap((entry) =>
         entry.mood === null ? [] : [entry.mood],
       );
@@ -293,78 +292,18 @@ export default async function PulseDashboard() {
       userId,
       weekStart,
     );
-    if (reports.length) {
-      // daily_activity_logs has migration-backed fields not yet in generated types.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: dailyRows } = await (supabaseAdmin as any)
-        .from("daily_activity_logs")
-        .select("user_id, entries")
-        .in(
-          "user_id",
-          reports.map((report) => report.id),
-        )
-        .eq("log_date", todayInWorkTimezone(now));
-      const rows = (dailyRows ?? []) as {
-        user_id: string;
-        entries: { minutes?: number }[] | null;
-      }[];
-      const logged = rows.filter((row) => (row.entries ?? []).length > 0);
-      teamDailyActivity = {
-        staffLogged: new Set(logged.map((row) => row.user_id)).size,
-        totalStaff: reports.length,
-        minutes: logged.reduce(
-          (total, row) =>
-            total +
-            (row.entries ?? []).reduce(
-              (minutes, entry) => minutes + (entry.minutes ?? 0),
-              0,
-            ),
-          0,
-        ),
-        tasks: logged.reduce(
-          (total, row) => total + (row.entries ?? []).length,
-          0,
-        ),
-      };
-    }
     await recordQueueLifecycle({
       userId,
       scope: "attention",
       kinds: attention.map((item) => item.id),
       now,
     });
-    const [surveys, quests, candidates] = await Promise.all([
-      can(session.user.role, "manage_surveys")
-        ? (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- engagement tables have newer columns than generated types
-            .from("surveys")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "active")
-        : Promise.resolve({ count: null }),
-      can(session.user.role, "manage_side_quests")
-        ? (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- side quest lifecycle is migration-backed
-            .from("side_quests")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "live")
-        : Promise.resolve({ count: null }),
-      can(session.user.role, "manage_candidates")
-        ? supabaseAdmin
-            .from("candidates")
-            .select("id", { count: "exact", head: true })
-            .eq("stage", "applied")
-            .is("ai_score", null)
-        : Promise.resolve({ count: null }),
-    ]);
-    const engagementCounts = [surveys.count, quests.count].filter(
-      (count): count is number => typeof count === "number",
-    );
-    openEngagementWork = engagementCounts.length
-      ? engagementCounts.reduce((total, count) => total + count, 0)
-      : null;
-    hiringDependencies = candidates.count ?? null;
   }
 
   const checkinStatus = statusMeta(checkin?.status);
-  const checkinHref = "/pulse/checkins";
+  const checkinHref = isManager
+    ? "/pulse/checkins?view=reflection"
+    : "/pulse/checkins";
 
   return (
     <>
@@ -374,7 +313,13 @@ export default async function PulseDashboard() {
         icon="solar:heart-pulse-broken"
         actions={[
           {
-            label: checkin ? "View check-in" : "Check in",
+            label: isManager
+              ? checkin
+                ? "My check-in"
+                : "Complete my check-in"
+              : checkin
+                ? "View check-in"
+                : "Check in",
             icon: "solar:pen-new-square-broken",
             href: checkinHref,
             variant: isManager ? "secondary" : "primary",
@@ -384,7 +329,7 @@ export default async function PulseDashboard() {
                 {
                   label: "Team check-ins",
                   icon: "solar:users-group-two-rounded-broken",
-                  href: "/pulse/checkins",
+                  href: "/pulse/checkins?tab=team",
                   variant: "primary" as const,
                 },
               ]
@@ -404,7 +349,9 @@ export default async function PulseDashboard() {
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-semibold capitalize text-brand-500">
-                Your performance workspace
+                {isManager
+                  ? "Your work and team"
+                  : "Your performance workspace"}
               </p>
               <h1 className="mt-1 text-xl font-semibold tracking-tight text-[var(--text-hi)] sm:text-2xl">
                 Good{" "}
@@ -416,13 +363,14 @@ export default async function PulseDashboard() {
                 , {firstName}.
               </h1>
               <p className="mt-1 text-sm text-[var(--text-lo)]">
-                Keep priorities, conversations, and progress in one calm weekly
-                rhythm.
+                {isManager
+                  ? "Start with what needs your attention, then keep your own work moving."
+                  : "Keep priorities, conversations, and progress in one calm weekly rhythm."}
               </p>
             </div>
             {isManager ? (
               <Link
-                href={isManager ? "/pulse/checkins" : checkinHref}
+                href={isManager ? "/pulse/checkins?tab=team" : checkinHref}
                 className="group flex min-w-64 items-center gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] p-3.5 transition-colors hover:bg-brand-500/10"
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
@@ -458,7 +406,9 @@ export default async function PulseDashboard() {
           </div>
         </section>
 
-        {isManager && <AttentionQueue items={attention} />}
+        {isManager && attention.length > 0 && (
+          <AttentionQueue items={attention} />
+        )}
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {isManager && team ? (
@@ -473,7 +423,7 @@ export default async function PulseDashboard() {
                   ? "All submitted"
                   : `${team.total - team.submitted} pending`
               }
-              href="/pulse/checkins"
+              href="/pulse/checkins?tab=team"
             />
           ) : (
             <StatCard
@@ -495,19 +445,35 @@ export default async function PulseDashboard() {
               }
             />
           )}
-          <StatCard
-            title="Active goals"
-            value={openGoals.length}
-            icon="solar:target-broken"
-            color="blue"
-            compact
-            subtitle={
-              atRiskGoals.length
-                ? `${atRiskGoals.length} needs attention`
-                : "On your radar"
-            }
-            href="/pulse/goals"
-          />
+          {isManager ? (
+            <StatCard
+              title="Needs attention"
+              value={attention.length}
+              icon="solar:bell-bing-broken"
+              color={attention.length ? "orange" : "green"}
+              compact
+              subtitle={
+                attention.length
+                  ? "Team updates to review"
+                  : "Your team is on track"
+              }
+              href="/pulse/checkins?tab=team"
+            />
+          ) : (
+            <StatCard
+              title="Active goals"
+              value={openGoals.length}
+              icon="solar:target-broken"
+              color="blue"
+              compact
+              subtitle={
+                atRiskGoals.length
+                  ? `${atRiskGoals.length} needs attention`
+                  : "On your radar"
+              }
+              href="/pulse/goals"
+            />
+          )}
           <StatCard
             title="Upcoming 1-on-1s"
             value={upcomingOneOnOnes.length}
@@ -521,43 +487,29 @@ export default async function PulseDashboard() {
             }
             href="/pulse/one-on-ones"
           />
-          <StatCard
-            title="Recognition"
-            value={feedback.length}
-            icon="solar:star-fall-broken"
-            color="green"
-            compact
-            subtitle={feedback.length ? "Recent kudos" : "Share appreciation"}
-            href="/pulse/feedback"
-          />
-          {isManager && openEngagementWork !== null && (
+          {isManager ? (
             <StatCard
-              title="Live engagement"
-              value={openEngagementWork}
-              icon="solar:heart-pulse-broken"
-              color="orange"
+              title="Active goals"
+              value={openGoals.length}
+              icon="solar:target-broken"
+              color="blue"
               compact
               subtitle={
-                openEngagementWork
-                  ? "Surveys and Side Quests in progress"
-                  : "Nothing live right now"
+                atRiskGoals.length
+                  ? `${atRiskGoals.length} needs attention`
+                  : "On your radar"
               }
-              href="/pulse/engagement-calendar"
+              href="/pulse/goals"
             />
-          )}
-          {isManager && hiringDependencies !== null && (
+          ) : (
             <StatCard
-              title="Screening queue"
-              value={hiringDependencies}
-              icon="solar:user-speak-broken"
-              color={hiringDependencies ? "amber" : "green"}
+              title="Recognition"
+              value={feedback.length}
+              icon="solar:star-fall-broken"
+              color="green"
               compact
-              subtitle={
-                hiringDependencies
-                  ? "Applications awaiting AI screen"
-                  : "All applications screened"
-              }
-              href="/hire/candidates?stage=applied"
+              subtitle={feedback.length ? "Recent kudos" : "Share appreciation"}
+              href="/pulse/feedback"
             />
           )}
         </section>
@@ -593,7 +545,7 @@ export default async function PulseDashboard() {
                     <Link
                       key={goal.id}
                       href="/pulse/goals"
-                      className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-colors hover:bg-[var(--surface)]"
+                      className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <p className="min-w-0 truncate text-sm font-semibold text-[var(--text-hi)]">
@@ -648,7 +600,7 @@ export default async function PulseDashboard() {
             {upcomingOneOnOne ? (
               <Link
                 href={`/pulse/one-on-ones/${upcomingOneOnOne.id}`}
-                className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface)]"
+                className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]"
               >
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
@@ -683,7 +635,7 @@ export default async function PulseDashboard() {
             ) : mostRecentOneOnOne ? (
               <Link
                 href={`/pulse/one-on-ones/${mostRecentOneOnOne.id}`}
-                className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-colors hover:bg-[var(--surface)]"
+                className="group block rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]"
               >
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--text-lo)]">
@@ -747,69 +699,141 @@ export default async function PulseDashboard() {
         </div>
 
         {isManager && team && (
-          <div className="grid gap-5 xl:grid-cols-2">
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-                      <Icon
-                        icon="solar:users-group-two-rounded-broken"
-                        className="h-3.5 w-3.5"
-                      />
-                    </span>
-                    <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-                      Team radar
-                    </h2>
-                  </div>
-                  <p className="mt-2 text-xs text-[var(--text-lo)]">
-                    A quiet read on this week&apos;s check-ins and support
-                    needs.
-                  </p>
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                    <Icon
+                      icon="solar:users-group-two-rounded-broken"
+                      className="h-3.5 w-3.5"
+                    />
+                  </span>
+                  <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                    Team radar
+                  </h2>
                 </div>
-                <Link
-                  href="/pulse/checkins"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
-                >
-                  Review check-ins{" "}
-                  <Icon
-                    icon="solar:arrow-right-broken"
-                    className="h-3.5 w-3.5"
-                  />
-                </Link>
+                <p className="mt-2 text-xs text-[var(--text-lo)]">
+                  A quiet read on this week&apos;s check-ins and support needs.
+                </p>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <MiniMetric
-                  label="Submitted"
-                  value={`${team.submitted}/${team.total}`}
-                  tone="orange"
-                />
-                <MiniMetric
-                  label="Not yet submitted"
-                  value={team.total - team.submitted}
-                  tone="amber"
-                />
-                <MiniMetric
-                  label="Average mood"
-                  value={
-                    team.avgMood === null
-                      ? "—"
-                      : `${MOODS[Math.max(0, Math.min(4, Math.round(team.avgMood) - 1))]} ${team.avgMood}`
-                  }
-                  tone="blue"
-                />
-              </div>
-            </section>
-            {teamDailyActivity && (
-              <TeamDailyActivityCard activity={teamDailyActivity} />
-            )}
-          </div>
+              <Link
+                href="/pulse/checkins?tab=team"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
+              >
+                Review check-ins{" "}
+                <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <MiniMetric
+                label="Submitted"
+                value={`${team.submitted}/${team.total}`}
+                tone="orange"
+              />
+              <MiniMetric
+                label="Not yet submitted"
+                value={team.total - team.submitted}
+                tone="amber"
+              />
+              <MiniMetric
+                label="Average mood"
+                value={
+                  team.avgMood === null
+                    ? "—"
+                    : `${MOODS[Math.max(0, Math.min(4, Math.round(team.avgMood) - 1))]} ${team.avgMood}`
+                }
+                tone="blue"
+              />
+            </div>
+          </section>
         )}
         {isManager && teamTrend.length > 0 && reports.length > 0 && (
           <TeamTrendStrip trend={teamTrend} />
         )}
-        {isManager && <MilestonesWidget />}
-        {isManager && <CultureHealthWidget />}
+        {isManager && reports.length > 0 && (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
+            <SectionTitle
+              icon="solar:users-group-two-rounded-broken"
+              title="My team"
+              href="/staff"
+              action="View staff"
+            />
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {reports.map((report) => {
+                const checkinStatus = statusMeta(
+                  reportCheckins.get(report.id)?.status,
+                );
+                return (
+                  <div
+                    key={report.id}
+                    className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-all hover:border-brand-500/50 hover:bg-[var(--surface)] hover:shadow-sm"
+                  >
+                    <Link
+                      href={`/staff/${report.id}`}
+                      className="flex min-w-0 flex-1 items-center gap-3"
+                    >
+                      <Avatar
+                        name={report.name}
+                        src={report.avatar_url}
+                        size="sm"
+                        shape="circle"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-[var(--text-hi)]">
+                          {report.name}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-[var(--text-lo)]">
+                          {report.job_title ?? "Team member"}
+                        </span>
+                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-lo)]">
+                          <Icon
+                            icon={checkinStatus.icon}
+                            className="h-3 w-3 text-brand-500"
+                          />
+                          {checkinStatus.label}
+                        </span>
+                      </span>
+                    </Link>
+                    <Link
+                      href={`/pulse/checkins?tab=checkins&user=${report.id}`}
+                      aria-label={`View ${report.name}'s check-in`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-lo)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
+                    >
+                      <Icon
+                        icon="solar:clipboard-check-broken"
+                        className="h-4 w-4"
+                      />
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+        {isManager && (
+          <details className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-sm font-semibold text-[var(--text-hi)] transition-colors hover:bg-[var(--surface-2)] sm:px-6">
+              <span className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                  <Icon
+                    icon="solar:heart-pulse-broken"
+                    className="h-3.5 w-3.5"
+                  />
+                </span>
+                Culture and milestones
+              </span>
+              <Icon
+                icon="solar:alt-arrow-down-broken"
+                className="h-4 w-4 text-[var(--text-lo)] transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="grid gap-5 border-t border-[var(--border)] p-5 lg:grid-cols-2 sm:p-6">
+              <MilestonesWidget />
+              <CultureHealthWidget />
+            </div>
+          </details>
+        )}
 
         <div className="grid gap-5 lg:grid-cols-2">
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
@@ -824,7 +848,7 @@ export default async function PulseDashboard() {
                 {feedback.map((item) => (
                   <div
                     key={item.id}
-                    className="flex gap-3 rounded-xl bg-[var(--surface-2)] p-3"
+                    className="flex gap-3 rounded-xl border border-transparent bg-[var(--surface-2)] p-3 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]"
                   >
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-sm">
                       {item.emoji ?? "✨"}
@@ -955,7 +979,7 @@ function MiniMetric({
     green: "bg-emerald-500/10 text-emerald-600",
   };
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]">
       <p
         className={`inline-flex rounded-md px-1.5 py-0.5 font-mono text-sm font-bold ${tones[tone]}`}
       >
@@ -978,7 +1002,7 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-colors hover:bg-[var(--surface)]"
+      className="group flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]"
     >
       <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500">
         <Icon icon={icon} className="h-3.5 w-3.5" />

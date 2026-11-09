@@ -304,7 +304,9 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
                 size="sm"
                 variant="secondary"
                 icon="solar:arrow-right-broken"
-                onClick={() => router.push("/pulse/checkins?tab=daily")}
+                onClick={() =>
+                  router.push("/pulse/checkins?tab=team&teamView=activity")
+                }
               >
                 View activity
               </Button>

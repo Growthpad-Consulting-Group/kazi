@@ -301,11 +301,13 @@ function weekDays(date: string) {
 }
 
 export function DailyLogPage({
-  isReviewer,
+  isReviewer = false,
   weeklyCheckinSubmitted = false,
+  weeklyCheckinHref = "/pulse/checkins?tab=checkins",
 }: {
-  isReviewer: boolean;
+  isReviewer?: boolean;
   weeklyCheckinSubmitted?: boolean;
+  weeklyCheckinHref?: string;
 }) {
   const router = useRouter();
   const [date, setDate] = useState(todayLocal);
@@ -1079,7 +1081,7 @@ export function DailyLogPage({
       );
       if (completedAfterSave && !weeklyCheckinSubmitted) {
         toast.success("Your daily week is ready to review.");
-        router.push("/pulse/checkins?tab=checkins");
+        router.push(weeklyCheckinHref);
         return;
       }
       toast.success(
@@ -1104,6 +1106,7 @@ export function DailyLogPage({
     router,
     rows,
     weeklyCheckinSubmitted,
+    weeklyCheckinHref,
     wins,
   ]);
 
@@ -1142,10 +1145,10 @@ export function DailyLogPage({
   return (
     <div className="space-y-6">
       <SetPageHeader
-        title={isReviewer ? "Daily reporting" : "Daily log"}
+        title={isReviewer ? "Team activity" : "Daily log"}
         description={
           isReviewer
-            ? "Daily reporting coverage, work evidence, and support signals across your team."
+            ? "Review work logged by your team and follow up where support is needed."
             : `${dateHeading(date)} · what you worked on and how long it took`
         }
         icon="solar:notebook-broken"
@@ -1226,7 +1229,7 @@ export function DailyLogPage({
                 })}
               </div>
               <Link
-                href="/pulse/checkins?tab=checkins"
+                href={weeklyCheckinHref}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"
               >
                 <Icon

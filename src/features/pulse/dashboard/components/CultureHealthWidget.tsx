@@ -238,7 +238,7 @@ export default async function CultureHealthWidget() {
           return (
             <div
               key={indicator.label}
-              className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"
+              className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]"
             >
               <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--text-lo)]">
                 <Icon icon={indicator.icon} className="h-4 w-4" />

@@ -39,7 +39,7 @@ const ROLE_COLORS: Record<string, string> = {
   admin: "bg-red-500/10 text-red-500 border-red-500/20",
   hr: "bg-pink-500/10 text-pink-500 border-pink-500/20",
   hiring_manager: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  manager: "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  manager: "bg-brand-500/10 text-brand-500 border-brand-500/20",
   interviewer: "bg-amber-500/10 text-amber-500 border-amber-500/20",
   employee:
     "bg-[var(--surface-2)] text-[var(--text-lo)] border-[var(--border)]",
@@ -195,7 +195,14 @@ export default function StaffClientView({
         .filter((id): id is string => !!id),
     );
     for (const f of filters) {
-      if (f.category === "manager" && f.values.includes("has_direct_reports")) {
+      if (f.category !== "manager") continue;
+      if (f.values.includes("my_direct_reports")) {
+        list =
+          f.operator === "is"
+            ? list.filter((person) => person.manager_id === currentUserId)
+            : list.filter((person) => person.manager_id !== currentUserId);
+      }
+      if (f.values.includes("has_direct_reports")) {
         list =
           f.operator === "is"
             ? list.filter((person) => managerIds.has(person.id))
@@ -204,7 +211,7 @@ export default function StaffClientView({
     }
 
     return list;
-  }, [people, search, filters]);
+  }, [people, search, filters, currentUserId]);
 
   const peopleStats = useMemo(() => {
     const managers = new Set(
@@ -236,7 +243,7 @@ export default function StaffClientView({
         label: "Departments",
         value: activeDepartments,
         icon: "solar:buildings-broken",
-        color: "violet",
+        color: "amber",
       },
       {
         filter: [
@@ -446,6 +453,16 @@ export default function StaffClientView({
             categoryOptions={{
               department: deptOptions,
               manager: [
+                ...(canScheduleOneOnOnes
+                  ? [
+                      {
+                        id: "my_direct_reports",
+                        label: "My direct reports",
+                        category: "manager",
+                        value: "my_direct_reports",
+                      },
+                    ]
+                  : []),
                 {
                   id: "has_direct_reports",
                   label: "Has direct reports",

@@ -60,13 +60,16 @@ describe("manager digests", () => {
     ).toBeNull();
   });
 
-  it("reports counts only, never names or blocker text", () => {
+  it("personalises the pulse while keeping direct-report details private", () => {
     const pulse = buildManagerMondayPulse({
+      firstName: "Emmanuel",
       missingCheckins: 2,
       flagged: 1,
       appUrl,
     });
     const serialised = JSON.stringify(pulse!.blocks);
+    expect(pulse!.text).toBe("Emmanuel, your team pulse needs attention");
+    expect(serialised).toContain("Hi Emmanuel");
     expect(serialised).toContain("2 of your team have not submitted");
     expect(serialised).toContain("1 check-in flagged");
   });
@@ -75,7 +78,7 @@ describe("manager digests", () => {
     expect(buildManagerReviewQueue({ awaitingReview: 0, appUrl })).toBeNull();
     expect(
       buildManagerReviewQueue({ awaitingReview: 1, appUrl })!.text,
-    ).toContain("1 check-in is waiting");
+    ).toContain("1 direct-report check-in is ready for your review");
   });
 });
 
@@ -94,8 +97,8 @@ describe("one-on-one and nudge messages", () => {
   it("keeps the reminder and nudge copy short with one link", () => {
     expect(
       buildOneOnOneReminder({ withName: "Juma", time: "14:00", appUrl }).text,
-    ).toBe("1-on-1 with Juma starts at 14:00.");
-    expect(buildCheckinNudge(appUrl).blocks).toHaveLength(2);
+    ).toBe("your 1-on-1 with Juma starts at 14:00.");
+    expect(buildCheckinNudge({ appUrl }).blocks).toHaveLength(3);
   });
 });
 
@@ -123,7 +126,7 @@ describe("interview reminders", () => {
     });
     expect(message.text).toContain("Amina Njeri");
     expect(message.text).toContain("Business Analyst");
-    expect(JSON.stringify(message.blocks)).toContain("Open interviews in Kazi");
+    expect(JSON.stringify(message.blocks)).toContain("Open interview kit");
   });
 });
 

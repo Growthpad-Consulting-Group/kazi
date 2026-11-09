@@ -9,6 +9,7 @@ export interface TabDef {
   label: string;
   icon: string;
   paramName?: string; // which searchParam key drives this tab (default: "tab")
+  clearParams?: string[];
 }
 
 interface TabBarProps {
@@ -28,6 +29,7 @@ export default function TabBar({ tabs, paramName = "tab" }: TabBarProps) {
         const params = new URLSearchParams(searchParams.toString());
         if (tab.id === tabs[0]?.id) params.delete(paramName);
         else params.set(paramName, tab.id);
+        tab.clearParams?.forEach((param) => params.delete(param));
         const href = params.toString() ? `${pathname}?${params}` : pathname;
 
         return (

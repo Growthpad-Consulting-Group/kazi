@@ -91,9 +91,11 @@ function statusMeta(status?: string) {
 export default async function CheckinsPage({
   userId: overrideUserId,
   teamOnly,
+  selectedWeekStart,
 }: {
   userId?: string;
   teamOnly?: boolean;
+  selectedWeekStart?: string;
 }) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
@@ -102,7 +104,9 @@ export default async function CheckinsPage({
   const isManager = can(session.user.role, "manage_checkins");
   const isHr = can(session.user.role, "manage_surveys");
   const requestedProfileId =
-    overrideUserId && overrideUserId !== userId ? overrideUserId : null;
+    !teamOnly && overrideUserId && overrideUserId !== userId
+      ? overrideUserId
+      : null;
   const { data: profileData } =
     requestedProfileId && (isManager || isHr)
       ? await supabaseAdmin
@@ -114,7 +118,15 @@ export default async function CheckinsPage({
   const profile = profileData as ProfileUser | null;
   const canViewProfile = !!profile && (isHr || profile.manager_id === userId);
   const viewedUserId = canViewProfile ? profile.id : userId;
-  const weekStart = getCurrentWeekStart();
+  const currentWeekStart = getCurrentWeekStart();
+  const requestedWeekIsValid =
+    typeof selectedWeekStart === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(selectedWeekStart) &&
+    selectedWeekStart <= currentWeekStart;
+  const weekStart =
+    canViewProfile && requestedWeekIsValid
+      ? selectedWeekStart
+      : currentWeekStart;
   const organisationWide =
     session.user.role === "admin" || session.user.role === "hr";
   const [myCheckins, teamCheckins, dailySummary, personalDailySummary] =
@@ -162,7 +174,7 @@ export default async function CheckinsPage({
               label: "Daily activity",
               icon: "solar:notebook-broken",
               variant: "secondary",
-              href: "/pulse/checkins?tab=daily",
+              href: "/pulse/checkins?tab=team&teamView=activity",
             },
           ]}
         />
@@ -250,7 +262,9 @@ export default async function CheckinsPage({
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4 sm:px-6">
                 <div>
                   <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-                    This week&apos;s check-in
+                    {weekStart === currentWeekStart
+                      ? "This week’s check-in"
+                      : "Selected check-in"}
                   </h2>
                   <p className="mt-1 text-xs text-[var(--text-lo)]">
                     {weekRange}
@@ -338,7 +352,12 @@ export default async function CheckinsPage({
                     Recent check-ins
                   </h2>
                 </div>
-                <CheckinHistory checkins={pastCheckins} />
+                <CheckinHistory
+                  checkins={pastCheckins}
+                  personName={profile.name}
+                  profileId={profile.id}
+                  selectedWeekStart={weekStart}
+                />
               </section>
             </aside>
           </div>
@@ -435,14 +454,6 @@ export default async function CheckinsPage({
             </section>
           </aside>
         </div>
-
-        {isManager && (
-          <TeamCheckins
-            checkins={teamCheckins}
-            weekStart={weekStart}
-            dailySummary={dailySummary}
-          />
-        )}
       </div>
     </>
   );
@@ -502,7 +513,7 @@ function StatusBadge({
   );
 }
 
-function EmptyHistory() {
+function EmptyHistory({ personName }: { personName?: string }) {
   return (
     <div className="mt-4 flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 text-center">
       <Icon
@@ -510,7 +521,9 @@ function EmptyHistory() {
         className="h-5 w-5 text-[var(--text-lo)]"
       />
       <p className="mt-2 text-sm text-[var(--text-lo)]">
-        Your submitted check-ins will build a useful history here.
+        {personName
+          ? `${personName} has not submitted a check-in yet.`
+          : "Your submitted check-ins will build a useful history here."}
       </p>
     </div>
   );
@@ -526,8 +539,18 @@ function formatMinutes(total: number) {
       : `${minutes}m`;
 }
 
-async function CheckinHistory({ checkins }: { checkins: Checkin[] }) {
-  if (!checkins.length) return <EmptyHistory />;
+async function CheckinHistory({
+  checkins,
+  personName,
+  profileId,
+  selectedWeekStart,
+}: {
+  checkins: Checkin[];
+  personName?: string;
+  profileId?: string;
+  selectedWeekStart?: string;
+}) {
+  if (!checkins.length) return <EmptyHistory personName={personName} />;
   const histories = await Promise.all(
     checkins.map(async (checkin) => ({
       checkin,
@@ -560,6 +583,15 @@ async function CheckinHistory({ checkins }: { checkins: Checkin[] }) {
             badge={<StatusBadge status={checkin.status} compact />}
             className="bg-[var(--surface-2)]"
           >
+            {profileId && checkin.week_start !== selectedWeekStart && (
+              <Link
+                href={`/pulse/checkins?tab=checkins&user=${profileId}&week=${checkin.week_start}`}
+                className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-semibold text-brand-500 transition-colors hover:border-brand-500/40 hover:bg-brand-500/[0.05]"
+              >
+                View this week
+                <Icon icon="solar:arrow-right-broken" className="h-3.5 w-3.5" />
+              </Link>
+            )}
             <div className="grid gap-3 text-xs sm:grid-cols-2">
               <HistorySection title="Wins" value={checkin.wins} />
               <HistorySection title="Priorities" value={checkin.priorities} />

@@ -111,7 +111,7 @@ export default async function MilestonesWidget() {
             return (
               <li
                 key={milestone.id}
-                className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"
+                className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-[border-color,background-color] hover:border-brand-500/40 hover:bg-[var(--surface)]"
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
                   <Icon icon={icon} className="h-4 w-4" />

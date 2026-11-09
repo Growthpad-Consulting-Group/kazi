@@ -5,6 +5,7 @@ import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
+import { Accordion } from "@/components/ui/Accordion";
 import { EditSideQuestButton, NewSideQuestButton } from "./SideQuestFormModal";
 import { QuestCompletionButton } from "./QuestCompletionButton";
 import { QuestCompletionReviewButton } from "./QuestCompletionReviewButton";
@@ -472,71 +473,100 @@ export default async function SideQuestsPage() {
           <section className="grid gap-4 lg:grid-cols-2">
             {live.map((quest) => {
               const count = completionByQuest.get(quest.id)?.size ?? 0;
+              const eligible = eligibleCount(quest);
+              const progress = eligible
+                ? Math.min(100, Math.round((count / eligible) * 100))
+                : 0;
               return (
                 <article
                   key={quest.id}
-                  className="rounded-2xl border border-brand-500/15 bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20"
+                  className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/25 hover:shadow-2xl dark:shadow-black/20"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-                      <Icon icon="solar:cup-star-broken" className="h-5 w-5" />
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="rounded-md bg-brand-500/10 px-2 py-1 font-mono text-[10px] font-bold text-brand-600">
-                        {quest.points} pts
-                      </span>
-                      <span className="rounded-md bg-brand-500/10 px-2 py-1 text-[10px] font-semibold text-brand-600">
-                        Live
-                      </span>
-                      {canManage && (
-                        <EditSideQuestButton
-                          quest={quest}
-                          options={audienceOptions}
-                        />
-                      )}
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-brand-500/10 blur-3xl transition-transform duration-500 group-hover:scale-125" />
+                  <div className="relative">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
+                          <Icon
+                            icon="solar:cup-star-broken"
+                            className="h-5 w-5"
+                          />
+                        </span>
+                        <span className="text-sm font-medium text-brand-500">
+                          Live challenge
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-lg bg-brand-500 px-2.5 py-1 font-mono text-[10px] font-bold text-white shadow-sm">
+                          {quest.points} pts
+                        </span>
+                        {canManage && (
+                          <EditSideQuestButton
+                            quest={quest}
+                            options={audienceOptions}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <h2 className="mt-4 text-base font-semibold text-[var(--text-hi)]">
-                    {quest.title}
-                  </h2>
-                  <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-lo)]">
-                    {quest.brief}
-                  </p>
-                  <div className="mt-4 rounded-xl bg-[var(--surface-2)] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-lo)]">
-                      To complete
+                    <h2 className="mt-5 text-lg font-semibold tracking-tight text-[var(--text-hi)]">
+                      {quest.title}
+                    </h2>
+                    <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-[var(--text-lo)]">
+                      {quest.brief}
                     </p>
-                    <p className="mt-1 text-xs font-medium leading-relaxed text-[var(--text-hi)]">
-                      {quest.completion_criteria}
-                    </p>
-                  </div>
-                  {canManage &&
-                    (completersByQuest.get(quest.id)?.length ?? 0) > 0 && (
-                      <p className="mt-3 text-xs text-[var(--text-lo)]">
-                        <span className="font-semibold text-[var(--text-hi)]">
-                          Completed by:
-                        </span>{" "}
-                        {completersByQuest.get(quest.id)?.join(", ")}
+
+                    <Accordion
+                      className="mt-5 bg-[var(--surface-2)]"
+                      icon="solar:checklist-minimalistic-broken"
+                      title="Completion brief"
+                      subtitle="Open to review the completion requirements"
+                    >
+                      <p className="text-xs font-medium leading-relaxed text-[var(--text-hi)]">
+                        {quest.completion_criteria}
                       </p>
-                    )}
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-xs text-[var(--text-lo)]">
-                      <span className="font-semibold text-[var(--text-hi)]">
-                        {count}
-                      </span>{" "}
-                      of {eligibleCount(quest)} completed ·{" "}
-                      {audienceLabels[quest.audience_type]}
-                      {quest.ends_at
-                        ? ` · Ends ${new Date(quest.ends_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
-                        : ""}
+                    </Accordion>
+
+                    {canManage &&
+                      (completersByQuest.get(quest.id)?.length ?? 0) > 0 && (
+                        <p className="mt-3 text-xs text-[var(--text-lo)]">
+                          <span className="font-semibold text-[var(--text-hi)]">
+                            Completed by:
+                          </span>{" "}
+                          {completersByQuest.get(quest.id)?.join(", ")}
+                        </p>
+                      )}
+
+                    <div className="mt-5 border-t border-[var(--border)] pt-4">
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="font-medium text-[var(--text-hi)]">
+                          {count} of {eligible} completed
+                        </span>
+                        <span className="font-mono font-semibold text-brand-500">
+                          {progress}%
+                        </span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-brand-500 to-orange-400 transition-[width] duration-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs text-[var(--text-lo)]">
+                          {audienceLabels[quest.audience_type]}
+                          {quest.ends_at
+                            ? ` · Ends ${new Date(quest.ends_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                            : ""}
+                        </p>
+                        <QuestCompletionButton
+                          questId={quest.id}
+                          questTitle={quest.title}
+                          completionCriteria={quest.completion_criteria}
+                          status={yourCompletionStatus.get(quest.id)}
+                          completionMode={quest.completion_mode}
+                        />
+                      </div>
                     </div>
-                    <QuestCompletionButton
-                      questId={quest.id}
-                      questTitle={quest.title}
-                      completionCriteria={quest.completion_criteria}
-                      status={yourCompletionStatus.get(quest.id)}
-                      completionMode={quest.completion_mode}
-                    />
                   </div>
                 </article>
               );
@@ -586,63 +616,78 @@ export default async function SideQuestsPage() {
                 .map((quest) => (
                   <article
                     key={quest.id}
-                    className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/25 hover:shadow-2xl dark:shadow-black/20"
+                    className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/25 hover:shadow-2xl dark:shadow-black/20"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${quest.status === "upcoming" ? "bg-blue-500/10 text-blue-700 dark:text-blue-400" : quest.status === "closed" ? "bg-slate-500/10 text-slate-600 dark:text-slate-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}
-                          >
-                            {quest.status}
+                    <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand-500/5 blur-3xl transition-transform duration-500 group-hover:scale-125" />
+                    <div className="relative">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
+                            <Icon
+                              icon={
+                                quest.status === "upcoming"
+                                  ? "solar:calendar-broken"
+                                  : "solar:check-circle-broken"
+                              }
+                              className="h-4.5 w-4.5"
+                            />
                           </span>
-                          <span className="text-xs text-[var(--text-lo)]">
-                            {audienceLabels[quest.audience_type]}
-                          </span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${quest.status === "upcoming" ? "bg-blue-500/10 text-blue-700 dark:text-blue-400" : "bg-slate-500/10 text-slate-600 dark:text-slate-400"}`}
+                              >
+                                {quest.status}
+                              </span>
+                              <span className="text-xs text-[var(--text-lo)]">
+                                {audienceLabels[quest.audience_type]}
+                              </span>
+                            </div>
+                            <h3 className="mt-2 truncate text-sm font-semibold text-[var(--text-hi)]">
+                              {quest.title}
+                            </h3>
+                          </div>
                         </div>
-                        <h3 className="mt-2 truncate text-sm font-semibold text-[var(--text-hi)]">
-                          {quest.title}
-                        </h3>
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text-lo)]">
-                          {quest.brief}
-                        </p>
+                        {canManage && (
+                          <EditSideQuestButton
+                            quest={quest}
+                            options={audienceOptions}
+                          />
+                        )}
                       </div>
-                      {canManage && (
-                        <EditSideQuestButton
-                          quest={quest}
-                          options={audienceOptions}
-                        />
-                      )}
-                    </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-lo)]">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Icon
-                          icon="solar:star-broken"
-                          className="h-3.5 w-3.5 text-brand-500"
-                        />
-                        {quest.points} pts
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Icon
-                          icon="solar:users-group-rounded-broken"
-                          className="h-3.5 w-3.5"
-                        />
-                        {completionByQuest.get(quest.id)?.size ?? 0}/
-                        {eligibleCount(quest)} completed
-                      </span>
-                      {(quest.starts_at || quest.ends_at) && (
-                        <span className="inline-flex items-center gap-1.5">
+                      <p className="mt-3 line-clamp-2 text-xs leading-5 text-[var(--text-lo)]">
+                        {quest.brief}
+                      </p>
+                      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-lo)]">
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-brand-500">
                           <Icon
-                            icon="solar:calendar-broken"
+                            icon="solar:star-broken"
                             className="h-3.5 w-3.5"
                           />
-                          {quest.status === "upcoming" && quest.starts_at
-                            ? `Starts ${new Date(quest.starts_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
-                            : quest.ends_at
-                              ? `Ended ${new Date(quest.ends_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
-                              : "Scheduled"}
+                          {quest.points} pts
                         </span>
-                      )}
+                        <span className="inline-flex items-center gap-1.5">
+                          <Icon
+                            icon="solar:users-group-rounded-broken"
+                            className="h-3.5 w-3.5"
+                          />
+                          {completionByQuest.get(quest.id)?.size ?? 0}/
+                          {eligibleCount(quest)} completed
+                        </span>
+                        {(quest.starts_at || quest.ends_at) && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Icon
+                              icon="solar:calendar-broken"
+                              className="h-3.5 w-3.5"
+                            />
+                            {quest.status === "upcoming" && quest.starts_at
+                              ? `Starts ${new Date(quest.starts_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                              : quest.ends_at
+                                ? `Ended ${new Date(quest.ends_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                                : "Scheduled"}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </article>
                 ))}
