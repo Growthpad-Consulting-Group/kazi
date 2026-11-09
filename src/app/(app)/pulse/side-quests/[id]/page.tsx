@@ -72,7 +72,10 @@ export default async function Page({
       !!currentStaff?.manager_id &&
       filters.includes(currentStaff.manager_id)) ||
     (quest.audience_type === "staff" && filters.includes(session.user.id));
-  if (!canManage && !eligible) notFound();
+  // The engagement calendar is a shared planning surface: every authenticated
+  // staff member can review a quest, including past department-targeted work.
+  // Eligibility only governs whether someone can submit a completion.
+  const canParticipate = canManage || eligible;
 
   const approved = (completions ?? []).filter(
     (completion) => completion.status === "approved",
@@ -136,7 +139,7 @@ export default async function Page({
                 {quest.brief}
               </p>
             </div>
-            {quest.status === "live" && (
+            {quest.status === "live" && canParticipate && (
               <QuestCompletionButton
                 questId={quest.id}
                 questTitle={quest.title}
