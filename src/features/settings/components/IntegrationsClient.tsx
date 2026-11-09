@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Icon } from "@iconify/react";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import { Button } from "@/components/ui/Button";
@@ -41,6 +42,7 @@ interface Props {
 
 function IntegrationCard({
   icon,
+  iconImage,
   name,
   description,
   status,
@@ -48,7 +50,8 @@ function IntegrationCard({
   onDisconnect,
   meta,
 }: {
-  icon: string;
+  icon?: string;
+  iconImage?: string;
   name: string;
   description: string;
   status: "connected" | "disconnected" | "system";
@@ -61,7 +64,17 @@ function IntegrationCard({
   return (
     <div className="flex items-start gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-        <Icon icon={icon} className="h-5 w-5" />
+        {iconImage ? (
+          <Image
+            src={iconImage}
+            alt=""
+            width={22}
+            height={22}
+            className="h-5 w-5 object-contain"
+          />
+        ) : (
+          <Icon icon={icon ?? "solar:widget-2-broken"} className="h-5 w-5" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -360,7 +373,7 @@ export default function IntegrationsClient({
       >
         <div className="space-y-3">
           <IntegrationCard
-            icon="logos:asana"
+            icon="logos:asana-icon"
             name="Asana"
             description="Sync Kazi goals and check-ins with your Asana workspace. Tasks are created automatically when goals are set."
             status={asanaConnected ? "connected" : "disconnected"}
@@ -396,9 +409,9 @@ export default function IntegrationsClient({
             </label>
           )}
           <IntegrationCard
-            icon="solar:stopwatch-broken"
+            iconImage="/favicon.png"
             name="Kazi Timer (browser extension)"
-            description="Starts and stops timers from Asana and other tabs. It connects by itself while you are signed in to Kazi. On Asana it reads only the open task's title, never descriptions, comments or attachments."
+            description="Starts and stops timers from Asana and other tabs. It connects by itself while you are signed in to Kazi. On Asana it reads only the open task's title, not descriptions, comments or attachments."
             status={
               kaziTimerConnections === null
                 ? "disconnected"

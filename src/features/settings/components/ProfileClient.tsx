@@ -348,11 +348,11 @@ export default function ProfileClient({
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-md bg-[var(--surface)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">
+                  <span className="rounded-md bg-[var(--surface)] px-2 py-1 text-xs font-semibold text-[var(--text-lo)]">
                     {passkey.backed_up ? "Backed up" : "Device only"}
                   </span>
                   {passkey.transports.length > 0 && (
-                    <span className="rounded-md bg-[var(--surface)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">
+                    <span className="rounded-md bg-[var(--surface)] px-2 py-1 text-xs font-semibold text-[var(--text-lo)]">
                       {passkey.transports.join(", ")}
                     </span>
                   )}
