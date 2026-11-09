@@ -1,10 +1,15 @@
 const TIMER_KEY = "timer";
 const QUEUE_KEY = "completedEntries";
 const TOKEN_KEY = "kaziAccessToken";
+const SERVER_TIMER_SNAPSHOT_KEY = "serverTimerSnapshot";
 const TICK_ALARM = "kazi-timer-tick";
 const KAZI_URL = "https://kazi.growthpad.africa";
 const SHARED_TIMER_URL = `${KAZI_URL}/api/pulse/daily-log/timer`;
 const OFFLINE_MESSAGE = "Kazi is unreachable. Try again when you are online.";
+// Opening the popup repeatedly should not turn into a stream of timer reads.
+// Lifecycle actions still write through immediately, while a new browser
+// session or an expired snapshot refreshes from Kazi.
+const SERVER_TIMER_SNAPSHOT_MS = 30 * 1000;
 let messageQueue = Promise.resolve();
 
 // The timer shape is the same one Kazi stores on the server:
@@ -61,6 +66,24 @@ async function rememberTimerSource(timerId, url) {
 
 async function writeTimer(timer) {
   await chrome.storage.local.set({ [TIMER_KEY]: timer });
+}
+
+async function readServerTimerSnapshot() {
+  const { [SERVER_TIMER_SNAPSHOT_KEY]: snapshot } =
+    await chrome.storage.session.get(SERVER_TIMER_SNAPSHOT_KEY);
+  if (
+    !snapshot ||
+    typeof snapshot.fetchedAt !== "number" ||
+    !("timer" in snapshot)
+  )
+    return null;
+  return snapshot;
+}
+
+async function cacheServerTimer(timer) {
+  await chrome.storage.session.set({
+    [SERVER_TIMER_SNAPSHOT_KEY]: { timer, fetchedAt: Date.now() },
+  });
 }
 
 function badgeText(totalSeconds) {
@@ -225,7 +248,7 @@ async function sharedTimerRequest(method, body) {
   // so the popup can offer a direct reconnect instead of a misleading
   // Disconnect action.
   if (response.status === 401 || response.status === 403)
-    await chrome.storage.session.remove(TOKEN_KEY);
+    await chrome.storage.session.remove([TOKEN_KEY, SERVER_TIMER_SNAPSHOT_KEY]);
   return {
     ok: response.ok,
     status: response.status,
@@ -235,9 +258,21 @@ async function sharedTimerRequest(method, body) {
 
 // Kazi is the source of truth when connected. A timer stopped offline stays
 // hidden until its queued stop has synced, so it cannot reappear.
-async function refreshFromServer() {
+async function refreshFromServer({ force = false } = {}) {
   const local = await readTimer();
   if (!(await tokenValue())) return local;
+  const snapshot = await readServerTimerSnapshot();
+  if (
+    !force &&
+    snapshot &&
+    Date.now() - snapshot.fetchedAt < SERVER_TIMER_SNAPSHOT_MS
+  ) {
+    const cached = snapshot.timer;
+    if ((await pendingStops()).some((item) => item.id === cached?.id))
+      return null;
+    await writeTimer(cached);
+    return cached;
+  }
   let response;
   try {
     response = await sharedTimerRequest("GET");
@@ -246,6 +281,7 @@ async function refreshFromServer() {
   }
   if (!response?.ok) return local;
   const server = response.json?.timer ?? null;
+  await cacheServerTimer(server);
   if (server && (await pendingStops()).some((item) => item.id === server.id))
     return null;
   await writeTimer(server);
@@ -318,7 +354,7 @@ async function connectKazi({ interactive = true } = {}) {
   });
   await chrome.storage.local.set({ disconnectedByUser: false });
   await adoptLocalTimer();
-  await refreshFromServer();
+  await refreshFromServer({ force: true });
   return syncQueue();
 }
 
@@ -354,7 +390,7 @@ async function disconnectKazi() {
     }).catch(() => {});
   }
   await chrome.storage.local.remove(TOKEN_KEY);
-  await chrome.storage.session.remove(TOKEN_KEY);
+  await chrome.storage.session.remove([TOKEN_KEY, SERVER_TIMER_SNAPSHOT_KEY]);
   await chrome.storage.local.set({ disconnectedByUser: true });
 }
 
@@ -428,8 +464,10 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-  await reconnectSilently({ force: true });
-  await refreshFromServer();
+  const reconnected = await reconnectSilently({ force: true });
+  // connectKazi already performs this fresh read after a successful silent
+  // reconnect. Avoid paying for it a second time during browser startup.
+  if (!reconnected) await refreshFromServer({ force: true });
   await refreshBadge();
   await syncQueue();
 });
@@ -587,6 +625,7 @@ async function handleMessage(message) {
         if (response.json?.timer) await writeTimer(response.json.timer);
         return { error: response.json?.error || "Could not start the timer" };
       }
+      await cacheServerTimer(response.json?.timer ?? next);
     }
     if (originOf(message.sourceUrl) === "https://app.asana.com")
       await rememberTimerSource(next.id, message.sourceUrl);
@@ -633,6 +672,7 @@ async function handleMessage(message) {
       if (response.status === 404) await writeTimer(null);
       return { error: response.json?.error || "Could not update the timer" };
     }
+    await cacheServerTimer(response.json.timer);
     await writeTimer(response.json.timer);
     return { timer: response.json.timer };
   }
@@ -653,6 +693,7 @@ async function handleMessage(message) {
       [TIMER_KEY]: null,
       [QUEUE_KEY]: [...queued, item],
     });
+    await cacheServerTimer(null);
     const sync = await syncQueue();
     return {
       entry: {

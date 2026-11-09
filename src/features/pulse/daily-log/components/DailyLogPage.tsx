@@ -59,6 +59,7 @@ type AsanaTask = { id: string; name: string; project: string | null };
 // The server owns the active timer. This key is only a recovery cache for
 // when the timer API cannot be reached.
 const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
+const TIMER_RECONCILE_COOLDOWN_MS = 30_000;
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
 const newRowId = () =>
@@ -337,6 +338,9 @@ export function DailyLogPage({
   const isDirtyRef = useRef(false);
   // Timer changes made here win over a simultaneous focus or storage refresh.
   const lastLocalTimerChange = useRef(0);
+  // A browser return commonly fires visibility and focus together. The timer
+  // clock is local, so those recovery reads can be safely coalesced.
+  const lastTimerReconciledAt = useRef(0);
   const pendingTimerRequests = useRef(0);
   const { confirmNavigation, setUnsaved, setCallbacks } = useUnsavedChanges();
   const saveRef = useRef<() => Promise<void>>(async () => {});
@@ -415,6 +419,8 @@ export function DailyLogPage({
           SharedTimerState | undefined,
         ]) => {
           if (cancelled) return;
+          if (sharedTimer !== undefined)
+            lastTimerReconciledAt.current = Date.now();
           if (json.error) throw new Error(json.error);
           const loaded = json.entries ?? [];
           // The server copy wins. The cache is only used when it cannot be reached.
@@ -554,13 +560,19 @@ export function DailyLogPage({
       cacheActiveTimer(next);
     };
 
-    const sync = async () => {
+    const sync = async ({ force = false } = {}) => {
       if (inFlight || pendingTimerRequests.current > 0) return;
+      if (
+        !force &&
+        Date.now() - lastTimerReconciledAt.current < TIMER_RECONCILE_COOLDOWN_MS
+      )
+        return;
       inFlight = true;
       const requestedAt = Date.now();
       const shared = await fetchSharedTimer(activeTimerRef.current?.id);
       inFlight = false;
       if (cancelled || shared === undefined) return;
+      lastTimerReconciledAt.current = Date.now();
       if (
         pendingTimerRequests.current > 0 ||
         lastLocalTimerChange.current > requestedAt
@@ -574,7 +586,7 @@ export function DailyLogPage({
     };
     const onFocus = () => void sync();
     const onStorage = (event: StorageEvent) => {
-      if (event.key === TIMER_STORAGE_KEY) void sync();
+      if (event.key === TIMER_STORAGE_KEY) void sync({ force: true });
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onFocus);

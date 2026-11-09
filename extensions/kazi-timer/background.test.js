@@ -22,8 +22,8 @@ function storage(area) {
     async set(values) {
       Object.assign(area, values);
     },
-    async remove(key) {
-      delete area[key];
+    async remove(keys) {
+      for (const key of Array.isArray(keys) ? keys : [keys]) delete area[key];
     },
   };
 }
@@ -264,6 +264,25 @@ describe("Kazi Timer shared timer flow", () => {
     expect(local.timer.id).toBe(started.timer.id);
   });
 
+  it("uses a short session snapshot when the popup is reopened", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    await loadWorker();
+
+    await message({
+      type: "start",
+      task: "Client call",
+      category: "Meetings",
+    });
+    await message({ type: "get-state" });
+
+    expect(
+      kazi.calls.filter(
+        (call) => call.url === SHARED_URL && call.method === "GET",
+      ),
+    ).toHaveLength(0);
+  });
+
   it("continues a logged row from its total when resumed", async () => {
     session.kaziAccessToken = "token";
     const kazi = fakeKazi();
@@ -367,6 +386,7 @@ describe("Kazi Timer shared timer flow", () => {
       startedAt: null,
       accumulatedMs: 120_000,
     };
+    vi.mocked(Date.now).mockReturnValue(1_031_000);
 
     const state = await message({ type: "get-state" });
 
