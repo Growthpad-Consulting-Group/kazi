@@ -158,7 +158,7 @@ export async function PATCH(req: Request) {
         .from("users")
         .select("id")
         .eq("is_active", true)
-        .not("role", "in", "(admin,hr,manager)"),
+        .not("role", "in", "(admin,hr)"),
       db
         .from("hall_of_fame_nominations")
         .select("nominator_id, nominee_id")

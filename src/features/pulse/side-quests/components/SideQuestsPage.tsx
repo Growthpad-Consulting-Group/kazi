@@ -1,4 +1,5 @@
 import { Icon } from "@iconify/react";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
@@ -509,7 +510,12 @@ export default async function SideQuestsPage() {
                       </div>
                     </div>
                     <h2 className="mt-5 text-lg font-semibold tracking-tight text-[var(--text-hi)]">
-                      {quest.title}
+                      <Link
+                        href={`/pulse/side-quests/${quest.id}`}
+                        className="transition-colors hover:text-brand-500"
+                      >
+                        {quest.title}
+                      </Link>
                     </h2>
                     <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-[var(--text-lo)]">
                       {quest.brief}
@@ -558,13 +564,25 @@ export default async function SideQuestsPage() {
                             ? ` · Ends ${new Date(quest.ends_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
                             : ""}
                         </p>
-                        <QuestCompletionButton
-                          questId={quest.id}
-                          questTitle={quest.title}
-                          completionCriteria={quest.completion_criteria}
-                          status={yourCompletionStatus.get(quest.id)}
-                          completionMode={quest.completion_mode}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/pulse/side-quests/${quest.id}`}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-500 transition-colors hover:text-brand-600"
+                          >
+                            View details
+                            <Icon
+                              icon="solar:alt-arrow-right-broken"
+                              className="h-3.5 w-3.5"
+                            />
+                          </Link>
+                          <QuestCompletionButton
+                            questId={quest.id}
+                            questTitle={quest.title}
+                            completionCriteria={quest.completion_criteria}
+                            status={yourCompletionStatus.get(quest.id)}
+                            completionMode={quest.completion_mode}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -644,7 +662,12 @@ export default async function SideQuestsPage() {
                               </span>
                             </div>
                             <h3 className="mt-2 truncate text-sm font-semibold text-[var(--text-hi)]">
-                              {quest.title}
+                              <Link
+                                href={`/pulse/side-quests/${quest.id}`}
+                                className="transition-colors hover:text-brand-500"
+                              >
+                                {quest.title}
+                              </Link>
                             </h3>
                           </div>
                         </div>
@@ -687,6 +710,16 @@ export default async function SideQuestsPage() {
                                 : "Scheduled"}
                           </span>
                         )}
+                        <Link
+                          href={`/pulse/side-quests/${quest.id}`}
+                          className="ml-auto inline-flex items-center gap-1 font-semibold text-brand-500 transition-colors hover:text-brand-600"
+                        >
+                          View details
+                          <Icon
+                            icon="solar:alt-arrow-right-broken"
+                            className="h-3.5 w-3.5"
+                          />
+                        </Link>
                       </div>
                     </div>
                   </article>

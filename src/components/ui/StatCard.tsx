@@ -58,6 +58,7 @@ interface StatCardProps {
   subtitle?: ReactNode;
   href?: string;
   onClick?: () => void;
+  className?: string;
   compact?: boolean;
   /** Stacks the label above the value within the inline variant. */
   inlineStacked?: boolean;
@@ -73,11 +74,12 @@ export default function StatCard({
   subtitle,
   href,
   onClick,
+  className: customClassName,
   compact = false,
   inlineStacked = false,
 }: StatCardProps) {
   const palette = styles[color];
-  const className = `group relative block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left shadow-xl shadow-slate-200/40 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:shadow-black/20 ${compact ? "p-3" : "p-4"}`;
+  const className = `group relative block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left shadow-xl shadow-slate-200/40 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:shadow-black/20 ${compact ? "p-3" : "p-4"} ${customClassName ?? ""}`;
 
   const content =
     variant === "inline" ? (

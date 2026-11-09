@@ -132,7 +132,7 @@ export function QuestCompletionButton({
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-brand-500/15 bg-brand-500/[0.05] p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-600">
+            <p className="text-xs font-semibold text-brand-600">
               Completion criteria
             </p>
             <p className="mt-1 text-sm leading-relaxed text-[var(--text-hi)]">

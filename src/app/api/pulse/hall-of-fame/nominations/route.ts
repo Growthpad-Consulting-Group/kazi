@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     .eq("id", body.nomineeId)
     .eq("is_active", true)
     .maybeSingle();
-  if (!nominee || ["admin", "hr", "manager"].includes(nominee.role))
+  if (!nominee || ["admin", "hr"].includes(nominee.role))
     return NextResponse.json(
       { error: "That staff member is unavailable." },
       { status: 400 },

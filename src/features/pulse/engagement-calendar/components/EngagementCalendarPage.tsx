@@ -1,37 +1,20 @@
 import { Icon } from "@iconify/react";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can, canView, userCan } from "@/lib/rbac";
 import SetPageHeader from "@/components/ui/SetPageHeader";
-import StatCard from "@/components/ui/StatCard";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NewCampaignButton } from "@/features/pulse/campaigns/components/CampaignFormModal";
 import { NewSideQuestButton } from "@/features/pulse/side-quests/components/SideQuestFormModal";
 import { NewSurveyButton } from "@/features/pulse/surveys/components/NewSurveyButton";
 import { ArchiveItemButton } from "./ArchiveItemButton";
+import {
+  EngagementMonthCalendar,
+  type EngagementCalendarItem,
+} from "./EngagementMonthCalendar";
 
-type Item = {
-  id: string;
-  title: string;
-  start: string | null;
-  end: string | null;
-  type: "Campaign" | "Survey" | "Side Quest";
-  href: string;
-  status: string;
-};
-const styles = {
-  Campaign: ["solar:flag-2-broken", "bg-brand-500/10 text-brand-500"],
-  Survey: ["solar:chat-round-dots-broken", "bg-blue-500/10 text-blue-600"],
-  "Side Quest": ["solar:cup-star-broken", "bg-amber-500/10 text-amber-700"],
-} as const;
-const fmt = (value: string) =>
-  new Date(value).toLocaleDateString("en-KE", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+type Item = EngagementCalendarItem;
 
 /** Returns true when an item is past due and not yet in a terminal state. */
 function isPastDue(item: Item): boolean {
@@ -111,17 +94,13 @@ export default async function EngagementCalendarPage() {
       end: x.ends_at,
       status: x.status,
       type: "Side Quest" as const,
-      href: "/pulse/side-quests",
+      href: `/pulse/side-quests/${x.id}`,
     })),
   ].sort(
     (a, b) =>
       new Date(a.start ?? "9999-01-01").getTime() -
       new Date(b.start ?? "9999-01-01").getTime(),
   );
-
-  const live = items.filter(
-    (item) => item.status === "live" || item.status === "active",
-  ).length;
 
   const role = session?.user?.role;
   const canManageCampaigns = role
@@ -187,125 +166,38 @@ export default async function EngagementCalendarPage() {
           </div>
         )}
 
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
-            compact
-            title="Live now"
-            value={live}
-            icon="solar:bolt-broken"
-            color={live ? "orange" : "slate"}
-            subtitle="Activity in progress"
-          />
-          <StatCard
-            compact
-            title="Upcoming"
-            value={
-              items.filter(
-                (item) => item.start && new Date(item.start) > new Date(),
-              ).length
-            }
-            icon="solar:calendar-add-broken"
-            color="blue"
-            subtitle="Scheduled ahead"
-          />
-          <StatCard
-            compact
-            title="Campaigns"
-            value={items.filter((item) => item.type === "Campaign").length}
-            icon="solar:flag-2-broken"
-            color="amber"
-            subtitle="Recognition moments"
-          />
-          <StatCard
-            compact
-            title="All activity"
-            value={items.length}
-            icon="solar:calendar-mark-broken"
-            color="green"
-            subtitle="Across Pulse"
-          />
-        </section>
+        <EngagementMonthCalendar items={items} />
 
-        <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-slate-200/40 dark:shadow-black/20">
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-                Planned activity
-              </h2>
-              <p className="mt-0.5 text-xs text-[var(--text-lo)]">
-                A compact view of what is live, next, and ready to review.
-              </p>
+        {items.some(isPastDue) && (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
+                <Icon icon="solar:clock-circle-broken" className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-hi)]">
+                  Needs scheduling attention
+                </h2>
+                <p className="text-xs text-[var(--text-lo)]">
+                  Archive or update activity that has passed its end date.
+                </p>
+              </div>
             </div>
-            <span className="rounded-lg bg-[var(--surface-2)] px-2 py-1 text-[10px] font-semibold text-[var(--text-lo)]">
-              {items.length} items
-            </span>
-          </div>
-          {items.length ? (
-            <div className="grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3">
-              {items.map((item) => {
-                const [icon, tone] = styles[item.type];
-                const pastDue = isPastDue(item);
-                return (
-                  <Link
-                    key={`${item.type}-${item.id}`}
-                    href={item.href}
-                    className="group relative flex min-h-36 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-500/30 hover:shadow-lg hover:shadow-slate-200/40 dark:hover:shadow-black/20"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}
-                      >
-                        <Icon icon={icon} className="h-4 w-4" />
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {pastDue ? (
-                          <ArchiveItemButton id={item.id} type={item.type} />
-                        ) : null}
-                        <span className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-[10px] font-semibold capitalize text-[var(--text-lo)]">
-                          {item.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-3 min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
-                          {item.title}
-                        </p>
-                        <span
-                          className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${tone}`}
-                        >
-                          {item.type}
-                        </span>
-                        {pastDue && (
-                          <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-500 dark:bg-red-500/10">
-                            Past due
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-[var(--text-lo)]">
-                        {item.start ? fmt(item.start) : "Unscheduled"}
-                        {item.end ? ` · ends ${fmt(item.end)}` : ""}
-                      </p>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 text-xs text-[var(--text-lo)]">
-                      <span>
-                        {item.start ? fmt(item.start) : "Unscheduled"}
-                      </span>
-                      <Icon
-                        icon="solar:alt-arrow-right-broken"
-                        className="h-4 w-4 text-[var(--text-lo)] group-hover:text-brand-500"
-                      />
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {items.filter(isPastDue).map((item) => (
+                <div
+                  key={`${item.type}-${item.id}`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--surface-2)] px-2.5 py-1.5 text-xs text-[var(--text-hi)]"
+                >
+                  <span className="max-w-44 truncate font-medium">
+                    {item.title}
+                  </span>
+                  <ArchiveItemButton id={item.id} type={item.type} />
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="px-5 py-20 text-center text-sm text-[var(--text-lo)]">
-              No engagement activity is scheduled yet.
-            </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     </>
   );

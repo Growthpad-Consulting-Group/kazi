@@ -241,9 +241,10 @@ export default function HallOfFameClient({
     ? (nominationsByNominee[selected.id] ?? [])
     : [];
   const nomineeCount = Object.keys(nominationsByNominee).length;
-  const yourNominations = nominations.filter(
+  const yourNominationEntries = nominations.filter(
     (item) => item.nominator_id === currentUserId,
-  ).length;
+  );
+  const yourNominations = yourNominationEntries.length;
   const hasMonthlyEntry = nominations.some(
     (item) =>
       item.nominator_id === currentUserId && item.nominee_id === currentUserId,
@@ -861,6 +862,59 @@ export default function HallOfFameClient({
           >
             Add your entry
           </Button>
+        </section>
+      )}
+
+      {yourNominationEntries.length > 0 && (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-brand-500">
+                Your entries
+              </p>
+              <h2 className="mt-1 text-base font-semibold text-[var(--text-hi)]">
+                Nominations you submitted this cycle
+              </h2>
+            </div>
+            <span className="rounded-lg bg-brand-500/10 px-2.5 py-1 font-mono text-xs font-semibold text-brand-500">
+              {yourNominationEntries.length}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {yourNominationEntries.map((entry) => {
+              const nominee = staff.find(
+                (member) => member.id === entry.nominee_id,
+              );
+              return (
+                <article
+                  key={entry.id}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5 transition-colors hover:border-brand-500/25"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      name={nominee?.name ?? "Team member"}
+                      src={nominee?.avatar_url}
+                      size="sm"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                        {nominee?.name ?? "Team member"}
+                      </p>
+                      <p className="truncate text-xs text-[var(--text-lo)]">
+                        {nominee?.job_title ?? "Wall of Fame nomination"}
+                      </p>
+                    </div>
+                    <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-500">
+                      {entry.category === "wow" ? "WOW Award" : "MVP"}
+                    </span>
+                  </div>
+                  <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-[var(--text-lo)]">
+                    {entry.impact_statement}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
         </section>
       )}
 

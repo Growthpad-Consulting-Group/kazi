@@ -5,7 +5,7 @@ import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
 
-const managementRoles = new Set(["admin", "hr", "manager"]);
+const managementRoles = new Set(["admin", "hr"]);
 
 function isWindowOpen(closeAt: string | null) {
   return !closeAt || new Date(`${closeAt}T23:59:59`).getTime() >= Date.now();

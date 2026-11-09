@@ -4,8 +4,8 @@ import { audienceUserIds } from "@/features/pulse/surveys/audience";
 import type { HallOfFameSignal, OpenSurveySignal } from "./next-steps";
 
 // Mirrors the roles allowed to vote in the management stage of Hall of Fame
-// (see api/pulse/hall-of-fame/votes). Team voting is for everyone else.
-const MANAGEMENT_ROLES = new Set(["admin", "hr", "manager"]);
+// (see api/pulse/hall-of-fame/votes). Managers participate with the team.
+const MANAGEMENT_ROLES = new Set(["admin", "hr"]);
 
 // Several tables are migration-backed and lag the generated database types.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see note above

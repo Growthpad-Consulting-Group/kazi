@@ -85,7 +85,7 @@ export default async function HallOfFamePage() {
       .from("users")
       .select("id, name, job_title, department, avatar_url")
       .eq("is_active", true)
-      .not("role", "in", "(admin,hr,manager)")
+      .not("role", "in", "(admin,hr)")
       .order("name"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped signature table
     (supabaseAdmin as any)
@@ -132,10 +132,8 @@ export default async function HallOfFamePage() {
       <HallOfFameClient
         currentUserId={session.user.id}
         canManage={canManage}
-        canTeamVote={!["admin", "hr", "manager"].includes(session.user.role)}
-        requiresMonthlyEntry={
-          !["admin", "hr", "manager"].includes(session.user.role)
-        }
+        canTeamVote={!["admin", "hr"].includes(session.user.role)}
+        requiresMonthlyEntry={!["admin", "hr"].includes(session.user.role)}
         cycle={cycle}
         staff={((staffData ?? []) as Staff[]).map((member) => ({
           ...member,
