@@ -45,6 +45,17 @@ export function setActiveVoiceOutConversation(code: string) {
   window.sessionStorage.setItem(ACTIVE_CODE_KEY, code);
 }
 
+/** Removes only this browser's private access code, never the anonymous report. */
+export function removeVoiceOutConversation(code: string) {
+  save(
+    getSavedVoiceOutConversations().filter(
+      (conversation) => conversation.code !== code,
+    ),
+  );
+  if (getActiveVoiceOutConversation() === code)
+    window.sessionStorage.removeItem(ACTIVE_CODE_KEY);
+}
+
 export function getActiveVoiceOutConversation() {
   return window.sessionStorage.getItem(ACTIVE_CODE_KEY) ?? "";
 }
