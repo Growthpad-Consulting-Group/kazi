@@ -16,7 +16,9 @@ interface Props {
     daysLogged: number;
     totalMinutes: number;
     byUser: Record<string, DailyWeekSummary>;
+    staff: { id: string; name: string }[];
   };
+  organisationWide?: boolean;
 }
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
@@ -76,7 +78,12 @@ function formatMinutes(total: number) {
       : `${minutes}m`;
 }
 
-export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
+export function TeamCheckins({
+  checkins,
+  weekStart,
+  dailySummary,
+  organisationWide = false,
+}: Props) {
   const router = useRouter();
   const availableWeeks = Array.from(
     new Set([weekStart, ...checkins.map((checkin) => checkin.week_start)]),
@@ -113,6 +120,22 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
     if (filter === "reviewed") return checkin.status === "reviewed";
     return true;
   });
+  const dailySummaryText = (() => {
+    if (!dailySummary) return "";
+    const dayLabel = `${dailySummary.daysLogged} day${dailySummary.daysLogged === 1 ? "" : "s"}`;
+    if (organisationWide)
+      return `${dailySummary.staffLogged} staff logged work across ${dayLabel}.`;
+    if (dailySummary.staffLogged === 1) {
+      const [staffId] = Object.keys(dailySummary.byUser);
+      const staffName = dailySummary.staff.find(
+        (staff) => staff.id === staffId,
+      )?.name;
+      return staffName
+        ? `${staffName} logged work on ${dailySummary.daysLogged} of 5 workdays this week.`
+        : `1 direct report logged work across ${dayLabel}.`;
+    }
+    return `${dailySummary.staffLogged} of ${dailySummary.staff.length} direct reports logged work across ${dayLabel}.`;
+  })();
 
   async function generateSummary() {
     setSummarising(true);
@@ -290,9 +313,7 @@ export function TeamCheckins({ checkins, weekStart, dailySummary }: Props) {
                   Daily reporting this week
                 </p>
                 <p className="mt-0.5 text-xs text-[var(--text-lo)]">
-                  {dailySummary.staffLogged} staff logged work across{" "}
-                  {dailySummary.daysLogged} day
-                  {dailySummary.daysLogged === 1 ? "" : "s"}.
+                  {dailySummaryText}
                 </p>
               </div>
             </div>

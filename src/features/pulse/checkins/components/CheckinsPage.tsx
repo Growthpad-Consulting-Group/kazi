@@ -142,6 +142,7 @@ export default async function CheckinsPage({
             daysLogged: 0,
             totalMinutes: 0,
             byUser: {},
+            staff: [],
           }),
       teamOnly
         ? Promise.resolve({
@@ -183,6 +184,7 @@ export default async function CheckinsPage({
             checkins={teamCheckins}
             weekStart={weekStart}
             dailySummary={dailySummary}
+            organisationWide={organisationWide}
           />
         </div>
       </>

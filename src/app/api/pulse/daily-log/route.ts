@@ -314,16 +314,6 @@ export async function POST(req: Request) {
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (can(session.user.role, "manage_checkins")) {
-    return NextResponse.json(
-      {
-        error:
-          "Managers, HR and admins review logs and don't submit their own.",
-      },
-      { status: 403 },
-    );
-  }
-
   const body = (await req.json().catch(() => null)) as {
     date?: unknown;
     entries?: unknown;

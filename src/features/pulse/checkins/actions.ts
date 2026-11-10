@@ -91,7 +91,7 @@ export async function getTeamCheckins(
 ): Promise<CheckinWithUser[]> {
   const reportQuery = supabaseAdmin
     .from("users")
-    .select("id")
+    .select("id, name")
     .eq("is_active", true);
   const { data: reports } = organisationWide
     ? await reportQuery
@@ -116,7 +116,7 @@ export async function getTeamDailyLogSummary(
 ) {
   const reportQuery = supabaseAdmin
     .from("users")
-    .select("id")
+    .select("id, name")
     .eq("is_active", true);
   const { data: reports } = organisationWide
     ? await reportQuery
@@ -128,6 +128,7 @@ export async function getTeamDailyLogSummary(
       daysLogged: 0,
       totalMinutes: 0,
       byUser: {} as Record<string, DailyWeekSummary>,
+      staff: [] as { id: string; name: string }[],
     };
   const end = new Date(`${weekStart}T12:00:00`);
   end.setDate(end.getDate() + 4);
@@ -181,6 +182,10 @@ export async function getTeamDailyLogSummary(
       0,
     ),
     byUser,
+    staff: (reports ?? []).map((report) => ({
+      id: report.id as string,
+      name: report.name as string,
+    })),
   };
 }
 
