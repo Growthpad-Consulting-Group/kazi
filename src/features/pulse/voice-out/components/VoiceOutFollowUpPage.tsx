@@ -391,9 +391,8 @@ export default function VoiceOutFollowUpPage() {
                 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600"
               />
               <p className="text-xs leading-relaxed text-[var(--text-lo)]">
-                Forgetting a conversation removes its code from this browser
-                only. It does not delete the anonymous report or its HR
-                follow-up record.
+                Remove this shortcut from this device at any time. Your report
+                stays with HR and can still be reopened with your private code.
               </p>
             </div>
           </section>
@@ -411,18 +410,18 @@ export default function VoiceOutFollowUpPage() {
         onClose={() => setCodeToForget(null)}
         title="Forget private conversation?"
         icon="solar:trash-bin-trash-broken"
-        subtitle="This only removes the private access code from this browser."
+        subtitle="This removes the conversation shortcut from this device."
       >
         <p className="text-sm leading-relaxed text-[var(--text-lo)]">
-          You will need the original private code to reopen this conversation
-          later. The anonymous report and HR&apos;s messages are not deleted.
+          You can reopen it later with your private code. Your report remains
+          available to the HR team.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setCodeToForget(null)}>
             Cancel
           </Button>
           <Button variant="danger" onClick={forgetConversation}>
-            Forget from this browser
+            Remove from this device
           </Button>
         </div>
       </SimpleModal>
