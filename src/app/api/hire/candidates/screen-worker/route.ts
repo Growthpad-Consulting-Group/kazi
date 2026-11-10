@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
-import { redis, SCREENING_QUEUE, SCREENING_PROCESSING } from "@/lib/redis";
+import {
+  redis,
+  SCREENING_PENDING,
+  SCREENING_PROCESSING,
+  SCREENING_QUEUE,
+} from "@/lib/redis";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { recordAiUsage } from "@/lib/ai-audit";
 import { hasCronAccess } from "@/lib/cron-auth";
@@ -218,6 +223,7 @@ export async function GET(req: Request) {
     try {
       await screenOne(id);
       processed.push(id);
+      await redis.srem(SCREENING_PENDING, id);
     } catch {
       failed.push(id);
       // Re-queue failed items at the back so they don't block the queue

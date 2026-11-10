@@ -2,7 +2,9 @@ name: Screening Worker
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    # Queue processing is intentionally batched. Fifteen minutes keeps the
+    # experience prompt while avoiding thousands of empty worker invocations.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 jobs:

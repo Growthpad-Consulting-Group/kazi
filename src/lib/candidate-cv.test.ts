@@ -12,7 +12,11 @@ vi.mock("@/lib/ai", () => ({
   GROQ_MODEL: "test-model",
 }));
 vi.mock("@/lib/supabase", () => ({ supabaseAdmin: {} }));
-vi.mock("@/lib/redis", () => ({ redis: {}, SCREENING_QUEUE: "test" }));
+vi.mock("@/lib/redis", () => ({
+  redis: {},
+  SCREENING_QUEUE: "test",
+  enqueueScreeningCandidate: vi.fn(),
+}));
 
 describe("readCv", () => {
   it("keeps upload bytes intact when PDF extraction transfers its buffer", async () => {

@@ -65,6 +65,10 @@ type PersonSummary = {
   job_title: string | null;
   avatar_url: string | null;
 };
+type ReportDailyLog = {
+  user_id: string;
+  entries: unknown;
+};
 
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 
@@ -80,6 +84,12 @@ function weekLabel(weekStart: string) {
     day: "numeric",
     month: "long",
   });
+}
+
+function workweekEnd(weekStart: string) {
+  const end = new Date(`${weekStart}T12:00:00`);
+  end.setDate(end.getDate() + 4);
+  return end.toISOString().slice(0, 10);
 }
 
 function statusMeta(status?: CheckinSummary["status"]) {
@@ -241,17 +251,35 @@ export default async function PulseDashboard() {
   let attention: AttentionItem[] = [];
   let teamTrend: TeamWeekTrend[] = [];
   const reportCheckins = new Map<string, CheckinSummary>();
+  const reportDailyLogDays = new Map<string, number>();
   if (isManager) {
     let teamRows: ReportCheckin[] = [];
     if (reports.length) {
-      const { data } = await supabaseAdmin
-        .from("checkins")
-        .select("user_id, status, mood, blockers")
-        .in(
-          "user_id",
-          reports.map((report) => report.id),
-        )
-        .eq("week_start", weekStart);
+      const reportIds = reports.map((report) => report.id);
+      const [checkinRows, dailyLogRows] = await Promise.all([
+        supabaseAdmin
+          .from("checkins")
+          .select("user_id, status, mood, blockers")
+          .in("user_id", reportIds)
+          .eq("week_start", weekStart),
+        // Daily logs and weekly reflections are distinct. Load both so a
+        // manager can see a report's in-progress work without mistaking it
+        // for a submitted weekly reflection.
+        (supabaseAdmin as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+          .from("daily_activity_logs")
+          .select("user_id, entries")
+          .in("user_id", reportIds)
+          .gte("log_date", weekStart)
+          .lte("log_date", workweekEnd(weekStart)),
+      ]);
+      const { data } = checkinRows;
+      for (const row of (dailyLogRows.data ?? []) as ReportDailyLog[]) {
+        if (!Array.isArray(row.entries) || row.entries.length === 0) continue;
+        reportDailyLogDays.set(
+          row.user_id,
+          (reportDailyLogDays.get(row.user_id) ?? 0) + 1,
+        );
+      }
       const names = new Map(reports.map((report) => [report.id, report.name]));
       teamRows = ((data ?? []) as (CheckinSummary & { user_id: string })[]).map(
         (row) => ({
@@ -764,6 +792,7 @@ export default async function PulseDashboard() {
                 const checkinStatus = statusMeta(
                   reportCheckins.get(report.id)?.status,
                 );
+                const dailyLogDays = reportDailyLogDays.get(report.id) ?? 0;
                 return (
                   <div
                     key={report.id}
@@ -786,12 +815,25 @@ export default async function PulseDashboard() {
                         <span className="mt-0.5 block truncate text-xs text-[var(--text-lo)]">
                           {report.job_title ?? "Team member"}
                         </span>
-                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-lo)]">
-                          <Icon
-                            icon={checkinStatus.icon}
-                            className="h-3 w-3 text-brand-500"
-                          />
-                          {checkinStatus.label}
+                        <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-[var(--text-lo)]">
+                          <span className="inline-flex items-center gap-1">
+                            <Icon
+                              icon="solar:calendar-mark-broken"
+                              className={`h-3 w-3 ${dailyLogDays ? "text-emerald-500" : "text-[var(--text-lo)]"}`}
+                            />
+                            {dailyLogDays
+                              ? `${dailyLogDays}/5 days logged`
+                              : "No daily logs"}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Icon
+                              icon={checkinStatus.icon}
+                              className="h-3 w-3 text-brand-500"
+                            />
+                            {reportCheckins.has(report.id)
+                              ? `Weekly: ${checkinStatus.label}`
+                              : "Weekly reflection pending"}
+                          </span>
                         </span>
                       </span>
                     </Link>

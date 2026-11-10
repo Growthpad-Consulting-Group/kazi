@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import { redis, SCREENING_QUEUE } from "@/lib/redis";
+import { enqueueScreeningCandidate, redis, SCREENING_QUEUE } from "@/lib/redis";
 
 // POST /api/hire/candidates/screen-queue
 // Body: { candidateIds: string[] } — enqueue for background screening
@@ -43,11 +43,15 @@ export async function POST(req: Request) {
     });
   }
 
-  // RPUSH so worker processes in FIFO order
-  await redis.rpush(SCREENING_QUEUE, ...eligible.map((c) => c.id));
+  // The list remains FIFO, while the pending set prevents duplicate entries.
+  const queued = await Promise.all(
+    eligible.map((candidate) => enqueueScreeningCandidate(candidate.id)),
+  );
+  const queuedCount = queued.filter(Boolean).length;
 
   return NextResponse.json({
-    queued: eligible.length,
+    queued: queuedCount,
+    alreadyQueued: eligible.length - queuedCount,
     total: candidateIds.length,
   });
 }

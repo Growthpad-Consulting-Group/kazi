@@ -3,7 +3,7 @@ import { groq, GROQ_MODEL } from "@/lib/ai";
 import { extractCvText } from "@/lib/cv-text";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
-import { redis, SCREENING_QUEUE } from "@/lib/redis";
+import { enqueueScreeningCandidate } from "@/lib/redis";
 import { ApplicationError } from "@/lib/application-error";
 import { recordAiUsage } from "@/lib/ai-audit";
 
@@ -126,8 +126,7 @@ export async function attachCv(candidateId: string, jobId: string, cv: ReadCv) {
   // A later worker sweep catches this candidate if Redis is briefly unavailable.
   let queuedForScreening = false;
   try {
-    await redis.rpush(SCREENING_QUEUE, candidateId);
-    queuedForScreening = true;
+    queuedForScreening = await enqueueScreeningCandidate(candidateId);
   } catch (error) {
     console.error("Could not enqueue candidate for screening", error);
   }
