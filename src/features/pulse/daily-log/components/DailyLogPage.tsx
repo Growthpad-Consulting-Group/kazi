@@ -302,10 +302,12 @@ function weekDays(date: string) {
 
 export function DailyLogPage({
   isReviewer = false,
+  reviewerReportId,
   weeklyCheckinSubmitted = false,
   weeklyCheckinHref = "/pulse/checkins?tab=checkins",
 }: {
   isReviewer?: boolean;
+  reviewerReportId?: string;
   weeklyCheckinSubmitted?: boolean;
   weeklyCheckinHref?: string;
 }) {
@@ -1796,7 +1798,7 @@ export function DailyLogPage({
         <DailyLogHistory logs={history} selected={date} onSelect={setDate} />
       )}
 
-      {isReviewer && <TeamActivity />}
+      {isReviewer && <TeamActivity reportId={reviewerReportId} />}
     </div>
   );
 }

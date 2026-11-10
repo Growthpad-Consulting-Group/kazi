@@ -158,6 +158,8 @@ export async function GET(req: Request) {
     .order("name");
   if (session.user.role === "manager")
     teamQuery = teamQuery.eq("manager_id", session.user.id);
+  const requestedUserId = url.searchParams.get("user");
+  if (requestedUserId) teamQuery = teamQuery.eq("id", requestedUserId);
   const { data: members } = await teamQuery;
   const team = (members ?? []) as unknown as {
     id: string;

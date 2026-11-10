@@ -111,12 +111,16 @@ export default async function Page({
         />
       )}
       {activeTab === "team" &&
-        (viewingReportCheckin ? (
+        (teamView === "activity" ? (
+          <DailyLogPage
+            isReviewer
+            reviewerReportId={user}
+            weeklyCheckinSubmitted={false}
+          />
+        ) : viewingReportCheckin ? (
           <CheckinsPage userId={user} selectedWeekStart={week} />
-        ) : teamView === "activity" ? (
-          <DailyLogPage isReviewer weeklyCheckinSubmitted={false} />
         ) : (
-          <CheckinsPage userId={user} teamOnly />
+          <DailyLogPage isReviewer weeklyCheckinSubmitted={false} />
         ))}
       {activeTab === "daily" &&
         (personalReflection ? (

@@ -100,7 +100,7 @@ const CATEGORY_COLORS: Record<DailyLogCategory, string> = {
   Other: "bg-zinc-300",
 };
 
-export function TeamActivity() {
+export function TeamActivity({ reportId }: { reportId?: string }) {
   const [range, setRange] = useState<DateRangeValue>(() => ({
     ...computePresetRange("This Week"),
     label: "This Week",
@@ -121,26 +121,32 @@ export function TeamActivity() {
   useEffect(() => {
     if (!from || !to) return;
     let cancelled = false;
-    setLoading(true);
-    setError("");
-    fetch(`/api/pulse/daily-log?scope=team&from=${from}&to=${to}`)
-      .then((res) => res.json())
-      .then((json: { team?: TeamMember[]; error?: string }) => {
-        if (cancelled) return;
-        if (json.error) throw new Error(json.error);
-        setTeam(json.team ?? []);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) {
-          setTeam([]);
-          setError(err.message);
-        }
-      })
-      .finally(() => !cancelled && setLoading(false));
+    const reportParam = reportId ? `&user=${encodeURIComponent(reportId)}` : "";
+    const frame = window.requestAnimationFrame(() => {
+      setLoading(true);
+      setError("");
+      fetch(
+        `/api/pulse/daily-log?scope=team&from=${from}&to=${to}${reportParam}`,
+      )
+        .then((res) => res.json())
+        .then((json: { team?: TeamMember[]; error?: string }) => {
+          if (cancelled) return;
+          if (json.error) throw new Error(json.error);
+          setTeam(json.team ?? []);
+        })
+        .catch((err: Error) => {
+          if (!cancelled) {
+            setTeam([]);
+            setError(err.message);
+          }
+        })
+        .finally(() => !cancelled && setLoading(false));
+    });
     return () => {
       cancelled = true;
+      window.cancelAnimationFrame(frame);
     };
-  }, [from, to, reloadKey]);
+  }, [from, to, reloadKey, reportId]);
 
   useEffect(() => {
     fetch("/api/pulse/overtime")

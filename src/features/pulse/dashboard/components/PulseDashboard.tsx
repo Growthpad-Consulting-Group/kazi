@@ -796,11 +796,11 @@ export default async function PulseDashboard() {
                 return (
                   <div
                     key={report.id}
-                    className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-all hover:border-brand-500/50 hover:bg-[var(--surface)] hover:shadow-sm"
+                    className="group rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 transition-all hover:border-brand-500/50 hover:bg-[var(--surface)] hover:shadow-sm"
                   >
                     <Link
                       href={`/staff/${report.id}`}
-                      className="flex min-w-0 flex-1 items-center gap-3"
+                      className="flex min-w-0 items-center gap-3"
                     >
                       <Avatar
                         name={report.name}
@@ -815,38 +815,31 @@ export default async function PulseDashboard() {
                         <span className="mt-0.5 block truncate text-xs text-[var(--text-lo)]">
                           {report.job_title ?? "Team member"}
                         </span>
-                        <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-[var(--text-lo)]">
-                          <span className="inline-flex items-center gap-1">
-                            <Icon
-                              icon="solar:calendar-mark-broken"
-                              className={`h-3 w-3 ${dailyLogDays ? "text-emerald-500" : "text-[var(--text-lo)]"}`}
-                            />
-                            {dailyLogDays
-                              ? `${dailyLogDays}/5 days logged`
-                              : "No daily logs"}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <Icon
-                              icon={checkinStatus.icon}
-                              className="h-3 w-3 text-brand-500"
-                            />
-                            {reportCheckins.has(report.id)
-                              ? `Weekly: ${checkinStatus.label}`
-                              : "Weekly reflection pending"}
-                          </span>
-                        </span>
                       </span>
                     </Link>
-                    <Link
-                      href={`/pulse/checkins?tab=checkins&user=${report.id}`}
-                      aria-label={`View ${report.name}'s check-in`}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-lo)] transition-colors hover:bg-brand-500/10 hover:text-brand-500"
-                    >
-                      <Icon
-                        icon="solar:clipboard-check-broken"
-                        className="h-4 w-4"
-                      />
-                    </Link>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-medium">
+                      <Link
+                        href={`/pulse/checkins?tab=team&teamView=activity&user=${report.id}`}
+                        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 transition-colors ${dailyLogDays ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400" : "bg-[var(--surface)] text-[var(--text-lo)] hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-400"}`}
+                      >
+                        <Icon
+                          icon="solar:calendar-mark-broken"
+                          className="h-3 w-3"
+                        />
+                        {dailyLogDays
+                          ? `${dailyLogDays}/5 days logged`
+                          : "No daily logs"}
+                      </Link>
+                      <Link
+                        href={`/pulse/checkins?tab=team&user=${report.id}`}
+                        className="inline-flex items-center gap-1 rounded-lg bg-brand-500/10 px-2 py-1 text-brand-600 transition-colors hover:bg-brand-500/15 dark:text-brand-400"
+                      >
+                        <Icon icon={checkinStatus.icon} className="h-3 w-3" />
+                        {reportCheckins.has(report.id)
+                          ? `Weekly: ${checkinStatus.label}`
+                          : "Weekly reflection pending"}
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
