@@ -340,6 +340,7 @@ describe("Kazi Timer shared timer flow", () => {
         task: "Prepare proposal",
         client: "Sidian Bank",
         category: "Reporting",
+        minutes: 25,
         mergeable: true,
       },
     ];
@@ -356,6 +357,8 @@ describe("Kazi Timer shared timer flow", () => {
     expect(started.timer).toMatchObject({
       client: "Sidian Bank",
       category: "Reporting",
+      accumulatedMs: 25 * 60_000,
+      baseMs: 25 * 60_000,
     });
   });
 

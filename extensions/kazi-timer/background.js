@@ -641,10 +641,12 @@ async function handleMessage(message) {
       ? await findReusableTodayEntry(task)
       : null;
     const now = new Date().toISOString();
-    // Resume continues a row already in today's log, so its time is the start.
+    // Resume continues a matching row already in today's log. Its existing
+    // minutes are the timer base, so the clock and final merged total continue
+    // rather than beginning from zero after an Asana task is reopened.
     const baseMinutes = Math.max(
       0,
-      Math.round(Number(message.baseMinutes) || 0),
+      Math.round(Number(reusable?.minutes ?? message.baseMinutes) || 0),
     );
     const baseMs = baseMinutes * 60_000;
     const next = {
