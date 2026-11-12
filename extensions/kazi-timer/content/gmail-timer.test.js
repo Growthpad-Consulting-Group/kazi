@@ -57,4 +57,26 @@ describe("Gmail timer helper", () => {
       }),
     );
   });
+
+  it("moves the action to Gmail's next message subject without a page reload", async () => {
+    document.body.innerHTML =
+      '<main role="main"><h2 class="hP">First email subject</h2></main>';
+    const { readFileSync } = await import("node:fs");
+    new Function(readFileSync(SCRIPT, "utf8"))();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    const nextHeading = document.createElement("h2");
+    nextHeading.className = "hP";
+    nextHeading.textContent = "Next email subject";
+    document.querySelector('[role="main"]').replaceChildren(nextHeading);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    const button = document.getElementById("kazi-gmail-start-timer");
+    expect(button.previousElementSibling).toBe(nextHeading);
+    button.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ task: "Next email subject" }),
+    );
+  });
 });

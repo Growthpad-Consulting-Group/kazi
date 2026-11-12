@@ -73,8 +73,14 @@
     if (!heading) return;
     const existing = document.getElementById(buttonId);
     if (existing) {
-      render(existing);
-      return;
+      // Gmail swaps message headers in place when moving through a thread or
+      // opening the next email. Keep the control beside the *current* subject,
+      // not stranded beside the previous one.
+      if (existing.previousElementSibling === heading) {
+        render(existing);
+        return;
+      }
+      existing.remove();
     }
     const button = document.createElement("button");
     button.id = buttonId;
