@@ -736,7 +736,10 @@ export function DailyLogPage({
       date,
       running: true,
       startedAt,
-      accumulatedMs: 0,
+      // Keep the optimistic clock continuous while the server confirms the
+      // start. Previously this was zero, so a resumed row visibly reset for
+      // one reconcile interval before the server state caught up.
+      accumulatedMs,
       source: "kazi",
       row: timerRow,
     };
@@ -755,12 +758,20 @@ export function DailyLogPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ timer: shared }),
       }).catch(() => null);
-      if (response?.ok) return;
-
       const json = (await response?.json().catch(() => null)) as {
         error?: string;
         timer?: SharedActiveTimer;
       } | null;
+      if (response?.ok) {
+        if (json?.timer)
+          setActiveTimer((current) => {
+            if (!current || current.id !== id) return current;
+            const next = mergeSharedTimer(current, json.timer!);
+            cacheActiveTimer(next);
+            return next;
+          });
+        return;
+      }
       replaceRow(id, row);
       cacheActiveTimer(null);
       setActiveTimer(null);
@@ -1470,8 +1481,12 @@ export function DailyLogPage({
                             onClick={() => startTimer(index)}
                             disabled={Boolean(activeTimer) || !row.task.trim()}
                             className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-brand-500 hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-35"
-                            aria-label={`Start timer for ${row.task || "activity"}`}
-                            title="Start timer"
+                            aria-label={`${(rowMinutes(row) ?? 0) > 0 ? "Resume" : "Start"} timer for ${row.task || "activity"}`}
+                            title={
+                              (rowMinutes(row) ?? 0) > 0
+                                ? "Resume timer"
+                                : "Start timer"
+                            }
                           >
                             <Icon
                               icon="solar:play-circle-broken"
