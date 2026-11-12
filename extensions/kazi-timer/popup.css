@@ -289,9 +289,12 @@ footer span {
   margin: 12px 0;
 }
 .today ul {
+  max-height: 238px;
+  overflow-y: auto;
   list-style: none;
   padding: 0;
   margin: 8px 0;
+  scrollbar-gutter: stable;
 }
 .today li {
   display: flex;
