@@ -32,6 +32,7 @@ import {
 } from "./wall-of-fame-model";
 
 export default function WallOfFameClient({
+  headerActions,
   currentUserId,
   canManage,
   canTeamVote,
@@ -43,6 +44,13 @@ export default function WallOfFameClient({
   winners,
   categories,
 }: {
+  headerActions: {
+    label: string;
+    icon: string;
+    variant: "secondary";
+    href: string;
+    write?: boolean;
+  }[];
   currentUserId: string;
   canManage: boolean;
   canTeamVote: boolean;
@@ -546,6 +554,7 @@ export default function WallOfFameClient({
         }
         description="Recognise people who create WOW experiences for clients and deliver excellent performance."
         icon="solar:cup-star-broken"
+        actions={headerActions}
         trailing={
           <>
             <span

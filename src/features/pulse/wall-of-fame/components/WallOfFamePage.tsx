@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
@@ -165,41 +164,41 @@ export default async function WallOfFamePage() {
     };
   });
   return (
-    <>
-      <div className="mb-4 flex justify-end gap-4">
-        <Link
-          href="/pulse/wall-of-fame/archive"
-          className="text-xs font-semibold text-brand-500 hover:underline"
-        >
-          Past winners
-        </Link>
-        {canManage && (
-          <Link
-            href="/pulse/wall-of-fame/categories"
-            className="text-xs font-semibold text-brand-500 hover:underline"
-          >
-            Manage categories
-          </Link>
-        )}
-      </div>
-      <WallOfFameClient
-        categories={categories}
-        currentUserId={session.user.id}
-        canManage={canManage}
-        canTeamVote={!["admin", "hr"].includes(session.user.role)}
-        requiresMonthlyEntry={!["admin", "hr"].includes(session.user.role)}
-        cycle={cycle}
-        staff={((staffData ?? []) as Staff[]).map((member) => ({
-          ...member,
-          avatar_url:
-            member.avatar_url ?? signaturePhotos.get(member.id) ?? null,
-        }))}
-        nominations={nominations}
-        votes={((votesResult.data ?? []) as Vote[]).filter(
-          (vote) => canManage || vote.voter_id === session.user.id,
-        )}
-        winners={(winnersResult.data ?? []) as Winner[]}
-      />
-    </>
+    <WallOfFameClient
+      headerActions={[
+        {
+          label: "Past winners",
+          icon: "solar:medal-ribbon-broken",
+          variant: "secondary",
+          href: "/pulse/wall-of-fame/archive",
+        },
+        ...(canManage
+          ? [
+              {
+                label: "Manage categories",
+                icon: "solar:settings-broken",
+                variant: "secondary" as const,
+                href: "/pulse/wall-of-fame/categories",
+                write: true,
+              },
+            ]
+          : []),
+      ]}
+      categories={categories}
+      currentUserId={session.user.id}
+      canManage={canManage}
+      canTeamVote={!["admin", "hr"].includes(session.user.role)}
+      requiresMonthlyEntry={!["admin", "hr"].includes(session.user.role)}
+      cycle={cycle}
+      staff={((staffData ?? []) as Staff[]).map((member) => ({
+        ...member,
+        avatar_url: member.avatar_url ?? signaturePhotos.get(member.id) ?? null,
+      }))}
+      nominations={nominations}
+      votes={((votesResult.data ?? []) as Vote[]).filter(
+        (vote) => canManage || vote.voter_id === session.user.id,
+      )}
+      winners={(winnersResult.data ?? []) as Winner[]}
+    />
   );
 }

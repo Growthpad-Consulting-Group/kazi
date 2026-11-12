@@ -5,6 +5,7 @@ import {
   buildCheckinReviewReminder,
   buildDailyBrief,
   buildWallOfFameClosingReminder,
+  buildWallOfFameManagementVotingReminder,
   buildInterviewReminder,
   buildManagerMondayPulse,
   buildManagerReviewQueue,
@@ -152,6 +153,17 @@ describe("Wall of Fame reminders", () => {
     expect(
       buildWallOfFameClosingReminder({ daysRemaining: 0, appUrl }).text,
     ).toContain("close today.");
+  });
+
+  it("gives management an actionable private-voting prompt", () => {
+    const message = buildWallOfFameManagementVotingReminder({
+      firstName: "Amina",
+      daysRemaining: 3,
+      appUrl,
+    });
+    expect(message.text).toContain("Hi Amina");
+    expect(message.text).toContain("3 more days");
+    expect(JSON.stringify(message.blocks)).toContain("Review finalists");
   });
 });
 

@@ -431,6 +431,42 @@ export function buildWallOfFameClosingReminder(input: {
   };
 }
 
+/** A private prompt for the small group responsible for selecting winners. */
+export function buildWallOfFameManagementVotingReminder(input: {
+  firstName?: string;
+  daysRemaining: number;
+  appUrl: string;
+}): SlackMessage {
+  const timing =
+    input.daysRemaining === 0
+      ? "closes today"
+      : input.daysRemaining === 1
+        ? "closes tomorrow"
+        : `is open for ${input.daysRemaining} more days`;
+  const text = `${input.firstName ? `Hi ${input.firstName} — ` : ""}management voting for Wall of Fame ${timing}. Review the finalists and record your scores.`;
+  return {
+    text,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Wall of Fame · management vote" },
+      },
+      { type: "section", text: { type: "mrkdwn", text } },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            style: "primary",
+            text: { type: "plain_text", text: "Review finalists" },
+            url: `${input.appUrl}/pulse/wall-of-fame`,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 /** A private guardrail for a timer that was probably left running. */
 export function buildTimerRunningReminder(input: {
   task: string;

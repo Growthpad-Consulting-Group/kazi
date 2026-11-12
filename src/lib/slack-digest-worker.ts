@@ -24,6 +24,7 @@ import {
   buildDailyBrief,
   buildInterviewReminder,
   buildWallOfFameClosingReminder,
+  buildWallOfFameManagementVotingReminder,
   buildManagerMondayPulse,
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
@@ -60,6 +61,7 @@ export type DigestCounts = {
   overdueScorecards: number;
   reviewAcknowledgementReminders: number;
   wallOfFameReminders: number;
+  wallOfFameVotingReminders: number;
   cultureRecaps: number;
   cultureAnnouncements: number;
   timerReminders: number;
@@ -108,6 +110,7 @@ function emptyCounts(): DigestCounts {
     overdueScorecards: 0,
     reviewAcknowledgementReminders: 0,
     wallOfFameReminders: 0,
+    wallOfFameVotingReminders: 0,
     cultureRecaps: 0,
     cultureAnnouncements: 0,
     timerReminders: 0,
@@ -305,6 +308,7 @@ export async function runSlackDigests(
   await sendInterviewReminders(now, byId, prefs, counts);
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
   await sendWallOfFameClosingReminder(now, counts);
+  await sendWallOfFameManagementVotingReminders(now, byId, prefs, counts);
   await sendLongRunningTimerReminders(now, byId, prefs, counts);
   await sendDueSnoozedReminders(now, byId, counts);
   await publishCultureAnnouncements(now, byId, prefs, counts);
@@ -977,6 +981,117 @@ async function sendWallOfFameClosingReminder(now: Date, counts: DigestCounts) {
       });
       record(counts, outcome);
       if (outcome === "delivered") counts.wallOfFameReminders += 1;
+    }
+  }
+}
+
+/**
+ * Prompts only the people who can submit management-stage scores. It follows
+ * the same permission model as the voting API, including individual reviewer
+ * grants, and is event-keyed so hourly runs cannot duplicate a DM.
+ */
+async function sendWallOfFameManagementVotingReminders(
+  now: Date,
+  byId: Map<string, UserRow>,
+  prefs: Map<string, PrefRow>,
+  counts: DigestCounts,
+) {
+  const today = localClock(now, DEFAULT_TIMEZONE).date;
+  const tomorrow = addDays(today, 1);
+  const [
+    { data: cycles, error: cyclesError },
+    { data: grants, error: grantsError },
+  ] = await Promise.all([
+    db
+      .from("wall_of_fame_cycles")
+      .select(
+        "id,status,management_voting_opens_at,management_voting_closes_at",
+      )
+      .in("status", ["open", "team_voting", "management_voting"])
+      .not("management_voting_opens_at", "is", null)
+      .not("management_voting_closes_at", "is", null),
+    db
+      .from("user_permissions")
+      .select("user_id")
+      .eq("permission", "manage_recognition_campaigns"),
+  ]);
+  if (cyclesError || grantsError) {
+    console.error(
+      "Could not load Wall of Fame management-voting reminders",
+      cyclesError ?? grantsError,
+    );
+    return;
+  }
+
+  const reviewerIds = new Set(
+    [...byId.values()]
+      .filter((user) => user.role === "admin" || user.role === "hr")
+      .map((user) => user.id),
+  );
+  for (const row of (grants ?? []) as { user_id: string }[]) {
+    if (byId.has(row.user_id)) reviewerIds.add(row.user_id);
+  }
+
+  for (const cycle of (cycles ?? []) as {
+    id: string;
+    status: string;
+    management_voting_opens_at: string | null;
+    management_voting_closes_at: string | null;
+  }[]) {
+    const hasOpened =
+      Boolean(cycle.management_voting_opens_at) &&
+      cycle.management_voting_opens_at! <= today;
+    const isStillOpen =
+      Boolean(cycle.management_voting_closes_at) &&
+      cycle.management_voting_closes_at! >= today;
+    const closesTomorrow = cycle.management_voting_closes_at === tomorrow;
+    if (!hasOpened || !isStillOpen) continue;
+
+    for (const userId of reviewerIds) {
+      const preference = prefs.get(userId);
+      if (preference?.slack_enabled === false) continue;
+      if (
+        isInQuietHours(
+          preference?.slack_quiet_start ?? null,
+          preference?.slack_quiet_end ?? null,
+          preference?.slack_timezone ?? DEFAULT_TIMEZONE,
+          now,
+        )
+      )
+        continue;
+      const daysRemaining = closesTomorrow
+        ? 1
+        : cycle.management_voting_closes_at
+          ? Math.max(
+              0,
+              Math.ceil(
+                (new Date(
+                  `${cycle.management_voting_closes_at}T23:59:59`,
+                ).getTime() -
+                  now.getTime()) /
+                  86_400_000,
+              ),
+            )
+          : 0;
+      const message = buildWallOfFameManagementVotingReminder({
+        firstName: firstName(byId.get(userId)),
+        daysRemaining,
+        appUrl: appUrl(),
+      });
+      // The opening event is retried for an already-open cycle only until it
+      // succeeds; its stable ledger key suppresses all later hourly repeats.
+      // That also lets a newly deployed reminder system catch an active vote.
+      const event = closesTomorrow ? "closes-tomorrow" : "opened";
+      const outcome = await deliverSlackNotification({
+        eventKey: `wall-of-fame-management-voting:${event}:${cycle.id}:${cycle.management_voting_opens_at ?? "unscheduled"}:${cycle.management_voting_closes_at ?? "unscheduled"}:${userId}`,
+        recipientUserId: userId,
+        category: "wall_of_fame_management_voting",
+        text: message.text,
+        blocks: message.blocks,
+        digest: true,
+      });
+      record(counts, outcome);
+      if (outcome === "delivered") counts.wallOfFameVotingReminders += 1;
     }
   }
 }
