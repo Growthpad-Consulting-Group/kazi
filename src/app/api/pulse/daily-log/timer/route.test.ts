@@ -313,4 +313,37 @@ describe("shared timer API", () => {
       expect.objectContaining({ task: "Client call", minutes: 60 }),
     ]);
   });
+
+  it("adds only the new interval when a timer resumes an existing row", async () => {
+    store.tables.daily_activity_logs.push({
+      user_id: USER,
+      log_date: today,
+      entries: [
+        {
+          task: "Client call",
+          client: "Acme",
+          category: "Meetings",
+          minutes: 62,
+        },
+      ],
+    });
+    await PUT(
+      request("PUT", {
+        timer: timer({
+          accumulatedMs: 62 * 60_000,
+          baseMs: 62 * 60_000,
+          startedAt: new Date(Date.now() - 70_000).toISOString(),
+        }),
+      }),
+    );
+
+    const stopped = await (
+      await POST(request("POST", { action: "stop", timerId: TIMER_ID }))
+    ).json();
+
+    expect(stopped).toMatchObject({ merged: true, entry: { minutes: 63 } });
+    expect(store.tables.daily_activity_logs[0].entries).toEqual([
+      expect.objectContaining({ task: "Client call", minutes: 63 }),
+    ]);
+  });
 });

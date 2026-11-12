@@ -718,6 +718,9 @@ export function DailyLogPage({
       category: row.category,
       startedAt: new Date(startedAt).toISOString(),
       accumulatedMs,
+      // A resumed row already owns this duration. The stop endpoint must add
+      // only the new interval, otherwise every resume re-adds the full total.
+      baseMs: accumulatedMs,
       running: true,
       source: "kazi",
       updatedAt: new Date(startedAt).toISOString(),
