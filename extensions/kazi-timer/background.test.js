@@ -236,10 +236,12 @@ function jsonResponse(status, body) {
 
 // A tiny stand-in for the Kazi timer API: one timer per user, stop idempotent.
 function fakeKazi() {
-  const state = { timer: null, stops: new Map(), calls: [] };
+  const state = { timer: null, stops: new Map(), calls: [], todayEntries: [] };
   globalThis.fetch = vi.fn(async (url, init = {}) => {
     const body = init.body ? JSON.parse(init.body) : null;
     state.calls.push({ url, method: init.method || "GET", body });
+    if (url.includes("/api/extensions/kazi-timer/today?date="))
+      return jsonResponse(200, { entries: state.todayEntries });
     if (url !== SHARED_URL) return { ok: true, status: 200 };
     if (init.method === "GET") return jsonResponse(200, { timer: state.timer });
     if (init.method === "PUT") {
@@ -328,6 +330,33 @@ describe("Kazi Timer shared timer flow", () => {
     expect(resumed.timer.accumulatedMs).toBe(35 * 60_000);
     expect(resumed.timer.baseMs).toBe(35 * 60_000);
     expect(kazi.timer.baseMs).toBe(35 * 60_000);
+  });
+
+  it("reuses the client and category of one matching Asana activity", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    kazi.todayEntries = [
+      {
+        task: "Prepare proposal",
+        client: "Sidian Bank",
+        category: "Reporting",
+        mergeable: true,
+      },
+    ];
+    await loadWorker();
+
+    const started = await message({
+      type: "start",
+      task: "Prepare proposal",
+      category: "Projects",
+      reuseExistingActivity: true,
+      sourceUrl: "https://app.asana.com/0/123/456",
+    });
+
+    expect(started.timer).toMatchObject({
+      client: "Sidian Bank",
+      category: "Reporting",
+    });
   });
 
   it("sends stop to the shared endpoint and clears the local timer", async () => {

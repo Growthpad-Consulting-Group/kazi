@@ -26,10 +26,10 @@ the local queue and syncs when the connection returns. Disconnect revokes the cu
 - **Asana:** Kazi reads only the title of the task currently open after you use
   its timer control. It never reads task descriptions, comments, attachments or
   other Asana content.
-- **Gmail:** Enable **Gmail timer** from the extension popup to add a Start Kazi
-  timer action next to an open message subject. Kazi reads that subject only
-  after you click it; it never reads message bodies, recipients, attachments or
-  mailbox history. Disable the feature from the same popup at any time.
+- **Gmail:** A Start Kazi timer action appears beside an open message subject by
+  default. Kazi reads that subject only after you click it; it never reads
+  message bodies, recipients, attachments or mailbox history. Hide the feature
+  from the extension popup at any time.
 - **Selected text:** Highlight text on any page, right-click, then choose
   **Start Kazi timer with selected text**. Only the text you explicitly select
   and invoke is used as the task title.

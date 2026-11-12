@@ -52,6 +52,7 @@ export async function GET(request: Request) {
       client: entry.client ?? null,
       category: entry.category,
       minutes: entry.minutes,
+      mergeable: !entry.startTime && !entry.endTime && !entry.claimOutsideHours,
     }),
   );
   return extensionCors(

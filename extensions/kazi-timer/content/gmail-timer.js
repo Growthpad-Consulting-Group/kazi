@@ -1,6 +1,6 @@
-// Opt-in Gmail message helper. It is injected only after the staff member
-// enables Gmail in the Kazi Timer popup. The subject is read only at the point
-// they choose Start timer; email bodies, recipients, attachments and mailbox
+// Gmail message helper. It is available by default and can be hidden from the
+// Kazi Timer popup. The subject is read only at the point a staff member
+// chooses Start timer; email bodies, recipients, attachments and mailbox
 // history are never read or stored.
 (() => {
   if (window.__kaziGmailTimer) return;
@@ -9,6 +9,7 @@
   const buttonId = "kazi-gmail-start-timer";
   let mountQueued = false;
   let activeTimer = null;
+  let gmailEnabled = false;
 
   function isVisible(element) {
     const rect = element?.getBoundingClientRect();
@@ -67,6 +68,7 @@
   }
 
   function mount() {
+    if (!gmailEnabled) return;
     const heading = subjectElement();
     if (!heading) return;
     const existing = document.getElementById(buttonId);
@@ -116,16 +118,24 @@
   }
 
   chrome.storage.local
-    .get(["timer"])
-    .then(({ timer }) => {
+    .get(["timer", "gmailTimerEnabled"])
+    .then(({ timer, gmailTimerEnabled: enabled }) => {
       activeTimer = timer || null;
-      queueMount();
+      gmailEnabled = enabled !== false;
+      if (gmailEnabled) queueMount();
     })
     .catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !("timer" in changes)) return;
-    activeTimer = changes.timer.newValue || null;
-    render(document.getElementById(buttonId));
+    if (area !== "local") return;
+    if ("gmailTimerEnabled" in changes) {
+      gmailEnabled = changes.gmailTimerEnabled.newValue !== false;
+      if (gmailEnabled) queueMount();
+      else document.getElementById(buttonId)?.remove();
+    }
+    if ("timer" in changes) {
+      activeTimer = changes.timer.newValue || null;
+      render(document.getElementById(buttonId));
+    }
   });
 
   new MutationObserver(queueMount).observe(document.documentElement, {

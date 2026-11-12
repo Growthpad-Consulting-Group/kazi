@@ -57,6 +57,7 @@ describe("extension today endpoint", () => {
       [0, 1],
     );
     expect(body.editable).toBe(true);
+    expect(body.entries[0].mergeable).toBe(true);
   });
 
   it("deletes only the row the list showed", async () => {

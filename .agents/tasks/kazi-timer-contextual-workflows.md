@@ -14,5 +14,5 @@
 ## Guardrails
 
 - Every entry point controls the same shared Kazi timer and preserves the local-first, lifecycle-only sync model.
-- Gmail access is requested only when an individual enables it and can be removed at any time.
+- Gmail support is available by default and can be hidden from the extension popup at any time.
 - Asana reads only the open task title; Gmail reads only the open message subject after an explicit click; selected text is only read after the context-menu action is chosen.

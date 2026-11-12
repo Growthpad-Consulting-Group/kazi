@@ -514,7 +514,7 @@ async function injectAsanaTaskTimer(tabId, url) {
 }
 
 async function gmailTimerState() {
-  const { [GMAIL_ENABLED_KEY]: enabled = false } =
+  const { [GMAIL_ENABLED_KEY]: enabled = true } =
     await chrome.storage.local.get(GMAIL_ENABLED_KEY);
   return { enabled: enabled === true };
 }
@@ -636,6 +636,10 @@ async function handleMessage(message) {
 
   if (message.type === "start") {
     if (timer) return { error: "A timer is already active" };
+    const task = String(message.task || "").trim();
+    const reusable = message.reuseExistingActivity
+      ? await findReusableTodayEntry(task)
+      : null;
     const now = new Date().toISOString();
     // Resume continues a row already in today's log, so its time is the start.
     const baseMinutes = Math.max(
@@ -646,9 +650,12 @@ async function handleMessage(message) {
     const next = {
       id: crypto.randomUUID(),
       logDate: localDate(now),
-      task: String(message.task || "").trim(),
-      client: message.client || null,
-      category: message.category,
+      task,
+      // An Asana task can be resumed after its finished entry was enriched in
+      // Kazi with a client or a different category. Reuse that single matching
+      // plain row so a second session adds to it instead of creating a twin.
+      client: reusable?.client ?? message.client ?? null,
+      category: reusable?.category ?? message.category,
       startedAt: now,
       accumulatedMs: baseMs,
       baseMs,
@@ -747,6 +754,26 @@ async function handleMessage(message) {
     };
   }
   return { error: "Unknown Kazi Timer action" };
+}
+
+async function findReusableTodayEntry(task) {
+  const token = await tokenValue();
+  if (!token || !task) return null;
+  const date = localDate(new Date().toISOString());
+  const response = await fetch(
+    `${KAZI_URL}/api/extensions/kazi-timer/today?date=${date}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  ).catch(() => null);
+  if (!response?.ok) return null;
+  const body = await readJson(response);
+  const matches = (body?.entries || []).filter(
+    (entry) =>
+      entry?.mergeable === true &&
+      String(entry.task || "")
+        .trim()
+        .toLowerCase() === task.toLowerCase(),
+  );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function enqueueMessage(message) {

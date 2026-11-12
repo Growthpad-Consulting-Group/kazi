@@ -302,8 +302,8 @@ async function loadGmailTimer() {
   const state = await send("gmail-get-state");
   gmailEnabled = state.enabled === true;
   $("#gmail-toggle").textContent = gmailEnabled
-    ? "Disable in Gmail"
-    : "Enable in Gmail";
+    ? "Hide in Gmail"
+    : "Show in Gmail";
 }
 
 async function removeMiniSite(origin) {
@@ -355,22 +355,12 @@ $("#gmail-toggle").addEventListener("click", async () => {
   button.disabled = true;
   try {
     if (gmailEnabled) {
-      await chrome.permissions
-        .remove({ origins: ["https://mail.google.com/*"] })
-        .catch(() => {});
       await send("gmail-set-enabled", { enabled: false });
-      $("#notice").textContent = "Gmail timer disabled.";
+      $("#notice").textContent = "Gmail timer hidden.";
     } else {
-      const granted = await chrome.permissions
-        .request({ origins: ["https://mail.google.com/*"] })
-        .catch(() => false);
-      if (!granted) {
-        $("#notice").textContent = "Gmail access was not allowed.";
-        return;
-      }
       await send("gmail-set-enabled", { enabled: true });
       $("#notice").textContent =
-        "Gmail timer enabled. Open an email to start from its subject.";
+        "Gmail timer shown. Open an email to start from its subject.";
     }
   } finally {
     button.disabled = false;
