@@ -3,6 +3,16 @@
     "kazi-timer@growthpad.africa": {
       "updates": [
         {
+          "version": "0.5.7",
+          "update_link": "https://kazi.growthpad.africa/extensions/kazi-timer/firefox/kazi-timer-0.5.7.xpi",
+          "update_hash": "sha256:7fddcf05f1c557f98be5dafca7c1e119c3fdbf251930b205f3acf791760ef5bf",
+          "applications": {
+            "gecko": {
+              "strict_min_version": "140.0"
+            }
+          }
+        },
+        {
           "version": "0.5.6",
           "update_link": "https://kazi.growthpad.africa/extensions/kazi-timer/firefox/kazi-timer-0.5.6.xpi",
           "update_hash": "sha256:5d345cc5eb5bfb7c188ac24b1809a69bd2a2df50c9ceea5f73cfcc5727555fcb",
