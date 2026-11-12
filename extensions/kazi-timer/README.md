@@ -33,6 +33,12 @@ the local queue and syncs when the connection returns. Disconnect revokes the cu
 - **Selected text:** Highlight text on any page, right-click, then choose
   **Start Kazi timer with selected text**. Only the text you explicitly select
   and invoke is used as the task title.
+- **GitHub:** An open issue or pull request shows a Start Kazi timer action.
+  Only its visible title is used after you click; issue text, code, reviews and
+  files are not read.
+- **Slack:** The active channel or direct-message header shows a Start Kazi
+  timer action. Only that visible label is used after you click; messages,
+  threads, people and files are not read.
 
 All three controls use the same shared Kazi timer. Starting a second timer is
 blocked, and stopping it writes one daily-log entry as usual.
