@@ -65,7 +65,7 @@
     button.type = "button";
     button.setAttribute("aria-label", "Start Kazi timer for this GitHub item");
     button.style.cssText =
-      "margin-left:12px;border:0;border-radius:8px;padding:7px 10px;background:#f05d23;color:#fff;font:600 12px system-ui;cursor:pointer;vertical-align:middle;white-space:nowrap;";
+      "margin-left:12px;margin-right:7px;border:0;border-radius:5px;padding:5px 8px;background:#f05d23;color:#fff;font:400 12px system-ui;cursor:pointer;vertical-align:middle;white-space:nowrap;";
     button.addEventListener("click", async () => {
       const task = title();
       if (!task) return;
