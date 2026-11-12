@@ -821,9 +821,11 @@ export default function WallOfFameClient({
                 (member) => member.id === entry.nominee_id,
               );
               return (
-                <article
+                <button
                   key={entry.id}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5 transition-colors hover:border-brand-500/25"
+                  type="button"
+                  onClick={() => openNominate(entry.nominee_id)}
+                  className="group w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5 text-left transition-all hover:border-brand-500/40 hover:bg-brand-500/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar
@@ -842,11 +844,16 @@ export default function WallOfFameClient({
                     <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-500">
                       {categoryLabel(entry.category)}
                     </span>
+                    <Icon
+                      icon="solar:alt-arrow-right-broken"
+                      className="h-4 w-4 shrink-0 text-[var(--text-lo)] transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
+                      aria-hidden="true"
+                    />
                   </div>
                   <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-[var(--text-lo)]">
                     {entry.impact_statement}
                   </p>
-                </article>
+                </button>
               );
             })}
           </div>

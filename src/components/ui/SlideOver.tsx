@@ -82,7 +82,7 @@ export function SlideOver({
                 {title}
               </h2>
               {subtitle && (
-                <p className="mt-0.5 truncate text-[11px] text-[var(--text-lo)]">
+                <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
                   {subtitle}
                 </p>
               )}

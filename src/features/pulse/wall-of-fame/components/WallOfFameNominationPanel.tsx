@@ -69,6 +69,10 @@ export default function WallOfFameNominationPanel(props: Props) {
     submitVote,
     votingStage,
   } = props;
+  const personalEntries = selectedNominations.filter(
+    (item) =>
+      item.nominator_id === currentUserId && item.nominee_id === currentUserId,
+  );
   return (
     <SlideOver
       open={selected !== null}
@@ -86,7 +90,9 @@ export default function WallOfFameNominationPanel(props: Props) {
         isVoting
           ? "Review their nomination evidence, then score the impact."
           : isSelfNomination
-            ? "Choose an award and describe the work you delivered this month."
+            ? isOpen
+              ? "Choose an award and describe the work you delivered this month."
+              : "Your private self-nomination for this award cycle."
             : selected
               ? [selected.job_title, selected.department]
                   .filter(Boolean)
@@ -95,28 +101,21 @@ export default function WallOfFameNominationPanel(props: Props) {
       }
       icon="solar:star-fall-broken"
     >
-      {selected && !isOpen && !isVoting && (
-        <div className="rounded-xl bg-[var(--surface-2)] p-4 text-center">
-          <Icon
-            icon="solar:lock-keyhole-broken"
-            className="mx-auto h-5 w-5 text-[var(--text-lo)]"
+      {selected &&
+        !isOpen &&
+        !isVoting &&
+        (isSelfNomination ? (
+          <PersonalEntryClosedState
+            entries={personalEntries}
+            categoryLabel={categoryLabel}
           />
-          <p className="mt-2 text-sm font-semibold text-[var(--text-hi)]">
-            Nominations are not open
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
-            {canManage
-              ? "Open this month’s cycle to start nominating."
-              : "Your HR team will open the next Wall of Fame cycle."}
-          </p>
-          {selectedNominations.length > 0 && (
-            <NominationEntries
-              entries={selectedNominations}
-              categoryLabel={categoryLabel}
-            />
-          )}
-        </div>
-      )}
+        ) : (
+          <ClosedNominationsNotice
+            canManage={canManage}
+            entries={selectedNominations}
+            categoryLabel={categoryLabel}
+          />
+        ))}
 
       {selected && isOpen && (
         <div className="space-y-5">
@@ -347,6 +346,107 @@ export default function WallOfFameNominationPanel(props: Props) {
         />
       )}
     </SlideOver>
+  );
+}
+
+function ClosedNominationsNotice({
+  canManage,
+  entries,
+  categoryLabel,
+}: {
+  canManage: boolean;
+  entries: Nomination[];
+  categoryLabel: (key: string) => string;
+}) {
+  return (
+    <div className="rounded-xl bg-[var(--surface-2)] p-4 text-center">
+      <Icon
+        icon="solar:lock-keyhole-broken"
+        className="mx-auto h-5 w-5 text-[var(--text-lo)]"
+      />
+      <p className="mt-2 text-sm font-semibold text-[var(--text-hi)]">
+        Nominations are not open
+      </p>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+        {canManage
+          ? "Open this month’s cycle to start nominating."
+          : "Your HR team will open the next Wall of Fame cycle."}
+      </p>
+      {entries.length > 0 && (
+        <NominationEntries entries={entries} categoryLabel={categoryLabel} />
+      )}
+    </div>
+  );
+}
+
+function PersonalEntryClosedState({
+  entries,
+  categoryLabel,
+}: {
+  entries: Nomination[];
+  categoryLabel: (key: string) => string;
+}) {
+  if (!entries.length)
+    return (
+      <div className="rounded-xl bg-[var(--surface-2)] p-5 text-center">
+        <Icon
+          icon="solar:lock-keyhole-broken"
+          className="mx-auto h-5 w-5 text-[var(--text-lo)]"
+        />
+        <p className="mt-2 text-sm font-semibold text-[var(--text-hi)]">
+          Nominations are not open
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+          Your HR team will open the next Wall of Fame cycle.
+        </p>
+      </div>
+    );
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-brand-500/20 bg-[var(--surface)] shadow-lg shadow-brand-500/5">
+      <div className="flex items-start gap-3 bg-brand-500/[0.06] px-4 py-4">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
+          <Icon icon="solar:check-circle-broken" className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--text-hi)]">
+            Your monthly entry is submitted
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
+            This entry is private to you and the recognition reviewers.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-3 p-4">
+        {entries.map((entry) => (
+          <article
+            key={entry.id}
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="rounded-md bg-brand-500/10 px-2 py-1 font-mono text-[10px] font-bold text-brand-500">
+                {categoryLabel(entry.category)}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-lo)]">
+                <Icon
+                  icon="solar:shield-check-broken"
+                  className="h-3.5 w-3.5"
+                />
+                Private entry
+              </span>
+            </div>
+            {entry.impact_statement && (
+              <p className="mt-3 text-sm leading-relaxed text-[var(--text-lo)]">
+                {entry.impact_statement}
+              </p>
+            )}
+          </article>
+        ))}
+      </div>
+      <div className="border-t border-[var(--border)] px-4 py-3 text-xs leading-relaxed text-[var(--text-lo)]">
+        The next nomination window will be announced by HR.
+      </div>
+    </section>
   );
 }
 
