@@ -10,6 +10,14 @@ import {
   buildRecognitionModal,
   readRecognitionSubmission,
 } from "@/lib/slack-recognition-view";
+import {
+  SLACK_MESSAGE_TIMER_CALLBACK_ID,
+  SLACK_TIMER_CALLBACK_ID,
+  buildSlackTimerModal,
+  readSlackTimerSubmission,
+} from "@/lib/slack-timer-view";
+import { localClock } from "@/lib/slack-schedule";
+import type { SharedActiveTimer } from "@/features/pulse/daily-log/shared-timer";
 
 const SNOOZE_HOURS = 4;
 const SNOOZE_KINDS = ["review_acknowledgement", "checkin_review"] as const;
@@ -75,6 +83,41 @@ async function openRecognitionModal(triggerId: string, responseUrl?: string) {
   );
 }
 
+async function openSlackTimerModal(
+  triggerId: string,
+  initialTask: string,
+  responseUrl?: string,
+) {
+  try {
+    const response = await fetch("https://slack.com/api/views.open", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN ?? ""}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify({
+        trigger_id: triggerId,
+        view: buildSlackTimerModal(initialTask),
+      }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      ok?: boolean;
+      error?: string;
+    } | null;
+    if (response.ok && body?.ok) return;
+    console.error(
+      "[Slack] start Kazi timer views.open failed:",
+      body?.error ?? `HTTP ${response.status}`,
+    );
+  } catch (error) {
+    console.error("[Slack] start Kazi timer views.open failed", error);
+  }
+  await replyToResponseUrl(
+    responseUrl,
+    "Could not open the timer form. Please try again, or start your timer in Kazi.",
+  );
+}
+
 async function canReviewCheckin(actorId: string, employeeId: string) {
   const [{ data: actor }, { data: employee }] = await Promise.all([
     supabaseAdmin
@@ -116,6 +159,7 @@ export async function POST(request: Request) {
     trigger_id?: string;
     response_url?: string;
     user?: { id?: string };
+    channel?: { id?: string; name?: string };
     actions?: { action_id?: string; value?: string }[];
     view?: { callback_id?: string; state?: unknown };
   } | null;
@@ -145,6 +189,30 @@ export async function POST(request: Request) {
         `Open Kazi: ${appUrl}/pulse`,
       );
     }
+    if (
+      payload.callback_id === SLACK_MESSAGE_TIMER_CALLBACK_ID &&
+      payload.trigger_id
+    ) {
+      const channel = payload.channel?.name?.trim();
+      await openSlackTimerModal(
+        payload.trigger_id,
+        channel ? `Slack: #${channel}` : "Slack conversation",
+        payload.response_url,
+      );
+    }
+    return new NextResponse(null, { status: 200 });
+  }
+
+  if (payload?.type === "shortcut") {
+    if (!link) {
+      await replyToResponseUrl(
+        payload.response_url,
+        "Your Slack account is not linked to Kazi.",
+      );
+      return new NextResponse(null, { status: 200 });
+    }
+    if (payload.callback_id === SLACK_TIMER_CALLBACK_ID && payload.trigger_id)
+      await openSlackTimerModal(payload.trigger_id, "", payload.response_url);
     return new NextResponse(null, { status: 200 });
   }
 
@@ -157,6 +225,15 @@ export async function POST(request: Request) {
       payload as Parameters<typeof readRecognitionSubmission>[0],
     );
   }
+
+  if (
+    payload?.type === "view_submission" &&
+    payload.view?.callback_id === SLACK_TIMER_CALLBACK_ID
+  )
+    return handleSlackTimerSubmission(
+      link?.user_id ?? null,
+      payload as Parameters<typeof readSlackTimerSubmission>[0],
+    );
 
   if (!link) return ephemeral("Your Slack account is not linked to Kazi.");
 
@@ -261,6 +338,73 @@ export async function POST(request: Request) {
   }
 
   return ephemeral("That action is not available.");
+}
+
+async function handleSlackTimerSubmission(
+  userId: string | null,
+  payload: Parameters<typeof readSlackTimerSubmission>[0],
+) {
+  if (!userId) return NextResponse.json({ response_action: "clear" });
+  const submission = readSlackTimerSubmission(payload);
+  if (!submission.task)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { task: "Describe the activity before starting the timer." },
+    });
+  if (!submission.category)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { category: "Choose a valid activity type." },
+    });
+
+  const { data: user } = await db
+    .from("users")
+    .select("timezone")
+    .eq("id", userId)
+    .maybeSingle();
+  const now = new Date();
+  const clock = localClock(now, user?.timezone ?? "Africa/Nairobi");
+  const { data: active, error: activeError } = await db
+    .from("shared_active_timers")
+    .select("timer")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (activeError)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { task: "Could not check your active timer. Try again." },
+    });
+  if (active?.timer)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { task: "Stop your active Kazi timer before starting another." },
+    });
+
+  const timer: SharedActiveTimer = {
+    id: crypto.randomUUID(),
+    logDate: clock.date,
+    task: submission.task,
+    client: null,
+    category: submission.category,
+    startedAt: now.toISOString(),
+    accumulatedMs: 0,
+    running: true,
+    source: "kazi",
+    updatedAt: now.toISOString(),
+  };
+  const { error } = await db.from("shared_active_timers").insert({
+    user_id: userId,
+    timer_id: timer.id,
+    log_date: timer.logDate,
+    timer,
+    updated_at: timer.updatedAt,
+  });
+  if (error)
+    return NextResponse.json({
+      response_action: "errors",
+      errors: { task: "Could not start the timer. Try again." },
+    });
+  return NextResponse.json({ response_action: "clear" });
 }
 
 /**
