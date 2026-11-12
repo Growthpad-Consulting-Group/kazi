@@ -2,6 +2,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { effectiveSideQuestStatus } from "@/lib/side-quest-lifecycle";
 import { audienceUserIds } from "@/features/pulse/surveys/audience";
 import type { WallOfFameSignal, OpenSurveySignal } from "./next-steps";
+import { localClock } from "@/lib/slack-schedule";
+import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 
 // Mirrors the roles allowed to vote in the management stage of Wall of Fame
 // (see api/pulse/wall-of-fame/votes). Managers participate with the team.
@@ -158,21 +160,35 @@ async function loadWallOfFameStep(
   const { data } = await db
     .from("wall_of_fame_cycles")
     .select(
-      "id, title, status, closes_at, team_voting_closes_at, management_voting_closes_at",
+      "id, title, status, closes_at, team_voting_opens_at, team_voting_closes_at, management_voting_opens_at, management_voting_closes_at",
     )
-    .in("status", ["open", "team_voting", "management_voting"])
+    .neq("status", "published")
     .order("month", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const cycle = data as {
+  const row = data as {
     id: string;
     title: string;
-    status: "open" | "team_voting" | "management_voting";
+    status: string;
     closes_at: string | null;
+    team_voting_opens_at: string | null;
     team_voting_closes_at: string | null;
+    management_voting_opens_at: string | null;
     management_voting_closes_at: string | null;
   } | null;
-  if (!cycle) return null;
+  if (!row) return null;
+  // Use the stage the dates imply, so a stale stored status can't create a task.
+  const currentStage = resolveWallOfFameStage(
+    row,
+    localClock(now, "Africa/Nairobi").date,
+  );
+  if (
+    currentStage !== "open" &&
+    currentStage !== "team_voting" &&
+    currentStage !== "management_voting"
+  )
+    return null;
+  const cycle = { ...row, status: currentStage };
 
   if (cycle.status === "open") {
     const { data: own } = await db
@@ -189,9 +205,10 @@ async function loadWallOfFameStep(
     };
   }
 
-  const stage = cycle.status === "management_voting" ? "management" : "team";
+  const voterStage =
+    cycle.status === "management_voting" ? "management" : "team";
   const eligible =
-    stage === "management"
+    voterStage === "management"
       ? MANAGEMENT_ROLES.has(role)
       : !MANAGEMENT_ROLES.has(role);
   if (!eligible) return null;
@@ -201,12 +218,12 @@ async function loadWallOfFameStep(
     .select("id")
     .eq("cycle_id", cycle.id)
     .eq("voter_id", userId)
-    .eq("stage", stage)
+    .eq("stage", voterStage)
     .limit(1);
   if (votes?.length) return null;
 
   const closesAt = endOfDay(
-    stage === "management"
+    voterStage === "management"
       ? cycle.management_voting_closes_at
       : cycle.team_voting_closes_at,
   );

@@ -1,3 +1,5 @@
+> **Update (November 2026):** The Walk of Fame page (`/pulse/walk-of-fame`) and its code were removed. Culture Leaderboards replaced it. The Wall of Fame feature is at `/pulse/wall-of-fame`. References below are historical.
+
 # Implementation Plan — Four Features
 
 _Grounded in codebase exploration as of the plan date. All file paths verified to exist or confirmed absent._

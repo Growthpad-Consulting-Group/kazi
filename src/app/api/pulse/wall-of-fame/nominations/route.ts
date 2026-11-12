@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 export async function POST(req: Request) {
@@ -41,13 +42,15 @@ export async function POST(req: Request) {
   const db = supabaseAdmin as any;
   const { data: cycle } = await db
     .from("wall_of_fame_cycles")
-    .select("id, status, opens_at, closes_at")
+    .select(
+      "id, status, opens_at, closes_at, team_voting_opens_at, management_voting_opens_at",
+    )
     .eq("id", body.cycleId)
     .maybeSingle();
   const today = new Date().toISOString().slice(0, 10);
   if (
     !cycle ||
-    cycle.status !== "open" ||
+    resolveWallOfFameStage(cycle, today) !== "open" ||
     (cycle.opens_at && cycle.opens_at > today) ||
     (cycle.closes_at && cycle.closes_at < today)
   ) {

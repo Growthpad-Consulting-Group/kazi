@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { localClock } from "@/lib/slack-schedule";
+import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 type Vote = {
@@ -41,10 +43,18 @@ export async function POST(request: Request) {
   const db = supabaseAdmin as any;
   const { data: cycle } = await db
     .from("wall_of_fame_cycles")
-    .select("status")
+    .select(
+      "status, closes_at, team_voting_opens_at, management_voting_opens_at",
+    )
     .eq("id", body.cycleId)
     .maybeSingle();
-  if (cycle?.status !== "management_voting")
+  if (
+    !cycle ||
+    resolveWallOfFameStage(
+      cycle,
+      localClock(new Date(), "Africa/Nairobi").date,
+    ) !== "management_voting"
+  )
     return NextResponse.json(
       { error: "Publish winners after management voting is open." },
       { status: 409 },

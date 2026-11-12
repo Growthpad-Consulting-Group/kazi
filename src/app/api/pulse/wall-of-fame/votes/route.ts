@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { localClock } from "@/lib/slack-schedule";
+import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 const managementRoles = new Set(["admin", "hr"]);
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
   const { data: cycle, error: cycleError } = await db
     .from("wall_of_fame_cycles")
     .select(
-      "status, team_voting_opens_at, team_voting_closes_at, management_voting_opens_at, management_voting_closes_at",
+      "status, closes_at, team_voting_opens_at, team_voting_closes_at, management_voting_opens_at, management_voting_closes_at",
     )
     .eq("id", body.cycleId)
     .maybeSingle();
@@ -55,10 +57,14 @@ export async function POST(request: Request) {
     );
 
   const canManage = userCan(session.user, "manage_recognition_campaigns");
+  const currentStage = resolveWallOfFameStage(
+    cycle,
+    localClock(new Date(), "Africa/Nairobi").date,
+  );
   const stage =
-    cycle.status === "management_voting" && canManage
+    currentStage === "management_voting" && canManage
       ? "management"
-      : cycle.status === "team_voting" &&
+      : currentStage === "team_voting" &&
           !managementRoles.has(session.user.role)
         ? "team"
         : null;

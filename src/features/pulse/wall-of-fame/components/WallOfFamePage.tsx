@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { localClock } from "@/lib/slack-schedule";
+import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import WallOfFameClient from "./WallOfFameClient";
 
 type Cycle = {
@@ -73,7 +75,17 @@ export default async function WallOfFamePage() {
     .order("month", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const cycle = cycleData as Cycle | null;
+  const storedCycle = cycleData as Cycle | null;
+  // The stage follows the dates, so the page never shows a stage that has already passed.
+  const cycle = storedCycle
+    ? {
+        ...storedCycle,
+        status: resolveWallOfFameStage(
+          storedCycle,
+          localClock(new Date(), "Africa/Nairobi").date,
+        ),
+      }
+    : null;
   const [
     { data: staffData },
     { data: signatureProfiles },
