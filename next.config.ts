@@ -1,6 +1,24 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    // Extension update checks must keep their stable Kazi URL so managed
+    // browsers and existing Firefox installs continue to update. Redirecting
+    // before the public filesystem hands the signed packages to R2, rather
+    // than making Vercel serve or rebuild a binary for every release.
+    const extensionPublicUrl = (
+      process.env.R2_PUBLIC_URL ??
+      "https://pub-9ee2a5bfc0d64d37ac53bb0000672438.r2.dev"
+    ).replace(/\/$/, "");
+
+    return [
+      {
+        source: "/extensions/kazi-timer/:path*",
+        destination: `${extensionPublicUrl}/extensions/kazi-timer/:path*`,
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     const isProduction = process.env.NODE_ENV === "production";
     // React's development error overlays use eval to reconstruct stack traces.
@@ -58,42 +76,6 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Cache-Control", value: "private, no-store" },
-        ],
-      },
-      {
-        source: "/extensions/kazi-timer/updates.xml",
-        headers: [
-          { key: "Content-Type", value: "application/xml; charset=utf-8" },
-          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
-        ],
-      },
-      {
-        source: "/extensions/kazi-timer/kazi-timer.crx",
-        headers: [
-          { key: "Content-Type", value: "application/x-chrome-extension" },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      // Firefox self-distributed updates require a signed XPI served with the
-      // installable add-on content type; the JSON manifest stays revalidatable.
-      {
-        source: "/extensions/kazi-timer/firefox/updates.json",
-        headers: [
-          { key: "Content-Type", value: "application/json; charset=utf-8" },
-          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
-        ],
-      },
-      {
-        source: "/extensions/kazi-timer/firefox/:path*.xpi",
-        headers: [
-          { key: "Content-Type", value: "application/x-xpinstall" },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
         ],
       },
     ];

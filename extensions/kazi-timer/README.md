@@ -55,8 +55,21 @@ extensions → Users & browsers**, select the target staff group, then choose
 
 Use **Force install + pin to browser toolbar**. The signing key used to create
 the package must stay outside source control; it is required for every update.
-For a release, increase `version` in `manifest.json`, package with the same key,
-and replace the CRX plus this update manifest.
+For a release, increase `version` in `manifest.json`. GitHub Actions signs the
+packages and publishes versioned binaries and update manifests directly to R2.
+The Kazi URL above remains stable and redirects to R2, so existing managed
+installations continue to update without a policy change or a release commit
+being written back to `main`.
+
+The **Release Kazi Timer** workflow needs these repository secrets or variables:
+
+- secrets: `KAZI_TIMER_CRX_KEY_BASE64`, `AMO_JWT_ISSUER`, `AMO_JWT_SECRET`,
+  `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+- secrets or repository variables: `CLOUDFLARE_ACCOUNT_ID`, `R2_BUCKET_NAME`,
+  `R2_PUBLIC_URL`
+
+After enabling the workflow for the first time, run it once manually from
+**Actions → Release Kazi Timer → Run workflow** to publish the current version.
 
 ## Microsoft Edge (Edge for Business)
 

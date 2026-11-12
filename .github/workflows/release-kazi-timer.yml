@@ -4,12 +4,13 @@ on:
   push:
     branches: [main]
     paths:
-      - "extensions/kazi-timer/**"
-      - ".github/workflows/release-kazi-timer.yml"
+      # A source change is not a release. Publishing only when the extension
+      # version changes prevents unnecessary AMO signing and R2 uploads.
+      - "extensions/kazi-timer/manifest.json"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: kazi-timer-release
@@ -38,17 +39,9 @@ jobs:
         id: version
         run: |
           VERSION=$(node -p "require('./extensions/kazi-timer/manifest.json').version")
-          PUBLISHED=$(sed -n 's/.*version="\([^"]*\)".*/\1/p' public/extensions/kazi-timer/updates.xml | head -1)
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
-          if [ "$VERSION" = "$PUBLISHED" ]; then
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Kazi Timer $VERSION is already published."
-          else
-            echo "release=true" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Restore Chrome signing key
-        if: steps.version.outputs.release == 'true'
         env:
           KAZI_TIMER_CRX_KEY_BASE64: ${{ secrets.KAZI_TIMER_CRX_KEY_BASE64 }}
         run: |
@@ -67,19 +60,16 @@ jobs:
           chmod 600 "$RUNNER_TEMP/kazi-timer.pem"
 
       - name: Package signed Chrome extension
-        if: steps.version.outputs.release == 'true'
         run: |
           CHROME_BIN=$(command -v google-chrome || command -v google-chrome-stable)
           test -n "$CHROME_BIN"
           "$CHROME_BIN" --pack-extension=extensions/kazi-timer --pack-extension-key="$RUNNER_TEMP/kazi-timer.pem"
-          mv extensions/kazi-timer.crx public/extensions/kazi-timer/kazi-timer.crx
+          mv extensions/kazi-timer.crx "$RUNNER_TEMP/kazi-timer-${{ steps.version.outputs.value }}.crx"
 
       - name: Build Firefox source package
-        if: steps.version.outputs.release == 'true'
         run: node extensions/kazi-timer/build-firefox.mjs
 
       - name: Sign Firefox extension with AMO
-        if: steps.version.outputs.release == 'true'
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
@@ -93,23 +83,18 @@ jobs:
             --api-key "$AMO_JWT_ISSUER" \
             --api-secret "$AMO_JWT_SECRET"
 
-      - name: Publish self-hosted update artifacts
-        if: steps.version.outputs.release == 'true'
+      - name: Publish signed update artifacts to R2
         env:
           VERSION: ${{ steps.version.outputs.value }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || vars.R2_BUCKET_NAME }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL || vars.R2_PUBLIC_URL }}
         run: |
           XPI=$(find "$RUNNER_TEMP/firefox-signed" -type f -name '*.xpi' | head -1)
           test -n "$XPI"
-          cp "$XPI" "public/extensions/kazi-timer/firefox/kazi-timer-$VERSION.xpi"
-          node extensions/kazi-timer/update-release-manifests.mjs "$VERSION" "public/extensions/kazi-timer/firefox/kazi-timer-$VERSION.xpi"
-
-      - name: Commit signed release artifacts
-        if: steps.version.outputs.release == 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.value }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/extensions/kazi-timer
-          git commit -m "chore(extension): release Kazi Timer v$VERSION"
-          git push
+          node extensions/kazi-timer/publish-release-artifacts.mjs \
+            "$VERSION" \
+            "$RUNNER_TEMP/kazi-timer-$VERSION.crx" \
+            "$XPI"
