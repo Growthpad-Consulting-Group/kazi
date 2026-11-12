@@ -1,3 +1,3 @@
-export function hallOfFameChannelName(cycleId: string) {
-  return `hall-of-fame-${cycleId}`;
+export function wallOfFameChannelName(cycleId: string) {
+  return `wall-of-fame-${cycleId}`;
 }

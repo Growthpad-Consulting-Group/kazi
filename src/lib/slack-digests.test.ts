@@ -4,7 +4,7 @@ import {
   buildCheckinSubmissionConfirmation,
   buildCheckinReviewReminder,
   buildDailyBrief,
-  buildHallOfFameClosingReminder,
+  buildWallOfFameClosingReminder,
   buildInterviewReminder,
   buildManagerMondayPulse,
   buildManagerReviewQueue,
@@ -132,7 +132,7 @@ describe("interview reminders", () => {
 
 describe("Wall of Fame reminders", () => {
   it("uses a culture-safe channel message and one deep link", () => {
-    const message = buildHallOfFameClosingReminder({
+    const message = buildWallOfFameClosingReminder({
       daysRemaining: 3,
       appUrl,
     });
@@ -144,13 +144,13 @@ describe("Wall of Fame reminders", () => {
 
   it("uses singular wording for the final-day reminder", () => {
     expect(
-      buildHallOfFameClosingReminder({ daysRemaining: 1, appUrl }).text,
+      buildWallOfFameClosingReminder({ daysRemaining: 1, appUrl }).text,
     ).toContain("close in 1 day.");
   });
 
   it("uses closing-day wording when the cycle closes today", () => {
     expect(
-      buildHallOfFameClosingReminder({ daysRemaining: 0, appUrl }).text,
+      buildWallOfFameClosingReminder({ daysRemaining: 0, appUrl }).text,
     ).toContain("close today.");
   });
 });

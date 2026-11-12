@@ -98,7 +98,7 @@ export const KNOWN_KINDS: Record<QueueScope, readonly string[]> = {
     "weekly_checkin",
     "survey",
     "side_quest",
-    "hall_of_fame",
+    "wall_of_fame",
     "one_on_one_prep",
     "action_items",
   ],

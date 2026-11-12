@@ -9,7 +9,7 @@ const KIND_ICON: Record<NextStep["kind"], string> = {
   weekly_checkin: "solar:clipboard-check-broken",
   survey: "solar:list-check-broken",
   side_quest: "solar:flag-broken",
-  hall_of_fame: "solar:cup-star-broken",
+  wall_of_fame: "solar:cup-star-broken",
   one_on_one_prep: "solar:chat-round-dots-broken",
   action_items: "solar:checklist-minimalistic-broken",
 };

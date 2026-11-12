@@ -4,7 +4,7 @@ export type NextStepKind =
   | "weekly_checkin"
   | "survey"
   | "side_quest"
-  | "hall_of_fame"
+  | "wall_of_fame"
   | "one_on_one_prep"
   | "action_items";
 
@@ -20,7 +20,7 @@ export type NextStep = {
 
 export type OpenSurveySignal = { title: string; closesAt: Date | null };
 
-export type HallOfFameSignal = {
+export type WallOfFameSignal = {
   action: "nominate" | "vote";
   cycleTitle: string;
   closesAt: Date | null;
@@ -37,8 +37,8 @@ export type EmployeeNextStepInput = {
   openSurveys: OpenSurveySignal[];
   /** Live evidence-based Side Quests the employee has not completed. */
   outstandingSideQuests: number;
-  /** Open Hall of Fame step for this employee, if any. */
-  hallOfFame: HallOfFameSignal | null;
+  /** Open Wall of Fame step for this employee, if any. */
+  wallOfFame: WallOfFameSignal | null;
   /** Start of the next scheduled 1-on-1 the user is part of, if any. */
   nextOneOnOneAt: Date | null;
   /** Open action items on the relevant 1-on-1. */
@@ -159,18 +159,18 @@ export function buildEmployeeNextSteps(
     });
   }
 
-  if (input.hallOfFame) {
-    const voting = input.hallOfFame.action === "vote";
+  if (input.wallOfFame) {
+    const voting = input.wallOfFame.action === "vote";
     steps.push({
-      kind: "hall_of_fame",
-      title: voting ? "Vote for Hall of Fame" : "Nominate for Hall of Fame",
+      kind: "wall_of_fame",
+      title: voting ? "Vote for Wall of Fame" : "Nominate for Wall of Fame",
       description: voting
-        ? `Voting is open for ${input.hallOfFame.cycleTitle}.`
-        : `Recognise a colleague for ${input.hallOfFame.cycleTitle}.`,
-      urgency: closingLabel(input.hallOfFame.closesAt, input.now),
+        ? `Voting is open for ${input.wallOfFame.cycleTitle}.`
+        : `Recognise a colleague for ${input.wallOfFame.cycleTitle}.`,
+      urgency: closingLabel(input.wallOfFame.closesAt, input.now),
       tone: "soon",
       actionLabel: voting ? "Vote" : "Nominate",
-      href: "/pulse/hall-of-fame",
+      href: "/pulse/wall-of-fame",
     });
   }
 

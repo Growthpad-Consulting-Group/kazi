@@ -1,3 +1,3 @@
-import HallOfFamePage from "@/features/pulse/hall-of-fame/components/HallOfFamePage";
+import WallOfFamePage from "@/features/pulse/wall-of-fame/components/WallOfFamePage";
 
-export default HallOfFamePage;
+export default WallOfFamePage;

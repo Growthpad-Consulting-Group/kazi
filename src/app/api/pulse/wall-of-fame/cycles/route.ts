@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
+import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 function validDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
   const db = supabaseAdmin as any;
   const { data, error } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .insert({
       month: `${body.month.slice(0, 7)}-01`,
       opens_at: body.opensAt ?? null,
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  await broadcastHallOfFameChange(data.id).catch(() => {});
+  await broadcastWallOfFameChange(data.id).catch(() => {});
   return NextResponse.json(data);
 }
 
@@ -160,7 +160,7 @@ export async function PATCH(req: Request) {
         .eq("is_active", true)
         .not("role", "in", "(admin,hr)"),
       db
-        .from("hall_of_fame_nominations")
+        .from("wall_of_fame_nominations")
         .select("nominator_id, nominee_id")
         .eq("cycle_id", body.id),
     ]);
@@ -190,7 +190,7 @@ export async function PATCH(req: Request) {
       );
   }
   const { data: existingCycle, error: cycleError } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .select("team_voting_opens_at, management_voting_opens_at")
     .eq("id", body.id)
     .maybeSingle();
@@ -217,7 +217,7 @@ export async function PATCH(req: Request) {
       }
     : {};
   const { error } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .update({
       ...(body.status ? { status: body.status } : {}),
       ...stageTimestamp,
@@ -226,6 +226,6 @@ export async function PATCH(req: Request) {
     .eq("id", body.id);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  await broadcastHallOfFameChange(body.id).catch(() => {});
+  await broadcastWallOfFameChange(body.id).catch(() => {});
   return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { hallOfFameChannelName } from "@/lib/hall-of-fame-channel";
+import { wallOfFameChannelName } from "@/lib/wall-of-fame-channel";
 import Image from "next/image";
 import { Avatar } from "@/components/ui/Avatar";
 import { useRouter } from "next/navigation";
@@ -144,7 +144,7 @@ function recommendedCycleSchedule(month: string) {
   };
 }
 
-export default function HallOfFameClient({
+export default function WallOfFameClient({
   currentUserId,
   canManage,
   canTeamVote,
@@ -346,7 +346,7 @@ export default function HallOfFameClient({
     if (!cycle || !selected || impact.trim().length < 20) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/nominations", {
+      const response = await fetch("/api/pulse/wall-of-fame/nominations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -378,7 +378,7 @@ export default function HallOfFameClient({
   const createCycle = async () => {
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/cycles", {
+      const response = await fetch("/api/pulse/wall-of-fame/cycles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -431,7 +431,7 @@ export default function HallOfFameClient({
     if (!cycle) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/cycles", {
+      const response = await fetch("/api/pulse/wall-of-fame/cycles", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -464,7 +464,7 @@ export default function HallOfFameClient({
     if (!cycle) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/cycles", {
+      const response = await fetch("/api/pulse/wall-of-fame/cycles", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: cycle.id, status: "closed" }),
@@ -485,7 +485,7 @@ export default function HallOfFameClient({
     if (!cycle) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/cycles", {
+      const response = await fetch("/api/pulse/wall-of-fame/cycles", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: cycle.id, status }),
@@ -510,7 +510,7 @@ export default function HallOfFameClient({
     if (!cycle || !selected || !votingStage || !score) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/votes", {
+      const response = await fetch("/api/pulse/wall-of-fame/votes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -538,7 +538,7 @@ export default function HallOfFameClient({
     if (!cycle) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/winners", {
+      const response = await fetch("/api/pulse/wall-of-fame/winners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cycleId: cycle.id }),
@@ -562,7 +562,7 @@ export default function HallOfFameClient({
   ) => {
     setSaving(true);
     try {
-      const response = await fetch("/api/pulse/hall-of-fame/winners", {
+      const response = await fetch("/api/pulse/wall-of-fame/winners", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: winnerId, prizeStatus }),
@@ -593,7 +593,7 @@ export default function HallOfFameClient({
   useEffect(() => {
     if (!cycle) return;
     const channel = supabaseBrowser
-      .channel(hallOfFameChannelName(cycle.id))
+      .channel(wallOfFameChannelName(cycle.id))
       .on("broadcast", { event: "changed" }, () => router.refresh())
       .subscribe();
     return () => {

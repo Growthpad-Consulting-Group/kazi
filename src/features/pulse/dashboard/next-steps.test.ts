@@ -16,7 +16,7 @@ function input(
     unacknowledgedReviews: 0,
     openSurveys: [],
     outstandingSideQuests: 0,
-    hallOfFame: null,
+    wallOfFame: null,
     nextOneOnOneAt: null,
     openActionItems: 0,
     now,
@@ -64,19 +64,19 @@ describe("employee queue signals", () => {
     expect(step.description).toBe("2 surveys waiting for your response.");
   });
 
-  it("shows outstanding Side Quest evidence and Hall of Fame steps", () => {
+  it("shows outstanding Side Quest evidence and Wall of Fame steps", () => {
     const steps = buildEmployeeNextSteps(
       input({
         ...settled,
         outstandingSideQuests: 2,
-        hallOfFame: {
+        wallOfFame: {
           action: "nominate",
           cycleTitle: "November",
           closesAt: null,
         },
       }),
     );
-    expect(steps.map((s) => s.kind)).toEqual(["side_quest", "hall_of_fame"]);
+    expect(steps.map((s) => s.kind)).toEqual(["side_quest", "wall_of_fame"]);
     expect(steps[0].description).toBe(
       "2 live Side Quests need evidence from you.",
     );

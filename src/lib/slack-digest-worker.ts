@@ -23,7 +23,7 @@ import {
   buildCheckinReviewReminder,
   buildDailyBrief,
   buildInterviewReminder,
-  buildHallOfFameClosingReminder,
+  buildWallOfFameClosingReminder,
   buildManagerMondayPulse,
   buildManagerReviewQueue,
   buildOneOnOneFollowUp,
@@ -59,7 +59,7 @@ export type DigestCounts = {
   interviewReminders: number;
   overdueScorecards: number;
   reviewAcknowledgementReminders: number;
-  hallOfFameReminders: number;
+  wallOfFameReminders: number;
   cultureRecaps: number;
   cultureAnnouncements: number;
   timerReminders: number;
@@ -107,7 +107,7 @@ function emptyCounts(): DigestCounts {
     interviewReminders: 0,
     overdueScorecards: 0,
     reviewAcknowledgementReminders: 0,
-    hallOfFameReminders: 0,
+    wallOfFameReminders: 0,
     cultureRecaps: 0,
     cultureAnnouncements: 0,
     timerReminders: 0,
@@ -304,7 +304,7 @@ export async function runSlackDigests(
   await sendOneOnOneFollowUps(now, byId, prefs, counts);
   await sendInterviewReminders(now, byId, prefs, counts);
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
-  await sendHallOfFameClosingReminder(now, counts);
+  await sendWallOfFameClosingReminder(now, counts);
   await sendLongRunningTimerReminders(now, byId, prefs, counts);
   await sendDueSnoozedReminders(now, byId, counts);
   await publishCultureAnnouncements(now, byId, prefs, counts);
@@ -947,17 +947,17 @@ async function sendOverdueScorecardReminders(
   }
 }
 
-async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
+async function sendWallOfFameClosingReminder(now: Date, counts: DigestCounts) {
   const today = localClock(now, DEFAULT_TIMEZONE).date;
   for (const daysRemaining of [3, 1, 0]) {
     const closesOn = addDays(today, daysRemaining);
     const { data } = await db
-      .from("hall_of_fame_cycles")
+      .from("wall_of_fame_cycles")
       .select("id,closes_at")
       .eq("status", "open")
       .eq("closes_at", closesOn);
     for (const cycle of (data ?? []) as { id: string; closes_at: string }[]) {
-      const message = buildHallOfFameClosingReminder({
+      const message = buildWallOfFameClosingReminder({
         daysRemaining,
         appUrl: appUrl(),
       });
@@ -967,16 +967,16 @@ async function sendHallOfFameClosingReminder(now: Date, counts: DigestCounts) {
         // hourly deliveries.
         eventKey:
           daysRemaining === 3
-            ? `hall-of-fame-nominations-closing:${cycle.id}:${cycle.closes_at}`
+            ? `wall-of-fame-nominations-closing:${cycle.id}:${cycle.closes_at}`
             : daysRemaining === 1
-              ? `hall-of-fame-nominations-closing-one-day:${cycle.id}:${cycle.closes_at}`
-              : `hall-of-fame-nominations-closing-final:${cycle.id}:${cycle.closes_at}`,
-        category: "hall_of_fame_nominations",
+              ? `wall-of-fame-nominations-closing-one-day:${cycle.id}:${cycle.closes_at}`
+              : `wall-of-fame-nominations-closing-final:${cycle.id}:${cycle.closes_at}`,
+        category: "wall_of_fame_nominations",
         text: message.text,
         blocks: message.blocks,
       });
       record(counts, outcome);
-      if (outcome === "delivered") counts.hallOfFameReminders += 1;
+      if (outcome === "delivered") counts.wallOfFameReminders += 1;
     }
   }
 }
@@ -1083,7 +1083,7 @@ async function publishCultureAnnouncements(
   const since = new Date(now.getTime() - 26 * 3_600_000).toISOString();
 
   const { data: winners } = await db
-    .from("hall_of_fame_winners")
+    .from("wall_of_fame_winners")
     .select("id, nominee_id, category, published_at")
     .gte("published_at", since);
   for (const winner of (winners ?? []) as {
@@ -1112,7 +1112,7 @@ async function publishCultureAnnouncements(
           elements: [
             {
               type: "mrkdwn",
-              text: `<${appUrl()}/pulse/hall-of-fame|See the Wall of Fame>`,
+              text: `<${appUrl()}/pulse/wall-of-fame|See the Wall of Fame>`,
             },
           ],
         },
@@ -1263,7 +1263,7 @@ async function sendWeeklyCultureRecap(
       .gte("updated_at", from)
       .lt("updated_at", to),
     db
-      .from("hall_of_fame_winners")
+      .from("wall_of_fame_winners")
       .select("nominee_id")
       .gte("published_at", from)
       .lt("published_at", to),

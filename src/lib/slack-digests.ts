@@ -402,7 +402,7 @@ export function buildInterviewReminder(input: {
   };
 }
 
-export function buildHallOfFameClosingReminder(input: {
+export function buildWallOfFameClosingReminder(input: {
   daysRemaining: number;
   appUrl: string;
 }): SlackMessage {
@@ -423,7 +423,7 @@ export function buildHallOfFameClosingReminder(input: {
         elements: [
           {
             type: "mrkdwn",
-            text: `<${input.appUrl}/pulse/hall-of-fame|Open Wall of Fame in Kazi>`,
+            text: `<${input.appUrl}/pulse/wall-of-fame|Open Wall of Fame in Kazi>`,
           },
         ],
       },

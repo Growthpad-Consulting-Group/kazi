@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
+import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 const managementRoles = new Set(["admin", "hr"]);
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed tables
   const db = supabaseAdmin as any;
   const { data: cycle, error: cycleError } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .select(
       "status, team_voting_opens_at, team_voting_closes_at, management_voting_opens_at, management_voting_closes_at",
     )
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     );
 
   const { data: nomination, error: nominationError } = await db
-    .from("hall_of_fame_nominations")
+    .from("wall_of_fame_nominations")
     .select("id")
     .eq("cycle_id", body.cycleId)
     .eq("nominee_id", body.nomineeId)
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
 
   if (stage === "management") {
     const { data: teamVotes, error } = await db
-      .from("hall_of_fame_votes")
+      .from("wall_of_fame_votes")
       .select("nominee_id, score")
       .eq("cycle_id", body.cycleId)
       .eq("category", body.category)
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       );
   }
 
-  const { error } = await db.from("hall_of_fame_votes").upsert(
+  const { error } = await db.from("wall_of_fame_votes").upsert(
     {
       cycle_id: body.cycleId,
       nominee_id: body.nomineeId,
@@ -140,6 +140,6 @@ export async function POST(request: Request) {
   );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  await broadcastHallOfFameChange(body.cycleId).catch(() => {});
+  await broadcastWallOfFameChange(body.cycleId).catch(() => {});
   return NextResponse.json({ ok: true });
 }

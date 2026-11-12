@@ -64,7 +64,7 @@ export const sidebarNavGroups: NavGroup[] = [
         label: "Leaderboards",
       },
       {
-        href: "/pulse/hall-of-fame",
+        href: "/pulse/wall-of-fame",
         icon: "solar:cup-star-broken",
         label: "Wall of Fame",
       },

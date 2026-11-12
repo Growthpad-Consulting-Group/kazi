@@ -22,7 +22,7 @@ export const KNOWN_CATEGORIES = [
   "culture_recognition",
   "culture_wall_of_fame",
   "culture_side_quest",
-  "hall_of_fame_nominations",
+  "wall_of_fame_nominations",
   "admin_test",
 ] as const;
 

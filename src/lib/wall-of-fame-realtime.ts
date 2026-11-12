@@ -1,8 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { hallOfFameChannelName } from "@/lib/hall-of-fame-channel";
+import { wallOfFameChannelName } from "@/lib/wall-of-fame-channel";
 
-export async function broadcastHallOfFameChange(cycleId: string) {
-  const channel = supabaseAdmin.channel(hallOfFameChannelName(cycleId));
+export async function broadcastWallOfFameChange(cycleId: string) {
+  const channel = supabaseAdmin.channel(wallOfFameChannelName(cycleId));
   await channel.send({ type: "broadcast", event: "changed", payload: {} });
   await supabaseAdmin.removeChannel(channel);
 }

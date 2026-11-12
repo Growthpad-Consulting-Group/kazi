@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
+import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
   const db = supabaseAdmin as any;
   const { data: cycle } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .select("id, status, opens_at, closes_at")
     .eq("id", body.cycleId)
     .maybeSingle();
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       { status: 400 },
     );
 
-  const { error } = await db.from("hall_of_fame_nominations").insert({
+  const { error } = await db.from("wall_of_fame_nominations").insert({
     cycle_id: cycle.id,
     nominator_id: session.user.id,
     nominee_id: nominee.id,
@@ -85,6 +85,6 @@ export async function POST(req: Request) {
     );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  await broadcastHallOfFameChange(cycle.id).catch(() => {});
+  await broadcastWallOfFameChange(cycle.id).catch(() => {});
   return NextResponse.json({ ok: true });
 }

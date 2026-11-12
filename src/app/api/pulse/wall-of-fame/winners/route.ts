@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import { broadcastHallOfFameChange } from "@/lib/hall-of-fame-realtime";
+import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 type Vote = {
   nominee_id: string;
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed tables await generated types
   const db = supabaseAdmin as any;
   const { data: cycle } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .select("status")
     .eq("id", body.cycleId)
     .maybeSingle();
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     );
 
   const { data: voteRows, error: votesError } = await db
-    .from("hall_of_fame_votes")
+    .from("wall_of_fame_votes")
     .select("nominee_id, category, score, stage")
     .eq("cycle_id", body.cycleId);
   if (votesError)
@@ -98,17 +98,17 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   const { error: winnerError } = await db
-    .from("hall_of_fame_winners")
+    .from("wall_of_fame_winners")
     .upsert(winners, { onConflict: "cycle_id,category" });
   if (winnerError)
     return NextResponse.json({ error: winnerError.message }, { status: 500 });
   const { error: cycleError } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .update({ status: "published" })
     .eq("id", body.cycleId);
   if (cycleError)
     return NextResponse.json({ error: cycleError.message }, { status: 500 });
-  await broadcastHallOfFameChange(body.cycleId).catch(() => {});
+  await broadcastWallOfFameChange(body.cycleId).catch(() => {});
   return NextResponse.json({ ok: true });
 }
 
@@ -131,13 +131,13 @@ export async function PATCH(request: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table awaits generated types
   const db = supabaseAdmin as any;
   const { data: winner, error } = await db
-    .from("hall_of_fame_winners")
+    .from("wall_of_fame_winners")
     .update({ prize_status: body.prizeStatus })
     .eq("id", body.id)
     .select("cycle_id")
     .single();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  await broadcastHallOfFameChange(winner.cycle_id).catch(() => {});
+  await broadcastWallOfFameChange(winner.cycle_id).catch(() => {});
   return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
-import HallOfFameClient from "./HallOfFameClient";
+import WallOfFameClient from "./WallOfFameClient";
 
 type Cycle = {
   id: string;
@@ -52,14 +52,14 @@ type Winner = {
   prize_status: "pending" | "ordered" | "delivered";
 };
 
-export default async function HallOfFamePage() {
+export default async function WallOfFamePage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
   const canManage = userCan(session.user, "manage_recognition_campaigns");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration-backed table; generated database types lag migrations
   const db = supabaseAdmin as any;
   const { data: cycleData } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .select(
       "id, month, status, opens_at, closes_at, team_voting_opens_at, team_voting_closes_at, management_voting_opens_at, management_voting_closes_at",
     )
@@ -94,7 +94,7 @@ export default async function HallOfFamePage() {
       .not("photo_url", "is", null),
     cycle
       ? db
-          .from("hall_of_fame_nominations")
+          .from("wall_of_fame_nominations")
           .select(
             "id, nominator_id, nominee_id, category, impact_statement, created_at",
           )
@@ -103,14 +103,14 @@ export default async function HallOfFamePage() {
       : Promise.resolve({ data: [] }),
     cycle
       ? db
-          .from("hall_of_fame_votes")
+          .from("wall_of_fame_votes")
           .select("nominee_id, voter_id, category, score, stage")
           .eq("cycle_id", cycle.id)
           .eq("stage", "team")
       : Promise.resolve({ data: [] }),
     cycle
       ? db
-          .from("hall_of_fame_winners")
+          .from("wall_of_fame_winners")
           .select(
             "id, nominee_id, category, team_score, management_score, prize_status",
           )
@@ -129,7 +129,7 @@ export default async function HallOfFamePage() {
   );
   return (
     <>
-      <HallOfFameClient
+      <WallOfFameClient
         currentUserId={session.user.id}
         canManage={canManage}
         canTeamVote={!["admin", "hr"].includes(session.user.role)}

@@ -1,10 +1,10 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { effectiveSideQuestStatus } from "@/lib/side-quest-lifecycle";
 import { audienceUserIds } from "@/features/pulse/surveys/audience";
-import type { HallOfFameSignal, OpenSurveySignal } from "./next-steps";
+import type { WallOfFameSignal, OpenSurveySignal } from "./next-steps";
 
-// Mirrors the roles allowed to vote in the management stage of Hall of Fame
-// (see api/pulse/hall-of-fame/votes). Managers participate with the team.
+// Mirrors the roles allowed to vote in the management stage of Wall of Fame
+// (see api/pulse/wall-of-fame/votes). Managers participate with the team.
 const MANAGEMENT_ROLES = new Set(["admin", "hr"]);
 
 // Several tables are migration-backed and lag the generated database types.
@@ -19,7 +19,7 @@ export type EmployeeQueueSignals = {
   unacknowledgedReviews: number;
   openSurveys: OpenSurveySignal[];
   outstandingSideQuests: number;
-  hallOfFame: HallOfFameSignal | null;
+  wallOfFame: WallOfFameSignal | null;
 };
 
 /**
@@ -32,18 +32,18 @@ export async function loadEmployeeQueueSignals(
   role: string,
   now: Date,
 ): Promise<EmployeeQueueSignals> {
-  const [reviews, surveys, sideQuests, hallOfFame] = await Promise.all([
+  const [reviews, surveys, sideQuests, wallOfFame] = await Promise.all([
     loadUnacknowledgedReviews(userId),
     loadOpenSurveys(userId, now),
     loadOutstandingSideQuests(userId, now),
-    loadHallOfFameStep(userId, role, now),
+    loadWallOfFameStep(userId, role, now),
   ]);
 
   return {
     unacknowledgedReviews: reviews,
     openSurveys: surveys,
     outstandingSideQuests: sideQuests,
-    hallOfFame,
+    wallOfFame,
   };
 }
 
@@ -150,13 +150,13 @@ async function loadOutstandingSideQuests(
   return live.filter((quest) => !acted.has(quest.id)).length;
 }
 
-async function loadHallOfFameStep(
+async function loadWallOfFameStep(
   userId: string,
   role: string,
   now: Date,
-): Promise<HallOfFameSignal | null> {
+): Promise<WallOfFameSignal | null> {
   const { data } = await db
-    .from("hall_of_fame_cycles")
+    .from("wall_of_fame_cycles")
     .select(
       "id, title, status, closes_at, team_voting_closes_at, management_voting_closes_at",
     )
@@ -176,7 +176,7 @@ async function loadHallOfFameStep(
 
   if (cycle.status === "open") {
     const { data: own } = await db
-      .from("hall_of_fame_nominations")
+      .from("wall_of_fame_nominations")
       .select("id")
       .eq("cycle_id", cycle.id)
       .eq("nominator_id", userId)
@@ -197,7 +197,7 @@ async function loadHallOfFameStep(
   if (!eligible) return null;
 
   const { data: votes } = await db
-    .from("hall_of_fame_votes")
+    .from("wall_of_fame_votes")
     .select("id")
     .eq("cycle_id", cycle.id)
     .eq("voter_id", userId)

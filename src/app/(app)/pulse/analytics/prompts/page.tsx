@@ -13,7 +13,7 @@ const LABELS: Record<string, string> = {
   weekly_checkin: "Weekly check-in",
   survey: "Survey",
   side_quest: "Side Quest evidence",
-  hall_of_fame: "Hall of Fame",
+  wall_of_fame: "Wall of Fame",
   one_on_one_prep: "1-on-1 preparation",
   action_items: "Action items",
   flagged_team_member: "Flagged team member",
