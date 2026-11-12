@@ -189,6 +189,7 @@
         task: title,
         category: "Projects",
         reuseExistingActivity: true,
+        openPopup: true,
         sourceUrl: window.location.href,
       });
       if (result?.error) {

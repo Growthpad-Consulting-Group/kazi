@@ -101,6 +101,7 @@
         type: "start",
         task,
         category: "Other",
+        openPopup: true,
         sourceUrl: window.location.href,
       });
       if (result?.error) {

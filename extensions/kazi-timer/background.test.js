@@ -68,6 +68,7 @@ beforeEach(() => {
       setBadgeBackgroundColor: vi.fn().mockResolvedValue(undefined),
       setBadgeTextColor: vi.fn().mockResolvedValue(undefined),
       setTitle: vi.fn().mockResolvedValue(undefined),
+      openPopup: vi.fn().mockResolvedValue(undefined),
     },
     contextMenus: {
       removeAll: vi.fn().mockResolvedValue(undefined),
@@ -201,6 +202,19 @@ describe("Kazi Timer background worker", () => {
     expect(first.timer.task).toBe("First task");
     expect(second).toEqual({ error: "A timer is already active" });
     expect(local.timer.task).toBe("First task");
+  });
+
+  it("opens the toolbar timer after a browser integration starts work", async () => {
+    await loadWorker();
+
+    await message({
+      type: "start",
+      task: "Prepare client proposal",
+      category: "Projects",
+      openPopup: true,
+    });
+
+    expect(chromeMock.action.openPopup).toHaveBeenCalledTimes(1);
   });
 
   it("starts the shared timer from text deliberately selected in a page", async () => {

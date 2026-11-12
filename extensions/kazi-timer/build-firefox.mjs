@@ -23,6 +23,9 @@ const FILES = [
   "popup.html",
   "popup.css",
   "popup.js",
+  "options.html",
+  "options.css",
+  "options.js",
   "content",
   "icons",
 ];

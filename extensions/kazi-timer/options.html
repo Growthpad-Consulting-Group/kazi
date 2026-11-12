@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kazi Timer settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="icons/kazi.png" alt="Kazi" />
+        <div>
+          <h1>Kazi Timer settings</h1>
+          <p>Choose where Kazi can make time tracking easier.</p>
+        </div>
+      </header>
+
+      <section>
+        <div class="section-heading">
+          <div>
+            <h2>Open timer after starting</h2>
+            <p>
+              Open the toolbar timer after you start work from Asana, Gmail,
+              GitHub or Slack.
+            </p>
+          </div>
+          <label class="switch">
+            <input id="open-on-start" type="checkbox" />
+            <span aria-hidden="true"></span>
+            <span class="sr-only">Open timer after starting</span>
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-heading">
+          <div>
+            <h2>Gmail timer</h2>
+            <p>Show a timer action beside the subject of an open email.</p>
+          </div>
+          <label class="switch">
+            <input id="gmail-enabled" type="checkbox" />
+            <span aria-hidden="true"></span>
+            <span class="sr-only">Enable Gmail timer</span>
+          </label>
+        </div>
+        <p class="privacy">
+          Kazi reads the subject only after you start a timer. It never reads
+          message content, recipients, attachments or mailbox history.
+        </p>
+      </section>
+
+      <section>
+        <div class="section-heading">
+          <div>
+            <h2>Floating timer</h2>
+            <p>Keep compact timer controls on selected secure sites.</p>
+          </div>
+        </div>
+        <button id="mini-add" class="secondary" type="button">
+          Add current site
+        </button>
+        <p id="mini-notice" class="notice" hidden></p>
+        <ul id="mini-sites" aria-label="Sites with the floating timer"></ul>
+        <p class="privacy">
+          The floating timer shows only your active Kazi timer and its controls.
+          It never reads page content, form fields, browsing history or
+          credentials. Chrome asks before a site is added.
+        </p>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

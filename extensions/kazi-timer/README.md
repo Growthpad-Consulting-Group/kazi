@@ -21,6 +21,13 @@ browser window appear in the popup. A stop is sent once per timer and writes a
 single entry to the day’s daily log. If Kazi cannot be reached, the stop waits in
 the local queue and syncs when the connection returns. Disconnect revokes the current extension token.
 
+Use **Settings** in the popup for optional browser integrations. Gmail’s subject
+timer and the floating timer can be enabled or removed there, keeping the working
+timer view focused. On Chrome 127 or later, the extension opens its popup after a
+timer is started from a browser integration by default; staff can turn that off in
+Settings. A timer started directly in the Kazi web app updates the toolbar badge,
+but websites cannot force Chrome to open its toolbar popup.
+
 ## Contextual timer controls
 
 - **Asana:** Kazi reads only the title of the task currently open after you use

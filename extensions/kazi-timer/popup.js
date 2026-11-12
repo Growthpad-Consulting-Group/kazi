@@ -7,7 +7,6 @@ let clients = [];
 let selectedClient = "";
 let activeClientIndex = -1;
 let reconnectNeeded = false;
-let gmailEnabled = false;
 
 function clientInput() {
   return $("#client-search");
@@ -277,99 +276,11 @@ $("#stop").addEventListener("click", async () => {
   await load();
 });
 
-function renderMiniSites(state) {
-  const list = $("#mini-sites");
-  list.replaceChildren();
-  for (const origin of state.sites) {
-    const item = document.createElement("li");
-    const label = document.createElement("span");
-    label.textContent = origin.replace(/^https?:\/\//, "");
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "link";
-    remove.textContent = "Remove";
-    remove.addEventListener("click", () => removeMiniSite(origin));
-    item.append(label, remove);
-    list.append(item);
-  }
-}
-
-async function loadMiniTimer() {
-  renderMiniSites(await send("mini-get-state"));
-}
-
-async function loadGmailTimer() {
-  const state = await send("gmail-get-state");
-  gmailEnabled = state.enabled === true;
-  $("#gmail-toggle").textContent = gmailEnabled
-    ? "Hide in Gmail"
-    : "Show in Gmail";
-}
-
-async function removeMiniSite(origin) {
-  await chrome.permissions.remove({ origins: [`${origin}/*`] }).catch(() => {});
-  renderMiniSites(await send("mini-set-site", { origin, enabled: false }));
-}
-
-$("#mini-add").addEventListener("click", async () => {
-  const button = $("#mini-add");
-  button.disabled = true;
-  button.textContent = "Checking site…";
-  try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    let origin = null;
-    try {
-      origin = new URL(tab?.url || "").origin;
-    } catch {
-      origin = null;
-    }
-    if (!origin || !origin.startsWith("https://")) {
-      $("#notice").textContent =
-        "Open a secure (https) site, then choose Show on this site.";
-      return;
-    }
-    // Requested straight from the click so Chrome can show its prompt.
-    const granted = await chrome.permissions
-      .request({ origins: [`${origin}/*`] })
-      .catch(() => false);
-    if (!granted) {
-      $("#notice").textContent = `Access to ${origin} was not allowed.`;
-      return;
-    }
-    // Choosing a site is itself the opt-in, so turn the feature on if needed.
-    await send("mini-set-enabled", { enabled: true });
-    renderMiniSites(await send("mini-set-site", { origin, enabled: true }));
-    $("#notice").textContent =
-      `Floating timer added for ${origin.replace(/^https:\/\//, "")}.`;
-  } finally {
-    button.disabled = false;
-    button.textContent = "Enable timer on this site";
-  }
-});
-
-$("#gmail-toggle").addEventListener("click", async () => {
-  const button = $("#gmail-toggle");
-  button.disabled = true;
-  try {
-    if (gmailEnabled) {
-      await send("gmail-set-enabled", { enabled: false });
-      $("#notice").textContent = "Gmail timer hidden.";
-    } else {
-      await send("gmail-set-enabled", { enabled: true });
-      $("#notice").textContent =
-        "Gmail timer shown. Open an email to start from its subject.";
-    }
-  } finally {
-    button.disabled = false;
-    await loadGmailTimer();
-  }
-});
-
 $("#open-kazi").addEventListener("click", () =>
   chrome.tabs.create({ url: KAZI_URL }),
+);
+$("#open-settings").addEventListener("click", () =>
+  chrome.runtime.openOptionsPage(),
 );
 $("#manage-kazi").addEventListener("click", () =>
   chrome.tabs.create({ url: KAZI_URL }),
@@ -443,5 +354,3 @@ $("#connect").addEventListener("click", async () => {
   }
 });
 load();
-loadMiniTimer();
-loadGmailTimer();

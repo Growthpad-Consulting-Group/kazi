@@ -74,35 +74,6 @@
         </div>
         <button class="primary" type="submit">Start timer</button>
       </form>
-      <details class="floating" id="floating">
-        <summary>Floating timer (optional)</summary>
-        <button class="secondary" id="mini-add" type="button">
-          Enable timer on this site
-        </button>
-        <ul id="mini-sites"></ul>
-        <p class="privacy">
-          The floating timer shows only your active Kazi timer and its controls.
-          It never reads page content, form fields, browsing history or
-          credentials. Chrome asks for access to each site you add, and you can
-          remove it at any time.
-        </p>
-        <p class="privacy">
-          On Asana, the Start timer button reads only the title of the task you
-          have open. It never reads descriptions, comments, attachments,
-          credentials or other pages.
-        </p>
-      </details>
-      <details class="floating" id="gmail-timer">
-        <summary>Gmail timer (optional)</summary>
-        <button class="secondary" id="gmail-toggle" type="button">
-          Hide in Gmail
-        </button>
-        <p class="privacy">
-          The Start Kazi timer action is on by default for open emails. Kazi
-          reads only the email subject after you choose it—never message
-          content, recipients, attachments or mailbox history.
-        </p>
-      </details>
       <section class="today" id="today" hidden>
         <p class="eyebrow">TODAY</p>
         <ul id="today-list"></ul>
@@ -114,6 +85,7 @@
       </p>
       <footer>
         <button class="link" id="open-kazi">Open Kazi</button
+        ><button class="link" id="open-settings">Settings</button
         ><span id="queued"></span
         ><button class="link" id="connect">Connect Kazi</button>
       </footer>

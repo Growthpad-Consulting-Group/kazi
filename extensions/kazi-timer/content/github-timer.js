@@ -76,6 +76,7 @@
         task,
         category: "Projects",
         reuseExistingActivity: true,
+        openPopup: true,
         sourceUrl: window.location.href,
       });
       if (result?.error) window.alert(result.error);

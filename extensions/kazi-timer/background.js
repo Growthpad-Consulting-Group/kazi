@@ -491,6 +491,7 @@ const MINI_SITES_KEY = "miniTimerSites";
 const MINI_SCRIPT = "content/mini-timer.js";
 const ASANA_TASK_SCRIPT = "content/asana-task-timer.js";
 const GMAIL_ENABLED_KEY = "gmailTimerEnabled";
+const OPEN_POPUP_ON_START_KEY = "openPopupOnStart";
 const GMAIL_TIMER_SCRIPT = "content/gmail-timer.js";
 const SELECTION_MENU_ID = "kazi-start-timer-from-selection";
 
@@ -517,6 +518,16 @@ async function gmailTimerState() {
   const { [GMAIL_ENABLED_KEY]: enabled = true } =
     await chrome.storage.local.get(GMAIL_ENABLED_KEY);
   return { enabled: enabled === true };
+}
+
+async function openTimerPopupAfterStart() {
+  const { [OPEN_POPUP_ON_START_KEY]: enabled = true } =
+    await chrome.storage.local.get(OPEN_POPUP_ON_START_KEY);
+  if (enabled === false || typeof chrome.action.openPopup !== "function")
+    return;
+  // Chrome 127+ can open a popup from an extension action. Older Chromium and
+  // Firefox simply keep the updated badge; neither should block starting work.
+  await chrome.action.openPopup().catch(() => {});
 }
 
 async function injectGmailTimer(tabId, url) {
@@ -681,6 +692,7 @@ async function handleMessage(message) {
     if (originOf(message.sourceUrl) === "https://app.asana.com")
       await rememberTimerSource(next.id, message.sourceUrl);
     await writeTimer(next);
+    if (message.openPopup) await openTimerPopupAfterStart();
     return { timer: next };
   }
 
