@@ -3,13 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { loadWallOfFameCategories } from "@/lib/wall-of-fame-categories";
 import { localClock } from "@/lib/slack-schedule";
 import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
 type Vote = {
   nominee_id: string;
-  category: "wow" | "mvp";
+  category: string;
   score: number;
   stage: "team" | "management";
 };
@@ -67,7 +68,10 @@ export async function POST(request: Request) {
   if (votesError)
     return NextResponse.json({ error: votesError.message }, { status: 500 });
 
-  const winners = (["wow", "mvp"] as const).flatMap((category) => {
+  const categoryKeys = (await loadWallOfFameCategories()).map(
+    (item) => item.key,
+  );
+  const winners = categoryKeys.flatMap((category) => {
     const categoryVotes = ((voteRows ?? []) as Vote[]).filter(
       (vote) => vote.category === category,
     );

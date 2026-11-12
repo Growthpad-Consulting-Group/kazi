@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { loadWallOfFameCategories } from "@/lib/wall-of-fame-categories";
 import { localClock } from "@/lib/slack-schedule";
 import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
@@ -20,13 +21,16 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     cycleId?: string;
     nomineeId?: string;
-    category?: "wow" | "mvp";
+    category?: string;
     score?: number;
   } | null;
+  const categoryKeys = (await loadWallOfFameCategories()).map(
+    (item) => item.key,
+  );
   if (
     !body?.cycleId ||
     !body.nomineeId ||
-    !["wow", "mvp"].includes(body.category ?? "") ||
+    !categoryKeys.includes(body.category ?? "") ||
     !Number.isInteger(body.score) ||
     (body.score ?? 0) < 1 ||
     (body.score ?? 0) > 10

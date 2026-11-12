@@ -29,7 +29,7 @@ export function ModalAside({
       <span className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
       <div className="relative">
         <h3 className="text-md font-semibold text-[var(--text-hi)]">{title}</h3>
-        <p className="mt-2 text-xs leading-relaxed text-[var(--text-lo)]">
+        <p className="mt-2 text-sm leading-relaxed text-[var(--text-lo)]">
           {description}
         </p>
       </div>

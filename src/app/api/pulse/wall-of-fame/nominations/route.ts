@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { loadWallOfFameCategories } from "@/lib/wall-of-fame-categories";
 import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import { broadcastWallOfFameChange } from "@/lib/wall-of-fame-realtime";
 
@@ -15,11 +16,16 @@ export async function POST(req: Request) {
     impactStatement?: string;
     category?: string;
   } | null;
+  const categoryKeys = (await loadWallOfFameCategories()).map(
+    (item) => item.key,
+  );
   const category =
-    body?.category === "mvp" ? "mvp" : body?.category === "wow" ? "wow" : null;
+    typeof body?.category === "string" && categoryKeys.includes(body.category)
+      ? body.category
+      : null;
   if (!category)
     return NextResponse.json(
-      { error: "Choose the WOW Award or MVP of the month." },
+      { error: "Choose an award from the list." },
       { status: 400 },
     );
   const impactStatement = body?.impactStatement?.trim() ?? "";

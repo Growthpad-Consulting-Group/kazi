@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { userCan } from "@/lib/rbac";
@@ -5,6 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { localClock } from "@/lib/slack-schedule";
 import { resolveWallOfFameStage } from "@/lib/wall-of-fame-stage";
 import WallOfFameClient from "./WallOfFameClient";
+import { loadWallOfFameCategories } from "@/lib/wall-of-fame-categories";
 
 type Cycle = {
   id: string;
@@ -32,23 +34,31 @@ type Staff = {
 };
 type Nomination = {
   id: string;
-  nominator_id: string;
+  nominator_id: string | null;
   nominee_id: string;
-  category: "wow" | "mvp";
-  impact_statement: string;
+  category: string;
+  impact_statement: string | null;
+  public_highlight: string | null;
   created_at: string;
+};
+type StoredNomination = Omit<
+  Nomination,
+  "nominator_id" | "impact_statement"
+> & {
+  nominator_id: string;
+  impact_statement: string;
 };
 type Vote = {
   nominee_id: string;
   voter_id: string;
-  category: "wow" | "mvp";
+  category: string;
   score: number;
   stage: "team" | "management";
 };
 type Winner = {
   id: string;
   nominee_id: string;
-  category: "wow" | "mvp";
+  category: string;
   team_score: number | null;
   management_score: number | null;
   prize_status: "pending" | "ordered" | "delivered";
@@ -108,7 +118,7 @@ export default async function WallOfFamePage() {
       ? db
           .from("wall_of_fame_nominations")
           .select(
-            "id, nominator_id, nominee_id, category, impact_statement, created_at",
+            "id, nominator_id, nominee_id, category, impact_statement, public_highlight, created_at",
           )
           .eq("cycle_id", cycle.id)
           .order("created_at", { ascending: false })
@@ -139,9 +149,41 @@ export default async function WallOfFamePage() {
       .filter((p) => p.user_id && p.photo_url)
       .map((p) => [p.user_id as string, p.photo_url as string]),
   );
+  const categories = await loadWallOfFameCategories();
+  // Nomination source text is sensitive peer feedback. Do not send another
+  // staff member's words (or identity) to the browser just to render a count.
+  // Reviewers and the original nominator retain access to the full record.
+  const nominations = (
+    (nominationsResult.data ?? []) as StoredNomination[]
+  ).map((nomination) => {
+    const canReadSource =
+      canManage || nomination.nominator_id === session.user.id;
+    return {
+      ...nomination,
+      nominator_id: canReadSource ? nomination.nominator_id : null,
+      impact_statement: canReadSource ? nomination.impact_statement : null,
+    };
+  });
   return (
     <>
+      <div className="mb-4 flex justify-end gap-4">
+        <Link
+          href="/pulse/wall-of-fame/archive"
+          className="text-xs font-semibold text-brand-500 hover:underline"
+        >
+          Past winners
+        </Link>
+        {canManage && (
+          <Link
+            href="/pulse/wall-of-fame/categories"
+            className="text-xs font-semibold text-brand-500 hover:underline"
+          >
+            Manage categories
+          </Link>
+        )}
+      </div>
       <WallOfFameClient
+        categories={categories}
         currentUserId={session.user.id}
         canManage={canManage}
         canTeamVote={!["admin", "hr"].includes(session.user.role)}
@@ -152,7 +194,7 @@ export default async function WallOfFamePage() {
           avatar_url:
             member.avatar_url ?? signaturePhotos.get(member.id) ?? null,
         }))}
-        nominations={(nominationsResult.data ?? []) as Nomination[]}
+        nominations={nominations}
         votes={((votesResult.data ?? []) as Vote[]).filter(
           (vote) => canManage || vote.voter_id === session.user.id,
         )}

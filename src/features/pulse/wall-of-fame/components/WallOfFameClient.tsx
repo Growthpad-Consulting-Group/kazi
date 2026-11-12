@@ -10,139 +10,26 @@ import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import SetPageHeader from "@/components/ui/SetPageHeader";
-import DateRangePicker, {
-  type DateRangeValue,
-} from "@/components/ui/DateRangePicker";
-import { SimpleModal } from "@/components/ui/SimpleModal";
-import { SlideOver } from "@/components/ui/SlideOver";
+import { type DateRangeValue } from "@/components/ui/DateRangePicker";
 import StatCard from "@/components/ui/StatCard";
-import { MonthSelect } from "./MonthSelect";
-
-type Cycle = {
-  id: string;
-  month: string;
-  status:
-    | "draft"
-    | "open"
-    | "team_voting"
-    | "management_voting"
-    | "published"
-    | "closed";
-  opens_at: string | null;
-  closes_at: string | null;
-  team_voting_opens_at: string | null;
-  team_voting_closes_at: string | null;
-  management_voting_opens_at: string | null;
-  management_voting_closes_at: string | null;
-} | null;
-type Staff = {
-  id: string;
-  name: string;
-  job_title: string | null;
-  department: string | null;
-  avatar_url: string | null;
-};
-type Nomination = {
-  id: string;
-  nominator_id: string;
-  nominee_id: string;
-  impact_statement: string;
-  category: "wow" | "mvp";
-  created_at: string;
-};
-type Vote = {
-  nominee_id: string;
-  voter_id: string;
-  category: "wow" | "mvp";
-  score: number;
-  stage: "team" | "management";
-};
-type Winner = {
-  id: string;
-  nominee_id: string;
-  category: "wow" | "mvp";
-  team_score: number | null;
-  management_score: number | null;
-  prize_status: "pending" | "ordered" | "delivered";
-};
-
-const CATEGORY_OPTIONS = [
-  {
-    value: "wow",
-    label: "WOW Award",
-    description:
-      "For a person who created an outstanding client experience this month.",
-    purpose:
-      "Celebrates work that made a client feel genuinely supported, impressed or confident in Growthpad.",
-    criteria: [
-      "A meaningful client outcome",
-      "Thoughtful ownership",
-      "Exceptional service or delivery",
-    ],
-    icon: "solar:magic-stick-3-broken",
-  },
-  {
-    value: "mvp",
-    label: "MVP of the month",
-    description:
-      "For a teammate whose overall contribution stood out this month.",
-    purpose:
-      "Recognises consistent excellence, meaningful teamwork and work that moved Growthpad forward.",
-    criteria: [
-      "Strong results and initiative",
-      "Meaningful collaboration",
-      "Impact beyond usual responsibilities",
-    ],
-    icon: "solar:medal-ribbon-broken",
-  },
-] as const;
-
-function monthLabel(month: string) {
-  return new Date(`${month}T12:00:00`).toLocaleDateString("en-KE", {
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function nominationWindowLabel(cycle: NonNullable<Cycle>) {
-  const format = (value: string) =>
-    new Date(`${value}T12:00:00`).toLocaleDateString("en-KE", {
-      day: "numeric",
-      month: "short",
-    });
-  if (cycle.opens_at && cycle.closes_at)
-    return `Nominations: ${format(cycle.opens_at)} – ${format(cycle.closes_at)}`;
-  if (cycle.closes_at) return `Closes ${format(cycle.closes_at)}`;
-  if (cycle.opens_at) return `Open from ${format(cycle.opens_at)}`;
-  return null;
-}
-
-function nominationCountdown(cycle: NonNullable<Cycle>) {
-  if (!cycle.closes_at) return null;
-  const closeAt = new Date(`${cycle.closes_at}T23:59:59`).getTime();
-  const days = Math.max(0, Math.ceil((closeAt - Date.now()) / 86_400_000));
-  if (days === 0) return { label: "Closes today", urgent: true };
-  return {
-    label: `${days} day${days === 1 ? "" : "s"} remaining`,
-    urgent: days <= 3,
-  };
-}
-
-function toDateString(value: Date) {
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
-}
-
-function recommendedCycleSchedule(month: string) {
-  const prefix = month.slice(0, 7);
-  return {
-    opensAt: `${prefix}-01`,
-    closesAt: `${prefix}-07`,
-    teamVotingOpensAt: `${prefix}-08`,
-    teamVotingClosesAt: `${prefix}-12`,
-    managementVotingOpensAt: `${prefix}-13`,
-    managementVotingClosesAt: `${prefix}-15`,
-  };
-}
+import { WallOfFameCategory } from "@/lib/wall-of-fame-category-rules";
+import WallOfFameWinners from "./WallOfFameWinners";
+import WallOfFameNominationPanel from "./WallOfFameNominationPanel";
+import {
+  WallOfFameNewCycleModal,
+  WallOfFameScheduleModal,
+} from "./WallOfFameScheduleModals";
+import {
+  type Cycle,
+  type Nomination,
+  type Staff,
+  type Vote,
+  type Winner,
+  monthLabel,
+  nominationCountdown,
+  nominationWindowLabel,
+  recommendedCycleSchedule,
+} from "./wall-of-fame-model";
 
 export default function WallOfFameClient({
   currentUserId,
@@ -154,6 +41,7 @@ export default function WallOfFameClient({
   nominations,
   votes,
   winners,
+  categories,
 }: {
   currentUserId: string;
   canManage: boolean;
@@ -164,12 +52,29 @@ export default function WallOfFameClient({
   nominations: Nomination[];
   votes: Vote[];
   winners: Winner[];
+  categories: WallOfFameCategory[];
 }) {
   const router = useRouter();
+  // The option shape the category UI was written against, now built from the stored categories.
+  const CATEGORY_OPTIONS = useMemo(
+    () =>
+      categories.map((item) => ({
+        value: item.key,
+        label: item.label,
+        description: item.description,
+        purpose: item.purpose,
+        criteria: item.criteria,
+        icon: item.icon,
+      })),
+    [categories],
+  );
+  const firstCategory = categories[0]?.key ?? "";
+  const categoryLabel = (key: string) =>
+    categories.find((item) => item.key === key)?.label ?? key;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [impact, setImpact] = useState("");
-  const [category, setCategory] = useState<"wow" | "mvp">("wow");
+  const [category, setCategory] = useState<string>(firstCategory);
   const [score, setScore] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [newCycleOpen, setNewCycleOpen] = useState(false);
@@ -298,9 +203,9 @@ export default function WallOfFameClient({
       }
     }
     return averages;
-  }, [votes]);
+  }, [votes, CATEGORY_OPTIONS]);
   const finalistsByCategory = useMemo(() => {
-    const byCategory = new Map<"wow" | "mvp", Set<string>>();
+    const byCategory = new Map<string, Set<string>>();
     if (cycle?.status !== "management_voting") return byCategory;
     for (const option of CATEGORY_OPTIONS) {
       const ids = [...voteAverages.entries()]
@@ -311,7 +216,7 @@ export default function WallOfFameClient({
       byCategory.set(option.value, new Set(ids));
     }
     return byCategory;
-  }, [cycle?.status, voteAverages]);
+  }, [cycle?.status, voteAverages, CATEGORY_OPTIONS]);
 
   const votingDirectory = useMemo(() => {
     if (!isVoting) return directory;
@@ -338,7 +243,7 @@ export default function WallOfFameClient({
     const nominatedCategories = (nominationsByNominee[id] ?? []).map(
       (item) => item.category,
     );
-    setCategory(nominatedCategories[0] ?? "wow");
+    setCategory(nominatedCategories[0] ?? firstCategory);
     setScore(null);
   };
 
@@ -528,6 +433,36 @@ export default function WallOfFameClient({
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not save your vote.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePublicHighlight = async (nominationId: string, value: string) => {
+    setSaving(true);
+    try {
+      const response = await fetch(
+        `/api/pulse/wall-of-fame/nominations/${nominationId}/highlight`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ publicHighlight: value }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      toast.success(
+        value.trim()
+          ? "Public voting highlight saved."
+          : "Public voting highlight removed.",
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not save the public highlight.",
       );
     } finally {
       setSaving(false);
@@ -792,11 +727,11 @@ export default function WallOfFameClient({
           {CATEGORY_OPTIONS.map((option) => (
             <article
               key={option.value}
-              className={`overflow-hidden rounded-xl border bg-[var(--surface-2)] transition-shadow duration-200 hover:shadow-lg ${option.value === "wow" ? "border-brand-500/25" : "border-blue-500/20"}`}
+              className={`overflow-hidden rounded-xl border bg-[var(--surface-2)] transition-shadow duration-200 hover:shadow-lg ${option.value === firstCategory ? "border-brand-500/25" : "border-blue-500/20"}`}
             >
               <div className="flex gap-3 p-4">
                 <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${option.value === "wow" ? "bg-brand-500 text-white" : "bg-blue-500/10 text-blue-600 dark:text-blue-300"}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${option.value === firstCategory ? "bg-brand-500 text-white" : "bg-blue-500/10 text-blue-600 dark:text-blue-300"}`}
                 >
                   <Icon icon={option.icon} className="h-5 w-5" />
                 </span>
@@ -905,7 +840,7 @@ export default function WallOfFameClient({
                       </p>
                     </div>
                     <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-500">
-                      {entry.category === "wow" ? "WOW Award" : "MVP"}
+                      {categoryLabel(entry.category)}
                     </span>
                   </div>
                   <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-[var(--text-lo)]">
@@ -972,12 +907,14 @@ export default function WallOfFameClient({
           <div className="grid max-h-[72vh] grid-cols-2 gap-3 overflow-y-auto p-4 sm:grid-cols-3 sm:gap-4 sm:p-5 lg:grid-cols-4 xl:grid-cols-5">
             {votingDirectory.map((member) => {
               const received = nominationsByNominee[member.id] ?? [];
-              const wow = received.filter(
-                (item) => item.category === "wow",
-              ).length;
-              const mvp = received.filter(
-                (item) => item.category === "mvp",
-              ).length;
+              const receivedCounts = categories
+                .map((item) => ({
+                  key: item.key,
+                  label: item.label,
+                  count: received.filter((entry) => entry.category === item.key)
+                    .length,
+                }))
+                .filter((item) => item.count > 0);
               const initialsText = member.name
                 .split(" ")
                 .filter(Boolean)
@@ -1009,18 +946,20 @@ export default function WallOfFameClient({
                     </span>
                   )}
                   <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                  {(wow > 0 || mvp > 0) && (
+                  {receivedCounts.length > 0 && (
                     <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1">
-                      {wow > 0 && (
-                        <span className="rounded-lg bg-brand-500 px-2 py-0.5 font-mono text-[10px] font-bold text-white shadow-lg">
-                          WOW × {wow}
+                      {receivedCounts.map((item) => (
+                        <span
+                          key={item.key}
+                          className={
+                            item.key === firstCategory
+                              ? "rounded-lg bg-brand-500 px-2 py-0.5 font-mono text-[10px] font-bold text-white shadow-lg"
+                              : "rounded-lg bg-white/90 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-900 shadow-lg"
+                          }
+                        >
+                          {item.label} × {item.count}
                         </span>
-                      )}
-                      {mvp > 0 && (
-                        <span className="rounded-lg bg-white/90 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-900 shadow-lg">
-                          MVP × {mvp}
-                        </span>
-                      )}
+                      ))}
                     </div>
                   )}
                   {isWinner && (
@@ -1057,526 +996,84 @@ export default function WallOfFameClient({
         )}
       </section>
 
-      {winners.length > 0 && (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 dark:shadow-black/20">
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-[var(--text-hi)]">
-              Published winners
-            </h2>
-            <p className="mt-1 text-xs text-[var(--text-lo)]">
-              Celebrate the winning work and keep prize fulfilment visible.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {winners.map((winner) => {
-              const member = staff.find(
-                (candidate) => candidate.id === winner.nominee_id,
-              );
-              if (!member) return null;
-              return (
-                <div
-                  key={winner.id}
-                  className="flex items-center gap-3 rounded-xl bg-[var(--surface-2)] p-3"
-                >
-                  <Avatar
-                    name={member.name}
-                    src={member.avatar_url}
-                    size="md"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
-                      {member.name}
-                    </p>
-                    <p className="text-xs text-[var(--text-lo)]">
-                      {winner.category === "wow"
-                        ? "WOW Award"
-                        : "MVP of the month"}
-                      {" · "}Management {winner.management_score ?? "—"}/10
-                    </p>
-                  </div>
-                  {canManage ? (
-                    <select
-                      value={winner.prize_status}
-                      disabled={saving}
-                      onChange={(event) =>
-                        updatePrizeStatus(
-                          winner.id,
-                          event.target.value as Winner["prize_status"],
-                        )
-                      }
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs font-semibold text-[var(--text-hi)] outline-none focus:border-brand-500"
-                    >
-                      <option value="pending">Prize pending</option>
-                      <option value="ordered">Prize ordered</option>
-                      <option value="delivered">Prize delivered</option>
-                    </select>
-                  ) : (
-                    <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-xs font-semibold capitalize text-emerald-700 dark:text-emerald-300">
-                      {winner.prize_status}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      <WallOfFameWinners
+        categories={categories}
+        winners={winners}
+        staff={staff}
+        canManage={canManage}
+        saving={saving}
+        onUpdatePrizeStatus={updatePrizeStatus}
+      />
 
-      <SlideOver
-        open={selected !== null}
-        onClose={() => setSelectedId(null)}
-        title={
-          selected
-            ? isVoting
-              ? `Vote for ${selected.name}`
-              : isSelfNomination
-                ? "Your monthly project entry"
-                : `Nominate ${selected.name}`
-            : "Nominate"
-        }
-        subtitle={
-          isVoting
-            ? "Review their nomination evidence, then score the impact."
-            : isSelfNomination
-              ? "Choose an award and describe the work you delivered this month."
-              : selected
-                ? [selected.job_title, selected.department]
-                    .filter(Boolean)
-                    .join(" · ") || "Team member"
-                : undefined
-        }
-        icon="solar:star-fall-broken"
-      >
-        {selected && !isOpen && !isVoting && (
-          <div className="rounded-xl bg-[var(--surface-2)] p-4 text-center">
-            <Icon
-              icon="solar:lock-keyhole-broken"
-              className="mx-auto h-5 w-5 text-[var(--text-lo)]"
-            />
-            <p className="mt-2 text-sm font-semibold text-[var(--text-hi)]">
-              Nominations are not open
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--text-lo)]">
-              {canManage
-                ? "Open this month’s cycle to start nominating."
-                : "Your HR team will open the next Wall of Fame cycle."}
-            </p>
-          </div>
-        )}
+      <WallOfFameNominationPanel
+        categoryOptions={CATEGORY_OPTIONS}
+        canManage={canManage}
+        category={category}
+        categoryLabel={categoryLabel}
+        currentUserId={currentUserId}
+        cycle={cycle}
+        finalistsByCategory={finalistsByCategory}
+        impact={impact}
+        isOpen={isOpen}
+        isSelfNomination={isSelfNomination}
+        isVoting={isVoting}
+        month={month}
+        nominate={nominate}
+        saving={saving}
+        score={score}
+        selected={selected}
+        selectedNominations={selectedNominations}
+        setCategory={setCategory}
+        setImpact={setImpact}
+        setScore={setScore}
+        setSelectedId={setSelectedId}
+        savePublicHighlight={savePublicHighlight}
+        submitVote={submitVote}
+        votingStage={votingStage}
+      />
 
-        {selected && isOpen && (
-          <div className="space-y-5">
-            {isSelfNomination ? (
-              <div className="flex items-center gap-3 rounded-xl border border-brand-500/15 bg-brand-500/[0.05] p-3">
-                <Avatar
-                  name={selected.name}
-                  src={selected.avatar_url}
-                  size="md"
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-hi)]">
-                    Submitting as {selected.name}
-                  </p>
-                  <p className="truncate text-xs text-[var(--text-lo)]">
-                    {selected.job_title ?? "Team member"}
-                    {selected.department ? ` · ${selected.department}` : ""}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center text-center">
-                <Avatar
-                  name={selected.name}
-                  src={selected.avatar_url}
-                  size="xl"
-                />
-                <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
-                  {selected.name}
-                </p>
-                <p className="text-xs text-[var(--text-lo)]">
-                  {selected.job_title ?? "Team member"}
-                  {selected.department ? ` · ${selected.department}` : ""}
-                </p>
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              {CATEGORY_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setCategory(option.value)}
-                  className={`rounded-xl border p-3 text-left transition-colors ${category === option.value ? "border-brand-500/40 bg-brand-500/[0.06]" : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
-                >
-                  <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${category === option.value ? "bg-brand-500 text-white" : "bg-[var(--surface)] text-brand-500"}`}
-                  >
-                    <Icon icon={option.icon} className="h-4 w-4" />
-                  </span>
-                  <span className="mt-2 block text-sm font-semibold text-[var(--text-hi)]">
-                    {option.label}
-                  </span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-lo)]">
-                    {option.description}
-                  </span>
-                </button>
-              ))}
-            </div>
+      <WallOfFameScheduleModal
+        managementVotingWindow={managementVotingWindow}
+        nominationWindow={nominationWindow}
+        teamVotingWindow={teamVotingWindow}
+        saveSchedule={saveSchedule}
+        saving={saving}
+        scheduleOpen={scheduleOpen}
+        setScheduleOpen={setScheduleOpen}
+        setClosesAt={setClosesAt}
+        setManagementVotingClosesAt={setManagementVotingClosesAt}
+        setManagementVotingOpensAt={setManagementVotingOpensAt}
+        setOpensAt={setOpensAt}
+        setTeamVotingClosesAt={setTeamVotingClosesAt}
+        setTeamVotingOpensAt={setTeamVotingOpensAt}
+      />
 
-            <label className="block text-sm font-semibold text-[var(--text-hi)]">
-              {isSelfNomination
-                ? "Your impactful work or project"
-                : "Impactful work or project"}
-              <textarea
-                rows={6}
-                value={impact}
-                onChange={(event) => setImpact(event.target.value)}
-                maxLength={1200}
-                placeholder={
-                  isSelfNomination
-                    ? "What did you deliver, and what made the client experience exceptional?"
-                    : "What did they deliver, and what made the client experience exceptional?"
-                }
-                className="mt-1.5 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm font-normal leading-relaxed text-[var(--text-hi)] outline-none focus:border-brand-500"
-              />
-            </label>
-            <p className="text-xs leading-relaxed text-[var(--text-lo)]">
-              {isSelfNomination
-                ? "You can submit one entry across both awards this cycle. Make the impact specific."
-                : "You can nominate yourself, but only once per cycle across both awards. Please make the impact specific."}
-            </p>
-            <Button
-              className="w-full"
-              icon="solar:star-fall-broken"
-              loading={saving}
-              disabled={impact.trim().length < 20}
-              onClick={nominate}
-            >
-              {isSelfNomination ? "Submit your entry" : "Submit nomination"}
-            </Button>
-
-            {selectedNominations.length > 0 && (
-              <div className="space-y-3 border-t border-[var(--border)] pt-5">
-                <p className="text-xs font-semibold text-[var(--text-hi)]">
-                  Nominations this cycle ({selectedNominations.length})
-                </p>
-                {selectedNominations.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-xl bg-[var(--surface-2)] p-3"
-                  >
-                    <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-500">
-                      {item.category === "wow"
-                        ? "WOW Award"
-                        : "MVP of the month"}
-                    </span>
-                    <p className="mt-2 text-xs leading-relaxed text-[var(--text-lo)]">
-                      {item.impact_statement}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {selected && isVoting && (
-          <div className="space-y-5">
-            <div className="flex flex-col items-center text-center">
-              <Avatar
-                name={selected.name}
-                src={selected.avatar_url}
-                size="xl"
-              />
-              <p className="mt-3 text-base font-semibold text-[var(--text-hi)]">
-                {selected.name}
-              </p>
-              <p className="text-xs text-[var(--text-lo)]">
-                {selected.job_title ?? "Team member"}
-                {selected.department ? ` · ${selected.department}` : ""}
-              </p>
-            </div>
-            {selected.id === currentUserId ? (
-              <div className="rounded-xl bg-[var(--surface-2)] p-4 text-center text-sm text-[var(--text-lo)]">
-                Self-voting is not available. Choose another colleague.
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  {CATEGORY_OPTIONS.filter((option) => {
-                    const nominated = selectedNominations.some(
-                      (item) => item.category === option.value,
-                    );
-                    return votingStage === "management"
-                      ? nominated &&
-                          !!finalistsByCategory
-                            .get(option.value)
-                            ?.has(selected.id)
-                      : nominated;
-                  }).map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setCategory(option.value)}
-                      className={`rounded-xl border p-3 text-left transition-colors ${category === option.value ? "border-brand-500/40 bg-brand-500/[0.06]" : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)]"}`}
-                    >
-                      <span className="text-sm font-semibold text-[var(--text-hi)]">
-                        {option.label}
-                      </span>
-                      <span className="mt-1 block text-xs text-[var(--text-lo)]">
-                        {option.description}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                  <p className="text-xs font-semibold text-[var(--text-hi)]">
-                    Why {selected.name.split(" ")[0]} was nominated
-                  </p>
-                  {selectedNominations
-                    .filter((item) => item.category === category)
-                    .map((item) => (
-                      <p
-                        key={item.id}
-                        className="mt-2 text-xs leading-relaxed text-[var(--text-lo)]"
-                      >
-                        {item.impact_statement}
-                      </p>
-                    ))}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text-hi)]">
-                    Your score
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--text-lo)]">
-                    Score their contribution from 1 (limited impact) to 10
-                    (exceptional impact).
-                  </p>
-                  <div className="mt-3 grid grid-cols-5 gap-2">
-                    {Array.from({ length: 10 }, (_, index) => index + 1).map(
-                      (value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => setScore(value)}
-                          className={`h-10 rounded-xl border text-sm font-bold transition-colors ${score === value ? "border-brand-500 bg-brand-500 text-white" : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-hi)] hover:border-brand-500/50"}`}
-                        >
-                          {value}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>
-                {votingStage === "management" && (
-                  <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-                    This finalist was selected from the team vote. Your score
-                    will determine the winner.
-                  </p>
-                )}
-                <Button
-                  className="w-full"
-                  icon="solar:star-fall-broken"
-                  loading={saving}
-                  disabled={score === null}
-                  onClick={submitVote}
-                >
-                  Save {votingStage === "team" ? "team" : "management"} vote
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-      </SlideOver>
-
-      <SimpleModal
-        open={scheduleOpen}
-        onClose={() => setScheduleOpen(false)}
-        title="Edit award schedule"
-        icon="solar:calendar-mark-broken"
-      >
-        <div className="space-y-4">
-          <p className="text-sm leading-relaxed text-[var(--text-lo)]">
-            Keep each stage focused and non-overlapping. Staff can only vote
-            while their relevant window is open.
-          </p>
-          <div className="block text-xs font-semibold text-[var(--text-hi)]">
-            Nomination window
-            <div className="mt-1.5">
-              <DateRangePicker
-                value={nominationWindow}
-                onChange={(range) => {
-                  setOpensAt(
-                    range.startDate ? toDateString(range.startDate) : "",
-                  );
-                  setClosesAt(range.endDate ? toDateString(range.endDate) : "");
-                }}
-                allowedRanges={["Custom Range"]}
-                maxDate={null}
-                fullWidth
-              />
-            </div>
-          </div>
-          <div className="block text-xs font-semibold text-[var(--text-hi)]">
-            Team voting window
-            <div className="mt-1.5">
-              <DateRangePicker
-                value={teamVotingWindow}
-                onChange={(range) => {
-                  setTeamVotingOpensAt(
-                    range.startDate ? toDateString(range.startDate) : "",
-                  );
-                  setTeamVotingClosesAt(
-                    range.endDate ? toDateString(range.endDate) : "",
-                  );
-                }}
-                allowedRanges={["Custom Range"]}
-                maxDate={null}
-                fullWidth
-              />
-            </div>
-          </div>
-          <div className="block text-xs font-semibold text-[var(--text-hi)]">
-            Finalist voting window
-            <div className="mt-1.5">
-              <DateRangePicker
-                value={managementVotingWindow}
-                onChange={(range) => {
-                  setManagementVotingOpensAt(
-                    range.startDate ? toDateString(range.startDate) : "",
-                  );
-                  setManagementVotingClosesAt(
-                    range.endDate ? toDateString(range.endDate) : "",
-                  );
-                }}
-                allowedRanges={["Custom Range"]}
-                maxDate={null}
-                fullWidth
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-            <Button variant="secondary" onClick={() => setScheduleOpen(false)}>
-              Cancel
-            </Button>
-            <Button loading={saving} onClick={saveSchedule}>
-              Save schedule
-            </Button>
-          </div>
-        </div>
-      </SimpleModal>
-
-      <SimpleModal
-        open={newCycleOpen}
-        onClose={() => setNewCycleOpen(false)}
-        title="Open Wall of Fame nominations"
-        icon="solar:cup-star-broken"
-      >
-        <div className="space-y-4">
-          <p className="text-sm leading-relaxed text-[var(--text-lo)]">
-            Open a monthly cycle for staff nominations.
-          </p>
-          <label className="block text-xs font-semibold text-[var(--text-hi)]">
-            Award month
-            <div className="mt-1.5">
-              <MonthSelect
-                value={month}
-                onChange={(nextMonth) => {
-                  setMonth(nextMonth);
-                  const schedule = recommendedCycleSchedule(nextMonth);
-                  setOpensAt(schedule.opensAt);
-                  setClosesAt(schedule.closesAt);
-                  setTeamVotingOpensAt(schedule.teamVotingOpensAt);
-                  setTeamVotingClosesAt(schedule.teamVotingClosesAt);
-                  setManagementVotingOpensAt(schedule.managementVotingOpensAt);
-                  setManagementVotingClosesAt(
-                    schedule.managementVotingClosesAt,
-                  );
-                }}
-              />
-            </div>
-          </label>
-          <div className="block text-xs font-semibold text-[var(--text-hi)]">
-            Nomination window
-            <div className="mt-1.5">
-              <DateRangePicker
-                value={nominationWindow}
-                onChange={(range) => {
-                  setOpensAt(
-                    range.startDate ? toDateString(range.startDate) : "",
-                  );
-                  setClosesAt(range.endDate ? toDateString(range.endDate) : "");
-                }}
-                allowedRanges={["Custom Range"]}
-                maxDate={null}
-                fullWidth
-              />
-            </div>
-            <p className="mt-2 font-normal leading-relaxed text-[var(--text-lo)]">
-              Recommended cadence: nominations 1–7, team voting 8–12, and
-              finalist voting 13–15. You can adjust the dates for an exception.
-            </p>
-          </div>
-          <div className="block text-xs font-semibold text-[var(--text-hi)]">
-            Team voting window
-            <div className="mt-1.5">
-              <DateRangePicker
-                value={teamVotingWindow}
-                onChange={(range) => {
-                  setTeamVotingOpensAt(
-                    range.startDate ? toDateString(range.startDate) : "",
-                  );
-                  setTeamVotingClosesAt(
-                    range.endDate ? toDateString(range.endDate) : "",
-                  );
-                }}
-                allowedRanges={["Custom Range"]}
-                maxDate={null}
-                fullWidth
-              />
-            </div>
-          </div>
-          <div className="block text-xs font-semibold text-[var(--text-hi)]">
-            Finalist voting window
-            <div className="mt-1.5">
-              <DateRangePicker
-                value={managementVotingWindow}
-                onChange={(range) => {
-                  setManagementVotingOpensAt(
-                    range.startDate ? toDateString(range.startDate) : "",
-                  );
-                  setManagementVotingClosesAt(
-                    range.endDate ? toDateString(range.endDate) : "",
-                  );
-                }}
-                allowedRanges={["Custom Range"]}
-                maxDate={null}
-                fullWidth
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-            <Button variant="secondary" onClick={() => setNewCycleOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              loading={saving}
-              disabled={
-                !!(
-                  (opensAt && closesAt && closesAt < opensAt) ||
-                  (teamVotingOpensAt &&
-                    teamVotingClosesAt &&
-                    teamVotingClosesAt < teamVotingOpensAt) ||
-                  (managementVotingOpensAt &&
-                    managementVotingClosesAt &&
-                    managementVotingClosesAt < managementVotingOpensAt)
-                )
-              }
-              onClick={createCycle}
-            >
-              Open nominations
-            </Button>
-          </div>
-        </div>
-      </SimpleModal>
+      <WallOfFameNewCycleModal
+        closesAt={closesAt}
+        cycle={cycle}
+        createCycle={createCycle}
+        managementVotingClosesAt={managementVotingClosesAt}
+        managementVotingOpensAt={managementVotingOpensAt}
+        managementVotingWindow={managementVotingWindow}
+        month={month}
+        newCycleOpen={newCycleOpen}
+        nominationWindow={nominationWindow}
+        nominations={nominations}
+        opensAt={opensAt}
+        saving={saving}
+        setClosesAt={setClosesAt}
+        setManagementVotingClosesAt={setManagementVotingClosesAt}
+        setManagementVotingOpensAt={setManagementVotingOpensAt}
+        setMonth={setMonth}
+        setNewCycleOpen={setNewCycleOpen}
+        setOpensAt={setOpensAt}
+        setTeamVotingClosesAt={setTeamVotingClosesAt}
+        setTeamVotingOpensAt={setTeamVotingOpensAt}
+        staff={staff}
+        teamVotingClosesAt={teamVotingClosesAt}
+        teamVotingOpensAt={teamVotingOpensAt}
+        teamVotingWindow={teamVotingWindow}
+      />
     </div>
   );
 }
