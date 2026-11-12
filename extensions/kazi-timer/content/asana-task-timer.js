@@ -10,6 +10,8 @@
   window.__kaziAsanaTaskTimer = true;
 
   const buttonId = "kazi-asana-start-timer";
+  const pauseButtonId = "kazi-asana-pause-timer";
+  const stopButtonId = "kazi-asana-stop-timer";
   let mountQueued = false;
 
   function isVisible(element) {
@@ -90,31 +92,65 @@
     return timer.accumulatedMs + runningMs;
   }
 
-  // The button describes the timer only when it belongs to the task on screen.
-  // A timer for another task is shown as busy, not as running here.
+  // The control group describes the timer only when it belongs to the task on
+  // screen. A timer for another task is shown as busy, not as running here.
   function sameTask(a, b) {
     return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
   }
 
+  function setControlsVisible(visible) {
+    const pause = document.getElementById(pauseButtonId);
+    const stop = document.getElementById(stopButtonId);
+    if (pause) pause.hidden = !visible;
+    if (stop) stop.hidden = !visible;
+  }
+
   function renderButton(button) {
     if (!button) return;
+    const pause = document.getElementById(pauseButtonId);
     if (activeTimer) {
       const onThisTask = sameTask(activeTimer.task, taskTitle(taskPane()));
       if (onThisTask) {
         button.disabled = true;
-        const state = activeTimer.running ? "Timer running" : "Timer paused";
-        button.textContent = `${state} · ${formatClock(elapsedMs(activeTimer))}`;
+        button.textContent = formatClock(elapsedMs(activeTimer));
+        button.setAttribute(
+          "aria-label",
+          `${activeTimer.running ? "Timer running" : "Timer paused"}: ${button.textContent}`,
+        );
+        if (pause) {
+          pause.disabled = false;
+          pause.textContent = activeTimer.running ? "Pause" : "Resume";
+          pause.setAttribute(
+            "aria-label",
+            activeTimer.running
+              ? "Pause Kazi timer for this Asana task"
+              : "Resume Kazi timer for this Asana task",
+          );
+        }
+        setControlsVisible(true);
       } else if (timerSources[activeTimer.id]) {
         button.disabled = false;
         button.textContent = "Open running task";
+        button.setAttribute(
+          "aria-label",
+          "Open the Asana task with the running Kazi timer",
+        );
+        setControlsVisible(false);
       } else {
         button.disabled = true;
         button.textContent = "Timer on another task";
+        button.setAttribute(
+          "aria-label",
+          "A Kazi timer is running on another task",
+        );
+        setControlsVisible(false);
       }
       return;
     }
     button.disabled = false;
     button.textContent = "Start timer";
+    button.setAttribute("aria-label", "Start Kazi timer for this Asana task");
+    setControlsVisible(false);
   }
 
   function currentButton() {
@@ -122,13 +158,17 @@
   }
 
   function createButton(pane) {
+    const controls = document.createElement("span");
+    controls.id = "kazi-asana-timer-controls";
+    controls.style.cssText =
+      "display:inline-flex;align-items:center;gap:6px;margin-left:8px;";
     const button = document.createElement("button");
     button.id = buttonId;
     button.type = "button";
     button.textContent = "Start timer";
     button.setAttribute("aria-label", "Start Kazi timer for this Asana task");
     button.style.cssText =
-      "margin-left:8px;border:0;border-radius:8px;padding:6px 9px;background:#f05d23;color:#fff;font:600 12px system-ui;cursor:pointer;white-space:nowrap;";
+      "border:0;border-radius:8px;padding:6px 9px;background:#f05d23;color:#fff;font:600 12px system-ui;cursor:pointer;white-space:nowrap;";
     button.addEventListener("click", async () => {
       if (activeTimer && !sameTask(activeTimer.task, taskTitle(taskPane()))) {
         const url = timerSources[activeTimer.id];
@@ -158,7 +198,48 @@
         renderButton(button);
       }
     });
-    return button;
+    const pause = document.createElement("button");
+    pause.id = pauseButtonId;
+    pause.type = "button";
+    pause.hidden = true;
+    pause.style.cssText =
+      "border:1px solid #d9dce2;border-radius:8px;padding:6px 9px;background:#fff;color:#374151;font:600 12px system-ui;cursor:pointer;white-space:nowrap;";
+    pause.addEventListener("click", async () => {
+      if (!activeTimer) return;
+      pause.disabled = true;
+      const result = await chrome.runtime.sendMessage({
+        type: activeTimer.running ? "pause" : "resume",
+      });
+      pause.disabled = false;
+      if (result?.error) {
+        window.alert(result.error);
+        return;
+      }
+      activeTimer = result.timer;
+      renderButton(button);
+    });
+    const stop = document.createElement("button");
+    stop.id = stopButtonId;
+    stop.type = "button";
+    stop.hidden = true;
+    stop.textContent = "Stop";
+    stop.setAttribute("aria-label", "Stop Kazi timer for this Asana task");
+    stop.style.cssText =
+      "border:1px solid #fecaca;border-radius:8px;padding:6px 9px;background:#fff1f2;color:#be123c;font:600 12px system-ui;cursor:pointer;white-space:nowrap;";
+    stop.addEventListener("click", async () => {
+      if (!activeTimer) return;
+      stop.disabled = true;
+      const result = await chrome.runtime.sendMessage({ type: "stop" });
+      stop.disabled = false;
+      if (result?.error) {
+        window.alert(result.error);
+        return;
+      }
+      activeTimer = null;
+      renderButton(button);
+    });
+    controls.append(button, pause, stop);
+    return controls;
   }
 
   function mount() {
@@ -169,15 +250,15 @@
 
     const existing = currentButton();
     if (existing) {
-      if (existing.parentElement === complete.parentElement) {
+      if (existing.parentElement?.parentElement === complete.parentElement) {
         renderButton(existing);
         return;
       }
-      existing.remove();
+      existing.parentElement?.remove();
     }
-    const button = createButton(pane);
-    complete.insertAdjacentElement("afterend", button);
-    renderButton(button);
+    const controls = createButton(pane);
+    complete.insertAdjacentElement("afterend", controls);
+    renderButton(controls.querySelector(`#${buttonId}`));
   }
 
   // Refresh the elapsed time once a second while a timer is running.

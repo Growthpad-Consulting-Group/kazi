@@ -11,14 +11,31 @@ content, browsing history, passwords or Kazi cookies.
 3. Choose **Load unpacked** and select this `kazi-timer` directory.
 4. Pin **Kazi Timer** to the toolbar.
 
-The popup starts, pauses, resumes and stops a task. Use **Connect Kazi** once to
-approve a 12-hour, extension-only connection in an authenticated Kazi window.
+The popup starts, pauses, resumes and stops a task. On an open Asana task, the
+same controls sit beside **Mark complete**. Use **Connect Kazi** once to approve
+a 12-hour, extension-only connection in an authenticated Kazi window.
 The revocable token survives browser restarts and managed extension updates, but
 Kazi still requires a new connection when its 12-hour expiry is reached.
 Timers live on Kazi’s server, so pause, resume and stop made in Kazi or in another
 browser window appear in the popup. A stop is sent once per timer and writes a
 single entry to the day’s daily log. If Kazi cannot be reached, the stop waits in
 the local queue and syncs when the connection returns. Disconnect revokes the current extension token.
+
+## Contextual timer controls
+
+- **Asana:** Kazi reads only the title of the task currently open after you use
+  its timer control. It never reads task descriptions, comments, attachments or
+  other Asana content.
+- **Gmail:** Enable **Gmail timer** from the extension popup to add a Start Kazi
+  timer action next to an open message subject. Kazi reads that subject only
+  after you click it; it never reads message bodies, recipients, attachments or
+  mailbox history. Disable the feature from the same popup at any time.
+- **Selected text:** Highlight text on any page, right-click, then choose
+  **Start Kazi timer with selected text**. Only the text you explicitly select
+  and invoke is used as the task title.
+
+All three controls use the same shared Kazi timer. Starting a second timer is
+blocked, and stopping it writes one daily-log entry as usual.
 
 ## Enterprise distribution
 
@@ -61,6 +78,7 @@ transpiled or minified; the build script only copies the files, rewrites the
 manifest for Firefox and generates the icon sizes.
 
 Requirements:
+
 - macOS (the icon step uses the built-in `sips` tool)
 - Node.js 20 or later, and `zip`
 

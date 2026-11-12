@@ -456,6 +456,7 @@ async function getClients() {
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
+  await setUpContextMenu();
   await chrome.alarms.create(TICK_ALARM, { periodInMinutes: 0.5 });
   await refreshBadge();
   // Connect straight away so staff do not have to find Connect Kazi.
@@ -489,6 +490,9 @@ const MINI_ENABLED_KEY = "miniTimerEnabled";
 const MINI_SITES_KEY = "miniTimerSites";
 const MINI_SCRIPT = "content/mini-timer.js";
 const ASANA_TASK_SCRIPT = "content/asana-task-timer.js";
+const GMAIL_ENABLED_KEY = "gmailTimerEnabled";
+const GMAIL_TIMER_SCRIPT = "content/gmail-timer.js";
+const SELECTION_MENU_ID = "kazi-start-timer-from-selection";
 
 async function miniTimerState() {
   const { [MINI_ENABLED_KEY]: enabled = false, [MINI_SITES_KEY]: sites = [] } =
@@ -506,6 +510,19 @@ async function injectAsanaTaskTimer(tabId, url) {
   if (originOf(url) !== "https://app.asana.com") return;
   await chrome.scripting
     .executeScript({ target: { tabId }, files: [ASANA_TASK_SCRIPT] })
+    .catch(() => {});
+}
+
+async function gmailTimerState() {
+  const { [GMAIL_ENABLED_KEY]: enabled = false } =
+    await chrome.storage.local.get(GMAIL_ENABLED_KEY);
+  return { enabled: enabled === true };
+}
+
+async function injectGmailTimer(tabId, url) {
+  if (originOf(url) !== "https://mail.google.com") return;
+  await chrome.scripting
+    .executeScript({ target: { tabId }, files: [GMAIL_TIMER_SCRIPT] })
     .catch(() => {});
 }
 
@@ -534,6 +551,12 @@ function originOf(url) {
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
+  if (
+    originOf(tab.url) === "https://mail.google.com" &&
+    (await gmailTimerState()).enabled
+  ) {
+    await injectGmailTimer(tabId, tab.url);
+  }
   const { enabled, sites } = await miniTimerState();
   if (enabled && sites.includes(originOf(tab.url))) {
     if (originOf(tab.url) === "https://app.asana.com") {
@@ -583,6 +606,25 @@ async function handleMessage(message) {
     await chrome.storage.local.set({ [MINI_SITES_KEY]: next });
     if (message.enabled) await injectIntoSite(message.origin);
     return miniTimerState();
+  }
+
+  if (message.type === "gmail-get-state") return gmailTimerState();
+
+  if (message.type === "gmail-set-enabled") {
+    await chrome.storage.local.set({
+      [GMAIL_ENABLED_KEY]: message.enabled === true,
+    });
+    if (message.enabled) {
+      const tabs = await chrome.tabs.query({});
+      await Promise.all(
+        tabs
+          .filter(
+            (tab) => tab.id && originOf(tab.url) === "https://mail.google.com",
+          )
+          .map((tab) => injectGmailTimer(tab.id, tab.url)),
+      );
+    }
+    return gmailTimerState();
   }
 
   if (message.type === "disconnect") {
@@ -707,9 +749,36 @@ async function handleMessage(message) {
   return { error: "Unknown Kazi Timer action" };
 }
 
+function enqueueMessage(message) {
+  messageQueue = messageQueue.then(() => handleMessage(message));
+  return messageQueue;
+}
+
+async function setUpContextMenu() {
+  await chrome.contextMenus.removeAll();
+  chrome.contextMenus.create({
+    id: SELECTION_MENU_ID,
+    title: "Start Kazi timer with selected text",
+    contexts: ["selection"],
+  });
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== SELECTION_MENU_ID) return;
+  const task = String(info.selectionText || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!task) return;
+  void enqueueMessage({
+    type: "start",
+    task: task.slice(0, 200),
+    category: "Projects",
+    sourceUrl: tab?.url,
+  }).catch(() => {});
+});
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  messageQueue = messageQueue
-    .then(() => handleMessage(message))
+  enqueueMessage(message)
     .then(sendResponse)
     .catch((error) => sendResponse({ error: error.message }));
   return true;

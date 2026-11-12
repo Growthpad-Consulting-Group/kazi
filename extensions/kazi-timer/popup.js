@@ -7,6 +7,7 @@ let clients = [];
 let selectedClient = "";
 let activeClientIndex = -1;
 let reconnectNeeded = false;
+let gmailEnabled = false;
 
 function clientInput() {
   return $("#client-search");
@@ -297,6 +298,14 @@ async function loadMiniTimer() {
   renderMiniSites(await send("mini-get-state"));
 }
 
+async function loadGmailTimer() {
+  const state = await send("gmail-get-state");
+  gmailEnabled = state.enabled === true;
+  $("#gmail-toggle").textContent = gmailEnabled
+    ? "Disable in Gmail"
+    : "Enable in Gmail";
+}
+
 async function removeMiniSite(origin) {
   await chrome.permissions.remove({ origins: [`${origin}/*`] }).catch(() => {});
   renderMiniSites(await send("mini-set-site", { origin, enabled: false }));
@@ -338,6 +347,34 @@ $("#mini-add").addEventListener("click", async () => {
   } finally {
     button.disabled = false;
     button.textContent = "Enable timer on this site";
+  }
+});
+
+$("#gmail-toggle").addEventListener("click", async () => {
+  const button = $("#gmail-toggle");
+  button.disabled = true;
+  try {
+    if (gmailEnabled) {
+      await chrome.permissions
+        .remove({ origins: ["https://mail.google.com/*"] })
+        .catch(() => {});
+      await send("gmail-set-enabled", { enabled: false });
+      $("#notice").textContent = "Gmail timer disabled.";
+    } else {
+      const granted = await chrome.permissions
+        .request({ origins: ["https://mail.google.com/*"] })
+        .catch(() => false);
+      if (!granted) {
+        $("#notice").textContent = "Gmail access was not allowed.";
+        return;
+      }
+      await send("gmail-set-enabled", { enabled: true });
+      $("#notice").textContent =
+        "Gmail timer enabled. Open an email to start from its subject.";
+    }
+  } finally {
+    button.disabled = false;
+    await loadGmailTimer();
   }
 });
 
@@ -417,3 +454,4 @@ $("#connect").addEventListener("click", async () => {
 });
 load();
 loadMiniTimer();
+loadGmailTimer();

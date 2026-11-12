@@ -69,6 +69,11 @@ beforeEach(() => {
       setBadgeTextColor: vi.fn().mockResolvedValue(undefined),
       setTitle: vi.fn().mockResolvedValue(undefined),
     },
+    contextMenus: {
+      removeAll: vi.fn().mockResolvedValue(undefined),
+      create: vi.fn(),
+      onClicked: event("contextMenuClicked"),
+    },
   };
   globalThis.chrome = chromeMock;
   globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
@@ -95,6 +100,12 @@ describe("Kazi Timer background worker", () => {
     expect(chromeMock.alarms.create).toHaveBeenCalledWith("kazi-timer-tick", {
       periodInMinutes: 0.5,
     });
+    expect(chromeMock.contextMenus.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "kazi-start-timer-from-selection",
+        contexts: ["selection"],
+      }),
+    );
     expect(chromeMock.action.setBadgeText).toHaveBeenLastCalledWith({
       text: "6m",
     });
@@ -190,6 +201,25 @@ describe("Kazi Timer background worker", () => {
     expect(first.timer.task).toBe("First task");
     expect(second).toEqual({ error: "A timer is already active" });
     expect(local.timer.task).toBe("First task");
+  });
+
+  it("starts the shared timer from text deliberately selected in a page", async () => {
+    await loadWorker();
+    await listeners.installed();
+
+    listeners.contextMenuClicked(
+      {
+        menuItemId: "kazi-start-timer-from-selection",
+        selectionText: "  Prepare  the\nclient proposal  ",
+      },
+      { url: "https://example.com/work" },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(local.timer).toMatchObject({
+      task: "Prepare the client proposal",
+      category: "Projects",
+    });
   });
 });
 

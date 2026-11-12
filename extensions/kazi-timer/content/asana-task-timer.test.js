@@ -59,7 +59,6 @@ async function loadHelper(markup) {
   vi.resetModules();
   const { readFileSync } = await import("node:fs");
   // The helper is a classic browser script with no exports.
-  // eslint-disable-next-line no-new-func
   new Function(readFileSync(SCRIPT, "utf8"))();
   await settle();
 }
@@ -107,7 +106,9 @@ describe("Asana Start timer button", () => {
 
     const button = document.getElementById(BUTTON_ID);
     expect(button).not.toBeNull();
-    expect(button.previousElementSibling.textContent).toBe("Mark complete");
+    expect(button.parentElement.previousElementSibling.textContent).toBe(
+      "Mark complete",
+    );
     expect(button.textContent).toBe("Start timer");
   });
 
@@ -154,7 +155,7 @@ describe("Asana Start timer button", () => {
     expect(button.textContent).toBe("Timer on another task");
   });
 
-  it("shows the running time for the task on screen", async () => {
+  it("shows inline pause and stop controls for the running task on screen", async () => {
     storage.timer = {
       id: "t1",
       task: "Develop browser extension",
@@ -166,6 +167,28 @@ describe("Asana Start timer button", () => {
 
     const button = document.getElementById(BUTTON_ID);
     expect(button.disabled).toBe(true);
-    expect(button.textContent).toMatch(/^Timer running · 1:0\d$/);
+    expect(button.textContent).toMatch(/^1:0\d$/);
+    expect(document.getElementById("kazi-asana-pause-timer").hidden).toBe(
+      false,
+    );
+    expect(document.getElementById("kazi-asana-stop-timer").hidden).toBe(false);
+  });
+
+  it("sends pause and stop actions from the Asana task toolbar", async () => {
+    storage.timer = {
+      id: "t1",
+      task: "Develop browser extension",
+      running: true,
+      accumulatedMs: 0,
+      startedAt: new Date().toISOString(),
+    };
+    await loadHelper(STANDARD_PANE);
+
+    document.getElementById("kazi-asana-pause-timer").click();
+    document.getElementById("kazi-asana-stop-timer").click();
+    await settle();
+
+    expect(sendMessage).toHaveBeenCalledWith({ type: "pause" });
+    expect(sendMessage).toHaveBeenCalledWith({ type: "stop" });
   });
 });
