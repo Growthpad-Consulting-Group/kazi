@@ -21,6 +21,7 @@ type LogRow = {
   entries: DailyLogEntry[];
   updated_at: string;
   mood: number | null;
+  mood_note: string | null;
   blockers: string | null;
   wins: string | null;
   acknowledged_at: string | null;
@@ -71,7 +72,7 @@ export async function GET(req: Request) {
       );
     const { data } = await supabaseAdmin
       .from("daily_activity_logs")
-      .select("log_date, entries, mood, blockers, wins, updated_at")
+      .select("log_date, entries, mood, mood_note, blockers, wins, updated_at")
       .eq("user_id", session.user.id)
       .gte("log_date", from)
       .lte("log_date", to)
@@ -82,6 +83,7 @@ export async function GET(req: Request) {
           log_date: string;
           entries: DailyLogEntry[];
           mood: number | null;
+          mood_note: string | null;
           blockers: string | null;
           wins: string | null;
           updated_at: string;
@@ -90,6 +92,7 @@ export async function GET(req: Request) {
         date: row.log_date,
         entries: row.entries,
         mood: row.mood,
+        moodNote: row.mood_note,
         blockers: row.blockers,
         wins: row.wins,
         updatedAt: row.updated_at,
@@ -106,7 +109,9 @@ export async function GET(req: Request) {
       );
     const { data } = await supabaseAdmin
       .from("daily_activity_logs")
-      .select("entries, created_at, updated_at, mood, blockers, wins")
+      .select(
+        "entries, created_at, updated_at, mood, mood_note, blockers, wins",
+      )
       .eq("user_id", session.user.id)
       .eq("log_date", date)
       .maybeSingle();
@@ -115,6 +120,7 @@ export async function GET(req: Request) {
       created_at: string;
       updated_at: string;
       mood: number | null;
+      mood_note: string | null;
       blockers: string | null;
       wins: string | null;
     } | null;
@@ -127,6 +133,7 @@ export async function GET(req: Request) {
           60_000
         : false,
       mood: row?.mood ?? null,
+      moodNote: row?.mood_note ?? null,
       blockers: row?.blockers ?? null,
       wins: row?.wins ?? null,
     });
@@ -188,7 +195,7 @@ export async function GET(req: Request) {
   const { data: logs } = await supabaseAdmin
     .from("daily_activity_logs")
     .select(
-      "user_id, log_date, entries, updated_at, mood, blockers, wins, acknowledged_at",
+      "user_id, log_date, entries, updated_at, mood, mood_note, blockers, wins, acknowledged_at",
     )
     .gte("log_date", from)
     .lte("log_date", to)
@@ -295,6 +302,7 @@ export async function GET(req: Request) {
         days: memberLogs.map((log) => ({
           date: log.log_date,
           mood: log.mood ?? null,
+          moodNote: log.mood_note ?? null,
           blockers: log.blockers ?? null,
           wins: log.wins ?? null,
           hasEntries: log.entries.length > 0,
@@ -320,6 +328,7 @@ export async function POST(req: Request) {
     date?: unknown;
     entries?: unknown;
     mood?: unknown;
+    moodNote?: unknown;
     blockers?: unknown;
     wins?: unknown;
   } | null;
@@ -386,6 +395,10 @@ export async function POST(req: Request) {
         log_date: body.date,
         entries: validated.entries,
         mood: mood.mood,
+        mood_note:
+          mood.mood !== null && mood.mood <= 2
+            ? cleanText(body.moodNote)
+            : null,
         blockers: cleanText(body.blockers),
         wins: cleanText(body.wins),
       },

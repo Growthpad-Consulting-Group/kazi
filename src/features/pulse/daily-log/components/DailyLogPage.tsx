@@ -318,6 +318,7 @@ export function DailyLogPage({
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [mood, setMood] = useState<number | null>(null);
+  const [moodNote, setMoodNote] = useState("");
   const [blockers, setBlockers] = useState("");
   const [wins, setWins] = useState("");
   const [editing, setEditing] = useState(false);
@@ -416,6 +417,7 @@ export function DailyLogPage({
             updatedAt?: string | null;
             edited?: boolean;
             mood?: number | null;
+            moodNote?: string | null;
             blockers?: string | null;
             wins?: string | null;
             error?: string;
@@ -478,6 +480,7 @@ export function DailyLogPage({
           setEditing(false);
           setIsDirty(false);
           setMood(json.mood ?? null);
+          setMoodNote(json.moodNote ?? "");
           setBlockers(json.blockers ?? "");
           setWins(json.wins ?? "");
         },
@@ -1069,6 +1072,7 @@ export function DailyLogPage({
           date,
           entries,
           mood,
+          moodNote: moodNote.trim() || null,
           blockers: blockers.trim() || null,
           wins: wins.trim() || null,
         }),
@@ -1118,6 +1122,7 @@ export function DailyLogPage({
     date,
     history,
     mood,
+    moodNote,
     needsRefresh,
     router,
     rows,
@@ -1286,6 +1291,7 @@ export function DailyLogPage({
             dateLabel={dateHeading(date)}
             entries={savedEntries}
             mood={mood}
+            moodNote={moodNote.trim() || null}
             blockers={blockers.trim() || null}
             wins={wins.trim() || null}
             updatedAt={savedAt}
@@ -1791,6 +1797,28 @@ export function DailyLogPage({
                   />
                 </div>
               </div>
+              {mood !== null && mood <= 2 && (
+                <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-3">
+                  <label className="block text-xs font-semibold text-[var(--text-hi)]">
+                    Anything you&apos;d like your manager to know?
+                  </label>
+                  <p className="mt-1 text-xs text-[var(--text-lo)]">
+                    Optional. Share only what feels useful so your manager can
+                    offer the right support.
+                  </p>
+                  <textarea
+                    rows={2}
+                    value={moodNote}
+                    onChange={(event) => {
+                      setMoodNote(event.target.value);
+                      setIsDirty(true);
+                    }}
+                    placeholder="Optional context for your manager"
+                    maxLength={1000}
+                    className={`${inputClass} mt-3 resize-y`}
+                  />
+                </div>
+              )}
             </Accordion>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">

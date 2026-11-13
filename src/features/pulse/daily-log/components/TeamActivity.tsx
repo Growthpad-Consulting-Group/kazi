@@ -22,6 +22,7 @@ type TeamEntry = DailyLogEntry & { date: string };
 type TeamDay = {
   date: string;
   mood: number | null;
+  moodNote: string | null;
   blockers: string | null;
   wins: string | null;
   hasEntries: boolean;
@@ -624,7 +625,10 @@ export function TeamActivity({ reportId }: { reportId?: string }) {
                                   (d) => d.date === date,
                                 );
                                 return day &&
-                                  (day.mood || day.blockers || day.wins) ? (
+                                  (day.mood ||
+                                    day.moodNote ||
+                                    day.blockers ||
+                                    day.wins) ? (
                                   <div className="mb-2 space-y-1 rounded-lg bg-brand-500/5 px-3 py-2 text-xs text-[var(--text-hi)]">
                                     {day.mood ? (
                                       <p>
@@ -638,6 +642,14 @@ export function TeamActivity({ reportId }: { reportId?: string }) {
                                         <span className="text-[var(--text-lo)]">
                                           {MOOD_LABELS[day.mood - 1]}
                                         </span>
+                                      </p>
+                                    ) : null}
+                                    {day.moodNote ? (
+                                      <p>
+                                        <span className="font-semibold">
+                                          Support note:
+                                        </span>{" "}
+                                        {day.moodNote}
                                       </p>
                                     ) : null}
                                     {day.blockers ? (
@@ -794,7 +806,7 @@ export function TeamActivity({ reportId }: { reportId?: string }) {
 function groupByDate(entries: TeamEntry[], days: TeamDay[]) {
   const groups = new Map<string, TeamEntry[]>();
   for (const day of days)
-    if (day.blockers || day.mood || day.wins)
+    if (day.blockers || day.mood || day.moodNote || day.wins)
       groups.set(day.date, groups.get(day.date) ?? []);
   for (const entry of entries)
     groups.set(entry.date, [...(groups.get(entry.date) ?? []), entry]);

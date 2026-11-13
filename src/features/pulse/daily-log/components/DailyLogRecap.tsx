@@ -35,6 +35,7 @@ export function DailyLogRecap({
   dateLabel,
   entries,
   mood,
+  moodNote,
   blockers,
   wins,
   updatedAt,
@@ -47,6 +48,7 @@ export function DailyLogRecap({
   dateLabel: string;
   entries: DailyLogEntry[];
   mood: number | null;
+  moodNote: string | null;
   blockers: string | null;
   wins: string | null;
   updatedAt: string | null;
@@ -205,7 +207,7 @@ export function DailyLogRecap({
         </ul>
       </div>
 
-      {(mood || blockers || wins) && (
+      {(mood || moodNote || blockers || wins) && (
         <div className="grid gap-3 sm:grid-cols-3">
           {mood ? (
             <div className="rounded-xl bg-[var(--surface-2)] p-3">
@@ -217,6 +219,16 @@ export function DailyLogRecap({
                 className="mt-1 cursor-help text-2xl"
               >
                 {MOODS[mood - 1]}
+              </p>
+            </div>
+          ) : null}
+          {moodNote ? (
+            <div className="rounded-xl bg-amber-500/[0.06] p-3 sm:col-span-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                Support note
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--text-hi)]">
+                {moodNote}
               </p>
             </div>
           ) : null}
