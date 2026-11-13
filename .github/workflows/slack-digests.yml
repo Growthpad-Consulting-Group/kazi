@@ -2,9 +2,10 @@ name: Slack Digests
 
 on:
   schedule:
-    # Hourly, so each staff member's local workday window and quiet hours are
-    # checked against the current time. Each message is keyed, so reruns are safe.
-    - cron: "0 * * * *"
+    # Every 30 minutes, so each staff member's local workday window, Friday
+    # close and quiet hours are checked close to their local schedule. Each
+    # message is keyed, so reruns are safe.
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 jobs:

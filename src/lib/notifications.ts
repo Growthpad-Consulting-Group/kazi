@@ -136,6 +136,55 @@ export async function notifyCheckinSubmissionReceived(
   ]);
 }
 
+export async function notifyDailyWorkShared(
+  userId: string,
+  weekStart: string,
+): Promise<void> {
+  const weekLabel = new Date(`${weekStart}T12:00:00Z`).toLocaleDateString(
+    "en-KE",
+    { day: "numeric", month: "short", timeZone: "UTC" },
+  );
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `Your daily work for the week of ${weekLabel} was shared with your manager. Your weekly reflection is still open.`,
+      link: "/pulse/checkins?tab=checkins",
+    },
+  ]);
+}
+
+export async function notifyWeeklyReflectionReminder(
+  userId: string,
+  weekStart: string,
+): Promise<void> {
+  const weekLabel = new Date(`${weekStart}T12:00:00Z`).toLocaleDateString(
+    "en-KE",
+    { day: "numeric", month: "short", timeZone: "UTC" },
+  );
+  await createNotifications([
+    {
+      user_id: userId,
+      message: `Your weekly reflection for the week of ${weekLabel} is still open. Your manager already has your daily activity.`,
+      link: "/pulse/checkins?tab=checkins",
+    },
+  ]);
+}
+
+export async function notifyManagerOfDailyActivity(
+  managerId: string,
+  employeeName: string,
+  employeeId: string,
+  daysLogged: number,
+): Promise<void> {
+  await createNotifications([
+    {
+      user_id: managerId,
+      message: `${employeeName} logged ${daysLogged}/5 workdays. Daily activity was shared automatically; their weekly reflection is pending.`,
+      link: `/pulse/checkins?user=${employeeId}`,
+    },
+  ]);
+}
+
 export async function notifyMilestone(
   userId: string,
   type: string,

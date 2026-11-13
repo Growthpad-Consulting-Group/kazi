@@ -9,6 +9,13 @@ import {
   postSlackChannelNotification,
 } from "@/lib/slack";
 import {
+  notifyCheckinSubmissionReceived,
+  notifyDailyWorkShared,
+  notifyManagerOfCheckin,
+  notifyManagerOfDailyActivity,
+  notifyWeeklyReflectionReminder,
+} from "@/lib/notifications";
+import {
   addDays,
   clockLabel,
   clockToMinutes,
@@ -38,7 +45,8 @@ import { buildCultureRecap } from "@/lib/culture-recap";
 const DEFAULT_TIMEZONE = "Africa/Nairobi";
 const WINDOW_MINUTES = 60;
 const QUIET_HOURS_CATCH_UP_MINUTES = 4 * 60;
-const CHECKIN_NUDGE_START = 12 * 60; // Friday, 12:00 local
+const CHECKIN_NUDGE_START = 16 * 60; // Friday, 16:00 local
+const DAILY_EVIDENCE_SHARE_START = 17 * 60 + 30; // Friday, 17:30 local
 const MANAGER_REVIEW_START = 16 * 60; // Friday, 16:00 local
 const REMINDER_LEAD_MINUTES = 90;
 const FOLLOW_UP_MIN_AGE_MINUTES = 60;
@@ -53,6 +61,9 @@ export type DigestCounts = {
   failed: number;
   dailyBriefs: number;
   checkinNudges: number;
+  dailyEvidenceShares: number;
+  autoSubmittedCheckins: number;
+  mondayReflectionReminders: number;
   managerPulses: number;
   reviewQueues: number;
   oneOnOneReminders: number;
@@ -102,6 +113,9 @@ function emptyCounts(): DigestCounts {
     failed: 0,
     dailyBriefs: 0,
     checkinNudges: 0,
+    dailyEvidenceShares: 0,
+    autoSubmittedCheckins: 0,
+    mondayReflectionReminders: 0,
     managerPulses: 0,
     reviewQueues: 0,
     oneOnOneReminders: 0,
@@ -206,7 +220,6 @@ export async function runSlackDigests(
 
   for (const user of users) {
     const pref = prefs.get(user.id);
-    if (pref && pref.slack_enabled === false) continue;
     const schedule = schedules.get(user.id);
     const timezone =
       schedule?.timezone ?? pref?.slack_timezone ?? DEFAULT_TIMEZONE;
@@ -217,11 +230,37 @@ export async function runSlackDigests(
       pref?.slack_timezone ?? DEFAULT_TIMEZONE,
       now,
     );
-    if (quiet) continue; // Skipped without a delivery record, so a later run can still send.
-
     const weekStart = weekStartOf(clock.date, clock.weekday);
     const startMinutes = clockToMinutes(schedule?.workday_start, "08:00");
     const workingDays = schedule?.working_days ?? WORKING_DAYS_DEFAULT;
+
+    // This lifecycle is independent of Slack preferences: Friday activity is
+    // shared in-app with the manager even when either party has muted Slack.
+    if (
+      clock.weekday === 5 &&
+      inCatchUpWindow(
+        clock,
+        DAILY_EVIDENCE_SHARE_START,
+        WINDOW_MINUTES,
+        QUIET_HOURS_CATCH_UP_MINUTES,
+      )
+    ) {
+      await shareFridayDailyEvidence(user, byId, weekStart, counts);
+    }
+    if (
+      clock.weekday === 1 &&
+      inCatchUpWindow(
+        clock,
+        startMinutes,
+        WINDOW_MINUTES,
+        QUIET_HOURS_CATCH_UP_MINUTES,
+      )
+    ) {
+      await sendMondayReflectionReminder(user, weekStart, counts);
+    }
+
+    if (pref && pref.slack_enabled === false) continue;
+    if (quiet) continue; // Skipped without a delivery record, so a later run can still send.
 
     if (
       pref?.slack_daily_brief === true &&
@@ -505,7 +544,7 @@ async function sendCheckinNudge(
     appUrl: appUrl(),
   });
   const outcome = await deliverSlackNotification({
-    eventKey: `checkin-nudge:${user.id}:${weekStart}`,
+    eventKey: `checkin-reminder-friday:${user.id}:${weekStart}`,
     recipientUserId: user.id,
     category: "checkin_reminder",
     text: message.text,
@@ -514,6 +553,241 @@ async function sendCheckinNudge(
   });
   record(counts, outcome);
   if (outcome === "delivered") counts.checkinNudges += 1;
+}
+
+type LifecycleCheckin = {
+  id: string;
+  status: "draft" | "submitted" | "reviewed";
+  wins: string | null;
+  priorities: string | null;
+  blockers: string | null;
+  mood: number | null;
+  daily_evidence_shared_at: string | null;
+  auto_submitted_at: string | null;
+  monday_reflection_reminded_at: string | null;
+};
+
+type DailyLogRow = { log_date: string; entries: unknown[] | null };
+
+function countLoggedDays(rows: DailyLogRow[]) {
+  return rows.filter(
+    (row) => Array.isArray(row.entries) && row.entries.length > 0,
+  ).length;
+}
+
+function weeklyCheckinLink(userId: string) {
+  return `${appUrl()}/pulse/checkins?user=${userId}`;
+}
+
+/**
+ * At Friday close, share completed daily evidence without inventing a weekly
+ * reflection. A saved reflection is automatically submitted only when both
+ * required fields already contain staff-authored text.
+ */
+async function shareFridayDailyEvidence(
+  user: UserRow,
+  byId: Map<string, UserRow>,
+  weekStart: string,
+  counts: DigestCounts,
+) {
+  const weekEnd = addDays(weekStart, 4);
+  const [logsResult, checkinResult] = await Promise.all([
+    db
+      .from("daily_activity_logs")
+      .select("log_date, entries")
+      .eq("user_id", user.id)
+      .gte("log_date", weekStart)
+      .lte("log_date", weekEnd),
+    db
+      .from("checkins")
+      .select(
+        "id,status,wins,priorities,blockers,mood,daily_evidence_shared_at,auto_submitted_at,monday_reflection_reminded_at",
+      )
+      .eq("user_id", user.id)
+      .eq("week_start", weekStart)
+      .maybeSingle(),
+  ]);
+  if (logsResult.error || checkinResult.error) {
+    console.error(
+      "[weekly-checkin-lifecycle] unable to load Friday state",
+      logsResult.error?.message ?? checkinResult.error?.message,
+    );
+    return;
+  }
+  const daysLogged = countLoggedDays((logsResult.data ?? []) as DailyLogRow[]);
+  if (daysLogged < 5) return;
+
+  const checkin = (checkinResult.data ?? null) as LifecycleCheckin | null;
+  if (["submitted", "reviewed"].includes(checkin?.status ?? "")) return;
+  if (checkin?.daily_evidence_shared_at) return;
+
+  const now = new Date().toISOString();
+  const hasReflection = Boolean(
+    checkin?.wins?.trim() && checkin.priorities?.trim(),
+  );
+  const { error: writeError } = hasReflection
+    ? await db
+        .from("checkins")
+        .update({
+          status: "submitted",
+          auto_submitted_at: now,
+          daily_evidence_shared_at: now,
+        })
+        .eq("id", checkin?.id)
+    : checkin
+      ? await db
+          .from("checkins")
+          .update({ daily_evidence_shared_at: now })
+          .eq("id", checkin.id)
+      : await db.from("checkins").insert({
+          user_id: user.id,
+          week_start: weekStart,
+          status: "draft",
+          daily_evidence_shared_at: now,
+        });
+  if (writeError) {
+    console.error(
+      "[weekly-checkin-lifecycle] unable to save Friday state",
+      writeError.message,
+    );
+    return;
+  }
+
+  if (hasReflection) {
+    const tasks: Promise<unknown>[] = [
+      notifyCheckinSubmissionReceived(user.id, weekStart),
+      deliverSlackNotification({
+        eventKey: `checkin-auto-submitted:${user.id}:${weekStart}:staff`,
+        recipientUserId: user.id,
+        category: "checkin_submitted",
+        text: "Your saved weekly reflection was submitted after Friday close.",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Weekly reflection submitted*\nYour saved reflection was shared after Friday close. <${appUrl()}/pulse/checkins?tab=checkins|Review it in Kazi>.`,
+            },
+          },
+        ],
+      }),
+    ];
+    const manager = user.manager_id ? byId.get(user.manager_id) : null;
+    if (manager) {
+      tasks.push(
+        notifyManagerOfCheckin(
+          manager.id,
+          user.name,
+          user.id,
+          Boolean(checkin?.blockers?.trim()),
+        ),
+        deliverSlackNotification({
+          eventKey: `checkin-auto-submitted:${user.id}:${weekStart}:manager:${manager.id}`,
+          recipientUserId: manager.id,
+          category: "checkin_submitted",
+          text: `${user.name}'s saved weekly reflection was submitted after Friday close.`,
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `*Weekly check-in ready*\n${user.name}'s saved reflection was submitted automatically after Friday close. <${weeklyCheckinLink(user.id)}|Review in Kazi>.`,
+              },
+            },
+          ],
+        }),
+      );
+    }
+    await Promise.all(tasks);
+    counts.autoSubmittedCheckins += 1;
+    return;
+  }
+
+  const tasks: Promise<unknown>[] = [
+    notifyDailyWorkShared(user.id, weekStart),
+    deliverSlackNotification({
+      eventKey: `daily-evidence-shared:${user.id}:${weekStart}:staff`,
+      recipientUserId: user.id,
+      category: "checkin_reminder",
+      text: "Your daily work was shared with your manager. Your weekly reflection is still open.",
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*Daily work shared*\nYour five logged workdays were shared with your manager. Add your reflection when you can. <${appUrl()}/pulse/checkins?tab=checkins|Open weekly check-in>.`,
+          },
+        },
+      ],
+    }),
+  ];
+  const manager = user.manager_id ? byId.get(user.manager_id) : null;
+  if (manager) {
+    tasks.push(
+      notifyManagerOfDailyActivity(manager.id, user.name, user.id, daysLogged),
+      deliverSlackNotification({
+        eventKey: `daily-evidence-shared:${user.id}:${weekStart}:manager:${manager.id}`,
+        recipientUserId: manager.id,
+        category: "checkin_submitted",
+        text: `${user.name} logged all five workdays; their weekly reflection is still pending.`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Daily activity ready*\n${user.name} logged *${daysLogged}/5 workdays*. Daily work was shared automatically; their weekly reflection is pending. <${weeklyCheckinLink(user.id)}|Review activity in Kazi>.`,
+            },
+          },
+        ],
+      }),
+    );
+  }
+  await Promise.all(tasks);
+  counts.dailyEvidenceShares += 1;
+}
+
+/** Monday is reminder-only: weekly reflections always remain staff-authored. */
+async function sendMondayReflectionReminder(
+  user: UserRow,
+  weekStart: string,
+  counts: DigestCounts,
+) {
+  const priorWeekStart = addDays(weekStart, -7);
+  const { data, error } = await db
+    .from("checkins")
+    .select("id,status,daily_evidence_shared_at,monday_reflection_reminded_at")
+    .eq("user_id", user.id)
+    .eq("week_start", priorWeekStart)
+    .maybeSingle();
+  if (error || !data || ["submitted", "reviewed"].includes(data.status)) return;
+  if (!data.daily_evidence_shared_at || data.monday_reflection_reminded_at)
+    return;
+
+  const { error: updateError } = await db
+    .from("checkins")
+    .update({ monday_reflection_reminded_at: new Date().toISOString() })
+    .eq("id", data.id);
+  if (updateError) return;
+
+  await Promise.all([
+    notifyWeeklyReflectionReminder(user.id, priorWeekStart),
+    deliverSlackNotification({
+      eventKey: `checkin-reflection-monday:${user.id}:${priorWeekStart}`,
+      recipientUserId: user.id,
+      category: "checkin_reminder",
+      text: "Your weekly reflection is still open. Your manager already has your daily activity.",
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*Weekly reflection still open*\nYour manager already has your daily activity. Add any useful context, priorities or blockers when you can. <${appUrl()}/pulse/checkins?tab=checkins&week=${priorWeekStart}|Complete reflection>.`,
+          },
+        },
+      ],
+    }),
+  ]);
+  counts.mondayReflectionReminders += 1;
 }
 
 /** Released results the person has not acknowledged, excluding reviews they wrote. */

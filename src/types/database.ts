@@ -338,6 +338,9 @@ export interface Database {
           reviewed_by: string | null;
           reviewed_at: string | null;
           ai_summary: string | null;
+          daily_evidence_shared_at: string | null;
+          auto_submitted_at: string | null;
+          monday_reflection_reminded_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -351,6 +354,9 @@ export interface Database {
           | "reviewed_by"
           | "reviewed_at"
           | "ai_summary"
+          | "daily_evidence_shared_at"
+          | "auto_submitted_at"
+          | "monday_reflection_reminded_at"
           | "wins"
           | "priorities"
           | "blockers"
@@ -365,6 +371,9 @@ export interface Database {
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           ai_summary?: string | null;
+          daily_evidence_shared_at?: string | null;
+          auto_submitted_at?: string | null;
+          monday_reflection_reminded_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["checkins"]["Row"]>;
         Relationships: [];

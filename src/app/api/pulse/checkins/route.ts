@@ -54,6 +54,9 @@ export async function POST(req: Request) {
       blockers: blockers ?? null,
       mood: mood ?? null,
       status: (status ?? "draft") as CheckinStatus,
+      // A staff member who edits and re-submits an automatically submitted
+      // reflection has explicitly taken ownership of that version.
+      auto_submitted_at: null,
     },
     { onConflict: "user_id,week_start" },
   );

@@ -361,12 +361,16 @@ function ReadOnlyCheckin({
             <p className="text-sm font-semibold text-[var(--text-hi)]">
               {reviewed
                 ? "This check-in has been reviewed"
-                : "This check-in has been submitted"}
+                : checkin.auto_submitted_at
+                  ? "This check-in was submitted automatically"
+                  : "This check-in has been submitted"}
             </p>
             <p className="mt-0.5 text-xs text-[var(--text-lo)]">
               {reviewed
                 ? "Your update is now part of the conversation with your manager."
-                : "Your manager can now review this update."}
+                : checkin.auto_submitted_at
+                  ? "Your saved reflection was shared after Friday close. You can still edit and resubmit it."
+                  : "Your manager can now review this update."}
             </p>
           </div>
         </div>
