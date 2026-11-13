@@ -479,6 +479,15 @@ export function TeamCheckins({
                           value={checkin.blockers}
                         />
                       </div>
+                      {checkin.mood_note && (
+                        <div className="mt-3">
+                          <ReadSection
+                            label="Support note"
+                            icon="solar:heart-pulse-broken"
+                            value={checkin.mood_note}
+                          />
+                        </div>
+                      )}
                       {dailySummary?.byUser[checkin.user_id] && (
                         <DailyWorkBreakdown
                           summary={dailySummary.byUser[checkin.user_id]}

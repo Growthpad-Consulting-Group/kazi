@@ -19,8 +19,16 @@ export async function POST(req: Request) {
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId, weekStart, wins, priorities, blockers, mood, status } =
-    await req.json();
+  const {
+    userId,
+    weekStart,
+    wins,
+    priorities,
+    blockers,
+    mood,
+    moodNote,
+    status,
+  } = await req.json();
 
   // Users can only update their own check-in (unless admin/hr)
   if (
@@ -53,6 +61,10 @@ export async function POST(req: Request) {
       priorities: priorities ?? null,
       blockers: blockers ?? null,
       mood: mood ?? null,
+      mood_note:
+        typeof mood === "number" && mood <= 2 && typeof moodNote === "string"
+          ? moodNote.trim() || null
+          : null,
       status: (status ?? "draft") as CheckinStatus,
       // A staff member who edits and re-submits an automatically submitted
       // reflection has explicitly taken ownership of that version.

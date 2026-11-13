@@ -62,6 +62,7 @@ export function CheckinForm({
   const [blockers, setBlockers] = useState(existing?.blockers ?? dailyBlockers);
   // New check-ins start at "Good" (4). Existing entries keep their saved mood.
   const [mood, setMood] = useState<number>(existing?.mood ?? 4);
+  const [moodNote, setMoodNote] = useState(existing?.mood_note ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAction, setSavedAction] = useState<"draft" | "submitted" | null>(
     null,
@@ -87,6 +88,7 @@ export function CheckinForm({
           priorities,
           blockers,
           mood,
+          moodNote,
           status: submit ? "submitted" : "draft",
         }),
       });
@@ -230,6 +232,31 @@ export function CheckinForm({
           {MOODS.find((item) => item.value === mood)?.label}
         </p>
       </div>
+
+      {mood <= 2 && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
+          <div className="flex gap-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+              <Icon icon="solar:heart-pulse-broken" className="h-4 w-4" />
+            </span>
+            <div>
+              <label className="text-sm font-semibold text-[var(--text-hi)]">
+                Anything you&apos;d like your manager to know?
+              </label>
+              <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                Optional. Share only what feels useful so your manager can offer
+                the right support.
+              </p>
+            </div>
+          </div>
+          <PlainTextEditor
+            value={moodNote}
+            onChange={setMoodNote}
+            ariaLabel="Optional context for your manager"
+            className="mt-3"
+          />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-5">
         <div>
@@ -417,6 +444,13 @@ function ReadOnlyCheckin({
         icon="solar:danger-triangle-broken"
         value={checkin.blockers}
       />
+      {checkin.mood_note && (
+        <ReadField
+          label="Support note"
+          icon="solar:heart-pulse-broken"
+          value={checkin.mood_note}
+        />
+      )}
       <div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] px-3 py-2.5">
         <span className="text-lg">{mood?.emoji ?? "—"}</span>
         <span className="text-sm font-medium text-[var(--text-hi)]">

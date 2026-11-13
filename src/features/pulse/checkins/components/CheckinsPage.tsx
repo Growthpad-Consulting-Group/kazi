@@ -598,6 +598,12 @@ async function CheckinHistory({
               <HistorySection title="Wins" value={checkin.wins} />
               <HistorySection title="Priorities" value={checkin.priorities} />
               <HistorySection title="Blockers" value={checkin.blockers} />
+              {checkin.mood_note && (
+                <HistorySection
+                  title="Support note"
+                  value={checkin.mood_note}
+                />
+              )}
               <HistorySection
                 title="Mood"
                 value={

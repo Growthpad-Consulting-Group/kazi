@@ -333,6 +333,7 @@ export interface Database {
           priorities: string | null;
           blockers: string | null;
           mood: number | null;
+          mood_note: string | null;
           status: CheckinStatus;
           manager_comment: string | null;
           reviewed_by: string | null;
@@ -361,11 +362,13 @@ export interface Database {
           | "priorities"
           | "blockers"
           | "mood"
+          | "mood_note"
         > & {
           wins?: string | null;
           priorities?: string | null;
           blockers?: string | null;
           mood?: number | null;
+          mood_note?: string | null;
           status?: CheckinStatus;
           manager_comment?: string | null;
           reviewed_by?: string | null;
