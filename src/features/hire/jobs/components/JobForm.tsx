@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
+import Select, { type SingleValue } from "react-select";
 import { createJob, updateJob } from "../actions";
 import type { Job, JobFormData, RubricItem } from "../types";
 import PageWithSidebar from "@/components/ui/PageWithSidebar";
@@ -18,6 +19,8 @@ import { usePageHeader } from "@/shared/contexts/PageHeaderContext";
 import { publicJobUrl } from "@/lib/careers-url";
 import { useFileDrop } from "@/lib/useFileDrop";
 import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
+import { useTheme } from "@/shared/contexts/ThemeContext";
+import { getSelectStyles } from "@/components/ui/export/selectStyles";
 
 interface Props {
   job?: Job;
@@ -29,6 +32,85 @@ const EMPTY_RUBRIC: RubricItem = { criterion: "", weight: 20, description: "" };
 
 const inputCls =
   "w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text-hi)] placeholder:text-[var(--text-lo)] transition-all focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
+
+type JobSelectOption = { value: string; label: string };
+
+const EMPLOYMENT_TYPE_OPTIONS: JobSelectOption[] = [
+  "Full-time",
+  "Part-time",
+  "Internship",
+  "Fixed-term contract",
+  "Contract",
+  "Freelance / consultant",
+  "Volunteer",
+].map((value) => ({ value, label: value }));
+
+const WORK_MODE_OPTIONS: JobSelectOption[] = [
+  "On-site",
+  "Hybrid",
+  "Remote",
+  "Flexible",
+].map((value) => ({ value, label: value }));
+
+const DURATION_OPTIONS: JobSelectOption[] = [
+  "Permanent / open-ended",
+  "3 months",
+  "6 months",
+  "12 months",
+  "18 months",
+  "24 months",
+  "Project-based",
+].map((value) => ({ value, label: value }));
+
+function optionsIncludingCurrent(
+  options: JobSelectOption[],
+  currentValue: string,
+) {
+  if (
+    !currentValue ||
+    options.some((option) => option.value === currentValue)
+  ) {
+    return options;
+  }
+  return [{ value: currentValue, label: currentValue }, ...options];
+}
+
+function JobDetailsSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  mode,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: JobSelectOption[];
+  placeholder: string;
+  mode: "light" | "dark" | undefined;
+}) {
+  const availableOptions = optionsIncludingCurrent(options, value);
+  return (
+    <Select<JobSelectOption, false>
+      aria-label={placeholder}
+      classNamePrefix="react-select"
+      isClearable
+      isSearchable
+      menuPortalTarget={
+        typeof document === "undefined" ? undefined : document.body
+      }
+      options={availableOptions}
+      placeholder={placeholder}
+      value={availableOptions.find((option) => option.value === value) ?? null}
+      onChange={(option: SingleValue<JobSelectOption>) =>
+        onChange(option?.value ?? "")
+      }
+      styles={{
+        ...getSelectStyles<JobSelectOption>(mode ?? "light"),
+        menuPortal: (provided) => ({ ...provided, zIndex: 20000 }),
+      }}
+    />
+  );
+}
 
 function toScheduleRange(job?: Job): DateRangeValue | undefined {
   if (!job?.published_at || !job.closes_at) return undefined;
@@ -164,6 +246,7 @@ function RemoveButton({
 
 export function JobForm({ job, departments = [], companySlug }: Props) {
   const router = useRouter();
+  const { resolvedMode } = useTheme();
   const formRef = useRef<HTMLFormElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -556,7 +639,7 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
           title="Import job description"
           hint="Upload a PDF or DOCX, or use a Google Doc. Public links work immediately; internal Growthpad Docs use your connected Google account."
         />
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start">
           <Field label="Job description file">
             <div
               className={`rounded-xl ring-2 transition-shadow ${isDocumentDragging ? "ring-brand-500" : "ring-transparent"}`}
@@ -573,7 +656,7 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
               </p>
             </div>
           </Field>
-          <p className="pb-2 text-center text-xs font-medium text-[var(--text-lo)]">
+          <p className="self-center text-center text-xs font-medium text-[var(--text-lo)] sm:mt-11">
             or
           </p>
           <Field label="Google Docs link">
@@ -667,27 +750,30 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Employment type">
-            <input
+            <JobDetailsSelect
               value={employmentType}
-              onChange={(event) => setEmploymentType(event.target.value)}
-              className={inputCls}
-              placeholder="e.g. Full-time internship"
+              onChange={setEmploymentType}
+              options={EMPLOYMENT_TYPE_OPTIONS}
+              placeholder="Select employment type"
+              mode={resolvedMode}
             />
           </Field>
           <Field label="Work mode">
-            <input
+            <JobDetailsSelect
               value={workMode}
-              onChange={(event) => setWorkMode(event.target.value)}
-              className={inputCls}
-              placeholder="e.g. Hybrid"
+              onChange={setWorkMode}
+              options={WORK_MODE_OPTIONS}
+              placeholder="Select work mode"
+              mode={resolvedMode}
             />
           </Field>
           <Field label="Duration">
-            <input
+            <JobDetailsSelect
               value={contractDuration}
-              onChange={(event) => setContractDuration(event.target.value)}
-              className={inputCls}
-              placeholder="e.g. 6 months"
+              onChange={setContractDuration}
+              options={DURATION_OPTIONS}
+              placeholder="Select duration"
+              mode={resolvedMode}
             />
           </Field>
           <Field label="Compensation">
@@ -864,47 +950,6 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
               onClick={() => addListItem(niceToHaves, setNiceToHaves)}
             />
           </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/50 transition-shadow duration-200 hover:shadow-2xl dark:shadow-black/20 sm:p-6">
-        <SectionHeader
-          icon="solar:letter-broken"
-          iconBg="bg-brand-500/15"
-          iconColor="text-brand-500"
-          title="Candidate experience"
-          hint="Make the application expectations and hiring process clear before publishing."
-        />
-        <div className="space-y-4">
-          <Field label="What we offer">
-            <textarea
-              value={benefits}
-              onChange={(event) => setBenefits(event.target.value)}
-              rows={4}
-              className={inputCls}
-              placeholder="Benefits, learning support, leave, or other reasons to join."
-            />
-          </Field>
-          <Field label="How to apply">
-            <textarea
-              value={applicationInstructions}
-              onChange={(event) =>
-                setApplicationInstructions(event.target.value)
-              }
-              rows={3}
-              className={inputCls}
-              placeholder="Documents to include, cover-note prompt, and any application requirements."
-            />
-          </Field>
-          <Field label="Selection process">
-            <textarea
-              value={selectionProcess}
-              onChange={(event) => setSelectionProcess(event.target.value)}
-              rows={3}
-              className={inputCls}
-              placeholder="e.g. Screening call, practical task, interview, and reference checks."
-            />
-          </Field>
         </div>
       </section>
 

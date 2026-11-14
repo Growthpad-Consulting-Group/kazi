@@ -12,7 +12,7 @@ export default async function PublicApplyPage({
   const { data: job } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, department, location, description, requirements, employment_type, work_mode, contract_duration, compensation, reports_to, benefits, application_instructions, selection_process, status, published_at, closes_at",
+      "id, title, department, location, description, requirements, employment_type, work_mode, contract_duration, compensation, reports_to, status, published_at, closes_at",
     )
     .eq("id", jobId)
     .single();
@@ -43,9 +43,6 @@ export default async function PublicApplyPage({
         contractDuration: job.contract_duration,
         compensation: job.compensation,
         reportsTo: job.reports_to,
-        benefits: job.benefits,
-        applicationInstructions: job.application_instructions,
-        selectionProcess: job.selection_process,
         closesAt: job.closes_at,
       }}
     />

@@ -52,7 +52,7 @@ export async function GET(
   const { data, error } = await supabaseAdmin
     .from("jobs")
     .select(
-      "slug, title, department, location, description, requirements, employment_type, work_mode, contract_duration, compensation, reports_to, benefits, application_instructions, selection_process, public_details, published_at, closes_at",
+      "slug, title, department, location, description, requirements, employment_type, work_mode, contract_duration, compensation, reports_to, public_details, published_at, closes_at",
     )
     .eq("company_id", company.id)
     .eq("slug", slug)

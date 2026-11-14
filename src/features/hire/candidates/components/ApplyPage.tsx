@@ -17,9 +17,6 @@ type PublicJob = {
   contractDuration: string | null;
   compensation: string | null;
   reportsTo: string | null;
-  benefits: string | null;
-  applicationInstructions: string | null;
-  selectionProcess: string | null;
   closesAt: string | null;
 };
 
@@ -264,39 +261,6 @@ export function ApplyPage({
                     />
                   )}
                 </div>
-              </section>
-            )}
-            {job.benefits && (
-              <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
-                <SectionHeading
-                  icon="solar:heart-broken"
-                  title="What we offer"
-                />
-                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600">
-                  {job.benefits}
-                </p>
-              </section>
-            )}
-            {(job.applicationInstructions || job.selectionProcess) && (
-              <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
-                <SectionHeading
-                  icon="solar:clipboard-check-broken"
-                  title="Before you apply"
-                />
-                {job.applicationInstructions && (
-                  <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600">
-                    {job.applicationInstructions}
-                  </p>
-                )}
-                {job.selectionProcess && (
-                  <p className="mt-4 border-t border-orange-100 pt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
-                    <span className="font-semibold text-slate-800">
-                      Selection process
-                    </span>
-                    <br />
-                    {job.selectionProcess}
-                  </p>
-                )}
               </section>
             )}
             <p className="px-2 text-xs leading-5 text-slate-500">
