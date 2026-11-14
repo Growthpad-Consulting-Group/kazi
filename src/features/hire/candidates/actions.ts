@@ -4,8 +4,12 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/rbac";
+import {
+  assertHireCandidateAccess,
+  getHireCompanyAccess,
+} from "@/lib/hire-company-access";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import { recordHireAuditEvent } from "@/lib/hire-audit";
 import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
 
@@ -36,13 +40,26 @@ export async function getCandidates(
 ): Promise<CandidateWithJob[]> {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
+  const companyIds = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  ).map((access) => access.companyId);
+  if (companyIds.length === 0) throw new Error("Forbidden");
 
-  return (await getCachedCandidates(jobId)) as unknown as CandidateWithJob[];
+  return (await getCachedCandidates(
+    jobId,
+    false,
+    companyIds,
+  )) as unknown as CandidateWithJob[];
 }
 
 export async function getCandidate(id: string): Promise<CandidateWithJob> {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
+  await assertHireCandidateAccess({
+    userId: session.user.id,
+    userRole: session.user.role,
+    candidateId: id,
+  });
 
   const { data, error } = await supabaseAdmin
     .from("candidates")
@@ -56,8 +73,13 @@ export async function getCandidate(id: string): Promise<CandidateWithJob> {
 
 export async function updateCandidateStage(id: string, stage: CandidateStage) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "view_hiring"))
-    throw new Error("Forbidden");
+  if (!session) throw new Error("Unauthenticated");
+  const access = await assertHireCandidateAccess({
+    userId: session.user.id,
+    userRole: session.user.role,
+    candidateId: id,
+    minimumRole: "hiring_manager",
+  });
 
   const { error } = await supabaseAdmin
     .from("candidates")
@@ -69,12 +91,25 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
   revalidatePath(`/hire/candidates/${id}`);
   revalidatePath("/hire/pipeline");
   await invalidateTables("candidates");
+  await recordHireAuditEvent({
+    companyId: access.companyId,
+    actorUserId: session.user.id,
+    action: "candidate.stage_updated",
+    entityType: "candidate",
+    entityId: id,
+    metadata: { stage },
+  });
 }
 
 export async function assignCandidate(id: string, userId: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring"))
-    throw new Error("Forbidden");
+  if (!session) throw new Error("Unauthenticated");
+  const access = await assertHireCandidateAccess({
+    userId: session.user.id,
+    userRole: session.user.role,
+    candidateId: id,
+    minimumRole: "hiring_manager",
+  });
 
   const { error } = await supabaseAdmin
     .from("candidates")
@@ -84,12 +119,24 @@ export async function assignCandidate(id: string, userId: string) {
   if (error) throw new Error(error.message);
   revalidatePath(`/hire/candidates/${id}`);
   await invalidateTables("candidates");
+  await recordHireAuditEvent({
+    companyId: access.companyId,
+    actorUserId: session.user.id,
+    action: "candidate.assigned",
+    entityType: "candidate",
+    entityId: id,
+    metadata: { assigneeId: userId },
+  });
 }
 
 export async function addNote(candidateId: string, note: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "conduct_interviews"))
-    throw new Error("Forbidden");
+  if (!session) throw new Error("Unauthenticated");
+  await assertHireCandidateAccess({
+    userId: session.user.id,
+    userRole: session.user.role,
+    candidateId,
+  });
 
   const { error } = await supabaseAdmin.from("candidate_notes").insert({
     candidate_id: candidateId,
@@ -107,6 +154,11 @@ export async function getCandidateNotes(
 ): Promise<NoteWithUser[]> {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
+  await assertHireCandidateAccess({
+    userId: session.user.id,
+    userRole: session.user.role,
+    candidateId,
+  });
 
   const { data, error } = await supabaseAdmin
     .from("candidate_notes")
@@ -120,8 +172,13 @@ export async function getCandidateNotes(
 
 export async function shortlistCandidate(id: string, shortlisted: boolean) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring"))
-    throw new Error("Forbidden");
+  if (!session) throw new Error("Unauthenticated");
+  const access = await assertHireCandidateAccess({
+    userId: session.user.id,
+    userRole: session.user.role,
+    candidateId: id,
+    minimumRole: "hiring_manager",
+  });
 
   const { error } = await supabaseAdmin
     .from("candidates")
@@ -132,4 +189,12 @@ export async function shortlistCandidate(id: string, shortlisted: boolean) {
   revalidatePath(`/hire/candidates/${id}`);
   revalidatePath("/hire/candidates");
   await invalidateTables("candidates");
+  await recordHireAuditEvent({
+    companyId: access.companyId,
+    actorUserId: session.user.id,
+    action: "candidate.shortlist_updated",
+    entityType: "candidate",
+    entityId: id,
+    metadata: { shortlisted },
+  });
 }

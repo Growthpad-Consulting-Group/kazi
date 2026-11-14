@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import {
+  canManageHireCompany,
+  getHireCompanyAccess,
+} from "@/lib/hire-company-access";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { extractCvText } from "@/lib/cv-text";
 import { getGoogleAccessToken } from "@/lib/google-calendar";
@@ -143,7 +146,12 @@ async function readUploadedDocument(file: File) {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring"))
+  if (!session)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const canImport = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  ).some((access) => canManageHireCompany(access.role));
+  if (!canImport)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {

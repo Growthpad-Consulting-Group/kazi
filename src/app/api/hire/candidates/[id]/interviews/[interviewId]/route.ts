@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   deleteCalendarEvent,
@@ -26,11 +26,21 @@ async function getInterview(candidateId: string, interviewId: string) {
 
 export async function PATCH(req: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id: candidateId, interviewId } = await params;
+  try {
+    await assertHireCandidateAccess({
+      candidateId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "hiring_manager",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   let body: { scheduledAt?: unknown; durationMinutes?: unknown };
   try {
     body = await req.json();
@@ -108,11 +118,21 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
 export async function DELETE(_req: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id: candidateId, interviewId } = await params;
+  try {
+    await assertHireCandidateAccess({
+      candidateId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "hiring_manager",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   try {
     const interview = await getInterview(candidateId, interviewId);
     if (!interview)

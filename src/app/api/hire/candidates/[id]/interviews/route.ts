@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { createCalendarEvent } from "@/lib/google-calendar";
 
@@ -10,11 +10,21 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
+  try {
+    await assertHireCandidateAccess({
+      candidateId: id,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "hiring_manager",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { scheduledAt, durationMinutes, interviewerIds } = await req.json();
   const start = new Date(scheduledAt);
   const duration = Number(durationMinutes);

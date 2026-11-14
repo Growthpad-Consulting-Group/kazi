@@ -105,6 +105,7 @@ function StageEmailDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          candidateId,
           to: draft.to,
           subject: draft.subject,
           bodyText: draft.body,

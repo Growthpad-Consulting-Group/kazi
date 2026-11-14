@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { recordAiUsage } from "@/lib/ai-audit";
@@ -19,7 +19,7 @@ const TEMPLATES: Record<EmailType, string> = {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -32,6 +32,17 @@ export async function POST(req: Request) {
       { error: "candidateId and type required" },
       { status: 400 },
     );
+  }
+
+  try {
+    await assertHireCandidateAccess({
+      candidateId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "recruiter",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { data, error } = await supabaseAdmin

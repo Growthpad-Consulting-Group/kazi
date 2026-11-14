@@ -33,10 +33,104 @@ export type AutomationTrigger =
   | "daily_log_logged"
   | "daily_log_streak";
 export type AutomationAction = "send_notification" | "award_points";
+export type HireCompanyRole =
+  "company_admin" | "recruiter" | "hiring_manager" | "viewer";
 
 export interface Database {
   public: {
     Tables: {
+      companies: {
+        Row: {
+          id: string;
+          slug: string;
+          legal_name: string;
+          display_name: string;
+          website_url: string | null;
+          careers_url: string | null;
+          logo_url: string | null;
+          brand_config: Record<string, unknown>;
+          reply_to_email: string | null;
+          application_from_name: string | null;
+          privacy_url: string | null;
+          terms_url: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["companies"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "website_url"
+          | "careers_url"
+          | "logo_url"
+          | "brand_config"
+          | "reply_to_email"
+          | "application_from_name"
+          | "privacy_url"
+          | "terms_url"
+          | "is_active"
+        > & {
+          website_url?: string | null;
+          careers_url?: string | null;
+          logo_url?: string | null;
+          brand_config?: Record<string, unknown>;
+          reply_to_email?: string | null;
+          application_from_name?: string | null;
+          privacy_url?: string | null;
+          terms_url?: string | null;
+          is_active?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["companies"]["Insert"]>;
+        Relationships: [];
+      };
+      company_memberships: {
+        Row: {
+          id: string;
+          company_id: string;
+          user_id: string;
+          hire_role: HireCompanyRole;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["company_memberships"]["Row"],
+          "id" | "created_at" | "updated_at" | "is_active" | "created_by"
+        > & {
+          is_active?: boolean;
+          created_by?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["company_memberships"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      hire_audit_events: {
+        Row: {
+          id: string;
+          company_id: string;
+          actor_user_id: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["hire_audit_events"]["Row"],
+          "id" | "created_at" | "actor_user_id" | "metadata"
+        > & {
+          actor_user_id?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["hire_audit_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
       users: {
         Row: {
           id: string;
@@ -99,6 +193,7 @@ export interface Database {
       jobs: {
         Row: {
           id: string;
+          company_id: string;
           slug: string;
           title: string;
           department: string | null;
@@ -131,6 +226,7 @@ export interface Database {
         Insert: Omit<
           Database["public"]["Tables"]["jobs"]["Row"],
           | "id"
+          | "company_id"
           | "created_at"
           | "updated_at"
           | "published_at"
@@ -147,6 +243,7 @@ export interface Database {
           | "google_indexed_at"
           | "google_removed_at"
         > & {
+          company_id?: string;
           published_at?: string | null;
           closes_at?: string | null;
           employment_type?: string | null;
@@ -168,6 +265,7 @@ export interface Database {
         Row: {
           id: string;
           job_id: string;
+          company_id: string;
           full_name: string;
           email: string;
           phone: string | null;
@@ -197,6 +295,7 @@ export interface Database {
         Insert: Omit<
           Database["public"]["Tables"]["candidates"]["Row"],
           | "id"
+          | "company_id"
           | "created_at"
           | "updated_at"
           | "phone"
@@ -216,6 +315,7 @@ export interface Database {
           | "stage"
           | "shortlisted"
         > & {
+          company_id?: string;
           phone?: string | null;
           location?: string | null;
           linkedin_url?: string | null;
@@ -1400,6 +1500,9 @@ export interface Database {
 
 // Hire types
 export type User = Database["public"]["Tables"]["users"]["Row"];
+export type Company = Database["public"]["Tables"]["companies"]["Row"];
+export type CompanyMembership =
+  Database["public"]["Tables"]["company_memberships"]["Row"];
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export type Candidate = Database["public"]["Tables"]["candidates"]["Row"];
 export type CandidateNote =

@@ -12,7 +12,7 @@ import { recordAiUsage } from "@/lib/ai-audit";
 import { hasCronAccess } from "@/lib/cron-auth";
 import { parseCvText } from "@/lib/candidate-cv";
 import { deliverSlackNotification } from "@/lib/slack";
-import { notifyRoles, RECRUITER_ROLES } from "@/lib/notifications";
+import { notifyHireCompanyRecruiters } from "@/lib/notifications";
 import type { CandidateStage } from "@/types/database";
 
 // Called by Vercel Cron (vercel.json) or an external scheduler.
@@ -24,6 +24,7 @@ const BATCH_SIZE = 5;
 type CandidateWithJob = {
   id: string;
   full_name: string;
+  company_id: string;
   assigned_to: string | null;
   ai_score: number | null;
   stage: CandidateStage;
@@ -44,7 +45,7 @@ async function screenOne(candidateId: string): Promise<void> {
   const { data, error } = await supabaseAdmin
     .from("candidates")
     .select(
-      "id, full_name, assigned_to, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)",
+      "id, full_name, company_id, assigned_to, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)",
     )
     .eq("id", candidateId)
     .single();
@@ -137,25 +138,28 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
     }),
   ]);
 
-  const recipients = candidate.assigned_to
-    ? [candidate.assigned_to]
-    : ((
-        await supabaseAdmin
-          .from("users")
-          .select("id")
-          .in("role", RECRUITER_ROLES)
-          .eq("is_active", true)
-      ).data?.map((user) => user.id) ?? []);
   const screeningLabel = result.shortlisted
     ? "AI screening completed — shortlisted"
     : "AI screening completed — review needed";
+
+  const slackRecipients = candidate.assigned_to
+    ? [candidate.assigned_to]
+    : ((
+        await supabaseAdmin
+          .from("company_memberships")
+          .select("user_id")
+          .eq("company_id", candidate.company_id)
+          .eq("is_active", true)
+          .in("hire_role", ["company_admin", "recruiter", "hiring_manager"])
+      ).data?.map((m) => m.user_id) ?? []);
+
   await Promise.all([
-    notifyRoles(
-      RECRUITER_ROLES,
+    notifyHireCompanyRecruiters(
+      candidate.company_id,
       `${screeningLabel}: ${candidate.full_name} for ${job.title}`,
       `/hire/candidates/${candidate.id}`,
     ),
-    ...recipients.map((recipientUserId) =>
+    ...slackRecipients.map((recipientUserId) =>
       deliverSlackNotification({
         eventKey: `candidate-screened:${candidate.id}:${recipientUserId}`,
         recipientUserId,

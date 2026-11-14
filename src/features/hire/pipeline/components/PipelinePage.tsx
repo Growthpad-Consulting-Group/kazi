@@ -1,6 +1,7 @@
 import { getCachedCandidates } from "@/lib/cache/queries";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getHireCompanyAccess } from "@/lib/hire-company-access";
 import { PipelineBoard } from "./PipelineBoard";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { PipelineHeaderMetrics } from "./PipelineHeaderMetrics";
@@ -19,9 +20,14 @@ export default async function PipelinePage({ jobId }: { jobId?: string }) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
+  const companyIds = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  ).map((access) => access.companyId);
+  if (companyIds.length === 0) return null;
   const candidates = (await getCachedCandidates(
     jobId,
     true,
+    companyIds,
   )) as unknown as CandidateWithJob[];
 
   // Group by stage

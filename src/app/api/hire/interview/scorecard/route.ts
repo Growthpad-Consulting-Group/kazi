@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import type { Database } from "@/types/database";
 
 type ScorecardAnswer = { question: string; answer: string; score: number };
@@ -18,14 +19,6 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (
-    !["admin", "hr", "hiring_manager", "interviewer"].includes(
-      session.user.role,
-    )
-  ) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const { candidateId, questions, recommendation } = (await req.json()) as {
     candidateId?: string;
     questions?: ScorecardAnswer[];
@@ -37,6 +30,17 @@ export async function POST(req: Request) {
       { error: "candidateId and questions required" },
       { status: 400 },
     );
+  }
+
+  try {
+    await assertHireCandidateAccess({
+      candidateId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "viewer",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Guard against malformed payloads: score must be a number in 0..5.

@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/rbac";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "@/lib/r2";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import { assertHireCandidateBatchAccess } from "@/lib/hire-company-access";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -22,6 +22,16 @@ export async function POST(req: Request) {
       { error: "Max 200 records per batch" },
       { status: 400 },
     );
+  }
+  try {
+    await assertHireCandidateBatchAccess({
+      userId: session.user.id,
+      userRole: session.user.role,
+      candidateIds: ids,
+      minimumRole: "recruiter",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Fetch CV keys before deleting

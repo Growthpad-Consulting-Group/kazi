@@ -86,17 +86,24 @@ export async function getCachedStaff(): Promise<CachedUserRow[]> {
 
 /** All job postings, newest first. */
 /** Applicant totals per job. Only the two columns the jobs table needs are read. */
-export async function getCachedApplicantCounts(): Promise<
-  Record<string, { applicants: number; shortlisted: number }>
-> {
+export async function getCachedApplicantCounts(
+  companyIds?: string[],
+): Promise<Record<string, { applicants: number; shortlisted: number }>> {
+  if (companyIds?.length === 0) return {};
   return cached(
     "candidates",
-    cacheKey("candidates", "applicant-counts"),
+    cacheKey(
+      "candidates",
+      "applicant-counts",
+      filterSuffix({ companies: companyIds?.slice().sort().join(",") }),
+    ),
     "dynamic",
     async () => {
-      const { data, error } = await supabaseAdmin
+      let query = supabaseAdmin
         .from("candidates")
         .select("job_id, shortlisted");
+      if (companyIds?.length) query = query.in("company_id", companyIds);
+      const { data, error } = await query;
       if (error) throw new Error(error.message);
       const counts: Record<
         string,
@@ -118,15 +125,27 @@ export async function getCachedApplicantCounts(): Promise<
   );
 }
 
-export async function getCachedJobs(): Promise<Job[]> {
-  return cached("jobs", cacheKey("jobs", "list"), "dynamic", async () => {
-    const { data, error } = await supabaseAdmin
-      .from("jobs")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as Job[];
-  });
+export async function getCachedJobs(companyIds?: string[]): Promise<Job[]> {
+  if (companyIds?.length === 0) return [];
+  return cached(
+    "jobs",
+    cacheKey(
+      "jobs",
+      "list",
+      filterSuffix({ companies: companyIds?.slice().sort().join(",") }),
+    ),
+    "dynamic",
+    async () => {
+      let query = supabaseAdmin
+        .from("jobs")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (companyIds?.length) query = query.in("company_id", companyIds);
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as Job[];
+    },
+  );
 }
 
 /** A single job posting. */
@@ -160,11 +179,17 @@ export interface CachedCandidate extends Omit<Candidate, "cv_text"> {
 export async function getCachedCandidates(
   jobId?: string,
   activeOnly = false,
+  companyIds?: string[],
 ): Promise<CachedCandidate[]> {
+  if (companyIds?.length === 0) return [];
   const key = cacheKey(
     "candidates",
     "list",
-    filterSuffix({ job: jobId, active: activeOnly ? "1" : undefined }),
+    filterSuffix({
+      job: jobId,
+      active: activeOnly ? "1" : undefined,
+      companies: companyIds?.slice().sort().join(","),
+    }),
   );
   return cached("candidates", key, "dynamic", async () => {
     let query = supabaseAdmin
@@ -176,6 +201,7 @@ export async function getCachedCandidates(
       .order("ai_score", { ascending: false, nullsFirst: false })
       .order("applied_at", { ascending: false });
     if (jobId) query = query.eq("job_id", jobId);
+    if (companyIds?.length) query = query.in("company_id", companyIds);
     if (activeOnly)
       query = query.in("stage", [
         "applied",

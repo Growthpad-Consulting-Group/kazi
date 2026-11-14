@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyCandidateUploadToken } from "@/lib/candidate-upload-token";
 import { readCv, attachCv } from "@/lib/candidate-cv";
@@ -44,17 +44,22 @@ export async function POST(req: Request) {
   );
   if (!session && !hasPublicUploadAuthority)
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  if (
-    session &&
-    !hasPublicUploadAuthority &&
-    !can(session.user.role, "manage_hiring")
-  ) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session && !hasPublicUploadAuthority) {
+    try {
+      await assertHireCandidateAccess({
+        candidateId,
+        userId: session.user.id,
+        userRole: session.user.role,
+        minimumRole: "recruiter",
+      });
+    } catch {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const { data: candidate } = await supabaseAdmin
     .from("candidates")
-    .select("id")
+    .select("id, company_id")
     .eq("id", candidateId)
     .eq("job_id", jobId)
     .maybeSingle();

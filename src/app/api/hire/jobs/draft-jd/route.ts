@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import {
+  assertHireJobAccess,
+  canManageHireCompany,
+  getHireCompanyAccess,
+} from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const canDraft = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  ).some((access) => canManageHireCompany(access.role));
+  if (!canDraft)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { title, department, brief, jobId } = await req.json();
   if (!title || !brief) {
@@ -17,6 +26,18 @@ export async function POST(req: Request) {
       { error: "title and brief are required" },
       { status: 400 },
     );
+  }
+  if (typeof jobId === "string" && jobId) {
+    try {
+      await assertHireJobAccess({
+        jobId,
+        userId: session.user.id,
+        userRole: session.user.role,
+        minimumRole: "hiring_manager",
+      });
+    } catch {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const prompt = `You are an HR specialist at Growthpad Consulting Group, a Nairobi-based communications, technology and digital services firm.

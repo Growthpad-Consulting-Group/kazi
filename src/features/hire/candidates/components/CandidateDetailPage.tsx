@@ -21,7 +21,10 @@ import SidebarWidget from "@/components/ui/SidebarWidget";
 import StatCard from "@/components/ui/StatCard";
 import type { CandidateStage } from "../types";
 import { supabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/rbac";
+import {
+  canManageHireCompany,
+  getHireCompanyAccess,
+} from "@/lib/hire-company-access";
 import { CandidateCvViewer } from "./CandidateCvViewer";
 import { CandidateEmailButton } from "./CandidateEmailButton";
 
@@ -75,8 +78,14 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
       : { data: [] };
   const interviews = (upcomingInterviews ?? []) as ScheduledInterview[];
   const session = await getServerSession(authOptions);
+  const companyAccess = session
+    ? await getHireCompanyAccess(session.user.id, session.user.role)
+    : [];
+  const candidateAccess = companyAccess.find(
+    (access) => access.companyId === candidate.company_id,
+  );
   const canManageHiring = Boolean(
-    session && can(session.user.role, "manage_hiring"),
+    candidateAccess && canManageHireCompany(candidateAccess.role),
   );
   const canManageInterviews =
     candidate.stage === "interview" && canManageHiring;

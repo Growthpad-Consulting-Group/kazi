@@ -3,8 +3,8 @@ import { getServerSession } from "next-auth";
 import mammoth from "mammoth";
 import sanitizeHtml from "sanitize-html";
 import { authOptions } from "@/lib/auth";
-import { canView } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 
 function documentHtml(body: string) {
   return `<!doctype html><html><head><meta charset="utf-8" /><style>
@@ -29,12 +29,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-  // Match the Hire layout: normal hiring roles and the explicit read-only
-  // "View all admin screens" grant may review CVs, but may not modify them.
-  if (!session || !canView(session.user, "view_hiring"))
+  if (!session)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+  try {
+    await assertHireCandidateAccess({
+      userId: session.user.id,
+      userRole: session.user.role,
+      candidateId: id,
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { data: candidate } = await supabaseAdmin
     .from("candidates")
     .select("cv_url, full_name")

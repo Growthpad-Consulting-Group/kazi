@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { groq, GROQ_MODEL } from "@/lib/ai";
@@ -22,7 +22,7 @@ type CandidateWithJobData = Candidate & {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -32,6 +32,17 @@ export async function POST(req: Request) {
       { error: "candidateId required" },
       { status: 400 },
     );
+
+  try {
+    await assertHireCandidateAccess({
+      candidateId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "hiring_manager",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { data, error: cErr } = await supabaseAdmin
     .from("candidates")

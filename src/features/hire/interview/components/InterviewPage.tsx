@@ -7,6 +7,7 @@ import { CandidateCvViewer } from "@/features/hire/candidates/components/Candida
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { Icon } from "@iconify/react";
 import StatCard from "@/components/ui/StatCard";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 
 export default async function InterviewPage({
   candidateId,
@@ -15,6 +16,16 @@ export default async function InterviewPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) return null;
+  try {
+    await assertHireCandidateAccess({
+      candidateId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "viewer",
+    });
+  } catch {
+    notFound();
+  }
 
   const { data, error } = await supabaseAdmin
     .from("candidates")

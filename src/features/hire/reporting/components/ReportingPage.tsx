@@ -1,6 +1,9 @@
 import dynamic from "next/dynamic";
 import { Icon } from "@iconify/react";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getHireCompanyAccess } from "@/lib/hire-company-access";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import type { CandidateStage } from "@/types/database";
@@ -43,7 +46,7 @@ type CandidateRecord = {
   jobs: { title: string; department: string | null } | null;
 };
 
-async function getReportData(range: ResolvedRange) {
+async function getReportData(range: ResolvedRange, companyIds: string[]) {
   const [candidatesRes, jobsRes] = await Promise.all([
     supabaseAdmin
       .from("candidates")
@@ -51,8 +54,12 @@ async function getReportData(range: ResolvedRange) {
         "id, stage, applied_at, ai_score, shortlisted, source, jobs(title, department)",
       )
       .gte("applied_at", range.startDate.toISOString())
-      .lte("applied_at", range.endDate.toISOString()),
-    supabaseAdmin.from("jobs").select("id, title, status"),
+      .lte("applied_at", range.endDate.toISOString())
+      .in("company_id", companyIds),
+    supabaseAdmin
+      .from("jobs")
+      .select("id, title, status")
+      .in("company_id", companyIds),
   ]);
   const candidates = (candidatesRes.data ?? []) as unknown as CandidateRecord[];
   const jobs = jobsRes.data ?? [];
@@ -190,12 +197,18 @@ export default async function ReportingPage({
 }: {
   searchParams: { from?: string; to?: string; preset?: string };
 }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return null;
+  const companyIds = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  ).map((access) => access.companyId);
+  if (companyIds.length === 0) return null;
   const period = resolveRange({
     from: searchParams.from,
     to: searchParams.to,
     preset: searchParams.preset || "Last 30 Days",
   });
-  const report = await getReportData(period);
+  const report = await getReportData(period, companyIds);
   const shortlistRate = report.screened
     ? Math.round((report.shortlisted / report.screened) * 100)
     : null;

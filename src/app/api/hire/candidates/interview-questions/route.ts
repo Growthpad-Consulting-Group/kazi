@@ -4,15 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { recordAiUsage } from "@/lib/ai-audit";
+import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (
-    !session ||
-    !["admin", "hr", "hiring_manager", "interviewer"].includes(
-      session.user.role,
-    )
-  ) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -22,6 +18,17 @@ export async function POST(req: Request) {
       { error: "candidateId required" },
       { status: 400 },
     );
+
+  try {
+    await assertHireCandidateAccess({
+      candidateId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      minimumRole: "viewer",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   type CandidateWithJob = {
     cv_parsed: unknown;

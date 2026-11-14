@@ -1,6 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
+import {
+  canManageHireCompany,
+  getHireCompanyAccess,
+} from "@/lib/hire-company-access";
 import Link from "next/link";
 import { publicJobUrl } from "@/lib/careers-url";
 import { notFound } from "next/navigation";
@@ -62,11 +65,18 @@ function SectionHeader({
 
 export default async function JobDetailPage({ id }: { id: string }) {
   const session = await getServerSession(authOptions);
-  const canOpenDepartment = session
-    ? can(session.user.role, "manage_departments")
-    : false;
   const job = await getJob(id).catch(() => null);
   if (!job) notFound();
+  const companyAccess = session
+    ? await getHireCompanyAccess(session.user.id, session.user.role)
+    : [];
+  const jobAccess = companyAccess.find(
+    (access) => access.companyId === job.company_id,
+  );
+  const canManageHiring = Boolean(
+    jobAccess && canManageHireCompany(jobAccess.role),
+  );
+  const canOpenDepartment = jobAccess?.role === "global_admin";
 
   const [candidateResult, departmentResult] = await Promise.all([
     supabaseAdmin
@@ -608,11 +618,15 @@ export default async function JobDetailPage({ id }: { id: string }) {
             href: publicJobUrl(job.slug),
             variant: "secondary" as const,
           },
-          {
-            label: "Edit",
-            icon: "solar:pen-broken",
-            href: `/hire/jobs/${job.id}/edit`,
-          },
+          ...(canManageHiring
+            ? [
+                {
+                  label: "Edit",
+                  icon: "solar:pen-broken",
+                  href: `/hire/jobs/${job.id}/edit`,
+                },
+              ]
+            : []),
           {
             label: "View candidates",
             icon: "solar:users-group-two-rounded-broken",

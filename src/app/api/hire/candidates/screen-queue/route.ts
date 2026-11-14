@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { can } from "@/lib/rbac";
 import { supabaseAdmin } from "@/lib/supabase";
 import { enqueueScreeningCandidate, redis, SCREENING_QUEUE } from "@/lib/redis";
+import {
+  assertHireCandidateBatchAccess,
+  canManageHireCompany,
+  getHireCompanyAccess,
+} from "@/lib/hire-company-access";
 
 // POST /api/hire/candidates/screen-queue
 // Body: { candidateIds: string[] } — enqueue for background screening
@@ -11,7 +15,7 @@ import { enqueueScreeningCandidate, redis, SCREENING_QUEUE } from "@/lib/redis";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -24,6 +28,16 @@ export async function POST(req: Request) {
   }
   if (candidateIds.length > 100) {
     return NextResponse.json({ error: "Max 100 per batch" }, { status: 400 });
+  }
+  try {
+    await assertHireCandidateBatchAccess({
+      userId: session.user.id,
+      userRole: session.user.role,
+      candidateIds,
+      minimumRole: "hiring_manager",
+    });
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Only enqueue candidates that have CV data and haven't been screened
@@ -58,12 +72,29 @@ export async function POST(req: Request) {
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring")) {
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const depth = await redis.llen(SCREENING_QUEUE);
-  const pending = depth > 0 ? await redis.lrange(SCREENING_QUEUE, 0, 49) : [];
+  const companyIds = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  )
+    .filter((access) => canManageHireCompany(access.role))
+    .map((access) => access.companyId);
+  if (companyIds.length === 0)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  return NextResponse.json({ depth, pending });
+  const depth = await redis.llen(SCREENING_QUEUE);
+  const pendingIds =
+    depth > 0 ? await redis.lrange(SCREENING_QUEUE, 0, 49) : [];
+  const { data: pendingRows } = pendingIds.length
+    ? await supabaseAdmin
+        .from("candidates")
+        .select("id")
+        .in("id", pendingIds)
+        .in("company_id", companyIds)
+    : { data: [] };
+  const pending = (pendingRows ?? []).map((candidate) => candidate.id);
+
+  return NextResponse.json({ depth: pending.length, pending });
 }

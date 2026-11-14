@@ -6,8 +6,13 @@ import { notifyCareersSiteJobsChanged } from "@/lib/careers-site";
 import { notifyGoogleOfJob } from "@/lib/google-job-indexing";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/rbac";
+import {
+  assertHireJobAccess,
+  canManageHireCompany,
+  getHireCompanyAccess,
+} from "@/lib/hire-company-access";
 import { invalidateTables } from "@/lib/cache/invalidate";
+import { recordHireAuditEvent } from "@/lib/hire-audit";
 import { canonicalDepartment } from "@/lib/departments";
 import {
   getCachedApplicantCounts,
@@ -89,26 +94,42 @@ export async function getJobs() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  return getCachedJobs();
+  const companyIds = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  ).map((access) => access.companyId);
+  if (companyIds.length === 0) throw new Error("Forbidden");
+  return getCachedJobs(companyIds);
 }
 
 export async function getJobApplicantCounts() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  return getCachedApplicantCounts();
+  const companyIds = (
+    await getHireCompanyAccess(session.user.id, session.user.role)
+  ).map((access) => access.companyId);
+  if (companyIds.length === 0) throw new Error("Forbidden");
+  return getCachedApplicantCounts(companyIds);
 }
 
 export async function getJob(id: string) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
+  await assertHireJobAccess({
+    jobId: id,
+    userId: session.user.id,
+    userRole: session.user.role,
+  });
   return getCachedJob(id);
 }
 
 export async function createJob(form: JobFormData) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring"))
+  if (!session) throw new Error("Unauthenticated");
+  const access = await getHireCompanyAccess(session.user.id, session.user.role);
+  const company = access.find((item) => item.slug === "growthpad") ?? access[0];
+  if (!company || !canManageHireCompany(company.role))
     throw new Error("Forbidden");
 
   const { publishedAt, closesAt } = validateSchedule(form);
@@ -117,6 +138,7 @@ export async function createJob(form: JobFormData) {
   const { data, error } = await supabaseAdmin
     .from("jobs")
     .insert({
+      company_id: company.companyId,
       slug: jobSlug(form.title),
       title: form.title,
       department,
@@ -152,13 +174,26 @@ export async function createJob(form: JobFormData) {
   await invalidateTables("jobs");
   await notifyCareersSiteJobsChanged();
   await syncGoogleJobIndexing(data);
+  await recordHireAuditEvent({
+    companyId: company.companyId,
+    actorUserId: session.user.id,
+    action: "job.created",
+    entityType: "job",
+    entityId: data.id,
+    metadata: { status: data.status },
+  });
   return data;
 }
 
 export async function updateJob(id: string, form: Partial<JobFormData>) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_hiring"))
-    throw new Error("Forbidden");
+  if (!session) throw new Error("Unauthenticated");
+  const access = await assertHireJobAccess({
+    jobId: id,
+    userId: session.user.id,
+    userRole: session.user.role,
+    minimumRole: "hiring_manager",
+  });
 
   const { data: previous, error: previousError } = await supabaseAdmin
     .from("jobs")
@@ -228,13 +263,26 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   await invalidateTables("jobs");
   await notifyCareersSiteJobsChanged();
   await syncGoogleJobIndexing(data, previous);
+  await recordHireAuditEvent({
+    companyId: access.companyId,
+    actorUserId: session.user.id,
+    action: "job.updated",
+    entityType: "job",
+    entityId: id,
+    metadata: { status: data.status },
+  });
   return data;
 }
 
 export async function deleteJob(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session || !can(session.user.role, "manage_system"))
-    throw new Error("Forbidden");
+  if (!session) throw new Error("Unauthenticated");
+  const access = await assertHireJobAccess({
+    jobId: id,
+    userId: session.user.id,
+    userRole: session.user.role,
+    minimumRole: "company_admin",
+  });
 
   const { data: previous, error: previousError } = await supabaseAdmin
     .from("jobs")
@@ -250,4 +298,11 @@ export async function deleteJob(id: string) {
   await notifyCareersSiteJobsChanged();
   if (previous && isPublicJob(previous))
     await notifyGoogleOfJob(previous.slug, "URL_DELETED");
+  await recordHireAuditEvent({
+    companyId: access.companyId,
+    actorUserId: session.user.id,
+    action: "job.deleted",
+    entityType: "job",
+    entityId: id,
+  });
 }

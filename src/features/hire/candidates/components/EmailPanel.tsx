@@ -96,7 +96,7 @@ export function EmailPanel({ candidateId }: { candidateId: string }) {
       const res = await fetch("/api/hire/candidates/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
+        body: JSON.stringify({ ...draft, candidateId }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
