@@ -14,6 +14,8 @@ import EditStaffModal from "./EditStaffModal";
 import GrantPointsModal from "./GrantPointsModal";
 import { ResetPasswordButton } from "./ResetPasswordButton";
 import { ExtraPermissionsControl } from "./ExtraPermissionsControl";
+import { HireAccessControl } from "./HireAccessControl";
+import type { HireCompanyRole } from "@/lib/hire-company-access";
 import type { UserRole } from "@/types/database";
 
 type User = {
@@ -160,6 +162,29 @@ export default async function EmployeeProfilePage({
   const extraPermissions = ((grantRows ?? []) as { permission: string }[]).map(
     (row) => row.permission,
   );
+  const [{ data: companyRows }, { data: membershipRows }] = isAdmin
+    ? await Promise.all([
+        supabaseAdmin
+          .from("companies")
+          .select("id, slug, display_name")
+          .eq("is_active", true)
+          .order("display_name"),
+        supabaseAdmin
+          .from("company_memberships")
+          .select("company_id, hire_role")
+          .eq("user_id", id)
+          .eq("is_active", true),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const hireCompanies = (companyRows ?? []).map((company) => ({
+    id: company.id,
+    slug: company.slug,
+    displayName: company.display_name,
+  }));
+  const hireMemberships = (membershipRows ?? []).map((membership) => ({
+    companyId: membership.company_id,
+    role: membership.hire_role as HireCompanyRole,
+  }));
   const activeTab: ProfileTab = availableTabs.some((item) => item.id === tab)
     ? (tab as ProfileTab)
     : "overview";
@@ -368,12 +393,9 @@ export default async function EmployeeProfilePage({
                     start_date: user.start_date,
                     date_of_birth: user.date_of_birth,
                     avatar_url: user.avatar_url,
-                    role: user.role as UserRole,
                   }}
                   managers={managers}
                   departments={departments}
-                  canManageSystemAccess={isAdmin}
-                  isSelf={isSelf}
                   avatarFallbackUrl={signature?.photo_url}
                 />
                 <GrantPointsModal userId={user.id} userName={user.name} />
@@ -743,7 +765,7 @@ export default async function EmployeeProfilePage({
       )}
       {activeTab === "access" && showAccessTab && (
         <div className="space-y-5">
-          <section className="grid gap-3 sm:grid-cols-3">
+          <section className="grid gap-3 sm:grid-cols-4">
             <StatCard
               title="System role"
               value={user.role.replaceAll("_", " ")}
@@ -775,6 +797,15 @@ export default async function EmployeeProfilePage({
               compact
               subtitle="Password can be reset"
             />
+            <StatCard
+              title="Hire workspaces"
+              value={hireMemberships.length}
+              icon="solar:buildings-2-broken"
+              color={hireMemberships.length ? "orange" : "slate"}
+              variant="inline"
+              compact
+              subtitle="Company assignments"
+            />
           </section>
           {isAdmin ? (
             <>
@@ -790,6 +821,12 @@ export default async function EmployeeProfilePage({
                   granted={extraPermissions}
                 />
               </div>
+              <HireAccessControl
+                userId={user.id}
+                userName={user.name}
+                companies={hireCompanies}
+                memberships={hireMemberships}
+              />
               <Card>
                 <PasswordReset name={user.name} userId={user.id} />
               </Card>

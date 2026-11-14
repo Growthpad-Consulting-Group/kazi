@@ -4,7 +4,7 @@ type HireAuditEvent = {
   companyId: string;
   actorUserId: string | null;
   action: string;
-  entityType: "job" | "candidate" | "scorecard";
+  entityType: "job" | "candidate" | "scorecard" | "company_membership";
   entityId: string;
   metadata?: Record<string, string | number | boolean | null>;
 };
