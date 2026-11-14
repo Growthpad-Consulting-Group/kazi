@@ -10,6 +10,8 @@ import {
 } from "@/lib/hire-company-access";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { recordHireAuditEvent } from "@/lib/hire-audit";
+import { getHireCompanyRecruiterIds } from "@/lib/notifications";
+import { deliverSlackNotification } from "@/lib/slack";
 import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
 
@@ -83,7 +85,7 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
 
   const { error } = await supabaseAdmin
     .from("candidates")
-    .update({ stage })
+    .update({ stage, recruiter_activity_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -99,6 +101,43 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
     entityId: id,
     metadata: { stage },
   });
+  if (stage === "hired") {
+    const recipients = await getHireCompanyRecruiterIds(access.companyId);
+    await Promise.all(
+      recipients.map((recipientUserId) =>
+        deliverSlackNotification({
+          eventKey: `candidate-hired:${id}:${recipientUserId}`,
+          recipientUserId,
+          category: "candidate_hired",
+          critical: true,
+          text: "A hired candidate is ready to be added to staff.",
+          blocks: [
+            {
+              type: "header",
+              text: { type: "plain_text", text: "New hire ready to onboard" },
+            },
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: "A candidate has been moved to *Hired* and is ready to be added to staff.",
+              },
+            },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  text: { type: "plain_text", text: "Add to staff" },
+                  url: `${process.env.PRODUCTION_APP_URL ?? "http://localhost:3000"}/hire/candidates/${id}`,
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+  }
 }
 
 export async function assignCandidate(id: string, userId: string) {
@@ -113,7 +152,10 @@ export async function assignCandidate(id: string, userId: string) {
 
   const { error } = await supabaseAdmin
     .from("candidates")
-    .update({ assigned_to: userId })
+    .update({
+      assigned_to: userId,
+      recruiter_activity_at: new Date().toISOString(),
+    })
     .eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -145,7 +187,12 @@ export async function addNote(candidateId: string, note: string) {
   });
 
   if (error) throw new Error(error.message);
+  await supabaseAdmin
+    .from("candidates")
+    .update({ recruiter_activity_at: new Date().toISOString() })
+    .eq("id", candidateId);
   revalidatePath(`/hire/candidates/${candidateId}`);
+  await invalidateTables("candidates");
   await invalidateTables("candidate_notes");
 }
 
@@ -182,7 +229,7 @@ export async function shortlistCandidate(id: string, shortlisted: boolean) {
 
   const { error } = await supabaseAdmin
     .from("candidates")
-    .update({ shortlisted })
+    .update({ shortlisted, recruiter_activity_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) throw new Error(error.message);

@@ -111,5 +111,10 @@ export async function POST(
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
+  await supabaseAdmin
+    .from("candidates")
+    .update({ recruiter_activity_at: new Date().toISOString() })
+    .eq("id", row.id);
+
   return NextResponse.json({ interview: data }, { status: 201 });
 }

@@ -4,6 +4,55 @@
 
 export type SlackMessage = { text: string; blocks: object[] };
 
+export function buildHiringFollowUpDigest(input: {
+  firstName?: string;
+  candidates: { name: string; roleTitle: string }[];
+  appUrl: string;
+}): SlackMessage {
+  const preview = input.candidates.slice(0, 5);
+  const remaining = input.candidates.length - preview.length;
+  const intro = input.firstName ? `Hi ${input.firstName} — ` : "";
+  const text = `${intro}${input.candidates.length} candidate${input.candidates.length === 1 ? " needs" : "s need"} recruiter follow-up.`;
+  const list = preview
+    .map((candidate) => `• *${candidate.name}* — ${candidate.roleTitle}`)
+    .join("\n");
+  return {
+    text,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "Hiring follow-up" },
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `${text}\n\n${list}${remaining ? `\n• +${remaining} more` : ""}`,
+        },
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: "These candidates have had no recruiter activity for 14+ days.",
+          },
+        ],
+      },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: { type: "plain_text", text: "Review candidates" },
+            url: `${input.appUrl}/hire/candidates?attention=stalled`,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export type BriefMeeting = { withName: string; time: string };
 
 function slackQuote(value: string) {

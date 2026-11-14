@@ -184,7 +184,7 @@ export async function getCachedCandidates(
   if (companyIds?.length === 0) return [];
   const key = cacheKey(
     "candidates",
-    "list",
+    "list-v2",
     filterSuffix({
       job: jobId,
       active: activeOnly ? "1" : undefined,
@@ -195,7 +195,7 @@ export async function getCachedCandidates(
     let query = supabaseAdmin
       .from("candidates")
       .select(
-        "id, job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, cv_url, cv_parsed, stage, assigned_to, source, ai_score, ai_justification, shortlisted, consented_at, hired_user_id, applied_at, created_at, updated_at, jobs(title, department)",
+        "id, job_id, full_name, email, phone, location, linkedin_url, portfolio_url, cover_message, cv_url, cv_parsed, stage, assigned_to, source, ai_score, ai_justification, shortlisted, consented_at, hired_user_id, applied_at, recruiter_activity_at, created_at, updated_at, jobs(title, department)",
       )
       // Highest AI fit first; candidates awaiting analysis remain after scored candidates.
       .order("ai_score", { ascending: false, nullsFirst: false })

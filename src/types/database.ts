@@ -289,6 +289,7 @@ export interface Database {
           consented_at: string | null;
           hired_user_id: string | null;
           applied_at: string;
+          recruiter_activity_at: string;
           created_at: string;
           updated_at: string;
         };
@@ -312,6 +313,7 @@ export interface Database {
           | "ai_justification"
           | "consented_at"
           | "hired_user_id"
+          | "recruiter_activity_at"
           | "stage"
           | "shortlisted"
         > & {
@@ -332,6 +334,7 @@ export interface Database {
           shortlisted?: boolean;
           consented_at?: string | null;
           hired_user_id?: string | null;
+          recruiter_activity_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["candidates"]["Insert"]>;
         Relationships: [];

@@ -72,5 +72,10 @@ export async function POST(req: Request) {
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
+  await supabaseAdmin
+    .from("candidates")
+    .update({ recruiter_activity_at: new Date().toISOString() })
+    .eq("id", candidateId);
+
   return NextResponse.json({ id: data?.id });
 }

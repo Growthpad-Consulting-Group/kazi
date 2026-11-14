@@ -55,7 +55,9 @@ export default function HiringHealthChart({
           >
             {stalled}
           </p>
-          <p className="text-[9px] text-[var(--text-lo)]">stalled 14+ days</p>
+          <p className="text-[9px] text-[var(--text-lo)]">
+            no activity 14+ days
+          </p>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={116}>

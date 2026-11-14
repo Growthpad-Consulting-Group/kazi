@@ -767,7 +767,7 @@ async function buildOrgOrTeamData(
           tone: "amber",
         },
         {
-          label: "Stalled candidates",
+          label: "Candidates needing follow-up",
           count: stalledCandidates,
           href: "/hire/candidates?attention=stalled",
           tone: "red",

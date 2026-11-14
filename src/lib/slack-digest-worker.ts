@@ -30,6 +30,7 @@ import {
   buildCheckinReviewReminder,
   buildDailyBrief,
   buildInterviewReminder,
+  buildHiringFollowUpDigest,
   buildWallOfFameClosingReminder,
   buildWallOfFameManagementVotingReminder,
   buildManagerMondayPulse,
@@ -77,6 +78,7 @@ export type DigestCounts = {
   cultureAnnouncements: number;
   timerReminders: number;
   snoozedReminders: number;
+  hiringFollowUps: number;
 };
 
 type UserRow = {
@@ -129,6 +131,7 @@ function emptyCounts(): DigestCounts {
     cultureAnnouncements: 0,
     timerReminders: 0,
     snoozedReminders: 0,
+    hiringFollowUps: 0,
   };
 }
 
@@ -346,6 +349,7 @@ export async function runSlackDigests(
   await sendOneOnOneFollowUps(now, byId, prefs, counts);
   await sendInterviewReminders(now, byId, prefs, counts);
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
+  await sendHiringFollowUpDigests(now, byId, prefs, schedules, counts);
   await sendWallOfFameClosingReminder(now, counts);
   await sendWallOfFameManagementVotingReminders(now, byId, prefs, counts);
   await sendLongRunningTimerReminders(now, byId, prefs, counts);
@@ -353,6 +357,121 @@ export async function runSlackDigests(
   await publishCultureAnnouncements(now, byId, prefs, counts);
   await sendWeeklyCultureRecap(now, byId, prefs, counts);
   return counts;
+}
+
+type HiringFollowUpCandidate = {
+  id: string;
+  full_name: string;
+  company_id: string;
+  assigned_to: string | null;
+  jobs: { title: string } | null;
+};
+
+/**
+ * A single weekly DM keeps the hiring queue visible without turning every
+ * overdue candidate into a separate notification. AI screening never changes
+ * recruiter_activity_at, so this contains only candidates awaiting a human
+ * follow-up.
+ */
+async function sendHiringFollowUpDigests(
+  now: Date,
+  byId: Map<string, UserRow>,
+  prefs: Map<string, PrefRow>,
+  schedules: Map<string, ScheduleRow>,
+  counts: DigestCounts,
+) {
+  const cutoff = new Date(now.getTime() - 14 * 86_400_000).toISOString();
+  const [candidatesRes, membershipsRes] = await Promise.all([
+    supabaseAdmin
+      .from("candidates")
+      .select("id,full_name,company_id,assigned_to,jobs(title)")
+      .not("stage", "in", "(hired,rejected)")
+      .lt("recruiter_activity_at", cutoff),
+    db
+      .from("company_memberships")
+      .select("company_id,user_id")
+      .eq("is_active", true)
+      .in("hire_role", ["company_admin", "recruiter", "hiring_manager"]),
+  ]);
+  if (candidatesRes.error || membershipsRes.error) {
+    console.error(
+      "Could not load candidates needing hiring follow-up",
+      candidatesRes.error?.message ?? membershipsRes.error?.message,
+    );
+    return;
+  }
+
+  const candidates = (candidatesRes.data ??
+    []) as unknown as HiringFollowUpCandidate[];
+  if (!candidates.length) return;
+
+  const globalRecipients = new Set(
+    [...byId.values()]
+      .filter((user) => user.role === "admin" || user.role === "hr")
+      .map((user) => user.id),
+  );
+  const companyRecipients = new Map<string, Set<string>>();
+  for (const membership of (membershipsRes.data ?? []) as {
+    company_id: string;
+    user_id: string;
+  }[]) {
+    const recipients =
+      companyRecipients.get(membership.company_id) ?? new Set();
+    recipients.add(membership.user_id);
+    companyRecipients.set(membership.company_id, recipients);
+  }
+
+  const candidatesByRecipient = new Map<string, HiringFollowUpCandidate[]>();
+  for (const candidate of candidates) {
+    const recipients = new Set([
+      ...globalRecipients,
+      ...(companyRecipients.get(candidate.company_id) ?? []),
+      ...(candidate.assigned_to ? [candidate.assigned_to] : []),
+    ]);
+    for (const recipientId of recipients) {
+      if (!byId.has(recipientId)) continue;
+      candidatesByRecipient.set(recipientId, [
+        ...(candidatesByRecipient.get(recipientId) ?? []),
+        candidate,
+      ]);
+    }
+  }
+
+  for (const [recipientId, recipientCandidates] of candidatesByRecipient) {
+    const timezone =
+      schedules.get(recipientId)?.timezone ??
+      prefs.get(recipientId)?.slack_timezone ??
+      DEFAULT_TIMEZONE;
+    const clock = localClock(now, timezone);
+    if (
+      clock.weekday !== 1 ||
+      !inCatchUpWindow(
+        clock,
+        9 * 60,
+        WINDOW_MINUTES,
+        QUIET_HOURS_CATCH_UP_MINUTES,
+      )
+    )
+      continue;
+    const message = buildHiringFollowUpDigest({
+      firstName: firstName(byId.get(recipientId)),
+      candidates: recipientCandidates.map((candidate) => ({
+        name: candidate.full_name,
+        roleTitle: candidate.jobs?.title ?? "Unassigned role",
+      })),
+      appUrl: appUrl(),
+    });
+    const outcome = await deliverSlackNotification({
+      eventKey: `hiring-follow-up:${weekStartOf(clock.date, clock.weekday)}:${recipientId}`,
+      recipientUserId: recipientId,
+      category: "hiring_follow_up",
+      text: message.text,
+      blocks: message.blocks,
+      critical: true,
+    });
+    record(counts, outcome);
+    if (outcome === "delivered") counts.hiringFollowUps += 1;
+  }
 }
 
 type SharedTimerRow = {

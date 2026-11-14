@@ -56,11 +56,9 @@ export async function notifyRoles(
  * company — includes global admins/HR plus company membership holders — scoped
  * to roles that are at or above the given minimum hire role.
  */
-export async function notifyHireCompanyRecruiters(
+export async function getHireCompanyRecruiterIds(
   companyId: string,
-  message: string,
-  link?: string,
-): Promise<void> {
+): Promise<string[]> {
   // Global admins and HR always receive Hire notifications.
   const { data: globalUsers } = await supabaseAdmin
     .from("users")
@@ -82,7 +80,7 @@ export async function notifyHireCompanyRecruiters(
       ...(memberRows ?? []).map((m) => m.user_id),
     ]),
   ];
-  if (!recipientIds.length) return;
+  if (!recipientIds.length) return [];
 
   // Confirm all resolved recipients are still active users.
   const { data: activeUsers } = await supabaseAdmin
@@ -91,9 +89,18 @@ export async function notifyHireCompanyRecruiters(
     .in("id", recipientIds)
     .eq("is_active", true);
 
+  return (activeUsers ?? []).map((user) => user.id);
+}
+
+export async function notifyHireCompanyRecruiters(
+  companyId: string,
+  message: string,
+  link?: string,
+): Promise<void> {
+  const recipientIds = await getHireCompanyRecruiterIds(companyId);
   await createNotifications(
-    (activeUsers ?? []).map((user) => ({
-      user_id: user.id,
+    recipientIds.map((user_id) => ({
+      user_id,
       message,
       link: link ?? null,
     })),

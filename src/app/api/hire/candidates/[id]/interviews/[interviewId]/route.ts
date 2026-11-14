@@ -102,6 +102,11 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
 
+    await supabaseAdmin
+      .from("candidates")
+      .update({ recruiter_activity_at: new Date().toISOString() })
+      .eq("id", candidateId);
+
     return NextResponse.json({ interview: data });
   } catch (error) {
     return NextResponse.json(
@@ -162,6 +167,11 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
       .eq("candidate_id", candidateId);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await supabaseAdmin
+      .from("candidates")
+      .update({ recruiter_activity_at: new Date().toISOString() })
+      .eq("id", candidateId);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

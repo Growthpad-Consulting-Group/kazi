@@ -207,7 +207,7 @@ export default function CandidatesClientView({
         },
         {
           id: "stalled",
-          label: "Stalled 14+ days",
+          label: "No recruiter activity 14+ days",
           category: "attention",
           value: "stalled",
         },
@@ -290,7 +290,7 @@ export default function CandidatesClientView({
             value === "needs_screening"
               ? c.ai_score === null && !!(c.cv_url || c.cv_text || c.cv_parsed)
               : !["hired", "rejected"].includes(c.stage) &&
-                new Date(c.applied_at).getTime() < fourteenDaysAgo,
+                new Date(c.recruiter_activity_at).getTime() < fourteenDaysAgo,
           );
         list =
           f.operator === "is"
@@ -306,7 +306,7 @@ export default function CandidatesClientView({
     const stalled = candidates.filter(
       (candidate) =>
         !["hired", "rejected"].includes(candidate.stage) &&
-        referenceTime - new Date(candidate.applied_at).getTime() >
+        referenceTime - new Date(candidate.recruiter_activity_at).getTime() >
           14 * 24 * 60 * 60 * 1000,
     ).length;
     return [
@@ -347,7 +347,7 @@ export default function CandidatesClientView({
         ],
       },
       {
-        label: "Stalled",
+        label: "Needs follow-up",
         value: stalled,
         icon: "solar:alarm-broken",
         color: "red",
@@ -355,7 +355,7 @@ export default function CandidatesClientView({
           {
             category: "attention",
             values: ["stalled"],
-            label: "Attention: is Stalled 14+ days",
+            label: "Attention: is No recruiter activity 14+ days",
             operator: "is" as const,
           },
         ],

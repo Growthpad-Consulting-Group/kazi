@@ -40,6 +40,7 @@ type CandidateRecord = {
   id: string;
   stage: CandidateStage;
   applied_at: string;
+  recruiter_activity_at: string;
   ai_score: number | null;
   shortlisted: boolean;
   source: string | null;
@@ -51,7 +52,7 @@ async function getReportData(range: ResolvedRange, companyIds: string[]) {
     supabaseAdmin
       .from("candidates")
       .select(
-        "id, stage, applied_at, ai_score, shortlisted, source, jobs(title, department)",
+        "id, stage, applied_at, recruiter_activity_at, ai_score, shortlisted, source, jobs(title, department)",
       )
       .gte("applied_at", range.startDate.toISOString())
       .lte("applied_at", range.endDate.toISOString())
@@ -86,7 +87,11 @@ async function getReportData(range: ResolvedRange, companyIds: string[]) {
         activeDays.reduce((sum, days) => sum + days, 0) / activeDays.length,
       )
     : null;
-  const stalled = activeDays.filter((days) => days >= 14).length;
+  const stalled = active.filter(
+    (candidate) =>
+      Date.now() - new Date(candidate.recruiter_activity_at).getTime() >=
+      14 * 86_400_000,
+  ).length;
 
   const sources = new Map<
     string,
@@ -261,8 +266,8 @@ export default async function ReportingPage({
           compact
           subtitle={
             report.stalled
-              ? `${report.stalled} stalled 14+ days`
-              : "No stalled candidates"
+              ? `${report.stalled} need follow-up`
+              : "No candidates need follow-up"
           }
         />
       </section>
@@ -337,8 +342,8 @@ export default async function ReportingPage({
               tone="amber"
               text={
                 report.stalled
-                  ? `${report.stalled} active candidate${report.stalled === 1 ? " has" : "s have"} spent 14+ days in the pipeline.`
-                  : "No candidates have been stalled for 14+ days."
+                  ? `${report.stalled} active candidate${report.stalled === 1 ? " has" : "s have"} had no recruiter activity for 14+ days.`
+                  : "No candidates have gone 14+ days without recruiter activity."
               }
             />
             <Insight
