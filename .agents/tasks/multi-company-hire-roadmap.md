@@ -77,19 +77,20 @@
 
 ### 6. Add a Hire company switcher
 
-- [ ] Add an accessible company switcher to the Hire header, showing only memberships the current user may access.
-- [ ] Include `All authorised companies` only for users allowed to see more than one company.
-- [ ] Persist the last selected company per user; support shareable, validated company context in URLs where useful.
-- [ ] Clearly label jobs, candidate pages, pipelines and reports with the active company.
+- [x] Add an accessible company switcher to the Hire header, showing only memberships the current user may access.
+- [ ] Include `All authorised companies` only for users allowed to see more than one company. **Deliberately deferred:** the first release uses one explicit company at a time, preventing accidental mixed-company lists. Add an explicit aggregate view only after its metrics, bulk actions and exports have dedicated safeguards.
+- [x] Persist the last selected company in a secure Hire-scoped cookie; support shareable, validated `?company=<slug>` context in URLs.
+- [x] Clearly label jobs, candidate pages, pipelines and reports with the active company.
 
 **Acceptance:** Asenath can move from `Growthpad Hire` to `CCSA Hire` in one session without mixed results.
 
 ### 7. Make all Hire UI company-aware
 
-- [ ] Filter jobs, candidates, pipelines, dashboards, actions, reports and notifications by active company.
-- [ ] Require an authorised company when creating or importing a job.
+- [x] Filter jobs, candidates, pipelines and reports by active company. Candidate search, filters, counts and bulk actions remain server-authorised and company-scoped.
+- [x] Require an authorised active company when creating a job. Job import inherits the selected workspace when it is added to the new-job flow.
+- [ ] Scope Hire dashboard/action widgets and their deep links to the active company instead of the current global Hire roll-up.
 - [ ] Scope job templates, interview email templates, acknowledgement content and AI screening defaults by company, with a deliberate parent default only where safe.
-- [ ] Ensure candidate search, filters, counts, bulk actions and exports remain inside the active company.
+- [ ] Add/export company-scoped candidate data with an explicit company label and server-side boundary. Exports are not implemented yet.
 
 **Acceptance:** every metric and list is unambiguous about which company it represents.
 

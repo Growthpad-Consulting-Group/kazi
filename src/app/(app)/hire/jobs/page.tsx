@@ -3,8 +3,8 @@ import JobsPage from "@/features/hire/jobs/components/JobsPage";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; company?: string }>;
 }) {
-  const { status } = await searchParams;
-  return <JobsPage initialStatus={status} />;
+  const { status, company } = await searchParams;
+  return <JobsPage initialStatus={status} companySlug={company} />;
 }

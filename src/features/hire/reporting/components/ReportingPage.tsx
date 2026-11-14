@@ -1,9 +1,8 @@
 import dynamic from "next/dynamic";
 import { Icon } from "@iconify/react";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getHireCompanyAccess } from "@/lib/hire-company-access";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getActiveHireWorkspace } from "@/lib/hire-workspace";
+import HireWorkspaceSwitcher from "@/features/hire/components/HireWorkspaceSwitcher";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import StatCard from "@/components/ui/StatCard";
 import type { CandidateStage } from "@/types/database";
@@ -199,21 +198,18 @@ async function getReportData(range: ResolvedRange, companyIds: string[]) {
 
 export default async function ReportingPage({
   searchParams,
+  companySlug,
 }: {
   searchParams: { from?: string; to?: string; preset?: string };
+  companySlug?: string;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
-  const companyIds = (
-    await getHireCompanyAccess(session.user.id, session.user.role)
-  ).map((access) => access.companyId);
-  if (companyIds.length === 0) return null;
+  const workspace = await getActiveHireWorkspace(companySlug);
   const period = resolveRange({
     from: searchParams.from,
     to: searchParams.to,
     preset: searchParams.preset || "Last 30 Days",
   });
-  const report = await getReportData(period, companyIds);
+  const report = await getReportData(period, [workspace.company.companyId]);
   const shortlistRate = report.screened
     ? Math.round((report.shortlisted / report.screened) * 100)
     : null;
@@ -221,9 +217,18 @@ export default async function ReportingPage({
     <div className="space-y-5">
       <SetPageHeader
         title="Hiring insights"
-        description={`${report.activeCandidates} active candidates from ${period.label.toLowerCase()} across ${report.openJobs} open role${report.openJobs === 1 ? "" : "s"}`}
+        description={`${report.activeCandidates} active candidates from ${period.label.toLowerCase()} across ${report.openJobs} open role${report.openJobs === 1 ? "" : "s"} in ${workspace.company.displayName}`}
         icon="solar:chart-2-broken"
-        trailing={<AnalyticsPeriodPicker range={period} />}
+        trailing={
+          <div className="flex items-center gap-2">
+            <AnalyticsPeriodPicker range={period} />
+            <HireWorkspaceSwitcher
+              companies={workspace.access}
+              activeSlug={workspace.company.slug}
+            />
+          </div>
+        }
+        trailingIsFilter
       />
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard

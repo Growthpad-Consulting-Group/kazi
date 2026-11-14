@@ -597,7 +597,9 @@ export default async function JobDetailPage({ id }: { id: string }) {
       <SetPageHeader
         title={job.title}
         description={
-          [job.department, job.location].filter(Boolean).join(" · ") ||
+          [jobAccess?.displayName, job.department, job.location]
+            .filter(Boolean)
+            .join(" · ") ||
           undefined
         }
         icon="solar:case-minimalistic-broken"
@@ -623,7 +625,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
                 {
                   label: "Edit",
                   icon: "solar:pen-broken",
-                  href: `/hire/jobs/${job.id}/edit`,
+                  href: `/hire/jobs/${job.id}/edit?company=${jobAccess?.slug ?? ""}`,
                 },
               ]
             : []),

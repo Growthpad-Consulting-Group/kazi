@@ -1,8 +1,12 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { notifyRoles, RECRUITER_ROLES } from "@/lib/notifications";
+import {
+  getHireCompanyRecruiterIds,
+  notifyHireCompanyRecruiters,
+} from "@/lib/notifications";
 import { deliverSlackNotification } from "@/lib/slack";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { ApplicationError } from "@/lib/application-error";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 
 export type ApplicationInput = {
   job_id: string;
@@ -20,7 +24,7 @@ export type ApplicationInput = {
 export async function assertCanApply(jobId: string, email: string) {
   const { data: job } = await supabaseAdmin
     .from("jobs")
-    .select("id, status, title, published_at, closes_at")
+    .select("id, company_id, status, title, published_at, closes_at")
     .eq("id", jobId)
     .single();
 
@@ -77,31 +81,30 @@ export async function insertApplicant(input: ApplicationInput) {
 export async function notifyNewApplicant(
   candidateId: string,
   input: Pick<ApplicationInput, "full_name">,
-  job: { title: string },
+  job: { title: string; company_id: string },
 ) {
-  await notifyRoles(
-    RECRUITER_ROLES,
+  const [company, recruiterIds] = await Promise.all([
+    getHireCompanyBrand(job.company_id),
+    getHireCompanyRecruiterIds(job.company_id),
+  ]);
+  await notifyHireCompanyRecruiters(
+    job.company_id,
     `New application: ${input.full_name} for ${job.title}`,
     `/hire/candidates/${candidateId}`,
   );
-  const { data: recruiters } = await supabaseAdmin
-    .from("users")
-    .select("id")
-    .in("role", RECRUITER_ROLES)
-    .eq("is_active", true);
   await Promise.all(
-    (recruiters ?? []).map((recruiter) =>
+    recruiterIds.map((recruiterId) =>
       deliverSlackNotification({
-        eventKey: `candidate-application:${candidateId}:${recruiter.id}`,
-        recipientUserId: recruiter.id,
+        eventKey: `candidate-application:${candidateId}:${recruiterId}`,
+        recipientUserId: recruiterId,
         category: "candidate_application",
-        text: `New application: ${input.full_name} for ${job.title}.`,
+        text: `New ${company.displayName} application: ${input.full_name} for ${job.title}.`,
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `New application: *${input.full_name}* for *${job.title}*.`,
+              text: `New *${company.displayName}* application: *${input.full_name}* for *${job.title}*.`,
             },
           },
           {

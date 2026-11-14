@@ -8,6 +8,7 @@ import {
   notifyNewApplicant,
 } from "@/lib/candidate-applications";
 import { sendApplicationConfirmation } from "@/lib/application-emails";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 import { checkRateLimit, rateLimitHeaders, requestIp } from "@/lib/rate-limit";
 import {
   normalizeApplicationUrl,
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
         email,
         fullName,
         jobTitle: job.title,
+        company: await getHireCompanyBrand(job.company_id),
       });
       return NextResponse.json({
         candidateId,

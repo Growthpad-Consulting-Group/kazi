@@ -10,6 +10,7 @@ import {
   assertHireJobAccess,
   canManageHireCompany,
   getHireCompanyAccess,
+  resolveHireWorkspace,
 } from "@/lib/hire-company-access";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { recordHireAuditEvent } from "@/lib/hire-audit";
@@ -90,26 +91,26 @@ async function syncGoogleJobIndexing(
     .eq("id", job.id);
 }
 
-export async function getJobs() {
+export async function getJobs(companySlug?: string) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  const companyIds = (
-    await getHireCompanyAccess(session.user.id, session.user.role)
-  ).map((access) => access.companyId);
-  if (companyIds.length === 0) throw new Error("Forbidden");
-  return getCachedJobs(companyIds);
+  const company = resolveHireWorkspace(
+    await getHireCompanyAccess(session.user.id, session.user.role),
+    companySlug,
+  );
+  return getCachedJobs([company.companyId]);
 }
 
-export async function getJobApplicantCounts() {
+export async function getJobApplicantCounts(companySlug?: string) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  const companyIds = (
-    await getHireCompanyAccess(session.user.id, session.user.role)
-  ).map((access) => access.companyId);
-  if (companyIds.length === 0) throw new Error("Forbidden");
-  return getCachedApplicantCounts(companyIds);
+  const company = resolveHireWorkspace(
+    await getHireCompanyAccess(session.user.id, session.user.role),
+    companySlug,
+  );
+  return getCachedApplicantCounts([company.companyId]);
 }
 
 export async function getJob(id: string) {
@@ -124,11 +125,13 @@ export async function getJob(id: string) {
   return getCachedJob(id);
 }
 
-export async function createJob(form: JobFormData) {
+export async function createJob(form: JobFormData, companySlug?: string) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
-  const access = await getHireCompanyAccess(session.user.id, session.user.role);
-  const company = access.find((item) => item.slug === "growthpad") ?? access[0];
+  const company = resolveHireWorkspace(
+    await getHireCompanyAccess(session.user.id, session.user.role),
+    companySlug,
+  );
   if (!company || !canManageHireCompany(company.role))
     throw new Error("Forbidden");
 

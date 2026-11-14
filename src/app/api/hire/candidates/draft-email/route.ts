@@ -5,6 +5,7 @@ import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { recordAiUsage } from "@/lib/ai-audit";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 
 type EmailType = "invite" | "rejection" | "acceptance";
 
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
 
   const { data, error } = await supabaseAdmin
     .from("candidates")
-    .select("full_name, email, jobs(title)")
+    .select("full_name, email, company_id, jobs(title)")
     .eq("id", candidateId)
     .single();
 
@@ -57,17 +58,20 @@ export async function POST(req: Request) {
   const candidate = data as unknown as {
     full_name: string;
     email: string;
+    company_id: string;
     jobs: { title: string } | null;
   };
 
-  const prompt = `You are an HR coordinator at Growthpad Consulting Group writing a professional recruitment email.
+  const company = await getHireCompanyBrand(candidate.company_id);
+  const sender = company.applicationFromName ?? `${company.displayName} Careers`;
+  const prompt = `You are an HR coordinator at ${company.displayName} writing a professional recruitment email.
 
 Candidate: ${candidate.full_name}
 Role: ${candidate.jobs?.title ?? "the role"}
 Email type: ${type}
 Task: ${TEMPLATES[type]}
 
-Write a short, warm, professional email. Use the candidate's first name. Sign off as "The Growthpad Recruitment Team".
+Write a short, warm, professional email. Use the candidate's first name. Sign off as "${sender}".
 
 Return ONLY valid JSON:
 {

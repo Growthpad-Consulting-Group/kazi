@@ -3,15 +3,20 @@ import { getDepartments } from "@/features/departments/actions";
 import JobsClientView from "./JobsClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { careersPageUrl } from "@/lib/careers-url";
+import { getActiveHireWorkspace } from "@/lib/hire-workspace";
+import HireWorkspaceSwitcher from "@/features/hire/components/HireWorkspaceSwitcher";
 
 export default async function JobsPage({
   initialStatus,
+  companySlug,
 }: {
   initialStatus?: string;
+  companySlug?: string;
 }) {
+  const workspace = await getActiveHireWorkspace(companySlug);
   const [jobRows, applicantCounts] = await Promise.all([
-    getJobs(),
-    getJobApplicantCounts(),
+    getJobs(workspace.company.slug),
+    getJobApplicantCounts(workspace.company.slug),
   ]);
   const jobs = jobRows.map((job) => ({
     ...job,
@@ -30,7 +35,7 @@ export default async function JobsPage({
     <>
       <SetPageHeader
         title="Jobs"
-        description={`${jobs.length} role${jobs.length !== 1 ? "s" : ""} across your organisation`}
+        description={`${jobs.length} role${jobs.length !== 1 ? "s" : ""} in ${workspace.company.displayName}`}
         icon="solar:case-minimalistic-broken"
         actions={[
           {
@@ -42,11 +47,18 @@ export default async function JobsPage({
           {
             label: "New Job",
             icon: "solar:add-circle-broken",
-            href: "/hire/jobs/new",
+            href: `/hire/jobs/new?company=${workspace.company.slug}`,
             variant: "primary",
             write: true,
           },
         ]}
+        trailing={
+          <HireWorkspaceSwitcher
+            companies={workspace.access}
+            activeSlug={workspace.company.slug}
+          />
+        }
+        trailingIsFilter
       />
       <JobsClientView
         jobs={jobs}

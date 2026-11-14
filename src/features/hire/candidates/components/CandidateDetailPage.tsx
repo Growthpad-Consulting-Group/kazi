@@ -739,7 +739,11 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
     <>
       <SetPageHeader
         title={candidate.full_name}
-        description={job ? `Candidate for ${job.title}` : "Candidate profile"}
+        description={
+          job
+            ? `Candidate for ${job.title} · ${candidateAccess?.displayName ?? "Hire workspace"}`
+            : `Candidate profile · ${candidateAccess?.displayName ?? "Hire workspace"}`
+        }
         icon="solar:user-rounded-broken"
         actions={headerActions}
       />

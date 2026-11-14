@@ -14,6 +14,28 @@ export type HireCompanyAccess = {
   role: HireCompanyRole | "global_admin";
 };
 
+/**
+ * Resolves the one company currently in view. Hire intentionally does not
+ * silently aggregate records from multiple companies: selecting a workspace
+ * is required before jobs, candidates, pipeline, or reporting are queried.
+ */
+export function resolveHireWorkspace(
+  access: HireCompanyAccess[],
+  requestedSlug?: string | null,
+): HireCompanyAccess {
+  if (access.length === 0) throw new Error("Forbidden");
+
+  if (requestedSlug) {
+    const selected = access.find((company) => company.slug === requestedSlug);
+    if (!selected) throw new Error("Forbidden");
+    return selected;
+  }
+
+  // Keep the established parent-company workspace as the safe first view for
+  // global admins, while company members naturally land in their only company.
+  return access.find((company) => company.slug === "growthpad") ?? access[0];
+}
+
 const GLOBAL_HIRE_ROLES: readonly UserRole[] = ["admin", "hr"];
 
 const HIRE_ROLE_RANK: Record<HireCompanyRole, number> = {

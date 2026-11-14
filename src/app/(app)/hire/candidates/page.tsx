@@ -26,9 +26,10 @@ export default async function Page({
     from?: string;
     to?: string;
     preset?: string;
+    company?: string;
   }>;
 }) {
-  const { tab = "list", job, stage, attention, role, from, to, preset } =
+  const { tab = "list", job, stage, attention, role, from, to, preset, company } =
     await searchParams;
 
   return (
@@ -37,9 +38,9 @@ export default async function Page({
         <TabBar tabs={TABS} />
       </Suspense>
 
-      {tab === "pipeline" && <PipelinePage jobId={job} />}
+      {tab === "pipeline" && <PipelinePage jobId={job} companySlug={company} />}
       {tab === "reports" && (
-        <ReportingPage searchParams={{ from, to, preset }} />
+        <ReportingPage searchParams={{ from, to, preset }} companySlug={company} />
       )}
       {(tab === "list" || !["pipeline", "reports"].includes(tab)) && (
         <CandidatesPage
@@ -47,6 +48,7 @@ export default async function Page({
           initialStage={stage}
           initialAttention={attention}
           initialRole={role}
+          companySlug={company}
         />
       )}
     </div>

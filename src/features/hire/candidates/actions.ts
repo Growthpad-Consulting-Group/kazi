@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import {
   assertHireCandidateAccess,
   getHireCompanyAccess,
+  resolveHireWorkspace,
 } from "@/lib/hire-company-access";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { recordHireAuditEvent } from "@/lib/hire-audit";
@@ -39,18 +40,19 @@ export type NoteWithUser = {
 
 export async function getCandidates(
   jobId?: string,
+  companySlug?: string,
 ): Promise<CandidateWithJob[]> {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
-  const companyIds = (
-    await getHireCompanyAccess(session.user.id, session.user.role)
-  ).map((access) => access.companyId);
-  if (companyIds.length === 0) throw new Error("Forbidden");
+  const company = resolveHireWorkspace(
+    await getHireCompanyAccess(session.user.id, session.user.role),
+    companySlug,
+  );
 
   return (await getCachedCandidates(
     jobId,
     false,
-    companyIds,
+    [company.companyId],
   )) as unknown as CandidateWithJob[];
 }
 

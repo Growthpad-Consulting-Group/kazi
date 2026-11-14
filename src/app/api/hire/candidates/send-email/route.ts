@@ -5,6 +5,7 @@ import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resend, EMAIL_FROM } from "@/lib/email";
 import sanitizeHtml from "sanitize-html";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
 
   const { data: candidate } = await supabaseAdmin
     .from("candidates")
-    .select("email")
+    .select("email, company_id")
     .eq("id", candidateId)
     .maybeSingle();
   if (!candidate || candidate.email.toLowerCase() !== to.trim().toLowerCase())
@@ -48,6 +49,9 @@ export async function POST(req: Request) {
       { error: "Candidate email does not match" },
       { status: 400 },
     );
+
+  const company = await getHireCompanyBrand(candidate.company_id);
+  const sender = company.applicationFromName ?? `${company.displayName} Careers`;
 
   const safeBody = sanitizeHtml(bodyHtml, {
     allowedTags: ["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "a"],
@@ -62,8 +66,9 @@ export async function POST(req: Request) {
     );
 
   const { data, error } = await resend.emails.send({
-    from: EMAIL_FROM,
+    from: `${sender} <${EMAIL_FROM.match(/<([^>]+)>/)?.[1] ?? EMAIL_FROM}>`,
     to: candidate.email,
+    replyTo: company.replyToEmail ?? undefined,
     subject,
     text: safeText,
     html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1e293b;max-width:640px;margin:0 auto">${safeBody}</div>`,

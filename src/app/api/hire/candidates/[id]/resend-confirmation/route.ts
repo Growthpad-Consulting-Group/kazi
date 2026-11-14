@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sendApplicationConfirmation } from "@/lib/application-emails";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 
 export async function POST(
   _request: Request,
@@ -25,12 +26,13 @@ export async function POST(
   }
   const { data: candidate } = await supabaseAdmin
     .from("candidates")
-    .select("full_name, email, jobs(title)")
+    .select("full_name, email, company_id, jobs(title)")
     .eq("id", id)
     .maybeSingle();
   const candidateWithJob = candidate as unknown as {
     full_name: string;
     email: string;
+    company_id: string;
     jobs: { title: string } | null;
   } | null;
   if (!candidateWithJob?.email || !candidateWithJob.jobs?.title)
@@ -42,6 +44,7 @@ export async function POST(
     email: candidateWithJob.email,
     fullName: candidateWithJob.full_name,
     jobTitle: candidateWithJob.jobs.title,
+    company: await getHireCompanyBrand(candidateWithJob.company_id),
   });
   if (!sent)
     return NextResponse.json(

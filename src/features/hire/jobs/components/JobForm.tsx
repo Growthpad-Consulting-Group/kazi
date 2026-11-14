@@ -22,6 +22,7 @@ import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 interface Props {
   job?: Job;
   departments?: string[];
+  companySlug?: string;
 }
 
 const EMPTY_RUBRIC: RubricItem = { criterion: "", weight: 20, description: "" };
@@ -161,7 +162,7 @@ function RemoveButton({
   );
 }
 
-export function JobForm({ job, departments = [] }: Props) {
+export function JobForm({ job, departments = [], companySlug }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
@@ -522,7 +523,7 @@ export function JobForm({ job, departments = [] }: Props) {
           toast.success("Job updated", { id: saving });
           router.push(`/hire/jobs/${job.id}`);
         } else {
-          const created = await createJob(form);
+          const created = await createJob(form, companySlug);
           toast.success("Job created", { id: saving });
           router.push(`/hire/jobs/${created.id}`);
         }

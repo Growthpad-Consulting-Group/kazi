@@ -1,24 +1,31 @@
 import { JobForm } from "@/features/hire/jobs/components/JobForm";
 import { getDepartments } from "@/features/departments/actions";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import { getActiveHireWorkspace } from "@/lib/hire-workspace";
 
-export default async function NewJobPage() {
+export default async function NewJobPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ company?: string }>;
+}) {
+  const { company } = await searchParams;
+  const workspace = await getActiveHireWorkspace(company);
   const departments = await getDepartments().catch(() => []);
   return (
     <>
       <SetPageHeader
         title="New Job"
-        description="Create a role and set up AI screening"
+        description={`Create a role for ${workspace.company.displayName} and set up AI screening`}
         icon="solar:case-minimalistic-broken"
         actions={[
           {
             label: "Back to Jobs",
             icon: "solar:arrow-left-broken",
-            href: "/hire/jobs",
+            href: `/hire/jobs?company=${workspace.company.slug}`,
           },
         ]}
       />
-      <JobForm departments={departments} />
+      <JobForm departments={departments} companySlug={workspace.company.slug} />
     </>
   );
 }

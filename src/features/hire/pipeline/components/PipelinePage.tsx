@@ -1,7 +1,6 @@
 import { getCachedCandidates } from "@/lib/cache/queries";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { getHireCompanyAccess } from "@/lib/hire-company-access";
+import { getActiveHireWorkspace } from "@/lib/hire-workspace";
+import HireWorkspaceSwitcher from "@/features/hire/components/HireWorkspaceSwitcher";
 import { PipelineBoard } from "./PipelineBoard";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { PipelineHeaderMetrics } from "./PipelineHeaderMetrics";
@@ -16,18 +15,18 @@ const PIPELINE_STAGES: CandidateStage[] = [
   "hired",
 ];
 
-export default async function PipelinePage({ jobId }: { jobId?: string }) {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
-
-  const companyIds = (
-    await getHireCompanyAccess(session.user.id, session.user.role)
-  ).map((access) => access.companyId);
-  if (companyIds.length === 0) return null;
+export default async function PipelinePage({
+  jobId,
+  companySlug,
+}: {
+  jobId?: string;
+  companySlug?: string;
+}) {
+  const workspace = await getActiveHireWorkspace(companySlug);
   const candidates = (await getCachedCandidates(
     jobId,
     true,
-    companyIds,
+    [workspace.company.companyId],
   )) as unknown as CandidateWithJob[];
 
   // Group by stage
@@ -52,16 +51,23 @@ export default async function PipelinePage({ jobId }: { jobId?: string }) {
     <div>
       <SetPageHeader
         title="Hiring pipeline"
-        description={`${candidates.length} candidate${candidates.length === 1 ? "" : "s"} across ${activeRoles} active role${activeRoles === 1 ? "" : "s"}`}
+        description={`${candidates.length} candidate${candidates.length === 1 ? "" : "s"} across ${activeRoles} active role${activeRoles === 1 ? "" : "s"} in ${workspace.company.displayName}`}
         icon="solar:sort-horizontal-broken"
         trailing={
-          <PipelineHeaderMetrics
-            candidates={candidates.length}
-            awaitingReview={awaitingReview}
-            interviews={inInterviews}
-            offers={offersInPlay}
-          />
+          <div className="flex items-center gap-2">
+            <PipelineHeaderMetrics
+              candidates={candidates.length}
+              awaitingReview={awaitingReview}
+              interviews={inInterviews}
+              offers={offersInPlay}
+            />
+            <HireWorkspaceSwitcher
+              companies={workspace.access}
+              activeSlug={workspace.company.slug}
+            />
+          </div>
         }
+        trailingIsFilter
       />
       <PipelineBoard columns={columns} stages={PIPELINE_STAGES} />
     </div>

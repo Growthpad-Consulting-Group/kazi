@@ -1,24 +1,27 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getCandidates, type CandidateWithJob } from "../actions";
 import CandidatesClientView from "./CandidatesClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
+import { getActiveHireWorkspace } from "@/lib/hire-workspace";
+import HireWorkspaceSwitcher from "@/features/hire/components/HireWorkspaceSwitcher";
 
 export default async function CandidatesPage({
   jobId,
   initialStage,
   initialAttention,
   initialRole,
+  companySlug,
 }: {
   jobId?: string;
   initialStage?: string;
   initialAttention?: string;
   initialRole?: string;
+  companySlug?: string;
 }) {
+  const workspace = await getActiveHireWorkspace(companySlug);
   const [candidates, session, { data: interviewerData }] = await Promise.all([
-    getCandidates(jobId),
-    getServerSession(authOptions),
+    getCandidates(jobId, workspace.company.slug),
+    Promise.resolve(workspace.session),
     supabaseAdmin
       .from("users")
       .select("id, name, job_title")
@@ -39,8 +42,15 @@ export default async function CandidatesPage({
     <>
       <SetPageHeader
         title="Candidates"
-        description={`${candidates.length} candidate${candidates.length !== 1 ? "s" : ""}${jobId ? " for this role" : " across all roles"} · AI-ranked matches first`}
+        description={`${candidates.length} candidate${candidates.length !== 1 ? "s" : ""}${jobId ? " for this role" : " across all roles"} in ${workspace.company.displayName} · AI-ranked matches first`}
         icon="solar:user-speak-broken"
+        trailing={
+          <HireWorkspaceSwitcher
+            companies={workspace.access}
+            activeSlug={workspace.company.slug}
+          />
+        }
+        trailingIsFilter
       />
       <CandidatesClientView
         candidates={candidates as unknown as CandidateWithJob[]}
