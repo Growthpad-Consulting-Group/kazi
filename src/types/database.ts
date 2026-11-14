@@ -217,6 +217,7 @@ export interface Database {
           application_instructions: string | null;
           selection_process: string | null;
           source_document_url: string | null;
+          public_details: Record<string, unknown>;
           google_indexed_at: string | null;
           google_removed_at: string | null;
           created_by: string;
@@ -240,6 +241,7 @@ export interface Database {
           | "application_instructions"
           | "selection_process"
           | "source_document_url"
+          | "public_details"
           | "google_indexed_at"
           | "google_removed_at"
         > & {
@@ -255,6 +257,7 @@ export interface Database {
           application_instructions?: string | null;
           selection_process?: string | null;
           source_document_url?: string | null;
+          public_details?: Record<string, unknown>;
           google_indexed_at?: string | null;
           google_removed_at?: string | null;
         };

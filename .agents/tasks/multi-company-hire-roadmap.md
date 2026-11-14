@@ -108,14 +108,14 @@
 
 ## P2 — CCSA careers integration
 
-**Status:** In progress. The public Kazi contract and CCSA bridge are implemented. Cutover requires creating/importing the CCSA roles in Kazi, assigning each existing CCSA Sanity posting its `kaziJobSlug`, and setting `KAZI_PUBLIC_API_URL` in the CCSA deployment.
+**Status:** Core cutover complete. Kazi now holds the two live CCSA vacancies and the CCSA careers site reads public job content and sends applications to Kazi directly. Deploy both repositories to make the new public contract live.
 
 ### 9. Choose the CCSA content ownership boundary
 
 - [x] Keep CCSA’s careers landing-page copy, culture content and general SEO in its website/Sanity project.
-- [x] Make Kazi the source of truth for open/closed vacancy status, applications and candidate processing for mapped CCSA roles. Kazi title, location and employment type also override the Sanity display values when available.
-- [x] Replace duplicated CCSA Sanity job content with a Kazi public-job-slug reference (`kaziJobSlug`) before cutover. Sanity keeps only the CCSA-specific editorial fields.
-- [x] Preserve the current CCSA role fields that Kazi does not yet model cleanly: openings, languages, hiring timeline, tags and richer public sections.
+- [x] Make Kazi the source of truth for vacancy content/status, applications and candidate processing. The CCSA site consumes Kazi’s public job feed directly; Sanity remains only for broader careers/culture content.
+- [x] Retire the CCSA job-posting dependency on Sanity. Existing public slugs are retained as Kazi slugs, so no redirects are required.
+- [x] Preserve CCSA-specific public fields on Kazi jobs via `public_details`: openings, languages, hiring timeline, tags and richer editorial sections.
 
 **Acceptance:** a recruiter never has to publish/close a vacancy in both Sanity and Kazi.
 
@@ -130,7 +130,7 @@
 
 ### 11. Route CCSA applications directly into Kazi
 
-- [ ] Retire the CCSA website’s email-only application route after all active CCSA postings receive a Kazi job reference. Until then it remains a deliberate compatibility fallback for unmapped legacy Sanity roles.
+- [x] Retire the CCSA website’s email-only application route. Every CCSA careers submission now relays to Kazi’s company-scoped public application endpoint.
 - [x] Send CCSA `company_slug`, job reference, applicant data, CV and optional cover letter to Kazi in one request.
 - [x] Retain CCSA’s required CV behaviour and validate file type/size consistently with Kazi (PDF/DOCX, 4 MB).
 - [x] Store the cover letter on the candidate record and expose it to authorised CCSA recruiters.
@@ -161,8 +161,8 @@
 
 ### 14. Migrate active CCSA recruitment work
 
-- [ ] Inventory CCSA Sanity job postings and any applications currently held only in email.
-- [ ] Import open roles into CCSA Hire with reviewed descriptions, department mappings, schedules and AI rubrics.
+- [x] Inventory current CCSA public roles: two open positions were identified; historic closed roles remain outside Kazi.
+- [x] Import the two open roles into CCSA Hire with reviewed descriptions, department mappings, closing schedules, preserved public details and 100-point AI rubrics.
 - [ ] Decide whether historic applicants should be imported; do not migrate personal data from inboxes without an explicit retention/privacy decision.
 - [ ] Mark the old email-only handler as retired after end-to-end validation.
 
