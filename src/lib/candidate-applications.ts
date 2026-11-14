@@ -20,24 +20,31 @@ export type ApplicationInput = {
   source?: string | null;
 };
 
-/** Confirms the role is open for applications and this email hasn't already applied. Throws ApplicationError-style status errors. */
-export async function assertCanApply(jobId: string, email: string) {
-  const { data: job } = await supabaseAdmin
-    .from("jobs")
-    .select("id, company_id, status, title, published_at, closes_at")
-    .eq("id", jobId)
-    .single();
+type OpenJob = {
+  id: string;
+  company_id: string;
+  status: string;
+  title: string;
+  published_at: string | null;
+  closes_at: string | null;
+};
 
+type PublicJobReference = {
+  companySlug: string;
+  jobSlug: string;
+};
+
+function isOpenForApplications(job: OpenJob | null) {
   const now = new Date();
-  if (
-    !job ||
-    job.status !== "open" ||
-    (job.published_at && new Date(job.published_at) > now) ||
-    (job.closes_at && new Date(job.closes_at) <= now)
-  ) {
-    throw new ApplicationError("This role is not accepting applications", 404);
-  }
+  return Boolean(
+    job &&
+    job.status === "open" &&
+    (!job.published_at || new Date(job.published_at) <= now) &&
+    (!job.closes_at || new Date(job.closes_at) > now),
+  );
+}
 
+async function assertNoDuplicateApplication(jobId: string, email: string) {
   const { data: existing } = await supabaseAdmin
     .from("candidates")
     .select("id")
@@ -49,7 +56,61 @@ export async function assertCanApply(jobId: string, email: string) {
       "An application with this email already exists for this role",
       409,
     );
+}
 
+/** Confirms the role is open for applications and this email hasn't already applied. Throws ApplicationError-style status errors. */
+export async function assertCanApply(
+  jobId: string,
+  email: string,
+): Promise<OpenJob> {
+  const { data: job } = await supabaseAdmin
+    .from("jobs")
+    .select("id, company_id, status, title, published_at, closes_at")
+    .eq("id", jobId)
+    .single();
+
+  if (!job || !isOpenForApplications(job)) {
+    throw new ApplicationError("This role is not accepting applications", 404);
+  }
+
+  await assertNoDuplicateApplication(jobId, email);
+  return job;
+}
+
+/**
+ * Resolves a safe public job reference. External careers sites should use this
+ * instead of exposing Kazi's internal UUID in their markup or form payloads.
+ */
+export async function assertCanApplyByPublicReference(
+  { companySlug, jobSlug }: PublicJobReference,
+  email: string,
+): Promise<OpenJob> {
+  if (typeof companySlug !== "string" || typeof jobSlug !== "string")
+    throw new ApplicationError("This role is not accepting applications", 404);
+  const normalizedCompany = companySlug.trim().toLowerCase();
+  const normalizedJob = jobSlug.trim().toLowerCase();
+  if (!normalizedCompany || !normalizedJob)
+    throw new ApplicationError("This role is not accepting applications", 404);
+
+  const { data: company } = await supabaseAdmin
+    .from("companies")
+    .select("id")
+    .eq("slug", normalizedCompany)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (!company)
+    throw new ApplicationError("This role is not accepting applications", 404);
+
+  const { data: job } = await supabaseAdmin
+    .from("jobs")
+    .select("id, company_id, status, title, published_at, closes_at")
+    .eq("company_id", company.id)
+    .eq("slug", normalizedJob)
+    .maybeSingle();
+  if (!job || !isOpenForApplications(job))
+    throw new ApplicationError("This role is not accepting applications", 404);
+
+  await assertNoDuplicateApplication(job.id, email);
   return job;
 }
 

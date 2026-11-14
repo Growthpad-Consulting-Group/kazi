@@ -3,6 +3,7 @@ import { createCandidateUploadToken } from "@/lib/candidate-upload-token";
 import { ApplicationError } from "@/lib/application-error";
 import {
   assertCanApply,
+  assertCanApplyByPublicReference,
   insertApplicant,
   notifyNewApplicant,
 } from "@/lib/candidate-applications";
@@ -30,6 +31,8 @@ export async function POST(req: Request) {
   const body = await req.json();
   const {
     job_id,
+    job_slug,
+    company_slug,
     full_name,
     email,
     phone,
@@ -41,9 +44,14 @@ export async function POST(req: Request) {
     consented,
   } = body;
 
-  if (!job_id || !full_name || !email || !consented) {
+  if (
+    (!job_id && !(job_slug && company_slug)) ||
+    !full_name ||
+    !email ||
+    !consented
+  ) {
     return NextResponse.json(
-      { error: "job_id, full_name, email and consent are required" },
+      { error: "A job reference, full_name, email and consent are required" },
       { status: 400 },
     );
   }
@@ -64,9 +72,15 @@ export async function POST(req: Request) {
     );
 
   try {
-    const job = await assertCanApply(job_id, email);
+    const job = job_id
+      ? await assertCanApply(job_id, email)
+      : await assertCanApplyByPublicReference(
+          { companySlug: company_slug, jobSlug: job_slug },
+          email,
+        );
+    const resolvedJobId = job_id ?? job.id;
     const candidateId = await insertApplicant({
-      job_id,
+      job_id: resolvedJobId,
       full_name,
       email,
       phone,
@@ -85,7 +99,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({
       candidateId,
-      uploadToken: createCandidateUploadToken(candidateId, job_id),
+      uploadToken: createCandidateUploadToken(candidateId, resolvedJobId),
     });
   } catch (error) {
     if (error instanceof ApplicationError)

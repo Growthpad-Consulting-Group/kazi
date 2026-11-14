@@ -3,6 +3,7 @@ import { ApplicationError } from "@/lib/application-error";
 import { readCv, attachCv } from "@/lib/candidate-cv";
 import {
   assertCanApply,
+  assertCanApplyByPublicReference,
   insertApplicant,
   deleteApplicant,
   notifyNewApplicant,
@@ -37,13 +38,22 @@ export async function POST(req: Request) {
       ? (form.get(key) as string).trim() || null
       : null;
   const jobId = field("job_id");
+  const jobSlug = field("job_slug");
+  const companySlug = field("company_slug");
   const fullName = field("full_name");
   const email = field("email");
   const cv = form.get("cv");
 
-  if (!jobId || !fullName || !email || form.get("consented") !== "true") {
+  if (
+    (!jobId && !(jobSlug && companySlug)) ||
+    !fullName ||
+    !email ||
+    form.get("consented") !== "true"
+  ) {
     return NextResponse.json(
-      { error: "job_id, full_name, email and consent are required" },
+      {
+        error: "A job reference, full_name, email and consent are required",
+      },
       { status: 400 },
     );
   }
@@ -68,11 +78,17 @@ export async function POST(req: Request) {
     );
 
   try {
-    const job = await assertCanApply(jobId, email);
+    const job = jobId
+      ? await assertCanApply(jobId, email)
+      : await assertCanApplyByPublicReference(
+          { companySlug: companySlug!, jobSlug: jobSlug! },
+          email,
+        );
+    const resolvedJobId = jobId ?? job.id;
     const readable = await readCv(cv);
 
     const candidateId = await insertApplicant({
-      job_id: jobId,
+      job_id: resolvedJobId,
       full_name: fullName,
       email,
       phone: field("phone"),
@@ -83,7 +99,7 @@ export async function POST(req: Request) {
     });
 
     try {
-      const stored = await attachCv(candidateId, jobId, readable);
+      const stored = await attachCv(candidateId, resolvedJobId, readable);
       await notifyNewApplicant(candidateId, { full_name: fullName }, job);
       await sendApplicationConfirmation({
         email,

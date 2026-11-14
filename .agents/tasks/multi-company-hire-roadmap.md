@@ -108,48 +108,50 @@
 
 ## P2 — CCSA careers integration
 
+**Status:** In progress. The public Kazi contract and CCSA bridge are implemented. Cutover requires creating/importing the CCSA roles in Kazi, assigning each existing CCSA Sanity posting its `kaziJobSlug`, and setting `KAZI_PUBLIC_API_URL` in the CCSA deployment.
+
 ### 9. Choose the CCSA content ownership boundary
 
-- [ ] Keep CCSA’s careers landing-page copy, culture content and general SEO in its website/Sanity project.
-- [ ] Make Kazi the source of truth for open/closed vacancy status, job details, applications and candidate processing.
-- [ ] Replace duplicated CCSA Sanity job content with either a Kazi job reference or a Kazi public jobs feed; choose one before cutover.
-- [ ] Preserve the current CCSA role fields that Kazi does not yet model cleanly: openings, languages, hiring timeline, tags and richer public sections.
+- [x] Keep CCSA’s careers landing-page copy, culture content and general SEO in its website/Sanity project.
+- [x] Make Kazi the source of truth for open/closed vacancy status, applications and candidate processing for mapped CCSA roles. Kazi title, location and employment type also override the Sanity display values when available.
+- [x] Replace duplicated CCSA Sanity job content with a Kazi public-job-slug reference (`kaziJobSlug`) before cutover. Sanity keeps only the CCSA-specific editorial fields.
+- [x] Preserve the current CCSA role fields that Kazi does not yet model cleanly: openings, languages, hiring timeline, tags and richer public sections.
 
 **Acceptance:** a recruiter never has to publish/close a vacancy in both Sanity and Kazi.
 
 ### 10. Build the CCSA public jobs feed
 
-- [ ] Add public Kazi read endpoints keyed by `company_slug`, returning only published, open jobs and safe public fields.
-- [ ] Securely support CCSA website server-side fetching/revalidation; rate-limit any public browser endpoint.
-- [ ] Map CCSA public job pages to their Kazi job IDs without exposing internal IDs unnecessarily.
-- [ ] Retain current CCSA page slugs or add permanent redirects so existing links do not break.
+- [x] Add public Kazi read endpoints keyed by `company_slug`, returning only published, open jobs and safe public fields.
+- [x] Securely support CCSA website server-side fetching/revalidation; rate-limit any public browser endpoint.
+- [x] Map CCSA public job pages to a Kazi public slug without exposing internal IDs.
+- [x] Retain current CCSA page slugs; no redirects are required.
 
 **Acceptance:** `callcentersolutionsafrica.com/careers` renders CCSA-only Kazi vacancies and closes jobs automatically on schedule.
 
 ### 11. Route CCSA applications directly into Kazi
 
-- [ ] Replace the CCSA website’s current email-only application route with the Kazi public application endpoint.
-- [ ] Send CCSA `company_slug`, job reference, applicant data, CV and optional cover letter to Kazi in one request.
-- [ ] Retain CCSA’s required CV behaviour and validate file type/size consistently with Kazi.
-- [ ] Store the cover letter on the candidate record and expose it to authorised CCSA recruiters.
-- [ ] Configure duplicate-application protection and acknowledgement emails for CCSA.
+- [ ] Retire the CCSA website’s email-only application route after all active CCSA postings receive a Kazi job reference. Until then it remains a deliberate compatibility fallback for unmapped legacy Sanity roles.
+- [x] Send CCSA `company_slug`, job reference, applicant data, CV and optional cover letter to Kazi in one request.
+- [x] Retain CCSA’s required CV behaviour and validate file type/size consistently with Kazi (PDF/DOCX, 4 MB).
+- [x] Store the cover letter on the candidate record and expose it to authorised CCSA recruiters.
+- [x] Configure duplicate-application protection and acknowledgement emails for CCSA through the existing Kazi public application flow.
 
 **Acceptance:** a CCSA application creates exactly one CCSA-scoped candidate, queues AI screening, stores the CV and sends one acknowledgement.
 
 ### 12. Make public applying fully branded
 
-- [ ] Refactor Kazi `ApplyPage` so logo, company name, colour tokens, support address, privacy/terms links and success copy come from the company record instead of Growthpad defaults.
-- [ ] Use CCSA’s existing careers identity and public contact details.
-- [ ] Ensure the candidate-facing form never reveals internal Kazi navigation or another company’s branding.
+- [x] Use CCSA’s existing careers identity and public contact details by retaining the CCSA-native application page and relaying mapped applications to Kazi server-to-server.
+- [x] Ensure the candidate-facing CCSA form never reveals Kazi navigation, internal IDs or another company’s branding.
+- [ ] Refactor the optional direct Kazi `ApplyPage` for company configuration before exposing direct CCSA apply links. It is not used by the CCSA careers journey.
 
 **Acceptance:** candidates see a CCSA careers experience even though Kazi processes the application.
 
 ### 13. Protect CCSA SEO ownership
 
-- [ ] Render `JobPosting` structured data on the canonical CCSA page, not on a duplicate Kazi URL.
-- [ ] Use canonical tags pointing to `callcentersolutionsafrica.com`.
+- [x] Render `JobPosting` structured data on the canonical CCSA page, not on a duplicate Kazi URL.
+- [x] Use canonical tags pointing to `callcentersolutionsafrica.com`.
 - [ ] Configure indexing notifications per company/domain only where the verified Google ownership supports it.
-- [ ] Validate sitemap, robots, closed-job behaviour and structured data after cutover.
+- [ ] Validate sitemap, robots, closed-job behaviour and structured data after the first mapped role is deployed.
 
 **Acceptance:** CCSA jobs are indexed as CCSA pages without duplicate Growthpad/Kazi search entries.
 
