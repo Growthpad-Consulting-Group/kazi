@@ -75,10 +75,12 @@
 
 ## P1 — One-login Hire workspace
 
+**Status:** Complete. Multi-company staff can use an explicit, authorised aggregate workspace for safe read-only Hire oversight, or switch into one company to create and manage records.
+
 ### 6. Add a Hire company switcher
 
 - [x] Add an accessible company switcher to the Hire header, showing only memberships the current user may access.
-- [ ] Include `All authorised companies` only for users allowed to see more than one company. **Deliberately deferred:** the first release uses one explicit company at a time, preventing accidental mixed-company lists. Add an explicit aggregate view only after its metrics, bulk actions and exports have dedicated safeguards.
+- [x] Include `All authorised companies` only for users allowed to see more than one company. The aggregate view is explicit, limited to that user's authorised company IDs and read-only for Jobs/Candidates mutations and creation; exports are visibly labelled as aggregate/company-scoped before use.
 - [x] Persist the last selected company in a secure Hire-scoped cookie; support shareable, validated `?company=<slug>` context in URLs.
 - [x] Clearly label jobs, candidate pages, pipelines and reports with the active company.
 
@@ -88,17 +90,17 @@
 
 - [x] Filter jobs, candidates, pipelines and reports by active company. Candidate search, filters, counts and bulk actions remain server-authorised and company-scoped.
 - [x] Require an authorised active company when creating a job. Job import inherits the selected workspace when it is added to the new-job flow.
-- [ ] Scope Hire dashboard/action widgets and their deep links to the active company instead of the current global Hire roll-up.
-- [ ] Scope job templates, interview email templates, acknowledgement content and AI screening defaults by company, with a deliberate parent default only where safe.
-- [ ] Add/export company-scoped candidate data with an explicit company label and server-side boundary. Exports are not implemented yet.
+- [x] Scope Hire dashboard/action widgets and their deep links to the active company instead of the current global Hire roll-up. Hire KPIs, pipeline, interview queue, role schedules and candidate action items now follow the authorised active workspace; shared Pulse, staff and performance data remain group-wide.
+- [x] Scope job templates, interview email templates, acknowledgement content and AI screening defaults by company, with a deliberate parent default only where safe. Kazi has no shared configurable template catalogue yet; existing acknowledgement, draft, interview calendar and AI-screening context now resolve from the job's company brand and job-specific rubric, with Growthpad as the safe first workspace only for global Hire admins.
+- [x] Add/export company-scoped candidate data with an explicit company label and server-side boundary. The existing candidate export now carries an explicit active-company title and company-prefixed export filename; its source rows are already authorised and scoped by `getCandidates()`.
 
 **Acceptance:** every metric and list is unambiguous about which company it represents.
 
 ### 8. Company-aware communications and interviews
 
-- [ ] Add company brand/from/reply-to values to application acknowledgements, interview invitations, rejection emails and AI-assisted drafts.
-- [ ] Ensure connected calendars and Slack notifications state the company and route only to authorised hiring staff.
-- [ ] Preserve candidate privacy: no applicant narrative, CV text or AI rationale appears in public Slack messages.
+- [x] Add company brand/from/reply-to values to application acknowledgements, recruiter-sent candidate email and AI-assisted drafts. The shared verified sending address remains unchanged; the visible sender name and reply-to are company-specific.
+- [x] Ensure connected calendars and Slack notifications state the company and route only to authorised hiring staff.
+- [x] Preserve candidate privacy: Slack application and hiring alerts contain only the company, candidate name, role and an authorised Kazi link — never CV text, cover letters or AI rationale.
 
 **Acceptance:** a CCSA applicant receives CCSA-branded communication, while Growthpad messaging remains unchanged.
 

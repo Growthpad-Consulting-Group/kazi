@@ -57,6 +57,8 @@ interface Props {
   initialRole?: string;
   interviewers: InterviewerOption[];
   currentUserId: string;
+  companyName: string;
+  readOnly?: boolean;
 }
 
 function dashboardFilters(
@@ -104,6 +106,8 @@ export default function CandidatesClientView({
   initialRole,
   interviewers,
   currentUserId,
+  companyName,
+  readOnly = false,
 }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -607,12 +611,18 @@ export default function CandidatesClientView({
       <GenericTable
         data={filtered}
         columns={columns}
-        actions={actions}
-        bulkActions={bulkActions}
+        actions={readOnly ? [] : actions}
+        bulkActions={readOnly ? [] : bulkActions}
+        selectable={!readOnly}
         onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
         emptyMessage="No candidates match your filters."
         emptyIcon="solar:users-group-two-rounded-broken"
         icon="solar:user-speak-broken"
+        exportTitle={`Export ${companyName} candidates`}
+        exportType={`${companyName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_|_$/g, "")}_candidates`}
         unifiedSearchFilter={
           <UnifiedSearchFilter
             onSearchChange={setSearch}

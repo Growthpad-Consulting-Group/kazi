@@ -5,6 +5,7 @@ import {
   getHireCompanyAccess,
   resolveHireWorkspace,
 } from "@/lib/hire-company-access";
+import { ALL_HIRE_WORKSPACES } from "@/lib/hire-workspace-constants";
 
 const HIRE_WORKSPACE_COOKIE = "kazi-hire-workspace";
 
@@ -26,9 +27,14 @@ export async function POST(request: Request) {
       session.user.id,
       session.user.role,
     );
-    const company = resolveHireWorkspace(access, body.company.trim());
-    const response = NextResponse.json({ company: company.slug });
-    response.cookies.set(HIRE_WORKSPACE_COOKIE, company.slug, {
+    const requested = body.company.trim();
+    const company =
+      requested === ALL_HIRE_WORKSPACES && access.length > 1
+        ? null
+        : resolveHireWorkspace(access, requested);
+    const workspace = company?.slug ?? ALL_HIRE_WORKSPACES;
+    const response = NextResponse.json({ company: workspace });
+    response.cookies.set(HIRE_WORKSPACE_COOKIE, workspace, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

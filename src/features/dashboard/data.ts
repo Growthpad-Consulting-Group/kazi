@@ -137,6 +137,11 @@ export interface DashboardContext {
   department: string | null;
   /** Read-only admin-screen grant: shows the company-wide dashboard, without any write controls. */
   viewAllScreens?: boolean;
+  /** Hire-only filter. Pulse, staff and performance remain group-wide. */
+  hireCompanyId?: string;
+  /** Authorised companies for an explicit aggregate Hire view. */
+  hireCompanyIds?: string[];
+  hireCompanySlug?: string;
 }
 
 const STAGES = [
@@ -253,10 +258,12 @@ export async function getDashboardData(
         ? "team"
         : "personal";
 
-  const cacheUserSuffix = ctx ? `${view}_${ctx.userId}` : "org_anon";
+  const cacheUserSuffix = ctx
+    ? `${view}_${ctx.userId}_${ctx.hireCompanyIds?.join("_") ?? ctx.hireCompanyId ?? "all"}`
+    : "org_anon";
   // Bump when the dashboard payload shape or navigation targets change so
   // persisted dashboard entries cannot retain stale destinations.
-  const key = cacheKey("dashboard", "v6", rangeKey(range), cacheUserSuffix);
+  const key = cacheKey("dashboard", "v7", rangeKey(range), cacheUserSuffix);
 
   return cached("dashboard", key, "dynamic", async () => {
     if (view === "personal" && ctx) {
@@ -418,11 +425,14 @@ async function buildOrgOrTeamData(
 
   if (view === "team" && ctx) {
     // Fetch job ids in the manager's department
-    const { data: deptJobs } = ctx.department
-      ? await supabaseAdmin
-          .from("jobs")
-          .select("id")
-          .eq("department", ctx.department)
+    let departmentJobsQ = ctx.department
+      ? supabaseAdmin.from("jobs").select("id").eq("department", ctx.department)
+      : null;
+    if (departmentJobsQ && ctx.hireCompanyIds?.length) {
+      departmentJobsQ = departmentJobsQ.in("company_id", ctx.hireCompanyIds);
+    }
+    const { data: deptJobs } = departmentJobsQ
+      ? await departmentJobsQ
       : { data: [] };
     jobIds = (deptJobs ?? []).map((j) => j.id);
 
@@ -502,6 +512,13 @@ async function buildOrgOrTeamData(
 
   // Start the photo lookup now so it runs alongside the other queries, not after them.
   const signaturePromise = signaturePhotos();
+  let jobsQ = supabaseAdmin
+    .from("jobs")
+    .select("id, title, status, published_at, closes_at");
+  if (ctx?.hireCompanyIds?.length) {
+    jobsQ = jobsQ.in("company_id", ctx.hireCompanyIds);
+  }
+
   const [
     jobsRes,
     candidateStatsRes,
@@ -515,9 +532,7 @@ async function buildOrgOrTeamData(
     activeSurveysRes,
   ] = await Promise.all([
     // Every job once: the job counts and the scheduled-dates list both use it.
-    supabaseAdmin
-      .from("jobs")
-      .select("id, title, status, published_at, closes_at"),
+    jobsQ,
     // Candidate figures are computed in the database (dashboard_candidate_stats).
     // Team views pass the department's job ids; an empty list gives zeros.
     (supabaseAdmin as unknown as DashboardRpcClient).rpc(
@@ -527,6 +542,7 @@ async function buildOrgOrTeamData(
         p_now: now.toISOString(),
         p_range_start: start,
         p_range_end: end,
+        p_company_ids: ctx?.hireCompanyIds ?? null,
       },
     ),
     employeesQ,
@@ -734,6 +750,14 @@ async function buildOrgOrTeamData(
 
   const employeeCount = employeesRes.count ?? 0;
 
+  const hireQuery = ctx?.hireCompanySlug
+    ? `?company=${encodeURIComponent(ctx.hireCompanySlug)}`
+    : "";
+  const withHireQuery = (path: string) =>
+    hireQuery
+      ? `${path}${path.includes("?") ? "&" : "?"}${hireQuery.slice(1)}`
+      : path;
+
   return {
     view,
     stats: {
@@ -757,19 +781,19 @@ async function buildOrgOrTeamData(
         {
           label: "Awaiting AI screen",
           count: pendingScreen,
-          href: "/hire/candidates?attention=needs_screening",
+          href: withHireQuery("/hire/candidates?attention=needs_screening"),
           tone: "amber",
         },
         {
           label: "New hires to add to staff",
           count: hiresAwaitingStaffRecord,
-          href: "/hire/candidates?stage=hired",
+          href: withHireQuery("/hire/candidates?stage=hired"),
           tone: "amber",
         },
         {
           label: "Candidates needing follow-up",
           count: stalledCandidates,
-          href: "/hire/candidates?attention=stalled",
+          href: withHireQuery("/hire/candidates?attention=stalled"),
           tone: "red",
         },
       ].filter(

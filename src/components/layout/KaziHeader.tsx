@@ -160,7 +160,7 @@ export default function KaziHeader({
                         onClick={action.onClick}
                         disabled={action.disabled}
                         title={action.title}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
                           action.variant === "primary" ||
                           (!pageHeader.content &&
                             pageHeader.actions?.length === 1)

@@ -12,6 +12,7 @@ import {
   getHireCompanyAccess,
   resolveHireWorkspace,
 } from "@/lib/hire-company-access";
+import { ALL_HIRE_WORKSPACES } from "@/lib/hire-workspace-constants";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { recordHireAuditEvent } from "@/lib/hire-audit";
 import { canonicalDepartment } from "@/lib/departments";
@@ -95,22 +96,24 @@ export async function getJobs(companySlug?: string) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  const company = resolveHireWorkspace(
-    await getHireCompanyAccess(session.user.id, session.user.role),
-    companySlug,
-  );
-  return getCachedJobs([company.companyId]);
+  const access = await getHireCompanyAccess(session.user.id, session.user.role);
+  const companyIds =
+    companySlug === ALL_HIRE_WORKSPACES && access.length > 1
+      ? access.map((company) => company.companyId)
+      : [resolveHireWorkspace(access, companySlug).companyId];
+  return getCachedJobs(companyIds);
 }
 
 export async function getJobApplicantCounts(companySlug?: string) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
 
-  const company = resolveHireWorkspace(
-    await getHireCompanyAccess(session.user.id, session.user.role),
-    companySlug,
-  );
-  return getCachedApplicantCounts([company.companyId]);
+  const access = await getHireCompanyAccess(session.user.id, session.user.role);
+  const companyIds =
+    companySlug === ALL_HIRE_WORKSPACES && access.length > 1
+      ? access.map((company) => company.companyId)
+      : [resolveHireWorkspace(access, companySlug).companyId];
+  return getCachedApplicantCounts(companyIds);
 }
 
 export async function getJob(id: string) {

@@ -44,13 +44,17 @@ export default async function JobsPage({
             href: careersPageUrl(),
             variant: "secondary",
           },
-          {
-            label: "New Job",
-            icon: "solar:add-circle-broken",
-            href: `/hire/jobs/new?company=${workspace.company.slug}`,
-            variant: "primary",
-            write: true,
-          },
+          ...(workspace.isAggregate
+            ? []
+            : [
+                {
+                  label: "New Job",
+                  icon: "solar:add-circle-broken",
+                  href: `/hire/jobs/new?company=${workspace.company.slug}`,
+                  variant: "primary" as const,
+                  write: true,
+                },
+              ]),
         ]}
         trailing={
           <HireWorkspaceSwitcher
@@ -64,6 +68,7 @@ export default async function JobsPage({
         jobs={jobs}
         departments={departments}
         initialStatus={initialStatus}
+        readOnly={workspace.isAggregate}
       />
     </>
   );

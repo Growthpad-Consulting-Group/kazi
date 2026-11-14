@@ -23,9 +23,14 @@ import { STAGE_LABELS } from "@/features/hire/candidates/types";
 interface Props {
   columns: Record<CandidateStage, CandidateWithJob[]>;
   stages: CandidateStage[];
+  readOnly?: boolean;
 }
 
-export function PipelineBoard({ columns: initial, stages }: Props) {
+export function PipelineBoard({
+  columns: initial,
+  stages,
+  readOnly = false,
+}: Props) {
   const router = useRouter();
   const { requestStageEmail, stageEmailDialog } = useStageEmailPrompt();
   const [columns, setColumns] = useState(initial);
@@ -42,11 +47,13 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
     : null;
 
   function onDragStart({ active }: DragStartEvent) {
+    if (readOnly) return;
     setActiveId(active.id as string);
   }
 
   function onDragEnd({ active, over }: DragEndEvent) {
     setActiveId(null);
+    if (readOnly) return;
     if (!over) return;
 
     const toStage = over.id as CandidateStage;
@@ -102,11 +109,12 @@ export function PipelineBoard({ columns: initial, stages }: Props) {
               stage={stage}
               label={STAGE_LABELS[stage]}
               candidates={columns[stage]}
+              readOnly={readOnly}
             />
           ))}
         </div>
         <DragOverlay>
-          {activeCandidate && (
+          {!readOnly && activeCandidate && (
             <CandidateCard candidate={activeCandidate} isDragging />
           )}
         </DragOverlay>

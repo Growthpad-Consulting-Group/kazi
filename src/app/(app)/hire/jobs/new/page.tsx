@@ -2,6 +2,7 @@ import { JobForm } from "@/features/hire/jobs/components/JobForm";
 import { getDepartments } from "@/features/departments/actions";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { getActiveHireWorkspace } from "@/lib/hire-workspace";
+import { redirect } from "next/navigation";
 
 export default async function NewJobPage({
   searchParams,
@@ -10,6 +11,7 @@ export default async function NewJobPage({
 }) {
   const { company } = await searchParams;
   const workspace = await getActiveHireWorkspace(company);
+  if (workspace.isAggregate) redirect("/hire/jobs");
   const departments = await getDepartments().catch(() => []);
   return (
     <>

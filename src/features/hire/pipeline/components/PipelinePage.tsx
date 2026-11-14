@@ -26,7 +26,7 @@ export default async function PipelinePage({
   const candidates = (await getCachedCandidates(
     jobId,
     true,
-    [workspace.company.companyId],
+    workspace.companyIds,
   )) as unknown as CandidateWithJob[];
 
   // Group by stage
@@ -69,7 +69,11 @@ export default async function PipelinePage({
         }
         trailingIsFilter
       />
-      <PipelineBoard columns={columns} stages={PIPELINE_STAGES} />
+      <PipelineBoard
+        columns={columns}
+        stages={PIPELINE_STAGES}
+        readOnly={workspace.isAggregate}
+      />
     </div>
   );
 }

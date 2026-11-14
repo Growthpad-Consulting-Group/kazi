@@ -60,6 +60,8 @@ export default async function CandidatesPage({
         initialRole={initialRole}
         interviewers={interviewers}
         currentUserId={session?.user.id ?? ""}
+        companyName={workspace.company.displayName}
+        readOnly={workspace.isAggregate}
       />
     </>
   );

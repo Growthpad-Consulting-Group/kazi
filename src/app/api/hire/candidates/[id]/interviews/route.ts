@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { assertHireCandidateAccess } from "@/lib/hire-company-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { createCalendarEvent } from "@/lib/google-calendar";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 
 export async function POST(
   req: Request,
@@ -46,7 +47,7 @@ export async function POST(
 
   const { data: candidate } = await supabaseAdmin
     .from("candidates")
-    .select("id, full_name, email, stage, jobs(title)")
+    .select("id, full_name, email, stage, company_id, jobs(title)")
     .eq("id", id)
     .maybeSingle();
   const row = candidate as unknown as {
@@ -54,6 +55,7 @@ export async function POST(
     full_name: string;
     email: string;
     stage: string;
+    company_id: string;
     jobs: { title: string } | null;
   } | null;
   if (!row)
@@ -79,9 +81,10 @@ export async function POST(
   const attendeeEmails = [
     ...new Set([row.email, ...interviewerEmails].filter(Boolean)),
   ];
+  const company = await getHireCompanyBrand(row.company_id);
   const calendarEvent = await createCalendarEvent(session.user.id, {
-    title: `Interview: ${row.full_name}${row.jobs?.title ? ` (${row.jobs.title})` : ""}`,
-    description: "Scheduled via Kazi",
+    title: `${company.displayName} interview: ${row.full_name}${row.jobs?.title ? ` (${row.jobs.title})` : ""}`,
+    description: `Scheduled via Kazi for ${company.displayName}.`,
     startAt: start.toISOString(),
     endAt: new Date(start.getTime() + duration * 60 * 1000).toISOString(),
     attendeeEmails,

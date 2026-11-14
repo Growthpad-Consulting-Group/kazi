@@ -74,6 +74,10 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   selectable?: boolean;
   showExport?: boolean;
   onExport?: (rows: T[]) => void;
+  /** Human-readable company/record scope used in the export modal. */
+  exportTitle?: string;
+  /** Stable filename prefix used for exports. */
+  exportType?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
   stickyHeader?: boolean;
@@ -113,6 +117,8 @@ export function GenericTable<T extends Record<string, unknown>>({
   selectable: selectableProp = true,
   showExport = true,
   onExport,
+  exportTitle,
+  exportType,
   searchable = false,
   searchPlaceholder = "Search…",
   stickyHeader,
@@ -761,8 +767,10 @@ export function GenericTable<T extends Record<string, unknown>>({
           onClose={() => setShowExportModal(false)}
           users={(exportRows ?? dateFiltered) as Record<string, unknown>[]}
           mode="light"
-          type={title?.toLowerCase().replace(/\s+/g, "_") || "records"}
-          title={title}
+          type={
+            exportType ?? title?.toLowerCase().replace(/\s+/g, "_") ?? "records"
+          }
+          title={exportTitle ?? title}
         />
       )}
     </div>

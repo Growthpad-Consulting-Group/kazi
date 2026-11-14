@@ -9,11 +9,17 @@ import { Icon } from "@iconify/react";
 interface Props {
   candidate: CandidateWithJob;
   isDragging?: boolean;
+  readOnly?: boolean;
 }
 
-export function CandidateCard({ candidate, isDragging }: Props) {
+export function CandidateCard({
+  candidate,
+  isDragging,
+  readOnly = false,
+}: Props) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: candidate.id,
+    disabled: readOnly,
   });
 
   const style = transform
@@ -24,12 +30,14 @@ export function CandidateCard({ candidate, isDragging }: Props) {
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
+      {...(!readOnly ? listeners : {})}
+      {...(!readOnly ? attributes : {})}
       className={`group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 select-none transition-all ${
         isDragging
           ? "rotate-1 cursor-grabbing opacity-90 shadow-xl"
-          : "cursor-grab shadow-sm hover:-translate-y-0.5 hover:border-brand-500/30 hover:shadow-md"
+          : readOnly
+            ? "cursor-default shadow-sm"
+            : "cursor-grab shadow-sm hover:-translate-y-0.5 hover:border-brand-500/30 hover:shadow-md"
       }`}
     >
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-500 via-brand-500/35 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -45,10 +53,12 @@ export function CandidateCard({ candidate, isDragging }: Props) {
             {candidate.jobs?.title ?? "—"}
           </p>
         </div>
-        <Icon
-          icon="solar:hamburger-menu-broken"
-          className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-lo)]/60"
-        />
+        {!readOnly && (
+          <Icon
+            icon="solar:hamburger-menu-broken"
+            className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-lo)]/60"
+          />
+        )}
         {candidate.ai_score !== null && (
           <span
             className={`flex-shrink-0 text-xs font-semibold rounded-full px-2 py-0.5 ${

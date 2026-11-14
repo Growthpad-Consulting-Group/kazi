@@ -1,5 +1,6 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { getRequestSession } from "@/lib/request-session";
+import { getActiveHireWorkspace } from "@/lib/hire-workspace";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import dynamic from "next/dynamic";
@@ -66,12 +67,22 @@ function KpiCard({ stat }: { stat: StatDef }) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ from?: string; to?: string; preset?: string }>;
+  searchParams?: Promise<{
+    from?: string;
+    to?: string;
+    preset?: string;
+    company?: string;
+  }>;
 }) {
   const params = (await searchParams) ?? {};
   const range = resolveRange(params);
 
   const session = await getRequestSession();
+  // Staff without Hire access retain their dashboard; only Hire KPIs need an
+  // authorised active company workspace.
+  const hireWorkspace = session?.user
+    ? await getActiveHireWorkspace(params.company).catch(() => null)
+    : null;
   const ctx = session?.user
     ? {
         userId: session.user.id,
@@ -80,6 +91,9 @@ export default async function DashboardPage({
         viewAllScreens:
           session.user.extraPermissions?.includes("view_admin_screens") ??
           false,
+        hireCompanyId: hireWorkspace?.company.companyId || undefined,
+        hireCompanyIds: hireWorkspace?.companyIds,
+        hireCompanySlug: hireWorkspace?.company.slug,
       }
     : undefined;
 
@@ -331,6 +345,11 @@ export default async function DashboardPage({
   }
 
   // ── Org / Team view ───────────────────────────────────────────────────────
+  const hireHref = (path: string) => {
+    if (!hireWorkspace) return path;
+    const separator = path.includes("?") ? "&" : "?";
+    return `${path}${separator}company=${encodeURIComponent(hireWorkspace.company.slug)}`;
+  };
   const kpis: StatDef[] = [
     {
       label: "Open Roles",
@@ -338,7 +357,7 @@ export default async function DashboardPage({
       icon: "solar:case-broken",
       accent: "text-brand-500",
       accentBg: "bg-brand-500/10",
-      href: "/hire/jobs?status=open",
+      href: hireHref("/hire/jobs?status=open"),
     },
     {
       label: "Active Pipeline",
@@ -346,7 +365,7 @@ export default async function DashboardPage({
       icon: "solar:users-group-two-rounded-broken",
       accent: "text-blue-500",
       accentBg: "bg-blue-500/10",
-      href: "/hire/candidates?stage=active",
+      href: hireHref("/hire/candidates?stage=active"),
     },
     {
       label: "Employees",
@@ -362,13 +381,28 @@ export default async function DashboardPage({
       icon: "solar:check-circle-broken",
       accent: "text-emerald-500",
       accentBg: "bg-emerald-500/10",
-      href: "/hire/candidates?stage=hired",
+      href: hireHref("/hire/candidates?stage=hired"),
     },
   ];
 
   return (
     <div className="-mt-6 space-y-6 md:-mt-8">
-      <DashboardHeader range={range} description="Hiring and people overview" />
+      <DashboardHeader
+        range={range}
+        description={
+          hireWorkspace
+            ? `${hireWorkspace.company.displayName} hiring and people overview`
+            : "Hiring and people overview"
+        }
+        hireWorkspace={
+          hireWorkspace
+            ? {
+                companies: hireWorkspace.access,
+                activeSlug: hireWorkspace.company.slug,
+              }
+            : undefined
+        }
+      />
 
       {heroBanner}
 
@@ -443,7 +477,7 @@ export default async function DashboardPage({
               </div>
             </div>
             <Link
-              href="/hire/candidates?stage=interview"
+              href={hireHref("/hire/candidates?stage=interview")}
               className="text-xs text-brand-500 hover:underline"
             >
               View all
@@ -454,7 +488,7 @@ export default async function DashboardPage({
               operations.interviewQueue.map((candidate) => (
                 <Link
                   key={candidate.id}
-                  href={`/hire/candidates/${candidate.id}/interview`}
+                  href={hireHref(`/hire/candidates/${candidate.id}/interview`)}
                   className="flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-[var(--surface-2)]"
                 >
                   <div>
@@ -809,7 +843,7 @@ export default async function DashboardPage({
               </div>
             </div>
             <Link
-              href="/hire/jobs"
+              href={hireHref("/hire/jobs")}
               className="text-xs text-brand-500 hover:underline"
             >
               Jobs
@@ -823,7 +857,7 @@ export default async function DashboardPage({
                 return (
                   <Link
                     key={`${job.id}-${job.kind}`}
-                    href={`/hire/jobs/${job.id}`}
+                    href={hireHref(`/hire/jobs/${job.id}`)}
                     className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-[var(--surface-2)]"
                   >
                     <div className="min-w-0">

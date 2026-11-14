@@ -78,12 +78,14 @@ interface Props {
   jobs: Job[];
   departments: string[];
   initialStatus?: string;
+  readOnly?: boolean;
 }
 
 export default function JobsClientView({
   jobs,
   departments,
   initialStatus,
+  readOnly = false,
 }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -341,7 +343,8 @@ export default function JobsClientView({
       <GenericTable
         data={filtered}
         columns={columns}
-        actions={actions}
+        actions={readOnly ? [] : actions}
+        selectable={!readOnly}
         onRowClick={(row) => router.push(`/hire/jobs/${row.id}`)}
         emptyMessage="No jobs match your filters."
         emptyIcon="solar:case-broken"

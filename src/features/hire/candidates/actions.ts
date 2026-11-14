@@ -9,10 +9,12 @@ import {
   getHireCompanyAccess,
   resolveHireWorkspace,
 } from "@/lib/hire-company-access";
+import { ALL_HIRE_WORKSPACES } from "@/lib/hire-workspace-constants";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { recordHireAuditEvent } from "@/lib/hire-audit";
 import { getHireCompanyRecruiterIds } from "@/lib/notifications";
 import { deliverSlackNotification } from "@/lib/slack";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
 
@@ -44,15 +46,16 @@ export async function getCandidates(
 ): Promise<CandidateWithJob[]> {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Unauthenticated");
-  const company = resolveHireWorkspace(
-    await getHireCompanyAccess(session.user.id, session.user.role),
-    companySlug,
-  );
+  const access = await getHireCompanyAccess(session.user.id, session.user.role);
+  const companyIds =
+    companySlug === ALL_HIRE_WORKSPACES && access.length > 1
+      ? access.map((company) => company.companyId)
+      : [resolveHireWorkspace(access, companySlug).companyId];
 
   return (await getCachedCandidates(
     jobId,
     false,
-    [company.companyId],
+    companyIds,
   )) as unknown as CandidateWithJob[];
 }
 
@@ -104,7 +107,10 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
     metadata: { stage },
   });
   if (stage === "hired") {
-    const recipients = await getHireCompanyRecruiterIds(access.companyId);
+    const [recipients, company] = await Promise.all([
+      getHireCompanyRecruiterIds(access.companyId),
+      getHireCompanyBrand(access.companyId),
+    ]);
     await Promise.all(
       recipients.map((recipientUserId) =>
         deliverSlackNotification({
@@ -112,7 +118,7 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
           recipientUserId,
           category: "candidate_hired",
           critical: true,
-          text: "A hired candidate is ready to be added to staff.",
+          text: `A ${company.displayName} candidate is ready to be added to staff.`,
           blocks: [
             {
               type: "header",
@@ -122,7 +128,7 @@ export async function updateCandidateStage(id: string, stage: CandidateStage) {
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: "A candidate has been moved to *Hired* and is ready to be added to staff.",
+                text: `A *${company.displayName}* candidate has been moved to *Hired* and is ready to be added to staff.`,
               },
             },
             {

@@ -209,7 +209,7 @@ export default async function ReportingPage({
     to: searchParams.to,
     preset: searchParams.preset || "Last 30 Days",
   });
-  const report = await getReportData(period, [workspace.company.companyId]);
+  const report = await getReportData(period, workspace.companyIds);
   const shortlistRate = report.screened
     ? Math.round((report.shortlisted / report.screened) * 100)
     : null;

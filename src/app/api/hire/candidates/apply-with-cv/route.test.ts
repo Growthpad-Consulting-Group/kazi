@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   attachCv: vi.fn(),
   sendApplicationConfirmation: vi.fn(),
   checkRateLimit: vi.fn(),
+  getHireCompanyBrand: vi.fn(),
 }));
 
 vi.mock("@/lib/candidate-applications", () => ({
@@ -29,8 +30,11 @@ vi.mock("@/lib/rate-limit", () => ({
   rateLimitHeaders: () => ({}),
   requestIp: () => "127.0.0.1",
 }));
+vi.mock("@/lib/hire-company-brand", () => ({
+  getHireCompanyBrand: mocks.getHireCompanyBrand,
+}));
 
-const job = { title: "Business Development Intern" };
+const job = { title: "Business Development Intern", company_id: "growthpad" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -45,6 +49,11 @@ beforeEach(() => {
   mocks.insertApplicant.mockResolvedValue("candidate-1");
   mocks.attachCv.mockResolvedValue({ queuedForScreening: true });
   mocks.sendApplicationConfirmation.mockResolvedValue(undefined);
+  mocks.getHireCompanyBrand.mockResolvedValue({
+    displayName: "Growthpad",
+    applicationFromName: "Growthpad Careers",
+    replyToEmail: null,
+  });
   mocks.notifyNewApplicant.mockResolvedValue(undefined);
   mocks.deleteApplicant.mockResolvedValue(undefined);
 });

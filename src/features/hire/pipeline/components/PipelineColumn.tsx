@@ -9,10 +9,19 @@ interface Props {
   stage: CandidateStage;
   label: string;
   candidates: CandidateWithJob[];
+  readOnly?: boolean;
 }
 
-export function PipelineColumn({ stage, label, candidates }: Props) {
-  const { setNodeRef, isOver } = useDroppable({ id: stage });
+export function PipelineColumn({
+  stage,
+  label,
+  candidates,
+  readOnly = false,
+}: Props) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: stage,
+    disabled: readOnly,
+  });
   const style = columnStyle(stage);
 
   return (
@@ -44,12 +53,12 @@ export function PipelineColumn({ stage, label, candidates }: Props) {
         }`}
       >
         {candidates.map((c) => (
-          <CandidateCard key={c.id} candidate={c} />
+          <CandidateCard key={c.id} candidate={c} readOnly={readOnly} />
         ))}
         {candidates.length === 0 && (
           <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-[var(--border)]">
             <p className="text-xs text-[var(--text-lo)]">
-              Drop candidates here
+              {readOnly ? "No candidates" : "Drop candidates here"}
             </p>
           </div>
         )}
