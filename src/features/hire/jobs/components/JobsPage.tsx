@@ -41,7 +41,7 @@ export default async function JobsPage({
           {
             label: "Careers page",
             icon: "solar:global-broken",
-            href: careersPageUrl(),
+            href: careersPageUrl(workspace.company.slug),
             variant: "secondary",
           },
           ...(workspace.isAggregate
@@ -67,6 +67,7 @@ export default async function JobsPage({
       <JobsClientView
         jobs={jobs}
         departments={departments}
+        companySlug={workspace.company.slug}
         initialStatus={initialStatus}
         readOnly={workspace.isAggregate}
       />

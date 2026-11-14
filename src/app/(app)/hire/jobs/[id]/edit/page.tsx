@@ -4,6 +4,9 @@ import { getJob } from "@/features/hire/jobs/actions";
 import { getDepartments } from "@/features/departments/actions";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getHireCompanyAccess } from "@/lib/hire-company-access";
 
 export default async function EditJobPage({
   params,
@@ -13,6 +16,12 @@ export default async function EditJobPage({
   const { id } = await params;
   const job = await getJob(id).catch(() => null);
   if (!job) notFound();
+  const session = await getServerSession(authOptions);
+  const companySlug = session
+    ? (await getHireCompanyAccess(session.user.id, session.user.role)).find(
+        (company) => company.companyId === job.company_id,
+      )?.slug
+    : undefined;
   const departments = await getDepartments().catch(() => []);
   const now = new Date();
   const isPubliclyLive =
@@ -37,14 +46,14 @@ export default async function EditJobPage({
                 {
                   label: "Careers page",
                   icon: "solar:global-broken",
-                  href: publicJobUrl(job.slug),
+                  href: publicJobUrl(job.slug, companySlug),
                   variant: "primary" as const,
                 },
               ]
             : []),
         ]}
       />
-      <JobForm job={job} departments={departments} />
+      <JobForm job={job} departments={departments} companySlug={companySlug} />
     </>
   );
 }

@@ -599,8 +599,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
         description={
           [jobAccess?.displayName, job.department, job.location]
             .filter(Boolean)
-            .join(" · ") ||
-          undefined
+            .join(" · ") || undefined
         }
         icon="solar:case-minimalistic-broken"
         actions={[
@@ -617,7 +616,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
           {
             label: "Careers page",
             icon: "solar:global-broken",
-            href: publicJobUrl(job.slug),
+            href: publicJobUrl(job.slug, jobAccess?.slug),
             variant: "secondary" as const,
           },
           ...(canManageHiring

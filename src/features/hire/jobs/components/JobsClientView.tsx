@@ -77,6 +77,7 @@ function jobAvailability(job: Job, now: Date, nextWeek: Date) {
 interface Props {
   jobs: Job[];
   departments: string[];
+  companySlug?: string;
   initialStatus?: string;
   readOnly?: boolean;
 }
@@ -84,6 +85,7 @@ interface Props {
 export default function JobsClientView({
   jobs,
   departments,
+  companySlug,
   initialStatus,
   readOnly = false,
 }: Props) {
@@ -318,7 +320,7 @@ export default function JobsClientView({
       show: (row) => jobAvailability(row, new Date(), new Date()).live,
       onClick: (row) =>
         window.open(
-          publicJobUrl(String(row.slug)),
+          publicJobUrl(String(row.slug), companySlug),
           "_blank",
           "noopener,noreferrer",
         ),

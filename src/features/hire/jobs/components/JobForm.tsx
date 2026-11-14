@@ -333,7 +333,7 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
                   variant: "secondary" as const,
                   onClick: () =>
                     window.open(
-                      publicJobUrl(job.slug),
+                      publicJobUrl(job.slug, companySlug),
                       "_blank",
                       "noopener,noreferrer",
                     ),
