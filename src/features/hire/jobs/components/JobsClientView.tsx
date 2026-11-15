@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { publicJobUrl } from "@/lib/careers-url";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { updateJob } from "../actions";
 import {
   GenericTable,
   type Column,
@@ -90,6 +92,7 @@ export default function JobsClientView({
   readOnly = false,
 }: Props) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ActiveFilter[]>(() =>
     STATUS_OPTIONS.some((option) => option.value === initialStatus)
@@ -324,6 +327,44 @@ export default function JobsClientView({
           "_blank",
           "noopener,noreferrer",
         ),
+    },
+    {
+      icon: "solar:pause-circle-broken",
+      label: "Pause job",
+      variant: "warning",
+      show: (row) => row.status === "open",
+      onClick: (row) => {
+        startTransition(async () => {
+          try {
+            await updateJob(row.id, { status: "paused" });
+            toast.success("Job paused and removed from public careers pages");
+            router.refresh();
+          } catch (error) {
+            toast.error(
+              error instanceof Error ? error.message : "Could not pause job",
+            );
+          }
+        });
+      },
+    },
+    {
+      icon: "solar:play-circle-broken",
+      label: "Resume job",
+      variant: "success",
+      show: (row) => row.status === "paused",
+      onClick: (row) => {
+        startTransition(async () => {
+          try {
+            await updateJob(row.id, { status: "open" });
+            toast.success("Job resumed and is accepting applications");
+            router.refresh();
+          } catch (error) {
+            toast.error(
+              error instanceof Error ? error.message : "Could not resume job",
+            );
+          }
+        });
+      },
     },
   ];
 

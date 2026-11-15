@@ -1,5 +1,4 @@
 import { getJobApplicantCounts, getJobs } from "../actions";
-import { getDepartments } from "@/features/departments/actions";
 import JobsClientView from "./JobsClientView";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { careersPageUrl } from "@/lib/careers-url";
@@ -25,12 +24,14 @@ export default async function JobsPage({
     applicants: applicantCounts[job.id]?.applicants ?? 0,
     shortlisted: applicantCounts[job.id]?.shortlisted ?? 0,
   }));
-  const listed = await getDepartments().catch(() => [] as string[]);
+  // A Jobs filter should only offer departments which can return a result in
+  // the selected Hire workspace, rather than the entire organisation catalogue.
   const departments = Array.from(
-    new Set([
-      ...listed,
-      ...(jobs.map((j) => j.department).filter(Boolean) as string[]),
-    ]),
+    new Set(
+      jobs
+        .map((job) => job.department)
+        .filter((department): department is string => Boolean(department)),
+    ),
   ).sort((a, b) => a.localeCompare(b));
   const writableCompanies = workspace.access
     .filter((company) => canManageHireCompany(company.role))

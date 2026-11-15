@@ -264,8 +264,12 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
   const [rubric, setRubric] = useState<RubricItem[]>(
     job?.scoring_rubric?.length ? job.scoring_rubric : [{ ...EMPTY_RUBRIC }],
   );
-  const [status, setStatus] = useState<"draft" | "open">(
-    job?.status === "open" ? "open" : "draft",
+  const [status, setStatus] = useState<"draft" | "open" | "paused">(
+    job?.status === "paused"
+      ? "paused"
+      : job?.status === "open"
+        ? "open"
+        : "draft",
   );
   const [schedule, setSchedule] = useState<DateRangeValue | undefined>(() =>
     toScheduleRange(job),
@@ -336,7 +340,12 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
         rubric: job?.scoring_rubric?.length
           ? job.scoring_rubric
           : [{ ...EMPTY_RUBRIC }],
-        status: job?.status === "open" ? "open" : "draft",
+        status:
+          job?.status === "paused"
+            ? "paused"
+            : job?.status === "open"
+              ? "open"
+              : "draft",
         schedule: scheduleSnapshot(toScheduleRange(job)),
         employmentType: job?.employment_type ?? "",
         workMode: job?.work_mode ?? "",
@@ -1044,7 +1053,7 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
         iconClass="bg-brand-500/15 text-brand-500"
       >
         <div className="flex rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1">
-          {(["draft", "open"] as const).map((s) => (
+          {(["draft", "open", "paused"] as const).map((s) => (
             <button
               key={s}
               type="button"
@@ -1057,7 +1066,11 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
             >
               <Icon
                 icon={
-                  s === "open" ? "solar:eye-broken" : "solar:eye-closed-broken"
+                  s === "open"
+                    ? "solar:eye-broken"
+                    : s === "paused"
+                      ? "solar:pause-circle-broken"
+                      : "solar:eye-closed-broken"
                 }
                 className="h-3.5 w-3.5"
               />
@@ -1070,7 +1083,9 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
             ? isScheduledForLater
               ? "Scheduled for your public careers page at the chosen publish time."
               : "Visible on your public careers page and accepting applications."
-            : "Only visible to your team — nobody can apply yet."}
+            : status === "paused"
+              ? "Temporarily hidden from your public careers page. Resume it when applications should reopen."
+              : "Only visible to your team — nobody can apply yet."}
         </p>
       </SidebarWidget>
 

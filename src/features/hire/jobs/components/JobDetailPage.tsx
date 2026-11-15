@@ -32,6 +32,12 @@ const STATUS_META: Record<
     text: "text-green-500",
     hint: "Accepting applications on your public careers page.",
   },
+  paused: {
+    icon: "solar:pause-circle-broken",
+    chip: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    text: "text-amber-600 dark:text-amber-400",
+    hint: "Temporarily hidden from your public careers page.",
+  },
   closed: {
     icon: "solar:close-circle-broken",
     chip: "bg-red-500/10 text-red-500",

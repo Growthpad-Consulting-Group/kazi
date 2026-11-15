@@ -51,6 +51,13 @@ function validateSchedule(
   return { publishedAt, closesAt };
 }
 
+function validateJobStatus(status: unknown): JobFormData["status"] {
+  if (status === "draft" || status === "open" || status === "paused") {
+    return status;
+  }
+  throw new Error("Job status must be draft, open, or paused");
+}
+
 type IndexableJob = {
   id: string;
   slug: string;
@@ -139,6 +146,7 @@ export async function createJob(form: JobFormData, companySlug?: string) {
     throw new Error("Forbidden");
 
   const { publishedAt, closesAt } = validateSchedule(form);
+  const status = validateJobStatus(form.status);
   const department = await canonicalDepartment(form.department);
 
   const { data, error } = await supabaseAdmin
@@ -155,11 +163,10 @@ export async function createJob(form: JobFormData, companySlug?: string) {
         nice_to_haves: form.nice_to_haves,
       },
       scoring_rubric: form.scoring_rubric,
-      status: form.status,
+      status,
       // Opening a job with no schedule publishes it immediately.
       published_at:
-        publishedAt ??
-        (form.status === "open" ? new Date().toISOString() : null),
+        publishedAt ?? (status === "open" ? new Date().toISOString() : null),
       closes_at: closesAt,
       employment_type: form.employment_type || null,
       work_mode: form.work_mode || null,
@@ -249,8 +256,9 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   if (form.scoring_rubric !== undefined)
     update.scoring_rubric = form.scoring_rubric;
   if (form.status !== undefined) {
-    update.status = form.status;
-    if (form.status === "open" && form.published_at === undefined) {
+    const status = validateJobStatus(form.status);
+    update.status = status;
+    if (status === "open" && form.published_at === undefined) {
       if (!previous?.published_at)
         update.published_at = new Date().toISOString();
     }

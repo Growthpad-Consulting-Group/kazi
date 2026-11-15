@@ -1,6 +1,6 @@
 export type UserRole =
   "admin" | "hr" | "hiring_manager" | "interviewer" | "manager" | "employee";
-export type JobStatus = "draft" | "open" | "closed";
+export type JobStatus = "draft" | "open" | "paused" | "closed";
 export type CandidateStage =
   "applied" | "screened" | "interview" | "offer" | "hired" | "rejected";
 export type GoalStatus =
