@@ -1,5 +1,5 @@
 -- Multi-company Hire foundation. Growthpad is the initial/default workspace;
--- CCSA and PAAN can share staff identities while keeping hiring data isolated.
+-- CCSA shares staff identities while keeping hiring data isolated.
 
 CREATE TABLE IF NOT EXISTS public.companies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -48,14 +48,6 @@ VALUES
     'https://callcentersolutionsafrica.com',
     'https://callcentersolutionsafrica.com/careers',
     'CCSA Careers'
-  ),
-  (
-    'paan',
-    'PAAN',
-    'PAAN',
-    NULL,
-    NULL,
-    'PAAN Careers'
   )
 ON CONFLICT (slug) DO UPDATE SET
   legal_name = EXCLUDED.legal_name,
