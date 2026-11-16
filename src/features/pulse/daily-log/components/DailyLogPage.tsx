@@ -1218,8 +1218,8 @@ export function DailyLogPage({
                 · {formatMinutes(weeklyMinutes)} tracked this week
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1 rounded-xl bg-[var(--surface-2)] p-1">
+            <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:flex-wrap lg:items-center">
+              <div className="grid w-full grid-cols-5 gap-1 rounded-xl bg-[var(--surface-2)] p-1 sm:flex sm:w-auto">
                 {activeWeek.map((day) => {
                   const selected = day.key === date;
                   const logged = loggedDays.has(day.key);
@@ -1230,7 +1230,7 @@ export function DailyLogPage({
                       type="button"
                       disabled={future}
                       onClick={() => setDate(day.key)}
-                      className={`flex min-w-11 flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${selected ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}
+                      className={`flex min-w-0 flex-col items-center rounded-lg px-1 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 sm:min-w-11 sm:px-2 ${selected ? "bg-[var(--surface)] text-brand-500 shadow-sm" : "text-[var(--text-lo)] hover:text-[var(--text-hi)]"}`}
                     >
                       <span className="font-medium">{day.label}</span>
                       <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px]">
@@ -1251,7 +1251,7 @@ export function DailyLogPage({
               </div>
               <Link
                 href={weeklyCheckinHref}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 lg:w-auto"
               >
                 <Icon
                   icon="solar:check-circle-broken"

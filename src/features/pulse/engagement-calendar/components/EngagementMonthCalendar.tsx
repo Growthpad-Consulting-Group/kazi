@@ -332,7 +332,7 @@ export function EngagementMonthCalendar({
 
         <div className="grid xl:grid-cols-[minmax(0,1fr)_16rem]">
           <div className="min-w-0 p-3">
-            <div className="mb-2 flex flex-wrap gap-2 text-[11px] font-medium text-[var(--text-lo)]">
+            <div className="mb-2 hidden flex-wrap gap-2 text-[11px] font-medium text-[var(--text-lo)] sm:flex">
               {Object.entries(TYPE_STYLES).map(([type, tone]) => (
                 <span
                   key={type}
@@ -365,14 +365,21 @@ export function EngagementMonthCalendar({
                     type="button"
                     onClick={() => setSelectedDate(day)}
                     aria-label={`${formatDate(day, { weekday: "long", day: "numeric", month: "long" })}${dayItems.length ? `, ${dayItems.length} scheduled item${dayItems.length === 1 ? "" : "s"}` : ""}`}
-                    className={`group min-h-14 border-b border-r border-[var(--border)] p-1.5 text-left transition-colors sm:min-h-16 ${inMonth ? "bg-[var(--surface)]" : "bg-[var(--surface-2)]/50 text-[var(--text-lo)]"} ${isSelected ? "bg-brand-500/[0.04]" : "hover:bg-brand-500/[0.035]"}`}
+                    className={`group min-h-12 border-b border-r border-[var(--border)] p-1 text-left transition-colors sm:min-h-16 sm:p-1.5 ${inMonth ? "bg-[var(--surface)]" : "bg-[var(--surface-2)]/50 text-[var(--text-lo)]"} ${isSelected ? "bg-brand-500/[0.04]" : "hover:bg-brand-500/[0.035]"}`}
                   >
                     <span
                       className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${isToday ? "bg-brand-500 text-white" : isSelected ? "bg-brand-500/10 text-brand-500" : "text-[var(--text-lo)]"}`}
                     >
                       {day.getDate()}
                     </span>
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1 sm:hidden">
+                      {dayItems.length > 0 && (
+                        <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-brand-500/10 px-1 text-[9px] font-bold leading-4 text-brand-600">
+                          {dayItems.length}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 hidden flex-wrap gap-1 sm:flex">
                       {dayItems.slice(0, 4).map((item) => (
                         <span
                           key={`${item.type}-${item.id}`}

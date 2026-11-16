@@ -481,6 +481,109 @@ export default function StaffClientView({
           setSearch("");
           setFilters([]);
         }}
+        mobileCard={(person) => {
+          const avatarSrc = person.avatar_url ?? person.sig_photo_url ?? null;
+          const initials = person.name
+            .split(" ")
+            .map((name) => name[0])
+            .slice(0, 2)
+            .join("");
+          return (
+            <article
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/staff/${person.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(`/staff/${person.id}`);
+                }
+              }}
+              className="space-y-3 px-4 py-4 transition-colors active:bg-brand-500/5"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500/10">
+                  {avatarSrc ? (
+                    <Image
+                      src={avatarSrc}
+                      alt={person.name}
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs font-bold text-brand-500">
+                      {initials}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                      {person.name}
+                    </h2>
+                    <span
+                      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${ROLE_COLORS[person.role] ?? ROLE_COLORS.employee}`}
+                    >
+                      {person.role.replace("_", " ")}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
+                    {person.job_title ?? person.email}
+                  </p>
+                  {person.job_title && (
+                    <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
+                      {person.email}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-[var(--text-lo)]">
+                {[person.department, person.location, person.manager_name && `Reports to ${person.manager_name}`]
+                  .filter(Boolean)
+                  .join(" · ") || "No team details added"}
+              </p>
+              <div
+                className="flex items-center gap-2"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => router.push(`/staff/${person.id}`)}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)]"
+                >
+                  <Icon icon="solar:eye-broken" className="h-4 w-4" />
+                  View profile
+                </button>
+                {canScheduleOneOnOnes && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(`/pulse/one-on-ones?report=${person.id}`)
+                    }
+                    aria-label={`Plan a 1-on-1 with ${person.name}`}
+                    className="rounded-xl bg-green-500/10 p-2 text-green-600"
+                  >
+                    <Icon icon="solar:chat-line-broken" className="h-4 w-4" />
+                  </button>
+                )}
+                {canManageStaff && person.id !== currentUserId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemoveError("");
+                      setStaffToRemove(person);
+                    }}
+                    aria-label={`Remove ${person.name}`}
+                    className="rounded-xl bg-red-500/10 p-2 text-red-500"
+                  >
+                    <Icon icon="solar:trash-bin-trash-broken" className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </article>
+          );
+        }}
       />
       <SimpleModal
         open={!!staffToRemove}

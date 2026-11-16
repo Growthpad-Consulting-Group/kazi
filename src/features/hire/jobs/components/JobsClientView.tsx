@@ -3,6 +3,7 @@
 import { useState, useMemo, useTransition } from "react";
 import { publicJobUrl } from "@/lib/careers-url";
 import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { updateJob } from "../actions";
 import {
@@ -368,6 +369,34 @@ export default function JobsClientView({
     },
   ];
 
+  const pauseJob = (job: Job) => {
+    startTransition(async () => {
+      try {
+        await updateJob(job.id, { status: "paused" });
+        toast.success("Job paused and removed from public careers pages");
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Could not pause job",
+        );
+      }
+    });
+  };
+
+  const resumeJob = (job: Job) => {
+    startTransition(async () => {
+      try {
+        await updateJob(job.id, { status: "open" });
+        toast.success("Job resumed and is accepting applications");
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Could not resume job",
+        );
+      }
+    });
+  };
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -389,6 +418,95 @@ export default function JobsClientView({
         actions={readOnly ? [] : actions}
         selectable={!readOnly}
         onRowClick={(row) => router.push(`/hire/jobs/${row.id}`)}
+        mobileCard={(job) => (
+          <article
+            role="button"
+            tabIndex={0}
+            onClick={() => router.push(`/hire/jobs/${job.id}`)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                router.push(`/hire/jobs/${job.id}`);
+              }
+            }}
+            className="space-y-3 px-4 py-4 transition-colors active:bg-brand-500/5"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                  {job.title}
+                </h2>
+                <p className="mt-1 truncate text-xs text-[var(--text-lo)]">
+                  {[job.department, job.location].filter(Boolean).join(" · ") ||
+                    "No department or location"}
+                </p>
+              </div>
+              <StatusPill context="stage" value={job.status} />
+            </div>
+
+            <div className="flex items-center gap-4 text-xs text-[var(--text-lo)]">
+              <span className="inline-flex items-center gap-1.5">
+                <Icon icon="solar:users-group-rounded-broken" className="h-4 w-4" />
+                <strong className="font-semibold text-[var(--text-hi)]">
+                  {job.applicants}
+                </strong>
+                applicants
+              </span>
+              <span>
+                {job.closes_at
+                  ? `Closes ${new Date(job.closes_at).toLocaleDateString("en-KE", {
+                      day: "numeric",
+                      month: "short",
+                    })}`
+                  : "Open-ended"}
+              </span>
+            </div>
+
+            <div
+              className="flex items-center gap-2"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => router.push(`/hire/jobs/${job.id}`)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)] transition-colors hover:border-brand-500/50"
+              >
+                <Icon icon="solar:eye-broken" className="h-4 w-4" />
+                View role
+              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/hire/jobs/${job.id}/edit`)}
+                  aria-label={`Edit ${job.title}`}
+                  className="rounded-xl bg-brand-500/10 p-2 text-brand-500 transition-colors hover:bg-brand-500/20"
+                >
+                  <Icon icon="solar:pen-broken" className="h-4 w-4" />
+                </button>
+              )}
+              {!readOnly && job.status === "open" && (
+                <button
+                  type="button"
+                  onClick={() => pauseJob(job)}
+                  aria-label={`Pause ${job.title}`}
+                  className="rounded-xl bg-amber-500/15 p-2 text-amber-600 transition-colors hover:bg-amber-500/25"
+                >
+                  <Icon icon="solar:pause-circle-broken" className="h-4 w-4" />
+                </button>
+              )}
+              {!readOnly && job.status === "paused" && (
+                <button
+                  type="button"
+                  onClick={() => resumeJob(job)}
+                  aria-label={`Resume ${job.title}`}
+                  className="rounded-xl bg-green-500/10 p-2 text-green-600 transition-colors hover:bg-green-500/20"
+                >
+                  <Icon icon="solar:play-circle-broken" className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </article>
+        )}
         emptyMessage="No jobs match your filters."
         emptyIcon="solar:case-broken"
         icon="solar:case-minimalistic-broken"

@@ -73,7 +73,7 @@ export default function KaziHeader({
         mode={mode}
         className={`flex-1 min-w-0 rounded-2xl ${mode === "dark" ? "bg-gray-900/80" : "bg-white"}`}
       >
-        <div className="flex h-full items-center gap-2 px-2 py-1.5">
+      <div className="flex h-full items-center gap-1 px-2 py-1.5 md:gap-2">
           <button
             onClick={toggleSidebar}
             className="group p-2 rounded-full text-gray-500 dark:text-gray-100 shrink-0 transition-all active:scale-95 hover:bg-black/5 dark:hover:bg-white/10"
@@ -152,7 +152,7 @@ export default function KaziHeader({
                 </div>
               ) : (
                 (pageHeader.content || pageHeader.actions?.length) && (
-                  <div className="ml-auto flex items-center gap-2 shrink-0">
+                  <div className="ml-auto flex min-w-0 items-center gap-1.5 shrink-0 md:gap-2">
                     {pageHeader.content}
                     {pageHeader.actions?.map((action, i) => (
                       <button
@@ -160,7 +160,7 @@ export default function KaziHeader({
                         onClick={action.onClick}
                         disabled={action.disabled}
                         title={action.title}
-                        className={`flex h-7 items-center gap-1.5 rounded-xl px-3 text-xs font-medium transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+                        className={`flex h-7 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-medium transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 md:px-3 ${
                           action.variant === "primary" ||
                           (!pageHeader.content &&
                             pageHeader.actions?.length === 1)
@@ -173,7 +173,9 @@ export default function KaziHeader({
                         {action.icon && (
                           <Icon icon={action.icon} className="h-4 w-4" />
                         )}
-                        {action.label}
+                        <span className={action.icon ? "hidden md:inline" : ""}>
+                          {action.label}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -222,7 +224,7 @@ export default function KaziHeader({
             </TooltipIconButton>
             {isNotificationsOpen && (
               <div
-                className="absolute top-12 right-0 w-96 z-50"
+                className="fixed inset-x-2 top-[5.5rem] z-50 w-auto md:absolute md:inset-x-auto md:right-0 md:top-12 md:w-96"
                 onClick={(e) => e.stopPropagation()}
               >
                 <GlassPanel

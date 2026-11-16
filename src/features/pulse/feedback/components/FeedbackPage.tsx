@@ -104,7 +104,7 @@ export default async function FeedbackPage() {
         }
       />
       <div className="mx-auto max-w-7xl space-y-6">
-        <section className="grid grid-cols-3 gap-3">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <StatCard
             variant="inline"
             compact
@@ -112,7 +112,7 @@ export default async function FeedbackPage() {
             value={kudos.length}
             icon="solar:star-fall-broken"
             color="orange"
-            subtitle="On the wall"
+            subtitle="Wall posts"
           />
           <StatCard
             variant="inline"
@@ -121,7 +121,7 @@ export default async function FeedbackPage() {
             value={receivedByYou}
             icon="solar:heart-angle-broken"
             color="green"
-            subtitle="Recognised by others"
+            subtitle="From teammates"
           />
           <StatCard
             variant="inline"
@@ -130,7 +130,7 @@ export default async function FeedbackPage() {
             value={givenByYou}
             icon="solar:hand-heart-broken"
             color="blue"
-            subtitle="Your shout-outs"
+            subtitle="Your thanks"
           />
         </section>
 

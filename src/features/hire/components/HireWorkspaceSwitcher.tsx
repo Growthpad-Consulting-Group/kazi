@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import Select, {
   components,
+  type DropdownIndicatorProps,
   type OptionProps,
   type SingleValue,
   type SingleValueProps,
@@ -41,9 +42,26 @@ function WorkspaceOptionLabel(props: OptionProps<WorkspaceOption, false>) {
 
 function WorkspaceSingleValue(props: SingleValueProps<WorkspaceOption, false>) {
   return (
-    <components.SingleValue {...props}>
+    <components.SingleValue {...props} className="hidden sm:block">
       {props.data.label}
     </components.SingleValue>
+  );
+}
+
+function WorkspaceDropdownIndicator(
+  props: DropdownIndicatorProps<WorkspaceOption, false>,
+) {
+  return (
+    <components.DropdownIndicator {...props}>
+      <Icon
+        icon="solar:buildings-2-broken"
+        className="h-4 w-4 text-brand-500 sm:hidden"
+      />
+      <Icon
+        icon="solar:alt-arrow-down-broken"
+        className="hidden h-4 w-4 text-[var(--text-lo)] sm:block"
+      />
+    </components.DropdownIndicator>
   );
 }
 
@@ -116,14 +134,10 @@ export default function HireWorkspaceSwitcher({
     options.find((option) => option.value === activeSlug) ?? options[0] ?? null;
 
   return (
-    <div className="flex h-7 min-w-52 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-sm text-[var(--text-lo)] shadow-sm transition-colors hover:border-brand-500/50 sm:min-w-64">
-      <Icon
-        icon="solar:buildings-2-broken"
-        className="ml-1 h-4 w-4 shrink-0 text-brand-500"
-      />
+    <div className="flex h-8 w-10 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-lo)] shadow-sm transition-colors hover:border-brand-500/50 sm:min-w-64 sm:w-auto sm:px-2">
       <Select<WorkspaceOption, false>
         aria-label="Hire workspace"
-        className="min-w-0 flex-1"
+        className="min-w-0 w-full sm:flex-1"
         classNamePrefix="react-select"
         isDisabled={isPending}
         isSearchable
@@ -141,7 +155,7 @@ export default function HireWorkspaceSwitcher({
           control: (provided, state) => ({
             ...getSelectStyles<WorkspaceOption>(resolvedMode ?? "light")
               .control!(provided, state),
-            minHeight: "34px",
+            minHeight: "32px",
             border: 0,
             backgroundColor: "transparent",
           }),
@@ -149,7 +163,7 @@ export default function HireWorkspaceSwitcher({
         }}
         components={{
           IndicatorSeparator: null,
-          DropdownIndicator: components.DropdownIndicator,
+          DropdownIndicator: WorkspaceDropdownIndicator,
           Option: WorkspaceOptionLabel,
           SingleValue: WorkspaceSingleValue,
         }}

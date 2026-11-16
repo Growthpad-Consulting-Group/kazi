@@ -29,7 +29,7 @@ export default function Notifications({
     <div
       className={`rounded-xl p-4 ${isDark ? "text-white" : "text-[var(--text-hi)]"}`}
     >
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold uppercase tracking-wide">
           Notifications
         </h3>
@@ -66,7 +66,7 @@ export default function Notifications({
           No notifications to display.
         </p>
       ) : (
-        <div className="max-h-72 overflow-y-auto">
+        <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto md:max-h-72">
           <ul className="flex flex-col divide-y divide-[var(--border)]">
             {notifications.map((notification) => (
               <li

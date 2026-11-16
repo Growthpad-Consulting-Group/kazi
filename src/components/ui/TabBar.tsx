@@ -23,7 +23,10 @@ export default function TabBar({ tabs, paramName = "tab" }: TabBarProps) {
   const current = searchParams.get(paramName) ?? tabs[0]?.id;
 
   return (
-    <div className="mb-6 flex items-center gap-1 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5">
+    <div
+      className="mb-6 grid items-center gap-1 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 md:flex"
+      style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+    >
       {tabs.map((tab) => {
         const isActive = current === tab.id;
         const params = new URLSearchParams(searchParams.toString());
@@ -36,7 +39,7 @@ export default function TabBar({ tabs, paramName = "tab" }: TabBarProps) {
           <Link
             key={tab.id}
             href={href}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+            className={`flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-medium whitespace-nowrap transition-all sm:px-3 md:justify-start md:gap-2 md:px-4 md:text-sm ${
               isActive
                 ? "bg-brand-500 text-white shadow-sm"
                 : "text-[var(--text-lo)] hover:bg-[var(--surface-2)] hover:text-[var(--text-hi)]"

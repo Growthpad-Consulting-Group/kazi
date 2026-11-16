@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { compressImageFile } from "@/lib/compressImageFile";
@@ -89,10 +90,14 @@ export default function AvatarUpload({
         className={`relative shrink-0 ${dim.wrap} overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500/20 to-violet-500/10 ${isDragging ? "ring-2 ring-brand-500" : ""}`}
       >
         {value || previewUrl ? (
-          <img
-            src={value || previewUrl}
+          // next/image routes the photo through the server-side optimizer, the same path the
+          // header and sidebar use. Raw <img> tags to Google profile hosts often fail in the browser.
+          <Image
+            src={(value || previewUrl) as string}
             alt={name}
-            className="h-full w-full object-cover"
+            fill
+            sizes={size === "sm" ? "48px" : size === "md" ? "64px" : "80px"}
+            className="object-cover"
           />
         ) : (
           <span

@@ -637,6 +637,88 @@ export default function CandidatesClientView({
           setSearch("");
           setFilters([]);
         }}
+        mobileCard={(candidate) => {
+          const hasCv = Boolean(
+            candidate.cv_url || candidate.cv_text || candidate.cv_parsed,
+          );
+          return (
+            <article
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/hire/candidates/${candidate.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(`/hire/candidates/${candidate.id}`);
+                }
+              }}
+              className="space-y-3 px-4 py-4 transition-colors active:bg-brand-500/5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                    {candidate.full_name}
+                  </h2>
+                  <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
+                    {candidate.email}
+                  </p>
+                </div>
+                <StatusPill context="stage" value={candidate.stage} />
+              </div>
+              <p className="truncate text-xs font-medium text-[var(--text-lo)]">
+                {candidate.jobs?.title ?? "Role unavailable"}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--text-lo)]">
+                <span className="inline-flex items-center gap-1.5">
+                  <Icon icon="solar:cpu-bolt-broken" className="h-4 w-4" />
+                  {candidate.ai_score !== null
+                    ? `AI score ${candidate.ai_score}`
+                    : hasCv
+                      ? "Queued for AI"
+                      : "CV needed"}
+                </span>
+                {candidate.shortlisted && (
+                  <span className="font-semibold text-green-600">Shortlisted</span>
+                )}
+                <span>
+                  Applied {new Date(candidate.applied_at).toLocaleDateString("en-KE", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              </div>
+              <div
+                className="flex items-center gap-2"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => router.push(`/hire/candidates/${candidate.id}`)}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)]"
+                >
+                  <Icon icon="solar:eye-broken" className="h-4 w-4" />
+                  View candidate
+                </button>
+                {!readOnly && (
+                  <CandidateStageSelect
+                    candidateId={candidate.id}
+                    stage={candidate.stage}
+                  />
+                )}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTargets([candidate])}
+                    aria-label={`Delete ${candidate.full_name}`}
+                    className="rounded-xl bg-red-500/10 p-2 text-red-500"
+                  >
+                    <Icon icon="solar:trash-bin-trash-broken" className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </article>
+          );
+        }}
       />
     </div>
   );

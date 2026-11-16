@@ -95,6 +95,8 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   storageKey?: string;
   /** Shows the Columns menu for hiding columns. Defaults to on. */
   enableColumnToggle?: boolean;
+  /** Optional phone-first rendering while retaining the shared toolbar and pagination. */
+  mobileCard?: (row: T) => ReactNode;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -134,6 +136,7 @@ export function GenericTable<T extends Record<string, unknown>>({
   allowedDateRanges,
   storageKey,
   enableColumnToggle = true,
+  mobileCard,
 }: GenericTableProps<T>) {
   const tableMaxHeight = useMemo(() => {
     if (propTableMaxHeight) return propTableMaxHeight;
@@ -525,12 +528,14 @@ export function GenericTable<T extends Record<string, unknown>>({
               <div className="flex items-center gap-1 shrink-0">
                 {rightContent}
                 {enableColumnToggle && (
-                  <ColumnVisibilityMenu
-                    columns={orderedColumns}
-                    hidden={hiddenColumns}
-                    onToggle={toggleColumn}
-                    onReorder={reorderColumns}
-                  />
+                  <div className={mobileCard ? "hidden md:block" : undefined}>
+                    <ColumnVisibilityMenu
+                      columns={orderedColumns}
+                      hidden={hiddenColumns}
+                      onToggle={toggleColumn}
+                      onReorder={reorderColumns}
+                    />
+                  </div>
                 )}
                 {enableRefresh && (
                   <TooltipIconButton
@@ -552,7 +557,9 @@ export function GenericTable<T extends Record<string, unknown>>({
                   >
                     <div className="flex items-center gap-1.5 px-1 text-xs font-medium">
                       <Icon icon="solar:export-broken" className="h-4 w-4" />
-                      Export
+                      <span className={mobileCard ? "hidden md:inline" : ""}>
+                        Export
+                      </span>
                     </div>
                   </TooltipIconButton>
                 )}
@@ -566,7 +573,9 @@ export function GenericTable<T extends Record<string, unknown>>({
                   >
                     <div className="flex items-center gap-1.5 px-1 text-xs font-medium">
                       <Icon icon="solar:import-broken" className="h-4 w-4" />
-                      Import
+                      <span className={mobileCard ? "hidden md:inline" : ""}>
+                        Import
+                      </span>
                     </div>
                   </TooltipIconButton>
                 )}
@@ -583,7 +592,9 @@ export function GenericTable<T extends Record<string, unknown>>({
                         icon="solar:add-circle-broken"
                         className="h-4 w-4"
                       />
-                      {addNewLabel}
+                      <span className={mobileCard ? "hidden md:inline" : ""}>
+                        {addNewLabel}
+                      </span>
                     </div>
                   </TooltipIconButton>
                 )}
@@ -628,12 +639,32 @@ export function GenericTable<T extends Record<string, unknown>>({
         </div>
       )}
 
+      {mobileCard && (
+        <div className="divide-y divide-[var(--border)] md:hidden">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="space-y-3 px-4 py-4">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-9 w-full" />
+              </div>
+            ))
+          ) : paginated.length === 0 ? (
+            <EmptyState icon={emptyIcon} title={emptyMessage} className="py-12" />
+          ) : (
+            paginated.map((row, index) => (
+              <div key={rowId(row, page * pageSize + index)}>{mobileCard(row)}</div>
+            ))
+          )}
+        </div>
+      )}
+
       {/* ── Table ────────────────────────────────────────────────────────── */}
       <div
         className={
           tableMaxHeight
-            ? "w-full overflow-auto scrollbar-thin scrollbar-thumb-[var(--border)] scrollbar-track-transparent"
-            : "w-full overflow-x-auto overflow-y-visible"
+            ? `${mobileCard ? "hidden md:block " : ""}w-full overflow-auto scrollbar-thin scrollbar-thumb-[var(--border)] scrollbar-track-transparent`
+            : `${mobileCard ? "hidden md:block " : ""}w-full overflow-x-auto overflow-y-visible`
         }
         style={tableMaxHeight ? { maxHeight: tableMaxHeight } : undefined}
       >

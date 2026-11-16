@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { MAX_AUTOMATIC_SYNC_ATTEMPTS } from "@/features/signatures/lib/syncLimits";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -419,6 +420,96 @@ export default function StaffAssignmentsClient({
             searchPlaceholder="Search staff, email, role, department or template…"
           />
         }
+        mobileCard={(person) => (
+          <article
+            role="button"
+            tabIndex={0}
+            onClick={() => router.push("/signatures/staff/" + person.id)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                router.push("/signatures/staff/" + person.id);
+              }
+            }}
+            className="space-y-3 px-4 py-4 transition-colors active:bg-brand-500/5"
+          >
+            <div className="flex items-start gap-3">
+              <Avatar person={person} />
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-sm font-semibold text-[var(--text-hi)]">
+                  {person.full_name}
+                </h2>
+                <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
+                  {person.role_title ?? person.email}
+                </p>
+                {person.role_title && (
+                  <p className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
+                    {person.email}
+                  </p>
+                )}
+              </div>
+              <StatusPill
+                status={person.deliveryStatus}
+                tone={
+                  person.isSynced
+                    ? "green"
+                    : person.deliveryStatus === "failed" ||
+                        person.deliveryStatus === "needs attention"
+                      ? "red"
+                      : person.canSync
+                        ? "amber"
+                        : "slate"
+                }
+              />
+            </div>
+            <p className="text-xs text-[var(--text-lo)]">
+              {[person.department, `Template: ${person.templateName}`]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <div
+              className="flex items-center gap-2"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => router.push("/signatures/staff/" + person.id)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)]"
+              >
+                <Icon icon="solar:user-id-broken" className="h-4 w-4" />
+                Open profile
+              </button>
+              <button
+                type="button"
+                onClick={() => openAssignment(person)}
+                aria-label={`Assign a template to ${person.full_name}`}
+                className="rounded-xl bg-amber-500/15 p-2 text-amber-600"
+              >
+                <Icon icon="solar:document-add-broken" className="h-4 w-4" />
+              </button>
+              {person.canSync && (
+                <button
+                  type="button"
+                  disabled={syncingStaffId === person.id}
+                  onClick={() => syncGmail(person)}
+                  aria-label={`Sync ${person.full_name}'s signature to Gmail`}
+                  className="rounded-xl bg-green-500/10 p-2 text-green-600 disabled:opacity-50"
+                >
+                  <Icon
+                    icon={
+                      syncingStaffId === person.id
+                        ? "solar:refresh-circle-broken"
+                        : person.isSynced
+                          ? "solar:check-circle-broken"
+                          : "solar:letter-broken"
+                    }
+                    className={`h-4 w-4 ${syncingStaffId === person.id ? "animate-spin" : ""}`}
+                  />
+                </button>
+              )}
+            </div>
+          </article>
+        )}
       />
       <SimpleModal
         open={!!selected}
