@@ -13,6 +13,7 @@ import { NotificationsProvider } from "@/shared/contexts/NotificationsContext";
 import { UnsavedChangesProvider } from "@/shared/contexts/UnsavedChangesContext";
 import NavigationGuard from "./NavigationGuard";
 import UnsavedNavigationModal from "./UnsavedNavigationModal";
+import PushPermissionBanner from "@/components/ui/PushPermissionBanner";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
@@ -36,7 +37,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
                     toggleSidebar={toggleSidebar}
                   />
                   <main className="flex-1 transition-all duration-300">
-                    <div className="p-4 md:p-8">{children}</div>
+                    <div className="p-4 md:p-8">
+                      <PushPermissionBanner />
+                      {children}
+                    </div>
                     <AppFooter />
                   </main>
                 </div>

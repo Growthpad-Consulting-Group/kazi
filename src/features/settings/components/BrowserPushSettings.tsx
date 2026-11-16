@@ -2,18 +2,9 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { urlBase64ToUint8Array } from "@/lib/browser-push";
 
 type Status = "checking" | "unsupported" | "blocked" | "off" | "on";
-
-/** Converts the VAPID public key from base64url to the bytes the browser expects. */
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const normalised = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(normalised);
-  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  return bytes;
-}
 
 /** Opt-in control for browser push notifications on this device. */
 export default function BrowserPushSettings() {
