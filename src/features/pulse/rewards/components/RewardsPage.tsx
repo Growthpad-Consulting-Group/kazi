@@ -284,7 +284,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
           <>
             {/* Balance */}
             <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
+              <StatCard variant="inline"
                 title="Your points"
                 value={balance}
                 icon="solar:star-broken"
@@ -296,7 +296,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                     : "Complete Side Quests to start earning"
                 }
               />
-              <StatCard
+              <StatCard variant="inline"
                 title="Leaderboard points"
                 value={xpWallet?.quarterly_balance ?? 0}
                 icon="solar:medal-ribbon-broken"
@@ -306,7 +306,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
               />
               {canManage && (
                 <>
-                  <StatCard
+                  <StatCard variant="inline"
                     title="Points awarded (7 days)"
                     value={weekPoints.total}
                     icon="solar:cup-star-broken"
@@ -314,7 +314,7 @@ export default async function RewardsPage({ tab }: { tab?: string }) {
                     compact
                     subtitle="All automations and grants"
                   />
-                  <StatCard
+                  <StatCard variant="inline"
                     title="Awards (7 days)"
                     value={weekPoints.awards}
                     icon="solar:medal-ribbon-broken"

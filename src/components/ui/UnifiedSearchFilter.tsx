@@ -294,7 +294,7 @@ export default function UnifiedSearchFilter({
             className={`overflow-hidden rounded-xl ${dark ? "bg-gray-900/70" : "bg-white/90"} shadow-xl backdrop-blur-sm`}
           >
             {panel === "search" ? (
-              <div className="flex max-h-80 flex-col overflow-y-auto p-2 gap-0.5">
+              <div className="flex max-h-[min(32rem,calc(100dvh-10rem))] flex-col gap-0.5 overflow-y-auto p-2">
                 {input.trim() === "" ? (
                   filterCategories.map((cat) => (
                     <button

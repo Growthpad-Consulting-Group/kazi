@@ -185,7 +185,7 @@ export default async function OneOnOnesPage({
           </section>
         )}
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             title="Upcoming"
             value={upcoming.length}
             icon="solar:calendar-broken"
@@ -197,7 +197,7 @@ export default async function OneOnOnesPage({
                 : "Nothing scheduled"
             }
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Open actions"
             value={openActions}
             icon="solar:checklist-minimalistic-broken"
@@ -205,7 +205,7 @@ export default async function OneOnOnesPage({
             compact
             subtitle={openActions ? "To follow through" : "All caught up"}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Completed actions"
             value={completedActions}
             icon="solar:check-circle-broken"
@@ -213,7 +213,7 @@ export default async function OneOnOnesPage({
             compact
             subtitle={`${actionCompletion}% action completion`}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Unscheduled"
             value={unscheduled.length}
             icon="solar:calendar-mark-broken"

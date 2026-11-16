@@ -99,7 +99,7 @@ export default async function DepartmentPage({
           icon="solar:users-group-two-rounded-broken"
           color="orange"
           compact
-          variant="flat"
+          variant="inline"
         />
         <StatCard
           title="Open roles"
@@ -107,7 +107,7 @@ export default async function DepartmentPage({
           icon="solar:case-round-broken"
           color="blue"
           compact
-          variant="flat"
+          variant="inline"
         />
         <StatCard
           title="In pipeline"
@@ -115,7 +115,7 @@ export default async function DepartmentPage({
           icon="solar:sort-horizontal-broken"
           color="amber"
           compact
-          variant="flat"
+          variant="inline"
         />
         <StatCard
           title="Goals at risk"
@@ -123,7 +123,7 @@ export default async function DepartmentPage({
           icon="solar:danger-triangle-broken"
           color={goalsAtRisk ? "red" : "green"}
           compact
-          variant="flat"
+          variant="inline"
         />
       </section>
       <div className="grid gap-5 xl:grid-cols-2">

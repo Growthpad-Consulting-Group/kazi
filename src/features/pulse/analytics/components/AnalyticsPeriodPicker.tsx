@@ -33,7 +33,11 @@ export function AnalyticsPeriodPicker({ range }: { range: ResolvedRange }) {
         isPending ? "opacity-70 transition-opacity" : "transition-opacity"
       }
     >
-      <DateRangePicker value={toPickerValue(range)} onChange={handleChange} />
+      <DateRangePicker
+        value={toPickerValue(range)}
+        onChange={handleChange}
+        className="[&_button]:h-8 [&_button]:py-0"
+      />
     </div>
   );
 }

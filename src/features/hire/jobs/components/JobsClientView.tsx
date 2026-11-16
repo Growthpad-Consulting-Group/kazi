@@ -211,7 +211,7 @@ export default function JobsClientView({
         label: "Scheduled",
         value: scheduled,
         icon: "solar:calendar-mark-broken",
-        color: "violet",
+        color: "blue",
         filter: [
           {
             category: "availability",
@@ -372,7 +372,7 @@ export default function JobsClientView({
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {jobStats.map((stat) => (
-          <StatCard
+          <StatCard variant="inline"
             key={stat.label}
             title={stat.label}
             value={stat.value}

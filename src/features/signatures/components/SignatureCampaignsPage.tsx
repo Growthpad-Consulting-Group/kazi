@@ -149,7 +149,7 @@ export default async function SignatureCampaignsPage() {
           value={live}
           icon="solar:bolt-broken"
           color="orange"
-          variant="flat"
+          variant="inline"
           compact
         />
         <StatCard
@@ -157,7 +157,7 @@ export default async function SignatureCampaignsPage() {
           value={campaigns.length}
           icon="solar:flag-2-broken"
           color="blue"
-          variant="flat"
+          variant="inline"
           compact
         />
         <StatCard
@@ -165,7 +165,7 @@ export default async function SignatureCampaignsPage() {
           value={impressions.toLocaleString()}
           icon="solar:eye-broken"
           color="green"
-          variant="flat"
+          variant="inline"
           compact
         />
         <StatCard
@@ -173,7 +173,7 @@ export default async function SignatureCampaignsPage() {
           value={`${ctr.toFixed(1)}%`}
           icon="solar:cursor-square-broken"
           color="amber"
-          variant="flat"
+          variant="inline"
           compact
         />
       </section>

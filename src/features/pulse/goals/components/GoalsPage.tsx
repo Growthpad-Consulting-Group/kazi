@@ -132,7 +132,7 @@ export default async function GoalsPage() {
         {/* Summary strip */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Active goals"
             value={active.length}
@@ -141,7 +141,7 @@ export default async function GoalsPage() {
             color="orange"
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Avg. progress"
             value={`${avgProg}%`}
@@ -150,7 +150,7 @@ export default async function GoalsPage() {
             color="blue"
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Needs attention"
             value={atRisk.length}
@@ -159,7 +159,7 @@ export default async function GoalsPage() {
             color={atRisk.length ? "amber" : "green"}
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Completed"
             value={completed.length}

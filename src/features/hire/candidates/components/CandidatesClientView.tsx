@@ -534,7 +534,7 @@ export default function CandidatesClientView({
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map((stat) => (
-          <StatCard
+          <StatCard variant="inline"
             key={stat.label}
             title={stat.label}
             value={stat.value}

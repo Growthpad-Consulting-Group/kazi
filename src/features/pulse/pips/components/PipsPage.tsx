@@ -98,7 +98,7 @@ export default async function PipsPage() {
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             title="Active plans"
             value={active.length}
             icon="solar:heart-pulse-broken"
@@ -106,7 +106,7 @@ export default async function PipsPage() {
             compact
             subtitle="Support in progress"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Review due"
             value={dueForReview}
             icon="solar:calendar-mark-broken"
@@ -114,7 +114,7 @@ export default async function PipsPage() {
             compact
             subtitle={dueForReview ? "Needs a check-in" : "Nothing due now"}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Open actions"
             value={actionsOpen}
             icon="solar:checklist-minimalistic-broken"
@@ -122,7 +122,7 @@ export default async function PipsPage() {
             compact
             subtitle="Across active plans"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Resolved"
             value={resolved.length}
             icon="solar:check-circle-broken"

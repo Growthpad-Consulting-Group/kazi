@@ -483,7 +483,7 @@ export default async function EmployeeProfilePage({
               value={checkin ? checkin.status : "None"}
               icon="solar:clipboard-check-broken"
               color={checkin?.status === "reviewed" ? "green" : "orange"}
-              variant="flat"
+              variant="inline"
               compact
               href={`/pulse/checkins?user=${user.id}`}
             />
@@ -492,7 +492,7 @@ export default async function EmployeeProfilePage({
               value={goals.filter((goal) => goal.status !== "completed").length}
               icon="solar:flag-broken"
               color="blue"
-              variant="flat"
+              variant="inline"
               compact
               href={`/pulse/checkins?tab=goals&user=${user.id}`}
             />
@@ -508,7 +508,7 @@ export default async function EmployeeProfilePage({
               }
               icon="solar:chat-round-dots-broken"
               color="amber"
-              variant="flat"
+              variant="inline"
               compact
               href={`/pulse/one-on-ones?report=${user.id}`}
             />
@@ -517,7 +517,7 @@ export default async function EmployeeProfilePage({
               value={signature ? "Ready" : "Not set"}
               icon="solar:document-text-broken"
               color={signature ? "green" : "slate"}
-              variant="flat"
+              variant="inline"
               compact
               href={
                 signature

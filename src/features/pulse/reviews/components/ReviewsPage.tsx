@@ -98,7 +98,7 @@ export default async function ReviewsPage() {
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             title="Active cycles"
             value={active.length}
             icon="solar:refresh-circle-broken"
@@ -106,7 +106,7 @@ export default async function ReviewsPage() {
             compact
             subtitle={active.length ? "Currently in motion" : "Nothing active"}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Awaiting you"
             value={pendingCount}
             icon="solar:pen-new-square-broken"
@@ -114,7 +114,7 @@ export default async function ReviewsPage() {
             compact
             subtitle={pendingCount ? "Your input is needed" : "All caught up"}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Completed"
             value={completed.length}
             icon="solar:check-circle-broken"
@@ -122,7 +122,7 @@ export default async function ReviewsPage() {
             compact
             subtitle={`${cycles.length ? Math.round((completed.length / cycles.length) * 100) : 0}% of all cycles`}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Next cycle"
             value={
               nextCycle

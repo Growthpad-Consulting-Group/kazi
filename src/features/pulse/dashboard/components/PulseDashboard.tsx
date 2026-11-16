@@ -440,7 +440,7 @@ export default async function PulseDashboard() {
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {isManager && team ? (
-            <StatCard
+            <StatCard variant="inline"
               title="Team check-ins"
               value={`${team.submitted}/${team.total}`}
               icon="solar:users-group-two-rounded-broken"
@@ -454,7 +454,7 @@ export default async function PulseDashboard() {
               href="/pulse/checkins?tab=team"
             />
           ) : (
-            <StatCard
+            <StatCard variant="inline"
               title="Check-in"
               value={checkin ? checkinStatus.label : "Due"}
               icon="solar:clipboard-check-broken"
@@ -474,7 +474,7 @@ export default async function PulseDashboard() {
             />
           )}
           {isManager ? (
-            <StatCard
+            <StatCard variant="inline"
               title="Needs attention"
               value={attention.length}
               icon="solar:bell-bing-broken"
@@ -488,7 +488,7 @@ export default async function PulseDashboard() {
               href="/pulse/checkins?tab=team"
             />
           ) : (
-            <StatCard
+            <StatCard variant="inline"
               title="Active goals"
               value={openGoals.length}
               icon="solar:target-broken"
@@ -502,7 +502,7 @@ export default async function PulseDashboard() {
               href="/pulse/goals"
             />
           )}
-          <StatCard
+          <StatCard variant="inline"
             title="Upcoming 1-on-1s"
             value={upcomingOneOnOnes.length}
             icon="solar:chat-round-dots-broken"
@@ -516,7 +516,7 @@ export default async function PulseDashboard() {
             href="/pulse/one-on-ones"
           />
           {isManager ? (
-            <StatCard
+            <StatCard variant="inline"
               title="Active goals"
               value={openGoals.length}
               icon="solar:target-broken"
@@ -530,7 +530,7 @@ export default async function PulseDashboard() {
               href="/pulse/goals"
             />
           ) : (
-            <StatCard
+            <StatCard variant="inline"
               title="Recognition"
               value={feedback.length}
               icon="solar:star-fall-broken"

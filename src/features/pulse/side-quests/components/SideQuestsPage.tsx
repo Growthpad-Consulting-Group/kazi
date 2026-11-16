@@ -219,7 +219,7 @@ export default async function SideQuestsPage() {
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             compact
             title="Live now"
             value={live.length}
@@ -227,7 +227,7 @@ export default async function SideQuestsPage() {
             color={live.length ? "orange" : "slate"}
             subtitle={live.length ? "Ready to join" : "Nothing running"}
           />
-          <StatCard
+          <StatCard variant="inline"
             compact
             title="Your completions"
             value={completedByYou.size}
@@ -235,7 +235,7 @@ export default async function SideQuestsPage() {
             color="green"
             subtitle="Across all quests"
           />
-          <StatCard
+          <StatCard variant="inline"
             compact
             title="Team completions"
             value={(completions ?? []).length}
@@ -243,7 +243,7 @@ export default async function SideQuestsPage() {
             color="blue"
             subtitle="All challenges"
           />
-          <StatCard
+          <StatCard variant="inline"
             compact
             title="Total quests"
             value={visibleQuests.length}

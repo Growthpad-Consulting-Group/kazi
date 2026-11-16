@@ -347,7 +347,7 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Staff"
             value={orgStats.staff}
@@ -355,7 +355,7 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
             color="orange"
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Departments"
             value={orgStats.departments}
@@ -363,7 +363,7 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
             color="blue"
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Open jobs"
             value={orgStats.jobs}
@@ -371,7 +371,7 @@ export default function CompanySettingsClient({ initial, orgStats }: Props) {
             color="green"
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Candidates"
             value={orgStats.candidates}

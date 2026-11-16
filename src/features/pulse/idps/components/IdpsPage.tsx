@@ -87,7 +87,7 @@ export default async function IdpsPage() {
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             title="Active plans"
             value={active.length}
             icon="solar:book-broken"
@@ -95,7 +95,7 @@ export default async function IdpsPage() {
             compact
             subtitle="Growth in motion"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Open actions"
             value={openActions}
             icon="solar:checklist-minimalistic-broken"
@@ -105,7 +105,7 @@ export default async function IdpsPage() {
               openActions ? "Next steps to take" : "All actions complete"
             }
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Completed"
             value={complete.length}
             icon="solar:check-circle-broken"
@@ -113,7 +113,7 @@ export default async function IdpsPage() {
             compact
             subtitle={`${plans.length ? Math.round((complete.length / plans.length) * 100) : 0}% of all plans`}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Past target"
             value={overdue}
             icon="solar:calendar-mark-broken"

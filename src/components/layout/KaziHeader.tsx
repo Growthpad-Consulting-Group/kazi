@@ -160,18 +160,18 @@ export default function KaziHeader({
                         onClick={action.onClick}
                         disabled={action.disabled}
                         title={action.title}
-                        className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+                        className={`flex h-7 items-center gap-1.5 rounded-xl px-3 text-xs font-medium transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
                           action.variant === "primary" ||
                           (!pageHeader.content &&
                             pageHeader.actions?.length === 1)
                             ? "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
                             : mode === "dark"
                               ? "border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
-                              : "border border-[var(--border)] bg-[var(--surface)] text-gray-700 hover:bg-[var(--surface-2)]"
+                              : "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-hi)] hover:bg-[var(--surface-2)]"
                         }`}
                       >
                         {action.icon && (
-                          <Icon icon={action.icon} className="h-3.5 w-3.5" />
+                          <Icon icon={action.icon} className="h-4 w-4" />
                         )}
                         {action.label}
                       </button>

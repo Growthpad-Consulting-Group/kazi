@@ -70,7 +70,7 @@ export default async function MyImpactPage() {
 
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             title="Goals completed"
             value={goalsCompleted.length}
             icon="solar:target-broken"
@@ -79,7 +79,7 @@ export default async function MyImpactPage() {
             subtitle={`${openGoals.length} still active`}
             href="/pulse/goals"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Recognition"
             value={data.recognitionTotal}
             icon="solar:star-fall-broken"
@@ -88,7 +88,7 @@ export default async function MyImpactPage() {
             subtitle="Last 6 months"
             href="/pulse/feedback"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Side Quests"
             value={data.quests.length}
             icon="solar:flag-broken"
@@ -97,7 +97,7 @@ export default async function MyImpactPage() {
             subtitle="Approved completions"
             href="/pulse/side-quests"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Achievements"
             value={data.achievements.length}
             icon="solar:medal-ribbon-broken"

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { getServerSession } from "next-auth";
 import SetPageHeader from "@/components/ui/SetPageHeader";
@@ -147,33 +146,14 @@ export default async function SignaturesOverview() {
                 )}
               </div>
               <div className="space-y-5 p-5">
-                <div className="flex items-start gap-4">
-                  {profile.photo_url ? (
-                    <Image
-                      src={profile.photo_url}
-                      alt=""
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 shrink-0 rounded-xl object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-sm font-bold text-brand-500">
-                      {profile.full_name
-                        .split(" ")
-                        .map((part) => part[0])
-                        .slice(0, 2)
-                        .join("")}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-[var(--text-hi)]">
-                      {profile.full_name}
-                    </p>
-                    <RoleTitleEditor
-                      initial={profile.role_title}
-                      phone={profile.phone}
-                    />
-                  </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-[var(--text-hi)]">
+                    {profile.full_name}
+                  </p>
+                  <RoleTitleEditor
+                    initial={profile.role_title}
+                    phone={profile.phone}
+                  />
                 </div>
                 {template ? (
                   <div className="overflow-hidden rounded-xl border border-[var(--border)]">
@@ -291,7 +271,7 @@ export default async function SignaturesOverview() {
           value={staff.count ?? 0}
           icon="solar:users-group-rounded-broken"
           color="orange"
-          variant="flat"
+          variant="inline"
           compact
           href="/signatures/staff"
         />
@@ -300,7 +280,7 @@ export default async function SignaturesOverview() {
           value={templates.count ?? 0}
           icon="solar:document-text-broken"
           color="blue"
-          variant="flat"
+          variant="inline"
           compact
           href="/signatures/templates"
         />
@@ -309,7 +289,7 @@ export default async function SignaturesOverview() {
           value={deployed}
           icon="solar:rocket-2-broken"
           color="green"
-          variant="flat"
+          variant="inline"
           compact
           href="/signatures/staff?delivery=synced"
         />
@@ -318,7 +298,7 @@ export default async function SignaturesOverview() {
           value={needsAttention}
           icon="solar:danger-triangle-broken"
           color={needsAttention ? "amber" : "slate"}
-          variant="flat"
+          variant="inline"
           compact
           href="/signatures/staff?delivery=failed"
         />

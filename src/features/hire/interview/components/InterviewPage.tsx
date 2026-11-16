@@ -155,7 +155,7 @@ export default async function InterviewPage({
         </div>
       </section>
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        <StatCard
+        <StatCard variant="inline"
           title="Rubric criteria"
           value={candidate.jobs?.scoring_rubric.length ?? 0}
           icon="solar:clipboard-check-broken"
@@ -163,7 +163,7 @@ export default async function InterviewPage({
           compact
           subtitle="Role evaluation areas"
         />
-        <StatCard
+        <StatCard variant="inline"
           title="AI CV screen"
           value={
             candidate.ai_score === null
@@ -185,7 +185,7 @@ export default async function InterviewPage({
               : "CV screening only"
           }
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Pipeline stage"
           value={candidate.stage.replaceAll("_", " ")}
           icon="solar:sort-horizontal-broken"
@@ -193,7 +193,7 @@ export default async function InterviewPage({
           compact
           subtitle="Current hiring step"
         />
-        <StatCard
+        <StatCard variant="inline"
           title="CV status"
           value={hasCv ? "Ready" : "Missing"}
           icon="solar:document-text-broken"
@@ -201,7 +201,7 @@ export default async function InterviewPage({
           compact
           subtitle={hasCv ? "Available to review" : "No CV attached"}
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Your scorecard"
           value={isSubmitted ? "Complete" : scorecard ? "Draft" : "Not started"}
           icon={

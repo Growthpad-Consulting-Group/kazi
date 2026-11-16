@@ -127,7 +127,7 @@ export default async function VoiceOutPage() {
         {canManage ? (
           <>
             <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <StatCard
+              <StatCard variant="inline"
                 title="Open reports"
                 value={open}
                 icon="solar:chat-round-dots-broken"
@@ -135,7 +135,7 @@ export default async function VoiceOutPage() {
                 compact
                 subtitle="Need a response"
               />
-              <StatCard
+              <StatCard variant="inline"
                 title="Priority review"
                 value={urgent}
                 icon="solar:danger-triangle-broken"
@@ -143,7 +143,7 @@ export default async function VoiceOutPage() {
                 compact
                 subtitle="High or urgent"
               />
-              <StatCard
+              <StatCard variant="inline"
                 title="Resolved"
                 value={
                   reports.filter((report) => report.status === "resolved")
@@ -154,7 +154,7 @@ export default async function VoiceOutPage() {
                 compact
                 subtitle="In this queue"
               />
-              <StatCard
+              <StatCard variant="inline"
                 title="Unassigned"
                 value={
                   reports.filter(

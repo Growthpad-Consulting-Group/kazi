@@ -325,7 +325,7 @@ export default async function LeadershipDashboard() {
       />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
+        <StatCard variant="inline"
           title="Check-in rate"
           value={`${completionRate}%`}
           icon="solar:checklist-minimalistic-broken"
@@ -339,7 +339,7 @@ export default async function LeadershipDashboard() {
           compact
           subtitle="Submitted this week"
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Average mood"
           value={avgMood ? `${avgMood}/5` : "—"}
           icon="solar:emoji-funny-circle-broken"
@@ -353,7 +353,7 @@ export default async function LeadershipDashboard() {
           compact
           subtitle="From this week’s check-ins"
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Goal progress"
           value={`${avgProgress}%`}
           icon="solar:target-broken"
@@ -363,7 +363,7 @@ export default async function LeadershipDashboard() {
           compact
           subtitle={`${totalGoals} goals tracked`}
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Attention signals"
           value={flightRisks.length}
           icon="solar:danger-triangle-broken"

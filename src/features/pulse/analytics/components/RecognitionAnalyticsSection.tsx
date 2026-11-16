@@ -234,7 +234,7 @@ export default async function RecognitionAnalyticsSection({
     <div className="space-y-5">
       {/* Stat cards */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
+        <StatCard variant="inline"
           title="Recognitions sent"
           value={totalRecognitions}
           icon="solar:heart-broken"
@@ -246,7 +246,7 @@ export default async function RecognitionAnalyticsSection({
               : "All time"
           }
         />
-        <StatCard
+        <StatCard variant="inline"
           title="People recognised"
           value={uniqueRecipients}
           icon="solar:users-group-broken"
@@ -254,7 +254,7 @@ export default async function RecognitionAnalyticsSection({
           compact
           subtitle="Unique recipients"
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Cross-team reach"
           value={crossTeamReach}
           icon="solar:buildings-broken"
@@ -262,7 +262,7 @@ export default async function RecognitionAnalyticsSection({
           compact
           subtitle="Distinct departments"
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Active values"
           value={valueDistribution.filter((v) => v.count > 0).length}
           icon="solar:medal-ribbon-broken"

@@ -231,7 +231,7 @@ export default async function ReportingPage({
         trailingIsFilter
       />
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatCard
+        <StatCard variant="inline"
           title="Active pipeline"
           value={report.activeCandidates}
           icon="solar:users-group-two-rounded-broken"
@@ -239,7 +239,7 @@ export default async function ReportingPage({
           compact
           subtitle={`${report.awaitingReview} awaiting review`}
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Interviews"
           value={report.interviews}
           icon="solar:calendar-broken"
@@ -247,7 +247,7 @@ export default async function ReportingPage({
           compact
           subtitle={`${report.offers} offer${report.offers === 1 ? "" : "s"} in play`}
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Screening quality"
           value={report.avgScore === null ? "—" : `${report.avgScore}/100`}
           icon="solar:magic-stick-3-broken"
@@ -259,7 +259,7 @@ export default async function ReportingPage({
               : `${shortlistRate}% shortlist rate`
           }
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Pipeline health"
           value={
             report.avgDaysInPipeline === null

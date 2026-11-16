@@ -352,7 +352,7 @@ export default async function ReviewCyclePage({
         </section>
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             title="Assigned"
             value={reviews.length}
             icon="solar:clipboard-list-broken"
@@ -360,7 +360,7 @@ export default async function ReviewCyclePage({
             compact
             subtitle="Review requests"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Awaiting you"
             value={myReviews.length}
             icon="solar:pen-new-square-broken"
@@ -370,7 +370,7 @@ export default async function ReviewCyclePage({
               myReviews.length ? "Ready for your input" : "You are caught up"
             }
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Submitted"
             value={submitted.length}
             icon="solar:check-circle-broken"
@@ -378,7 +378,7 @@ export default async function ReviewCyclePage({
             compact
             subtitle={`${completion}% complete`}
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Cycle closes"
             value={date(cycle.end_date, { month: "short", day: "numeric" })}
             icon="solar:calendar-mark-broken"

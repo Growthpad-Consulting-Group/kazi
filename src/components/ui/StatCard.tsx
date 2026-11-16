@@ -6,47 +6,16 @@ import type { ReactNode } from "react";
 
 export type StatCardColor =
   "orange" | "slate" | "violet" | "amber" | "green" | "blue" | "red";
-export type StatCardVariant = "gradient" | "flat" | "inline";
+export type StatCardVariant = "inline";
 
-const styles: Record<
-  StatCardColor,
-  { gradient: string; shadow: string; flat: string }
-> = {
-  orange: {
-    gradient: "from-brand-500 to-orange-400",
-    shadow: "shadow-brand-500/25",
-    flat: "text-brand-500 bg-brand-500/10",
-  },
-  slate: {
-    gradient: "from-slate-500 to-slate-400",
-    shadow: "shadow-slate-500/20",
-    flat: "text-slate-500 bg-slate-500/10",
-  },
-  violet: {
-    gradient: "from-violet-500 to-violet-400",
-    shadow: "shadow-violet-500/25",
-    flat: "text-violet-500 bg-violet-500/10",
-  },
-  amber: {
-    gradient: "from-amber-500 to-amber-400",
-    shadow: "shadow-amber-500/25",
-    flat: "text-amber-500 bg-amber-500/10",
-  },
-  green: {
-    gradient: "from-emerald-500 to-emerald-400",
-    shadow: "shadow-emerald-500/25",
-    flat: "text-emerald-500 bg-emerald-500/10",
-  },
-  blue: {
-    gradient: "from-blue-500 to-blue-400",
-    shadow: "shadow-blue-500/25",
-    flat: "text-blue-500 bg-blue-500/10",
-  },
-  red: {
-    gradient: "from-red-500 to-red-400",
-    shadow: "shadow-red-500/25",
-    flat: "text-red-500 bg-red-500/10",
-  },
+const tints: Record<StatCardColor, string> = {
+  orange: "text-brand-500 bg-brand-500/10",
+  slate: "text-slate-500 bg-slate-500/10",
+  violet: "text-violet-500 bg-violet-500/10",
+  amber: "text-amber-500 bg-amber-500/10",
+  green: "text-emerald-500 bg-emerald-500/10",
+  blue: "text-blue-500 bg-blue-500/10",
+  red: "text-red-500 bg-red-500/10",
 };
 
 interface StatCardProps {
@@ -54,23 +23,23 @@ interface StatCardProps {
   value: string | number;
   icon: string;
   color?: StatCardColor;
+  /** Kept for existing call sites; the inline row is the only layout. */
   variant?: StatCardVariant;
   subtitle?: ReactNode;
   href?: string;
   onClick?: () => void;
   className?: string;
   compact?: boolean;
-  /** Stacks the label above the value within the inline variant. */
+  /** Stacks the label above the value. */
   inlineStacked?: boolean;
 }
 
-/** Stat card with two visual variants: "gradient" (default, bold icon) and "flat" (quiet, tinted icon). */
+/** Stat card rendered as a compact inline row: icon, value and label on one line. */
 export default function StatCard({
   title,
   value,
   icon,
   color = "orange",
-  variant = "gradient",
   subtitle,
   href,
   onClick,
@@ -78,105 +47,42 @@ export default function StatCard({
   compact = false,
   inlineStacked = false,
 }: StatCardProps) {
-  const palette = styles[color];
+  const tint = tints[color];
+  const valueTone = tint.split(" ")[0];
   const className = `group relative block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left shadow-xl shadow-slate-200/40 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:shadow-black/20 ${compact ? "p-3" : "p-4"} ${customClassName ?? ""}`;
+  const valueClass = `font-bold capitalize leading-none ${valueTone} ${compact ? "text-lg" : "text-xl"}`;
 
-  const content =
-    variant === "inline" ? (
-      <div className="relative flex min-w-0 items-center gap-2.5">
-        <span
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${palette.flat}`}
-        >
-          <Icon icon={icon} className="h-4 w-4" />
-        </span>
-        <div className="min-w-0">
-          {inlineStacked ? (
-            <>
-              <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
-                {title}
-              </p>
-              <p
-                className={`mt-1 font-bold capitalize leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}
-              >
-                {value}
-              </p>
-            </>
-          ) : (
-            <div className="flex items-baseline gap-1.5">
-              <p
-                className={`font-bold capitalize leading-none ${palette.flat.split(" ")[0]} ${compact ? "text-lg" : "text-xl"}`}
-              >
-                {value}
-              </p>
-              <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
-                {title}
-              </p>
-            </div>
-          )}
-          {subtitle && (
-            <p className="mt-1 truncate text-xs text-[var(--text-lo)]">
-              {subtitle}
-            </p>
-          )}
-        </div>
-      </div>
-    ) : variant === "gradient" ? (
-      <>
-        <div
-          className={`pointer-events-none absolute -right-10 -top-10 rounded-full bg-gradient-to-br ${palette.gradient} opacity-10 transition-transform duration-500 group-hover:scale-125 ${compact ? "h-20 w-20" : "h-28 w-28"}`}
-        />
-        <div className="relative flex items-center gap-3">
-          <div
-            className={`flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${palette.gradient} shadow-lg ${palette.shadow} ${compact ? "h-9 w-9" : "h-11 w-11"}`}
-          >
-            <Icon
-              icon={icon}
-              className={`${compact ? "h-4 w-4" : "h-5 w-5"} text-white`}
-            />
-          </div>
-          <div className="min-w-0">
-            <p
-              className={`font-bold leading-none capitalize text-[var(--text-hi)] ${compact ? "text-xl" : "text-2xl"}`}
-            >
-              {value}
-            </p>
-            <p
-              className={`${compact ? "mt-1 text-sm" : "mt-1.5 text-sm"} font-semibold text-[var(--text-hi)]`}
-            >
+  const content = (
+    <div className="relative flex min-w-0 items-center gap-2.5">
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tint}`}
+      >
+        <Icon icon={icon} className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        {inlineStacked ? (
+          <>
+            <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
               {title}
             </p>
-            {subtitle && (
-              <div className="mt-0.5 truncate text-xs text-[var(--text-lo)]">
-                {subtitle}
-              </div>
-            )}
+            <p className={`mt-1 ${valueClass}`}>{value}</p>
+          </>
+        ) : (
+          <div className="flex items-baseline gap-1.5">
+            <p className={valueClass}>{value}</p>
+            <p className="truncate text-sm font-semibold text-[var(--text-hi)]">
+              {title}
+            </p>
           </div>
-        </div>
-      </>
-    ) : (
-      <>
-        <span
-          className={`flex ${compact ? "h-8 w-8" : "h-9 w-9"} items-center justify-center rounded-xl ${palette.flat}`}
-        >
-          <Icon icon={icon} className={compact ? "h-4 w-4" : "h-4.5 w-4.5"} />
-        </span>
-        <p
-          className={`mt-3 font-bold ${palette.flat.split(" ")[0]} ${compact ? "text-xl" : "text-2xl"}`}
-        >
-          {value}
-        </p>
-        <p
-          className={`mt-0.5 ${compact ? "text-xs" : "text-sm"} font-semibold text-[var(--text-hi)]`}
-        >
-          {title}
-        </p>
+        )}
         {subtitle && (
-          <p className="mt-0.5 truncate text-[11px] text-[var(--text-lo)]">
+          <p className="mt-1 truncate text-xs text-[var(--text-lo)]">
             {subtitle}
           </p>
         )}
-      </>
-    );
+      </div>
+    </div>
+  );
 
   if (href)
     return (

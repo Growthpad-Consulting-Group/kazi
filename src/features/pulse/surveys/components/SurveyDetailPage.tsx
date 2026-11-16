@@ -154,7 +154,7 @@ export default async function SurveyDetailPage({
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             compact
             title="Questions"
             value={survey.questions.length}
@@ -162,7 +162,7 @@ export default async function SurveyDetailPage({
             color="orange"
             subtitle="In this survey"
           />
-          <StatCard
+          <StatCard variant="inline"
             compact
             title="Responses"
             value={participantCount}
@@ -170,7 +170,7 @@ export default async function SurveyDetailPage({
             color={participantCount ? "green" : "slate"}
             subtitle="Collected so far"
           />
-          <StatCard
+          <StatCard variant="inline"
             compact
             title="Status"
             value={status.label}
@@ -178,7 +178,7 @@ export default async function SurveyDetailPage({
             color={survey.status === "active" ? "green" : "slate"}
             subtitle="Survey lifecycle"
           />
-          <StatCard
+          <StatCard variant="inline"
             compact
             title={isAdmin ? "Completion" : "Privacy"}
             value={

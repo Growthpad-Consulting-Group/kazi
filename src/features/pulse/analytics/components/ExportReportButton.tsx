@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/Button";
 import ExportModal from "@/components/ui/export/ExportModal";
 
 type CultureReport = {
@@ -127,18 +127,15 @@ export default function ExportReportButton() {
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        size="sm"
+        className="h-8"
+        icon="solar:export-broken"
+        loading={loading}
         onClick={openExportModal}
-        disabled={loading}
-        className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <Icon
-          icon={loading ? "solar:refresh-broken" : "solar:export-broken"}
-          className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-        />
         {loading ? "Preparing…" : "Export report"}
-      </button>
+      </Button>
 
       <ExportModal
         isOpen={open}

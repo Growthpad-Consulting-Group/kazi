@@ -75,7 +75,7 @@ export function VoiceOutInsights({ reports }: { reports: VoiceOutInsight[] }) {
       {hasSafeAggregate ? (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard
+            <StatCard variant="inline"
               title="Reports"
               value={reports.length}
               icon="solar:chat-round-dots-broken"
@@ -83,7 +83,7 @@ export function VoiceOutInsights({ reports }: { reports: VoiceOutInsight[] }) {
               compact
               subtitle="All time"
             />
-            <StatCard
+            <StatCard variant="inline"
               title="Last 30 days"
               value={recent}
               icon="solar:calendar-broken"
@@ -91,7 +91,7 @@ export function VoiceOutInsights({ reports }: { reports: VoiceOutInsight[] }) {
               compact
               subtitle="Recent volume"
             />
-            <StatCard
+            <StatCard variant="inline"
               title="Open cases"
               value={open}
               icon="solar:clock-circle-broken"
@@ -99,7 +99,7 @@ export function VoiceOutInsights({ reports }: { reports: VoiceOutInsight[] }) {
               compact
               subtitle="Needs HR action"
             />
-            <StatCard
+            <StatCard variant="inline"
               title="Priority cases"
               value={priority}
               icon="solar:danger-triangle-broken"

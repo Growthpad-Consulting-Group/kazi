@@ -207,7 +207,7 @@ export function EngagementMonthCalendar({
   return (
     <>
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
+        <StatCard variant="inline"
           compact
           title="Live now"
           value={liveItems.length}
@@ -221,7 +221,7 @@ export function EngagementMonthCalendar({
               : undefined
           }
         />
-        <StatCard
+        <StatCard variant="inline"
           compact
           title="Upcoming"
           value={upcomingItems.length}
@@ -235,7 +235,7 @@ export function EngagementMonthCalendar({
               : undefined
           }
         />
-        <StatCard
+        <StatCard variant="inline"
           compact
           title="Campaigns"
           value={items.filter((item) => item.type === "Campaign").length}
@@ -249,7 +249,7 @@ export function EngagementMonthCalendar({
               : undefined
           }
         />
-        <StatCard
+        <StatCard variant="inline"
           compact
           title="All activity"
           value={items.length}

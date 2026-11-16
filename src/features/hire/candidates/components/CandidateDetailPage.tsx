@@ -115,9 +115,9 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
       <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl shadow-slate-200/40 dark:shadow-black/20 sm:p-6">
         <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-orange-400 text-white shadow-lg shadow-brand-500/25">
+          {/* <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-orange-400 text-white shadow-lg shadow-brand-500/25">
             <Icon icon="solar:user-rounded-broken" className="h-7 w-7" />
-          </div>
+          </div> */}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-xl font-semibold text-[var(--text-hi)]">
@@ -168,7 +168,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
       </section>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
+        <StatCard variant="inline"
           title="AI score"
           value={
             candidate.ai_score === null ? "—" : `${candidate.ai_score}/100`
@@ -178,7 +178,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           compact
           subtitle={candidate.shortlisted ? "Shortlisted" : "Awaiting decision"}
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Applied"
           value={new Date(candidate.applied_at).toLocaleDateString("en-KE", {
             day: "numeric",
@@ -189,7 +189,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           compact
           subtitle="Application received"
         />
-        <StatCard
+        <StatCard variant="inline"
           title="CV status"
           value={hasCv ? (cvParsed ? "Parsed" : "Ready") : "Missing"}
           icon="solar:document-text-broken"
@@ -203,7 +203,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
                 : "No CV available"
           }
         />
-        <StatCard
+        <StatCard variant="inline"
           title="Notes"
           value={notes.length}
           icon="solar:notes-broken"

@@ -166,7 +166,7 @@ export default async function SurveysPage() {
 
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <StatCard variant="inline"
             title="Live surveys"
             value={active.length}
             icon="solar:play-circle-broken"
@@ -176,7 +176,7 @@ export default async function SurveysPage() {
               active.length ? "Collecting responses" : "Nothing running"
             }
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Drafts"
             value={drafts.length}
             icon="solar:pen-new-square-broken"
@@ -186,7 +186,7 @@ export default async function SurveysPage() {
               drafts.length ? "Ready to prepare" : "No work in progress"
             }
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Closed"
             value={closed.length}
             icon="solar:lock-keyhole-broken"
@@ -194,7 +194,7 @@ export default async function SurveysPage() {
             compact
             subtitle="Available for reflection"
           />
-          <StatCard
+          <StatCard variant="inline"
             title="Questions asked"
             value={questions}
             icon="solar:question-circle-broken"

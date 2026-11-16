@@ -70,7 +70,7 @@ export default async function StaffGoalsPage({ userId }: { userId: string }) {
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Active goals"
             value={active.length}
@@ -79,7 +79,7 @@ export default async function StaffGoalsPage({ userId }: { userId: string }) {
             subtitle={goals.length + " total"}
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Average progress"
             value={average + "%"}
@@ -88,7 +88,7 @@ export default async function StaffGoalsPage({ userId }: { userId: string }) {
             subtitle="Across active goals"
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="At risk"
             value={atRisk.length}
@@ -99,7 +99,7 @@ export default async function StaffGoalsPage({ userId }: { userId: string }) {
             }
           />
           <StatCard
-            variant="flat"
+            variant="inline"
             compact
             title="Completed"
             value={goals.filter((goal) => goal.status === "completed").length}

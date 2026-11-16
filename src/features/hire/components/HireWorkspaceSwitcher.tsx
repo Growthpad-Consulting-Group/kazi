@@ -78,7 +78,7 @@ export default function HireWorkspaceSwitcher({
 
   if (companies.length < 2) {
     return (
-      <div className="hidden items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--text-hi)] sm:flex">
+      <div className="hidden h-7 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-hi)] sm:flex">
         <Icon
           icon="solar:buildings-2-broken"
           className="h-4 w-4 text-brand-500"
@@ -116,7 +116,7 @@ export default function HireWorkspaceSwitcher({
     options.find((option) => option.value === activeSlug) ?? options[0] ?? null;
 
   return (
-    <div className="flex h-9 min-w-52 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-sm text-[var(--text-lo)] shadow-sm transition-colors hover:border-brand-500/50 sm:min-w-64">
+    <div className="flex h-7 min-w-52 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 text-sm text-[var(--text-lo)] shadow-sm transition-colors hover:border-brand-500/50 sm:min-w-64">
       <Icon
         icon="solar:buildings-2-broken"
         className="ml-1 h-4 w-4 shrink-0 text-brand-500"

@@ -143,28 +143,28 @@ export default async function JobDetailPage({ id }: { id: string }) {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard
+            <StatCard variant="inline"
               title="Applicants"
               value={candidates.length}
               icon="solar:users-group-two-rounded-broken"
               color="orange"
               compact
             />
-            <StatCard
+            <StatCard variant="inline"
               title="In progress"
               value={activeCandidates}
               icon="solar:sort-horizontal-broken"
               color="blue"
               compact
             />
-            <StatCard
+            <StatCard variant="inline"
               title="Interviews"
               value={stageCounts.interview}
               icon="solar:calendar-broken"
               color="blue"
               compact
             />
-            <StatCard
+            <StatCard variant="inline"
               title="Offers"
               value={stageCounts.offer}
               icon="solar:letter-broken"
