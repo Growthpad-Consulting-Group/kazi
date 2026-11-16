@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    agentUpgrade: "security",
+  },
   async redirects() {
     // Extension update checks must keep their stable Kazi URL so managed
     // browsers and existing Firefox installs continue to update. Redirecting
