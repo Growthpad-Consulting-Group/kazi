@@ -167,7 +167,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard variant="inline"
           title="AI score"
           value={
@@ -188,20 +188,6 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           color="slate"
           compact
           subtitle="Application received"
-        />
-        <StatCard variant="inline"
-          title="CV status"
-          value={hasCv ? (cvParsed ? "Parsed" : "Ready") : "Missing"}
-          icon="solar:document-text-broken"
-          color={hasCv ? "blue" : "slate"}
-          compact
-          subtitle={
-            cvParsed
-              ? "Parsed for review"
-              : hasCv
-                ? "Ready for AI screening"
-                : "No CV available"
-          }
         />
         <StatCard variant="inline"
           title="Notes"
@@ -389,6 +375,13 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
               {candidate.cover_message}
             </p>
           </div>
+        </section>
+      )}
+
+      {!hasCv && (
+        <section className="flex items-center gap-2.5 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--text-lo)]">
+          <Icon icon="solar:document-text-broken" className="h-4 w-4 shrink-0" />
+          No CV available for AI screening.
         </section>
       )}
 

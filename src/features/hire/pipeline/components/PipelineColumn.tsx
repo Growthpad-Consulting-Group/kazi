@@ -46,7 +46,7 @@ export function PipelineColumn({
       {/* Drop zone */}
       <div
         ref={setNodeRef}
-        className={`h-[calc(100dvh-18rem)] min-h-[30rem] max-h-[44rem] space-y-3 overflow-y-auto overscroll-contain rounded-2xl border p-3 pr-2 transition-all ${
+        className={`h-[calc(100dvh-18rem)] min-h-[30rem] max-h-[44rem] space-y-3 overflow-y-auto overflow-x-hidden overscroll-y-contain rounded-2xl border p-3 pr-2 transition-all ${
           isOver
             ? "border-brand-500/40 bg-brand-500/8 ring-2 ring-brand-500/15"
             : "border-[var(--border)] bg-[var(--surface-2)]/40"
