@@ -732,6 +732,12 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
 
   const headerActions = [
     {
+      label: "Back to candidates",
+      icon: "solar:arrow-left-broken",
+      href: "/hire/candidates",
+      variant: "secondary" as const,
+    },
+    {
       label: "View CV",
       icon: "solar:document-text-broken",
       scrollToId: "cv-overview",

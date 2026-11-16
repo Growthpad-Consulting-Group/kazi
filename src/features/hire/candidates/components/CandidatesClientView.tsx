@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import {
@@ -24,6 +24,10 @@ import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 import type { CandidateWithJob } from "../actions";
 import CandidateStageSelect from "./CandidateStageSelect";
 import CandidateShortlistButton from "./CandidateShortlistButton";
+import {
+  rememberCandidatesList,
+  recallCandidatesList,
+} from "./candidatesListMemory";
 
 const STAGE_FILTER_OPTIONS: FilterOption[] = [
   { id: "applied", label: "Applied", category: "stage", value: "applied" },
@@ -116,6 +120,39 @@ export default function CandidatesClientView({
     dashboardFilters(initialStage, initialAttention, initialRole),
   );
   const [referenceTime] = useState(() => Date.now());
+
+  // Restore the recruiter's place when returning from an application. Filters
+  // from the dashboard links (initial props) take priority over remembered ones.
+  const hasInitialFilters = Boolean(
+    initialStage || initialAttention || initialRole,
+  );
+  // Bumped when remembered filters are applied, so the search box remounts with them.
+  const [restoreKey, setRestoreKey] = useState(0);
+  useEffect(() => {
+    const saved = recallCandidatesList();
+    if (!saved) return;
+    if (!hasInitialFilters) {
+      // Browser-only state cannot be read during server render, so it is applied after mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSearch(saved.search);
+      setFilters(saved.filters);
+      setRestoreKey((key) => key + 1);
+    }
+    const frame = requestAnimationFrame(() => window.scrollTo(0, saved.scrollY));
+    return () => cancelAnimationFrame(frame);
+    // Runs once on mount: the remembered place applies only when the list opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Saves the current search, filters and scroll position before opening a candidate.
+  const openCandidate = (id: string) => {
+    rememberCandidatesList({
+      search,
+      filters,
+      scrollY: window.scrollY,
+    });
+    router.push(`/hire/candidates/${id}`);
+  };
   const [bulkEmailRecipients, setBulkEmailRecipients] = useState<
     { id: string; full_name: string }[] | null
   >(null);
@@ -481,7 +518,7 @@ export default function CandidatesClientView({
       icon: "solar:eye-broken",
       label: "View",
       variant: "info",
-      onClick: (row) => router.push(`/hire/candidates/${row.id}`),
+      onClick: (row) => openCandidate(row.id),
     },
     {
       icon: "solar:trash-bin-trash-broken",
@@ -613,7 +650,7 @@ export default function CandidatesClientView({
         actions={readOnly ? [] : actions}
         bulkActions={readOnly ? [] : bulkActions}
         selectable={!readOnly}
-        onRowClick={(row) => router.push(`/hire/candidates/${row.id}`)}
+        onRowClick={(row) => openCandidate(row.id)}
         emptyMessage="No candidates match your filters."
         emptyIcon="solar:users-group-two-rounded-broken"
         icon="solar:user-speak-broken"
@@ -624,6 +661,8 @@ export default function CandidatesClientView({
           .replace(/^_|_$/g, "")}_candidates`}
         unifiedSearchFilter={
           <UnifiedSearchFilter
+            key={restoreKey}
+            initialSearch={search}
             onSearchChange={setSearch}
             onFilterChange={setFilters}
             filterCategories={FILTER_CATEGORIES}
@@ -644,11 +683,11 @@ export default function CandidatesClientView({
             <article
               role="button"
               tabIndex={0}
-              onClick={() => router.push(`/hire/candidates/${candidate.id}`)}
+              onClick={() => openCandidate(candidate.id)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  router.push(`/hire/candidates/${candidate.id}`);
+                  openCandidate(candidate.id);
                 }
               }}
               className="space-y-3 px-4 py-4 transition-colors active:bg-brand-500/5"
@@ -692,7 +731,7 @@ export default function CandidatesClientView({
               >
                 <button
                   type="button"
-                  onClick={() => router.push(`/hire/candidates/${candidate.id}`)}
+                  onClick={() => openCandidate(candidate.id)}
                   className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--text-hi)]"
                 >
                   <Icon icon="solar:eye-broken" className="h-4 w-4" />

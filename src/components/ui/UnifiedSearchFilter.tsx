@@ -39,6 +39,8 @@ interface Props {
   categoryOptions?: Record<string, FilterOption[]>;
   singleSelectCategories?: string[];
   initialFilters?: ActiveFilter[];
+  /** Search text to show on mount, e.g. when a list is restored. */
+  initialSearch?: string;
   searchPlaceholder?: string;
 }
 
@@ -49,11 +51,12 @@ export default function UnifiedSearchFilter({
   categoryOptions = {},
   singleSelectCategories = [],
   initialFilters,
+  initialSearch,
   searchPlaceholder = "Search and filter…",
 }: Props) {
   const { resolvedMode: mode } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialSearch ?? "");
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>(
     initialFilters ?? [],
   );
