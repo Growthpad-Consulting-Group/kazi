@@ -264,6 +264,9 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
   const [rubric, setRubric] = useState<RubricItem[]>(
     job?.scoring_rubric?.length ? job.scoring_rubric : [{ ...EMPTY_RUBRIC }],
   );
+  const [shortlistThreshold, setShortlistThreshold] = useState<number>(
+    job?.shortlist_threshold ?? 65,
+  );
   const [status, setStatus] = useState<"draft" | "open" | "paused">(
     job?.status === "paused"
       ? "paused"
@@ -340,6 +343,7 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
         rubric: job?.scoring_rubric?.length
           ? job.scoring_rubric
           : [{ ...EMPTY_RUBRIC }],
+        shortlistThreshold: job?.shortlist_threshold ?? 65,
         status:
           job?.status === "paused"
             ? "paused"
@@ -369,6 +373,7 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
       mustHaves,
       niceToHaves,
       rubric,
+      shortlistThreshold,
       status,
       schedule: scheduleSnapshot(schedule),
       employmentType,
@@ -581,6 +586,7 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
       must_haves: mustHaves.filter(Boolean),
       nice_to_haves: niceToHaves.filter(Boolean),
       scoring_rubric: rubric.filter((r) => r.criterion),
+      shortlist_threshold: shortlistThreshold,
       status,
       employment_type: employmentType,
       work_mode: workMode,
@@ -1040,6 +1046,43 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
             onClick={() => setRubric([...rubric, { ...EMPTY_RUBRIC }])}
           />
         </div>
+
+        <div className="mt-6 border-t border-[var(--border)] pt-5">
+          <Field label="Shortlist threshold">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div className="relative flex w-full items-center sm:w-40">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={shortlistThreshold}
+                  onChange={(e) => {
+                    const value = Math.round(Number(e.target.value));
+                    setShortlistThreshold(
+                      Number.isFinite(value)
+                        ? Math.min(100, Math.max(0, value))
+                        : 0,
+                    );
+                  }}
+                  className={`${inputCls} pr-8 font-mono`}
+                  aria-describedby="shortlist-threshold-hint"
+                />
+                <span className="pointer-events-none absolute right-3 text-[10px] text-[var(--text-lo)]">
+                  /100
+                </span>
+              </div>
+              <p
+                id="shortlist-threshold-hint"
+                className="text-xs leading-5 text-[var(--text-lo)]"
+              >
+                Candidates scoring at or above this are suggested for
+                shortlisting. Recruiters can still shortlist or remove anyone
+                manually.
+              </p>
+            </div>
+          </Field>
+        </div>
       </section>
     </div>
   );
@@ -1158,6 +1201,14 @@ export function JobForm({ job, departments = [], companySlug }: Props) {
               }`}
             >
               {rubricTotal}/100
+            </dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-sm text-[var(--text-lo)]">
+              Shortlist threshold
+            </dt>
+            <dd className="font-mono text-sm font-semibold text-[var(--text-hi)]">
+              {shortlistThreshold}/100
             </dd>
           </div>
           <div className="flex items-center justify-between">

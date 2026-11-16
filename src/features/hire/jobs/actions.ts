@@ -51,6 +51,14 @@ function validateSchedule(
   return { publishedAt, closesAt };
 }
 
+function validateShortlistThreshold(value: unknown): number {
+  const threshold = Number(value);
+  if (!Number.isInteger(threshold) || threshold < 0 || threshold > 100) {
+    throw new Error("Shortlist threshold must be a whole number from 0 to 100");
+  }
+  return threshold;
+}
+
 function validateJobStatus(status: unknown): JobFormData["status"] {
   if (status === "draft" || status === "open" || status === "paused") {
     return status;
@@ -163,6 +171,7 @@ export async function createJob(form: JobFormData, companySlug?: string) {
         nice_to_haves: form.nice_to_haves,
       },
       scoring_rubric: form.scoring_rubric,
+      shortlist_threshold: validateShortlistThreshold(form.shortlist_threshold),
       status,
       // Opening a job with no schedule publishes it immediately.
       published_at:
@@ -210,7 +219,7 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
 
   const { data: previous, error: previousError } = await supabaseAdmin
     .from("jobs")
-    .select("slug, status, published_at, closes_at")
+    .select("slug, status, published_at, closes_at, shortlist_threshold")
     .eq("id", id)
     .single();
   if (previousError) throw new Error(previousError.message);
@@ -255,6 +264,14 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
   }
   if (form.scoring_rubric !== undefined)
     update.scoring_rubric = form.scoring_rubric;
+  const shortlistThresholdChanged =
+    form.shortlist_threshold !== undefined &&
+    validateShortlistThreshold(form.shortlist_threshold) !==
+      previous?.shortlist_threshold;
+  if (form.shortlist_threshold !== undefined)
+    update.shortlist_threshold = validateShortlistThreshold(
+      form.shortlist_threshold,
+    );
   if (form.status !== undefined) {
     const status = validateJobStatus(form.status);
     update.status = status;
@@ -272,6 +289,39 @@ export async function updateJob(id: string, form: Partial<JobFormData>) {
     .single();
 
   if (error) throw new Error(error.message);
+
+  // Candidates whose shortlist came from AI screening follow the new threshold.
+  // Recruiter overrides are left untouched.
+  if (shortlistThresholdChanged && update.shortlist_threshold !== undefined) {
+    const threshold = update.shortlist_threshold;
+    const { data: jobCandidates, error: candidatesError } = await supabaseAdmin
+      .from("candidates")
+      .select("id, ai_score")
+      .eq("job_id", id)
+      .eq("shortlist_source", "ai")
+      .not("ai_score", "is", null);
+    if (candidatesError) throw new Error(candidatesError.message);
+
+    const ids = (jobCandidates ?? []).map((c) => c.id);
+    const shortlistedIds = (jobCandidates ?? [])
+      .filter((c) => (c.ai_score ?? 0) >= threshold)
+      .map((c) => c.id);
+    const notShortlistedIds = ids.filter((c) => !shortlistedIds.includes(c));
+    if (shortlistedIds.length) {
+      await supabaseAdmin
+        .from("candidates")
+        .update({ shortlisted: true })
+        .in("id", shortlistedIds);
+    }
+    if (notShortlistedIds.length) {
+      await supabaseAdmin
+        .from("candidates")
+        .update({ shortlisted: false })
+        .in("id", notShortlistedIds);
+    }
+    await invalidateTables("candidates");
+  }
+
   revalidatePath("/hire/jobs");
   revalidatePath(`/hire/jobs/${id}`);
   await invalidateTables("jobs");

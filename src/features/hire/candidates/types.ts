@@ -6,6 +6,9 @@ export interface CandidateWithJob extends Candidate {
   jobs: { title: string; department: string | null } | null;
 }
 
+/** Candidates scoring at or above this are suggested for shortlisting. */
+export const SHORTLIST_THRESHOLD = 65;
+
 export interface ApplyFormData {
   full_name: string;
   email: string;

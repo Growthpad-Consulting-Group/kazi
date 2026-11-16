@@ -8,6 +8,7 @@ import { NoteForm } from "./NoteForm";
 import { EmailPanel } from "./EmailPanel";
 import OnboardCandidateButton from "./OnboardCandidateButton";
 import DeleteCandidateButton from "./DeleteCandidateButton";
+import { ShortlistToggle } from "./ShortlistToggle";
 import {
   BookInterviewButton,
   InterviewActions,
@@ -19,7 +20,7 @@ import SetPageHeader from "@/components/ui/SetPageHeader";
 import PageWithSidebar from "@/components/ui/PageWithSidebar";
 import SidebarWidget from "@/components/ui/SidebarWidget";
 import StatCard from "@/components/ui/StatCard";
-import type { CandidateStage } from "../types";
+import { SHORTLIST_THRESHOLD, type CandidateStage } from "../types";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   canManageHireCompany,
@@ -57,7 +58,7 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
     candidate.cv_url
   );
   const screeningRubric = job?.scoring_rubric ?? [];
-  const shortlistThreshold = 65;
+  const shortlistThreshold = job?.shortlist_threshold ?? SHORTLIST_THRESHOLD;
   const { data: managersData } =
     candidate.stage === "hired" && !candidate.hired_user_id
       ? await supabaseAdmin
@@ -696,6 +697,21 @@ export default async function CandidateDetailPage({ id }: { id: string }) {
           </div>
         )}
       </SidebarWidget>
+      {canManageHiring && (
+        <SidebarWidget
+          title="Shortlist"
+          icon="solar:star-broken"
+          iconClass="bg-emerald-500/10 text-emerald-600"
+        >
+          <ShortlistToggle
+            candidateId={candidate.id}
+            shortlisted={candidate.shortlisted}
+            source={candidate.shortlist_source}
+            aiScore={candidate.ai_score}
+            threshold={shortlistThreshold}
+          />
+        </SidebarWidget>
+      )}
       {canManageHiring && (
         <SidebarWidget
           title="Danger zone"

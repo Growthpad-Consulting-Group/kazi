@@ -23,6 +23,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import StatCard, { type StatCardColor } from "@/components/ui/StatCard";
 import type { CandidateWithJob } from "../actions";
 import CandidateStageSelect from "./CandidateStageSelect";
+import CandidateShortlistButton from "./CandidateShortlistButton";
 
 const STAGE_FILTER_OPTIONS: FilterOption[] = [
   { id: "applied", label: "Applied", category: "stage", value: "applied" },
@@ -452,14 +453,12 @@ export default function CandidatesClientView({
     {
       header: "Shortlisted",
       accessor: "shortlisted",
-      render: (row) =>
-        row.shortlisted ? (
-          <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-600">
-            Shortlisted
-          </span>
-        ) : (
-          <span className="text-xs text-[var(--text-lo)] opacity-40">—</span>
-        ),
+      render: (row) => (
+        <CandidateShortlistButton
+          candidateId={row.id}
+          shortlisted={row.shortlisted}
+        />
+      ),
     },
     {
       header: "Applied",
@@ -699,6 +698,12 @@ export default function CandidatesClientView({
                   <Icon icon="solar:eye-broken" className="h-4 w-4" />
                   View candidate
                 </button>
+                {!readOnly && (
+                  <CandidateShortlistButton
+                    candidateId={candidate.id}
+                    shortlisted={candidate.shortlisted}
+                  />
+                )}
                 {!readOnly && (
                   <CandidateStageSelect
                     candidateId={candidate.id}

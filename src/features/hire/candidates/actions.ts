@@ -17,6 +17,7 @@ import { deliverSlackNotification } from "@/lib/slack";
 import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 import { getCachedCandidates } from "@/lib/cache/queries";
 import type { Candidate, CandidateStage } from "@/types/database";
+import { SHORTLIST_THRESHOLD } from "./types";
 
 export type CandidateWithJob = Candidate & {
   jobs: {
@@ -28,6 +29,7 @@ export type CandidateWithJob = Candidate & {
       weight: number;
       description: string;
     }[];
+    shortlist_threshold: number;
   } | null;
 };
 
@@ -70,7 +72,9 @@ export async function getCandidate(id: string): Promise<CandidateWithJob> {
 
   const { data, error } = await supabaseAdmin
     .from("candidates")
-    .select("*, jobs(title, department, location, scoring_rubric)")
+    .select(
+      "*, jobs(title, department, location, scoring_rubric, shortlist_threshold)",
+    )
     .eq("id", id)
     .single();
 
@@ -235,9 +239,15 @@ export async function shortlistCandidate(id: string, shortlisted: boolean) {
     minimumRole: "hiring_manager",
   });
 
+  // A recruiter's decision is marked 'manual' so later AI screening cannot
+  // overwrite it.
   const { error } = await supabaseAdmin
     .from("candidates")
-    .update({ shortlisted, recruiter_activity_at: new Date().toISOString() })
+    .update({
+      shortlisted,
+      shortlist_source: "manual",
+      recruiter_activity_at: new Date().toISOString(),
+    })
     .eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -250,6 +260,56 @@ export async function shortlistCandidate(id: string, shortlisted: boolean) {
     action: "candidate.shortlist_updated",
     entityType: "candidate",
     entityId: id,
-    metadata: { shortlisted },
+    metadata: { shortlisted, source: "manual" },
+  });
+}
+
+/** Hands the shortlist decision back to the AI score. */
+export async function resetShortlistToAi(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Unauthenticated");
+  const access = await assertHireCandidateAccess({
+    userId: session.user.id,
+    userRole: session.user.role,
+    candidateId: id,
+    minimumRole: "hiring_manager",
+  });
+
+  const { data: candidate, error: readError } = await supabaseAdmin
+    .from("candidates")
+    .select("ai_score, job_id")
+    .eq("id", id)
+    .single();
+  if (readError || !candidate) throw new Error("Candidate not found");
+
+  const { data: job } = await supabaseAdmin
+    .from("jobs")
+    .select("shortlist_threshold")
+    .eq("id", candidate.job_id)
+    .maybeSingle();
+  const threshold = job?.shortlist_threshold ?? SHORTLIST_THRESHOLD;
+  const shortlisted =
+    candidate.ai_score !== null && candidate.ai_score >= threshold;
+
+  const { error } = await supabaseAdmin
+    .from("candidates")
+    .update({
+      shortlisted,
+      shortlist_source: "ai",
+      recruiter_activity_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/hire/candidates/${id}`);
+  revalidatePath("/hire/candidates");
+  await invalidateTables("candidates");
+  await recordHireAuditEvent({
+    companyId: access.companyId,
+    actorUserId: session.user.id,
+    action: "candidate.shortlist_updated",
+    entityType: "candidate",
+    entityId: id,
+    metadata: { shortlisted, source: "ai" },
   });
 }

@@ -7,6 +7,7 @@ import { invalidateTables } from "@/lib/cache/invalidate";
 import { groq, GROQ_MODEL } from "@/lib/ai";
 import { recordAiUsage } from "@/lib/ai-audit";
 import type { Candidate } from "@/types/database";
+import { SHORTLIST_THRESHOLD } from "@/features/hire/candidates/types";
 
 type CandidateWithJobData = Candidate & {
   jobs: {
@@ -17,6 +18,7 @@ type CandidateWithJobData = Candidate & {
       weight: number;
       description: string;
     }[];
+    shortlist_threshold: number | null;
   } | null;
 };
 
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
 
   const { data, error: cErr } = await supabaseAdmin
     .from("candidates")
-    .select("*, jobs(title, requirements, scoring_rubric)")
+    .select("*, jobs(title, requirements, scoring_rubric, shortlist_threshold)")
     .eq("id", candidateId)
     .single();
 
@@ -70,6 +72,8 @@ export async function POST(req: Request) {
   const cvData = candidate.cv_parsed
     ? JSON.stringify(candidate.cv_parsed)
     : (candidate.cv_text?.slice(0, 6000) ?? "");
+
+  const shortlistThreshold = job.shortlist_threshold ?? SHORTLIST_THRESHOLD;
 
   const rubricText = job.scoring_rubric.length
     ? job.scoring_rubric
@@ -99,7 +103,7 @@ Return ONLY valid JSON:
   "shortlisted": boolean
 }
 
-Shortlist if score >= 65.`;
+Shortlist if score >= ${shortlistThreshold}.`;
 
   const completion = await groq.chat.completions.create({
     model: GROQ_MODEL,
@@ -124,7 +128,10 @@ Shortlist if score >= 65.`;
     .update({
       ai_score: result.score,
       ai_justification: result.justification,
-      shortlisted: result.shortlisted,
+      // A recruiter's manual shortlist decision is never overwritten.
+      ...(candidate.shortlist_source === "manual"
+        ? {}
+        : { shortlisted: result.score >= shortlistThreshold }),
       stage: "screened",
     })
     .eq("id", candidateId);

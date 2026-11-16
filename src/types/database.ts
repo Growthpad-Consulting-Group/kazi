@@ -206,6 +206,7 @@ export interface Database {
             description: string;
           }[];
           status: JobStatus;
+          shortlist_threshold: number;
           published_at: string | null;
           closes_at: string | null;
           employment_type: string | null;
@@ -244,8 +245,10 @@ export interface Database {
           | "public_details"
           | "google_indexed_at"
           | "google_removed_at"
+          | "shortlist_threshold"
         > & {
           company_id?: string;
+          shortlist_threshold?: number;
           published_at?: string | null;
           closes_at?: string | null;
           employment_type?: string | null;
@@ -289,6 +292,7 @@ export interface Database {
           ai_score: number | null;
           ai_justification: string | null;
           shortlisted: boolean;
+          shortlist_source: "ai" | "manual";
           consented_at: string | null;
           hired_user_id: string | null;
           applied_at: string;
@@ -319,6 +323,7 @@ export interface Database {
           | "recruiter_activity_at"
           | "stage"
           | "shortlisted"
+          | "shortlist_source"
         > & {
           company_id?: string;
           phone?: string | null;
@@ -335,6 +340,7 @@ export interface Database {
           ai_justification?: string | null;
           stage?: CandidateStage;
           shortlisted?: boolean;
+          shortlist_source?: "ai" | "manual";
           consented_at?: string | null;
           hired_user_id?: string | null;
           recruiter_activity_at?: string;

@@ -14,6 +14,7 @@ import { parseCvText } from "@/lib/candidate-cv";
 import { deliverSlackNotification } from "@/lib/slack";
 import { notifyHireCompanyRecruiters } from "@/lib/notifications";
 import type { CandidateStage } from "@/types/database";
+import { SHORTLIST_THRESHOLD } from "@/features/hire/candidates/types";
 
 // Called by Vercel Cron (vercel.json) or an external scheduler.
 // Processes up to BATCH_SIZE candidates per invocation.
@@ -27,6 +28,7 @@ type CandidateWithJob = {
   company_id: string;
   assigned_to: string | null;
   ai_score: number | null;
+  shortlist_source: "ai" | "manual";
   stage: CandidateStage;
   cv_text: string | null;
   cv_parsed: unknown;
@@ -38,6 +40,7 @@ type CandidateWithJob = {
       weight: number;
       description: string;
     }[];
+    shortlist_threshold: number | null;
   } | null;
 };
 
@@ -45,7 +48,7 @@ async function screenOne(candidateId: string): Promise<void> {
   const { data, error } = await supabaseAdmin
     .from("candidates")
     .select(
-      "id, full_name, company_id, assigned_to, ai_score, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric)",
+      "id, full_name, company_id, assigned_to, ai_score, shortlist_source, stage, cv_text, cv_parsed, jobs(title, requirements, scoring_rubric, shortlist_threshold)",
     )
     .eq("id", candidateId)
     .single();
@@ -73,6 +76,7 @@ async function screenOne(candidateId: string): Promise<void> {
   if (!cvData) return;
 
   const rubric = job.scoring_rubric ?? [];
+  const shortlistThreshold = job.shortlist_threshold ?? SHORTLIST_THRESHOLD;
   const requirements = job.requirements ?? {
     must_haves: [],
     nice_to_haves: [],
@@ -96,7 +100,7 @@ ${rubricText}
 Anonymised CV:
 ${cvData}
 
-Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
+Score 0–100. Shortlist if ≥ ${shortlistThreshold}. Return ONLY valid JSON:
 {"score": number, "justification": "string", "shortlisted": boolean}`;
 
   const completion = await groq.chat.completions.create({
@@ -120,7 +124,10 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
       .update({
         ai_score: result.score,
         ai_justification: result.justification,
-        shortlisted: result.shortlisted,
+        // A recruiter's manual shortlist decision is never overwritten.
+        ...(candidate.shortlist_source === "manual"
+          ? {}
+          : { shortlisted: result.score >= shortlistThreshold }),
         // Automation only advances a fresh application. It never rewinds a
         // stage that a recruiter has already moved forward.
         stage: candidate.stage === "applied" ? "screened" : candidate.stage,
@@ -138,9 +145,10 @@ Score 0–100. Shortlist if ≥ 65. Return ONLY valid JSON:
     }),
   ]);
 
-  const screeningLabel = result.shortlisted
-    ? "AI screening completed — shortlisted"
-    : "AI screening completed — review needed";
+  const screeningLabel =
+    result.score >= shortlistThreshold
+      ? "AI screening completed — shortlisted"
+      : "AI screening completed — review needed";
 
   const slackRecipients = candidate.assigned_to
     ? [candidate.assigned_to]

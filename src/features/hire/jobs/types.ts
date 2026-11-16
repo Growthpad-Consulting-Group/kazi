@@ -16,6 +16,7 @@ export interface JobFormData {
   must_haves: string[];
   nice_to_haves: string[];
   scoring_rubric: RubricItem[];
+  shortlist_threshold: number;
   status: "draft" | "open" | "paused";
   published_at: string | null;
   closes_at: string | null;

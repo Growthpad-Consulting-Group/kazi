@@ -202,7 +202,7 @@ export default function AISettingsClient({ initial }: Props) {
             {
               icon: "solar:user-speak-broken",
               label: "CV screening",
-              desc: "Scores anonymised CVs against the job's must-haves and rubric, and shortlists candidates scoring 65 or more. Runs automatically when a CV is received.",
+              desc: "Scores anonymised CVs against the job's must-haves and rubric, and shortlists candidates who meet each job's shortlist threshold (65 by default). Runs automatically when a CV is received.",
             },
             {
               icon: "solar:diploma-broken",
