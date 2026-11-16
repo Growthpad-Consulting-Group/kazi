@@ -1175,6 +1175,29 @@ export interface Database {
         >;
         Relationships: [];
       };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          created_at: string;
+          last_used_at: string | null;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["push_subscriptions"]["Row"],
+          "id" | "created_at" | "last_used_at" | "user_agent"
+        > & {
+          user_agent?: string | null;
+          last_used_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["push_subscriptions"]["Insert"]
+        >;
+        Relationships: [];
+      };
       departments: {
         Row: {
           id: string;

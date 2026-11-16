@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import toast from "react-hot-toast";
 import SettingsSection from "./SettingsSection";
+import BrowserPushSettings from "./BrowserPushSettings";
 import { Button } from "@/components/ui/Button";
 import { saveNotificationPrefs, type NotifPrefs } from "../actions";
 
@@ -279,6 +280,14 @@ export default function NotificationsClient({ initial }: Props) {
             description="Allow your name in the weekly culture recap and Wall of Fame posts in the company Slack channel. When off, those posts count your achievement without naming you."
           />
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Browser notifications"
+        description="Alerts on this device, even when Kazi is closed."
+        icon="solar:bell-broken"
+      >
+        <BrowserPushSettings />
       </SettingsSection>
 
       <SettingsSection

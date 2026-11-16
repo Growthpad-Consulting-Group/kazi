@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { invalidateUserNotifications } from "@/lib/cache/invalidate";
+import { sendPushToUsers } from "@/lib/web-push";
 import type { UserRole } from "@/types/database";
 
 /**
@@ -24,6 +25,16 @@ async function createNotifications(
   await Promise.all(
     [...new Set(rows.map((row) => row.user_id))].map(
       invalidateUserNotifications,
+    ),
+  );
+  // Mirror each notification to the recipient's subscribed browsers.
+  await Promise.all(
+    rows.map((row) =>
+      sendPushToUsers([row.user_id], {
+        title: "Kazi",
+        body: row.message,
+        url: row.link ?? null,
+      }),
     ),
   );
 }

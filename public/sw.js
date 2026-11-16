@@ -52,3 +52,39 @@ self.addEventListener("fetch", (event) => {
   if (!INSTALL_ASSETS.includes(url.pathname)) return;
   event.respondWith(fetch(request).catch(() => caches.match(request)));
 });
+
+// Web Push: show the notification sent by the server.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Kazi", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      data: { url: data.url || "/" },
+    }),
+  );
+});
+
+// Clicking a notification focuses an open Kazi tab or opens the linked page.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(
+    event.notification.data?.url || "/",
+    self.location.origin,
+  ).href;
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windows) => {
+        for (const client of windows) {
+          if (client.url === target && "focus" in client) return client.focus();
+        }
+        return self.clients.openWindow(target);
+      }),
+  );
+});
