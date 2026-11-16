@@ -97,6 +97,18 @@ export async function getHireCompanyAccess(
   });
 }
 
+/**
+ * Whether a person can open at least one company Hire workspace. Keep this
+ * separate from their application-wide staff role: a staff member may be a
+ * recruiter for one company without becoming an HR or admin user everywhere.
+ */
+export async function hasHireCompanyAccess(
+  userId: string,
+  userRole: UserRole,
+) {
+  return (await getHireCompanyAccess(userId, userRole)).length > 0;
+}
+
 /** Server-side Hire data-access guard. Never rely on an active-company UI filter. */
 export async function assertHireCompanyAccess({
   userId,

@@ -7,6 +7,7 @@ import {
 } from "@/lib/page-access";
 import { getExtraPermissions } from "@/lib/user-permissions";
 import { getAllowedPaths } from "@/lib/page-access-server";
+import { hasHireCompanyAccess } from "@/lib/hire-company-access";
 import { mustChangePassword } from "@/lib/must-change-password";
 import type { UserRole } from "@/types/database";
 
@@ -35,6 +36,18 @@ export async function proxy(request: NextRequest) {
   if (!isAdminScreenPath(pathname)) return NextResponse.next();
 
   if (token.role === "admin") return NextResponse.next();
+
+  // Hire memberships are company-scoped and can be given to staff whose
+  // application role is otherwise employee or manager. Check them before the
+  // generic role-page grant so their Jobs and Candidates navigation remains
+  // reachable immediately after access is assigned.
+  if (
+    pathname.startsWith("/hire") &&
+    token.id &&
+    (await hasHireCompanyAccess(token.id as string, token.role as UserRole))
+  ) {
+    return NextResponse.next();
+  }
 
   const allowedPaths = withViewGrant(
     await getAllowedPaths(token.role as UserRole),

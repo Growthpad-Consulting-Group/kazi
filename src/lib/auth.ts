@@ -11,6 +11,7 @@ import { encryptGoogleToken } from "@/lib/google-calendar";
 import { getAllowedPaths } from "@/lib/page-access-server";
 import { withViewGrant } from "@/lib/page-access";
 import { getExtraPermissions } from "@/lib/user-permissions";
+import { hasHireCompanyAccess } from "@/lib/hire-company-access";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { verifyRecaptcha } from "@/lib/recaptcha";
 import { highResGoogleProfilePhoto } from "@/lib/google-profile";
@@ -344,10 +345,18 @@ export const authOptions: NextAuthOptions = {
         session.user.extraPermissions = await getExtraPermissions(
           session.user.id,
         );
-        session.user.allowedPaths = withViewGrant(
+        const allowedPaths = withViewGrant(
           await getAllowedPaths(session.user.role),
           session.user.extraPermissions,
         );
+        // Hire access can be granted per company to any staff member. It is
+        // deliberately independent from the broad application role.
+        if (
+          await hasHireCompanyAccess(session.user.id, session.user.role)
+        ) {
+          allowedPaths.push("/hire");
+        }
+        session.user.allowedPaths = [...new Set(allowedPaths)];
       }
       return session;
     },
