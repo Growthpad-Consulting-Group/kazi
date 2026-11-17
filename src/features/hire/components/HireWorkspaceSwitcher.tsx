@@ -42,7 +42,7 @@ function WorkspaceOptionLabel(props: OptionProps<WorkspaceOption, false>) {
 
 function WorkspaceSingleValue(props: SingleValueProps<WorkspaceOption, false>) {
   return (
-    <components.SingleValue {...props} className="hidden sm:block">
+    <components.SingleValue {...props} className="hidden truncate sm:block">
       {props.data.label}
     </components.SingleValue>
   );
@@ -134,7 +134,7 @@ export default function HireWorkspaceSwitcher({
     options.find((option) => option.value === activeSlug) ?? options[0] ?? null;
 
   return (
-    <div className="flex h-8 w-10 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-lo)] shadow-sm transition-colors hover:border-brand-500/50 sm:min-w-64 sm:w-auto sm:px-2">
+    <div className="flex h-8 w-10 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-lo)] shadow-sm transition-colors hover:border-brand-500/50 sm:w-44 lg:w-64 sm:px-2">
       <Select<WorkspaceOption, false>
         aria-label="Hire workspace"
         className="min-w-0 w-full sm:flex-1"
