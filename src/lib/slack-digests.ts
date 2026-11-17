@@ -474,7 +474,7 @@ export function buildInterviewReminder(input: {
   appUrl: string;
 }): SlackMessage {
   const text = input.overdue
-    ? `${input.firstName ? `Hi ${input.firstName} — ` : ""}your scorecard for ${input.candidateName}'s ${input.roleTitle} interview is overdue.`
+    ? `${input.firstName ? `Hi ${input.firstName} — ` : ""}your scorecard for ${input.candidateName} (${input.roleTitle}) is overdue. Please submit it.`
     : `${input.firstName ? `Hi ${input.firstName} — ` : ""}your interview with ${input.candidateName} for ${input.roleTitle} starts at ${input.time}.`;
   return {
     text,

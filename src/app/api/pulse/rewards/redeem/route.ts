@@ -43,7 +43,25 @@ export async function POST(req: Request) {
         eventKey: `reward-redemption:${redemptionId}:${approver.id}`,
         recipientUserId: approver.id,
         category: "reward_redemption",
-        text: `${session.user.name ?? "A staff member"} requested ${item?.name ?? "a reward"}.`,
+        text: `${session.user.name ?? "A staff member"} requested ${item?.name ?? "a reward"}. Approve or decline in Kazi.`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*${session.user.name ?? "A staff member"}* requested *${item?.name ?? "a reward"}*.\nApprove or decline it in Kazi.`,
+            },
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `<process.env.PRODUCTION_APP_URL ?? "http://localhost:3000"/pulse/rewards|Review reward requests>`,
+              },
+            ],
+          },
+        ],
       }),
     ),
   );

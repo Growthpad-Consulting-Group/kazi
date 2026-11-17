@@ -176,13 +176,13 @@ Score 0–100. Shortlist if ≥ ${shortlistThreshold}. Return ONLY valid JSON:
         eventKey: `candidate-screened:${candidate.id}:${recipientUserId}`,
         recipientUserId,
         category: "candidate_screened",
-        text: `${screeningLabel}: ${candidate.full_name} for ${job.title}.`,
+        text: `${candidate.full_name} is shortlisted for ${job.title} (AI score ${result.score}). Review before advancing.`,
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `*${candidate.full_name}* has completed AI screening for *${job.title}*.`,
+              text: `*${candidate.full_name}* is shortlisted for *${job.title}* (AI score ${result.score}).\nReview before advancing.`,
             },
           },
           {

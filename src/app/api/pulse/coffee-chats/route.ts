@@ -174,7 +174,7 @@ export async function POST(request: Request) {
             eventKey: `coffee-chat:${match.id}:${userId}`,
             recipientUserId: userId,
             category: "campaign_update",
-            text: `Your Growthpad coffee chat match is ${names.get(partnerId)}. <${calendarLink}|Find a time> or <${appUrl}/pulse/coffee-chats|manage this match>.`,
+            text: `You have been matched for a coffee chat with ${names.get(partnerId)}. <${calendarLink}|Find a time> or <${appUrl}/pulse/coffee-chats|manage this match>.`,
             digest: true,
           });
         }),

@@ -441,7 +441,25 @@ export async function POST(req: Request) {
         eventKey: `overtime-submitted:${session.user.id}:${body.date}:${outsideEntries.length}:${staff.manager_id}`,
         recipientUserId: staff.manager_id,
         category: "overtime_request",
-        text: `${session.user.name ?? "A staff member"} submitted outside-hours work for review on ${body.date}.`,
+        text: `${session.user.name ?? "A staff member"} submitted outside-hours work on ${body.date} for your review.`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*${session.user.name ?? "A staff member"}* submitted outside-hours work on ${body.date} for your review.`,
+            },
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: `<${process.env.PRODUCTION_APP_URL ?? "http://localhost:3000"}/pulse/checkins?tab=daily|Review the daily log in Kazi>`,
+              },
+            ],
+          },
+        ],
       });
     }
   }

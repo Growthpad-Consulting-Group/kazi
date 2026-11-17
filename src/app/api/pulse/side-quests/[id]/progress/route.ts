@@ -171,7 +171,25 @@ export async function POST(req: Request, context: RouteContext) {
           eventKey: `side-quest-evidence:${completion.id}:${approverId}`,
           recipientUserId: approverId,
           category: "side_quest_approval",
-          text: `${session.user.name ?? "A staff member"} submitted Side Quest evidence for ${quest.title ?? "a quest"}.`,
+          text: `${session.user.name ?? "A staff member"} submitted evidence for "${quest.title ?? "a quest"}". Approve or decline in Kazi.`,
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `*${session.user.name ?? "A staff member"}* submitted evidence for *${quest.title ?? "a quest"}*.\nApprove or decline it in Kazi.`,
+              },
+            },
+            {
+              type: "context",
+              elements: [
+                {
+                  type: "mrkdwn",
+                  text: `<process.env.PRODUCTION_APP_URL ?? "http://localhost:3000"/pulse/side-quests|Review Side Quest evidence>`,
+                },
+              ],
+            },
+          ],
         }),
       ),
     );

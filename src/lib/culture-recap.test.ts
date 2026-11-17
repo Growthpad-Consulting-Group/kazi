@@ -23,8 +23,8 @@ describe("buildCultureRecap", () => {
     });
     expect(recap).not.toBeNull();
     expect(recap!.lines).toEqual([
-      "🙌 4 recognitions shared — Amina",
-      "✅ 2 goals completed",
+      "4 recognitions shared — Amina",
+      "2 goals completed",
     ]);
   });
 
@@ -34,7 +34,7 @@ describe("buildCultureRecap", () => {
       focusedMinutes: 7_575,
     });
     expect(recap!.lines).toEqual([
-      "⏱️ The team logged 126h 15m of focused work",
+      "The team logged 126h 15m of focused work",
     ]);
   });
 
@@ -44,7 +44,7 @@ describe("buildCultureRecap", () => {
       milestones: { count: 28, optedInNames: ["A", "B", "C", "D", "E"] },
     });
     expect(recap!.lines[0]).toBe(
-      "🎉 28 milestones celebrated — A, B, C and 2 others",
+      "28 milestones celebrated — A, B, C and 2 others",
     );
   });
 
@@ -53,7 +53,7 @@ describe("buildCultureRecap", () => {
       ...empty,
       milestones: { count: 1, optedInNames: [] },
     });
-    expect(recap!.lines[0]).toBe("🎉 1 milestone celebrated");
+    expect(recap!.lines[0]).toBe("1 milestone celebrated");
   });
 
   it("lists live Side Quests without exposing completions by person", () => {
@@ -65,8 +65,8 @@ describe("buildCultureRecap", () => {
       },
     });
     expect(recap!.lines).toEqual([
-      "🎯 3 Side Quests completed this week",
-      "🚀 Live side quests: Lunch and learn · Tidy the kitchen",
+      "3 Side Quests completed this week",
+      "Live side quests: Lunch and learn · Tidy the kitchen",
     ]);
   });
 });

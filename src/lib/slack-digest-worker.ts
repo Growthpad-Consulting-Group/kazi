@@ -911,7 +911,7 @@ async function shareFridayDailyEvidence(
         eventKey: `checkin-auto-submitted:${user.id}:${weekStart}:staff`,
         recipientUserId: user.id,
         category: "checkin_submitted",
-        text: "Your saved weekly reflection was submitted after Friday close.",
+        text: "Your saved weekly reflection was shared with your manager, because the Friday deadline had passed.",
         blocks: [
           {
             type: "section",
@@ -936,7 +936,7 @@ async function shareFridayDailyEvidence(
           eventKey: `checkin-auto-submitted:${user.id}:${weekStart}:manager:${manager.id}`,
           recipientUserId: manager.id,
           category: "checkin_submitted",
-          text: `${user.name}'s saved weekly reflection was submitted after Friday close.`,
+          text: `${user.name}'s saved weekly reflection was shared with you, because the Friday deadline had passed.`,
           blocks: [
             {
               type: "section",

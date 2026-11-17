@@ -49,33 +49,33 @@ export function buildCultureRecap(
 
   if (input.milestones.count > 0)
     lines.push(
-      `🎉 ${pluralise(input.milestones.count, "milestone")} celebrated${namesSuffix(input.milestones.optedInNames)}`,
+      `${pluralise(input.milestones.count, "milestone")} celebrated${namesSuffix(input.milestones.optedInNames)}`,
     );
   if (input.recognitions.count > 0)
     lines.push(
-      `🙌 ${pluralise(input.recognitions.count, "recognition")} shared${namesSuffix(input.recognitions.optedInNames)}`,
+      `${pluralise(input.recognitions.count, "recognition")} shared${namesSuffix(input.recognitions.optedInNames)}`,
     );
   if (input.goalsCompleted.count > 0)
     lines.push(
-      `✅ ${pluralise(input.goalsCompleted.count, "goal")} completed${namesSuffix(input.goalsCompleted.optedInNames)}`,
+      `${pluralise(input.goalsCompleted.count, "goal")} completed${namesSuffix(input.goalsCompleted.optedInNames)}`,
     );
   if (input.wallOfFameWinners.count > 0)
     lines.push(
-      `🏆 ${pluralise(input.wallOfFameWinners.count, "Wall of Fame winner")} announced${namesSuffix(input.wallOfFameWinners.optedInNames)}`,
+      `${pluralise(input.wallOfFameWinners.count, "Wall of Fame winner")} announced${namesSuffix(input.wallOfFameWinners.optedInNames)}`,
     );
   if (input.focusedMinutes > 0)
     lines.push(
-      `⏱️ The team logged ${durationLabel(input.focusedMinutes)} of focused work`,
+      `The team logged ${durationLabel(input.focusedMinutes)} of focused work`,
     );
   if (input.sideQuests.completedThisWeek > 0)
     lines.push(
-      `🎯 ${pluralise(input.sideQuests.completedThisWeek, "Side Quest")} completed this week`,
+      `${pluralise(input.sideQuests.completedThisWeek, "Side Quest")} completed this week`,
     );
   if (input.sideQuests.liveTitles.length > 0) {
     const titles = input.sideQuests.liveTitles;
     const shown = titles.slice(0, 3).join(" · ");
     const more = titles.length > 3 ? ` · and ${titles.length - 3} more` : "";
-    lines.push(`🚀 Live side quests: ${shown}${more}`);
+    lines.push(`Live side quests: ${shown}${more}`);
   }
 
   if (!lines.length) return null;

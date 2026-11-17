@@ -422,7 +422,7 @@ export async function sendOneOnOneSlackDMs(
   const dmBlocks = (withName: string) => [
     {
       type: "header",
-      text: { type: "plain_text", text: "📅 1-on-1 Scheduled" },
+      text: { type: "plain_text", text: "1-on-1 scheduled" },
     },
     {
       type: "section",

@@ -27,7 +27,7 @@ export async function notifySurveyLaunchedOnSlack(
         eventKey: `survey-published:${surveyId}:${userId}`,
         recipientUserId: userId,
         category: "survey_published",
-        text: `New survey: ${title}`,
+        text: `New survey: ${title}. Open Kazi to respond.`,
         blocks: surveyBlocks(
           `A new survey is open: *${title}*.`,
           "/pulse/surveys",
@@ -51,7 +51,7 @@ export async function notifySurveyClosingOnSlack(
         eventKey: `survey-closing:${surveyId}:${userId}`,
         recipientUserId: userId,
         category: "survey_published",
-        text: `Survey closing soon: ${title}`,
+        text: `${title} closes soon. Open Kazi to respond before it closes.`,
         blocks: surveyBlocks(
           `*${title}* closes soon. Your response is still outstanding.`,
           "/pulse/surveys",
