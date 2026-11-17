@@ -107,7 +107,7 @@ export default function CommandPalette() {
               value={query}
               onValueChange={setQuery}
               placeholder="Search staff, candidates, jobs, goals…"
-              className="h-full min-w-0 flex-1 bg-transparent text-sm text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)]"
+              className="h-full min-w-0 flex-1 bg-transparent text-base text-[var(--text-hi)] outline-none placeholder:text-[var(--text-lo)] md:text-sm"
             />
             <kbd className="hidden rounded border border-[var(--border)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-lo)] sm:block">
               ESC
