@@ -31,6 +31,7 @@ import {
   buildDailyBrief,
   buildInterviewReminder,
   buildHiringFollowUpDigest,
+  buildNewApplicantsDigest,
   buildWallOfFameClosingReminder,
   buildWallOfFameManagementVotingReminder,
   buildManagerMondayPulse,
@@ -79,6 +80,7 @@ export type DigestCounts = {
   timerReminders: number;
   snoozedReminders: number;
   hiringFollowUps: number;
+  newApplicantDigests: number;
 };
 
 type UserRow = {
@@ -132,6 +134,7 @@ function emptyCounts(): DigestCounts {
     timerReminders: 0,
     snoozedReminders: 0,
     hiringFollowUps: 0,
+    newApplicantDigests: 0,
   };
 }
 
@@ -350,6 +353,7 @@ export async function runSlackDigests(
   await sendInterviewReminders(now, byId, prefs, counts);
   await sendOverdueScorecardReminders(now, byId, prefs, counts);
   await sendHiringFollowUpDigests(now, byId, prefs, schedules, counts);
+  await sendNewApplicantDigests(now, byId, prefs, schedules, counts);
   await sendWallOfFameClosingReminder(now, counts);
   await sendWallOfFameManagementVotingReminders(now, byId, prefs, counts);
   await sendLongRunningTimerReminders(now, byId, prefs, counts);
@@ -471,6 +475,134 @@ async function sendHiringFollowUpDigests(
     });
     record(counts, outcome);
     if (outcome === "delivered") counts.hiringFollowUps += 1;
+  }
+}
+
+type NewApplicantCandidate = {
+  id: string;
+  full_name: string;
+  company_id: string;
+  assigned_to: string | null;
+  ai_score: number | null;
+  jobs: { title: string } | null;
+};
+
+/**
+ * One daily message per recruiter at 9:00 local time listing applications from
+ * the last 24 hours that are not shortlisted. Shortlisted candidates are sent
+ * instantly, so they are left out here to avoid a duplicate.
+ */
+async function sendNewApplicantDigests(
+  now: Date,
+  byId: Map<string, UserRow>,
+  prefs: Map<string, PrefRow>,
+  schedules: Map<string, ScheduleRow>,
+  counts: DigestCounts,
+) {
+  const cutoff = new Date(now.getTime() - 86_400_000).toISOString();
+  const [candidatesRes, membershipsRes] = await Promise.all([
+    supabaseAdmin
+      .from("candidates")
+      .select("id,full_name,company_id,assigned_to,ai_score,jobs(title)")
+      .eq("shortlisted", false)
+      .gte("created_at", cutoff),
+    db
+      .from("company_memberships")
+      .select("company_id,user_id")
+      .eq("is_active", true)
+      .in("hire_role", ["company_admin", "recruiter", "hiring_manager"]),
+  ]);
+  if (candidatesRes.error || membershipsRes.error) {
+    console.error(
+      "Could not load new applications for the digest",
+      candidatesRes.error?.message ?? membershipsRes.error?.message,
+    );
+    return;
+  }
+
+  const candidates = (candidatesRes.data ??
+    []) as unknown as NewApplicantCandidate[];
+  if (!candidates.length) return;
+
+  const globalRecipients = new Set(
+    [...byId.values()]
+      .filter((user) => user.role === "admin" || user.role === "hr")
+      .map((user) => user.id),
+  );
+  const companyRecipients = new Map<string, Set<string>>();
+  for (const membership of (membershipsRes.data ?? []) as {
+    company_id: string;
+    user_id: string;
+  }[]) {
+    const recipients =
+      companyRecipients.get(membership.company_id) ?? new Set();
+    recipients.add(membership.user_id);
+    companyRecipients.set(membership.company_id, recipients);
+  }
+
+  const candidatesByRecipient = new Map<string, NewApplicantCandidate[]>();
+  for (const candidate of candidates) {
+    const recipients = new Set([
+      ...globalRecipients,
+      ...(companyRecipients.get(candidate.company_id) ?? []),
+      ...(candidate.assigned_to ? [candidate.assigned_to] : []),
+    ]);
+    for (const recipientId of recipients) {
+      if (!byId.has(recipientId)) continue;
+      candidatesByRecipient.set(recipientId, [
+        ...(candidatesByRecipient.get(recipientId) ?? []),
+        candidate,
+      ]);
+    }
+  }
+
+  for (const [recipientId, recipientCandidates] of candidatesByRecipient) {
+    const timezone =
+      schedules.get(recipientId)?.timezone ??
+      prefs.get(recipientId)?.slack_timezone ??
+      DEFAULT_TIMEZONE;
+    const clock = localClock(now, timezone);
+    if (
+      !inCatchUpWindow(
+        clock,
+        9 * 60,
+        WINDOW_MINUTES,
+        QUIET_HOURS_CATCH_UP_MINUTES,
+      )
+    )
+      continue;
+    // Skip during quiet hours without reserving the message, so a later hourly
+    // run inside the window can still send it.
+    const recipientPrefs = prefs.get(recipientId);
+    if (
+      isInQuietHours(
+        recipientPrefs?.slack_quiet_start ?? null,
+        recipientPrefs?.slack_quiet_end ?? null,
+        recipientPrefs?.slack_timezone ?? timezone,
+        now,
+      )
+    )
+      continue;
+    const message = buildNewApplicantsDigest({
+      firstName: firstName(byId.get(recipientId)),
+      candidates: recipientCandidates.map((candidate) => ({
+        name: candidate.full_name,
+        roleTitle: candidate.jobs?.title ?? "Unassigned role",
+        score: candidate.ai_score,
+      })),
+      appUrl: appUrl(),
+    });
+    const outcome = await deliverSlackNotification({
+      eventKey: `new-applicants:${clock.date}:${recipientId}`,
+      recipientUserId: recipientId,
+      category: "new_applicant_digest",
+      text: message.text,
+      blocks: message.blocks,
+      // Respects quiet hours. This message is already a batch, so it is not held for digest mode.
+      digest: true,
+    });
+    record(counts, outcome);
+    if (outcome === "delivered") counts.newApplicantDigests += 1;
   }
 }
 

@@ -53,6 +53,62 @@ export function buildHiringFollowUpDigest(input: {
   };
 }
 
+export function buildNewApplicantsDigest(input: {
+  firstName?: string;
+  candidates: { name: string; roleTitle: string; score: number | null }[];
+  appUrl: string;
+}): SlackMessage {
+  const count = input.candidates.length;
+  const preview = input.candidates.slice(0, 8);
+  const remaining = count - preview.length;
+  const intro = input.firstName ? `Hi ${input.firstName} — ` : "";
+  const countLabel = `${count} new application${count === 1 ? "" : "s"}`;
+  // The notification preview carries the greeting and count. The body does not
+  // repeat them, so the message reads once.
+  const text = `${intro}${countLabel} in the last 24 hours.`;
+  const list = preview
+    .map(
+      (candidate) =>
+        `• *${candidate.name}* — ${candidate.roleTitle}${candidate.score === null ? " · awaiting AI" : ` · AI score ${candidate.score}`}`,
+    )
+    .join("\n");
+  return {
+    text,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: `${countLabel} in 24 hours` },
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `${list}${remaining > 0 ? `\n• +${remaining} more` : ""}`,
+        },
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: "Shortlisted candidates are sent to you as they happen.",
+          },
+        ],
+      },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: { type: "plain_text", text: "Review candidates" },
+            url: `${input.appUrl}/hire/candidates`,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export type BriefMeeting = { withName: string; time: string };
 
 function slackQuote(value: string) {

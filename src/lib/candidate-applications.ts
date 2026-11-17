@@ -1,12 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import {
-  getHireCompanyRecruiterIds,
-  notifyHireCompanyRecruiters,
-} from "@/lib/notifications";
-import { deliverSlackNotification } from "@/lib/slack";
+import { notifyHireCompanyRecruiters } from "@/lib/notifications";
 import { invalidateTables } from "@/lib/cache/invalidate";
 import { ApplicationError } from "@/lib/application-error";
-import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 
 export type ApplicationInput = {
   job_id: string;
@@ -138,48 +133,20 @@ export async function insertApplicant(input: ApplicationInput) {
   return candidate.id as string;
 }
 
-/** Notify recruiters only once an application is fully persisted. */
+/**
+ * Notify recruiters only once an application is fully persisted. The in-app
+ * bell always gets the alert. Slack is not used here: new applications reach
+ * Slack as a daily digest, and shortlisted candidates as an instant message.
+ */
 export async function notifyNewApplicant(
   candidateId: string,
   input: Pick<ApplicationInput, "full_name">,
   job: { title: string; company_id: string },
 ) {
-  const [company, recruiterIds] = await Promise.all([
-    getHireCompanyBrand(job.company_id),
-    getHireCompanyRecruiterIds(job.company_id),
-  ]);
   await notifyHireCompanyRecruiters(
     job.company_id,
     `New application: ${input.full_name} for ${job.title}`,
     `/hire/candidates/${candidateId}`,
-  );
-  await Promise.all(
-    recruiterIds.map((recruiterId) =>
-      deliverSlackNotification({
-        eventKey: `candidate-application:${candidateId}:${recruiterId}`,
-        recipientUserId: recruiterId,
-        category: "candidate_application",
-        text: `New ${company.displayName} application: ${input.full_name} for ${job.title}.`,
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `New *${company.displayName}* application: *${input.full_name}* for *${job.title}*.`,
-            },
-          },
-          {
-            type: "context",
-            elements: [
-              {
-                type: "mrkdwn",
-                text: `<${process.env.PRODUCTION_APP_URL ?? "http://localhost:3000"}/hire/candidates/${candidateId}|Review candidate in Kazi>`,
-              },
-            ],
-          },
-        ],
-      }),
-    ),
   );
 }
 

@@ -150,16 +150,20 @@ Score 0–100. Shortlist if ≥ ${shortlistThreshold}. Return ONLY valid JSON:
       ? "AI screening completed — shortlisted"
       : "AI screening completed — review needed";
 
-  const slackRecipients = candidate.assigned_to
-    ? [candidate.assigned_to]
-    : ((
-        await supabaseAdmin
-          .from("company_memberships")
-          .select("user_id")
-          .eq("company_id", candidate.company_id)
-          .eq("is_active", true)
-          .in("hire_role", ["company_admin", "recruiter", "hiring_manager"])
-      ).data?.map((m) => m.user_id) ?? []);
+  // Instant Slack is for shortlisted candidates only. Other results reach the daily digest.
+  const shortlistedNow = result.score >= shortlistThreshold;
+  const slackRecipients = !shortlistedNow
+    ? []
+    : candidate.assigned_to
+      ? [candidate.assigned_to]
+      : ((
+          await supabaseAdmin
+            .from("company_memberships")
+            .select("user_id")
+            .eq("company_id", candidate.company_id)
+            .eq("is_active", true)
+            .in("hire_role", ["company_admin", "recruiter", "hiring_manager"])
+        ).data?.map((m) => m.user_id) ?? []);
 
   await Promise.all([
     notifyHireCompanyRecruiters(
