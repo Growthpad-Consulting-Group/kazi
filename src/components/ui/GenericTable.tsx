@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, ReactNode } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  ReactNode,
+  Ref,
+} from "react";
 import { Icon } from "@iconify/react";
 import { parseISO, isWithinInterval } from "date-fns";
 import { cn } from "@/shared/lib/cn";
@@ -81,6 +88,13 @@ export interface GenericTableProps<T = Record<string, unknown>> {
   searchable?: boolean;
   searchPlaceholder?: string;
   stickyHeader?: boolean;
+  /** Ref to the scrolling table body, so a caller can save and restore its position. */
+  scrollRef?: Ref<HTMLDivElement>;
+  /** Starting page and page size, for restoring a list to where the user left it. */
+  initialPage?: number;
+  initialPageSize?: number;
+  /** Reports the current page and page size whenever either changes. */
+  onPaginationChange?: (state: { page: number; pageSize: number }) => void;
   unifiedSearchFilter?: ReactNode;
   onAddNew?: () => void;
   addNewLabel?: string;
@@ -124,6 +138,10 @@ export function GenericTable<T extends Record<string, unknown>>({
   searchable = false,
   searchPlaceholder = "Search…",
   stickyHeader,
+  scrollRef,
+  initialPage,
+  initialPageSize,
+  onPaginationChange,
   unifiedSearchFilter,
   onAddNew: onAddNewProp,
   addNewLabel = "Add New",
@@ -246,8 +264,13 @@ export function GenericTable<T extends Record<string, unknown>>({
   const [filterKey, setFilterKey] = useState(0);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [page, setPage] = useState(initialPage ?? 0);
+  const [pageSize, setPageSize] = useState(
+    initialPageSize ?? defaultPageSize,
+  );
+  useEffect(() => {
+    onPaginationChange?.({ page, pageSize });
+  }, [page, pageSize, onPaginationChange]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searchTerm, setSearch] = useState("");
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
@@ -666,6 +689,7 @@ export function GenericTable<T extends Record<string, unknown>>({
             ? `${mobileCard ? "hidden md:block " : ""}w-full overflow-auto scrollbar-thin scrollbar-thumb-[var(--border)] scrollbar-track-transparent`
             : `${mobileCard ? "hidden md:block " : ""}w-full overflow-x-auto overflow-y-visible`
         }
+        ref={scrollRef}
         style={tableMaxHeight ? { maxHeight: tableMaxHeight } : undefined}
       >
         <table

@@ -12,6 +12,10 @@ export type CandidatesListMemory = {
   search: string;
   filters: ActiveFilter[];
   scrollY: number;
+  /** Scroll position inside the table body, which scrolls on its own. */
+  tableScrollTop?: number;
+  page?: number;
+  pageSize?: number;
   savedAt: number;
 };
 

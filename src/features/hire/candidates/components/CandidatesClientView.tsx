@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import {
@@ -126,8 +126,15 @@ export default function CandidatesClientView({
   const hasInitialFilters = Boolean(
     initialStage || initialAttention || initialRole,
   );
-  // Bumped when remembered filters are applied, so the search box remounts with them.
+  // Bumped when remembered filters are applied, so the search box and table remount with them.
   const [restoreKey, setRestoreKey] = useState(0);
+  const [restoredTable, setRestoredTable] = useState<{
+    page: number;
+    pageSize: number;
+  } | null>(null);
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
+  const tablePaginationRef = useRef({ page: 0, pageSize: 25 });
+  const pendingTableScrollRef = useRef<number | null>(null);
   useEffect(() => {
     const saved = recallCandidatesList();
     if (!saved) return;
@@ -136,6 +143,11 @@ export default function CandidatesClientView({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearch(saved.search);
       setFilters(saved.filters);
+      setRestoredTable({
+        page: saved.page ?? 0,
+        pageSize: saved.pageSize ?? 25,
+      });
+      pendingTableScrollRef.current = saved.tableScrollTop ?? null;
       setRestoreKey((key) => key + 1);
     }
     const frame = requestAnimationFrame(() => window.scrollTo(0, saved.scrollY));
@@ -144,12 +156,26 @@ export default function CandidatesClientView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Saves the current search, filters and scroll position before opening a candidate.
+  // Once the table has remounted with the saved page, restore its inner scroll position.
+  useEffect(() => {
+    const top = pendingTableScrollRef.current;
+    if (restoreKey === 0 || top === null) return;
+    pendingTableScrollRef.current = null;
+    const frame = requestAnimationFrame(() => {
+      if (tableScrollRef.current) tableScrollRef.current.scrollTop = top;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [restoreKey]);
+
+  // Saves the current search, filters, page and scroll positions before opening a candidate.
   const openCandidate = (id: string) => {
     rememberCandidatesList({
       search,
       filters,
       scrollY: window.scrollY,
+      tableScrollTop: tableScrollRef.current?.scrollTop ?? 0,
+      page: tablePaginationRef.current.page,
+      pageSize: tablePaginationRef.current.pageSize,
     });
     router.push(`/hire/candidates/${id}`);
   };
@@ -645,6 +671,13 @@ export default function CandidatesClientView({
         </div>
       </SimpleModal>
       <GenericTable
+        key={restoreKey}
+        scrollRef={tableScrollRef}
+        initialPage={restoredTable?.page}
+        initialPageSize={restoredTable?.pageSize}
+        onPaginationChange={(state) => {
+          tablePaginationRef.current = state;
+        }}
         data={filtered}
         columns={columns}
         actions={readOnly ? [] : actions}
