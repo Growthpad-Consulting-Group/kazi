@@ -382,10 +382,17 @@ export function GenericTable<T extends Record<string, unknown>>({
 
   const total = searched.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const paginated = searched.slice(page * pageSize, (page + 1) * pageSize);
+  // A filter can shrink the list under the current page, so clamp to the last page.
+  const currentPage = Math.min(page, totalPages - 1);
+  useEffect(() => {
+    // One-off correction when the list shrinks; it does not cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (page !== currentPage) setPage(currentPage);
+  }, [page, currentPage]);
+  const paginated = searched.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   // Selection
-  const allPageIds = paginated.map((r, i) => rowId(r, page * pageSize + i));
+  const allPageIds = paginated.map((r, i) => rowId(r, currentPage * pageSize + i));
   const allPageSel =
     allPageIds.length > 0 && allPageIds.every((id) => selected.has(id));
   const somePageSel = allPageIds.some((id) => selected.has(id));
@@ -676,7 +683,7 @@ export function GenericTable<T extends Record<string, unknown>>({
             <EmptyState icon={emptyIcon} title={emptyMessage} className="py-12" />
           ) : (
             paginated.map((row, index) => (
-              <div key={rowId(row, page * pageSize + index)}>{mobileCard(row)}</div>
+              <div key={rowId(row, currentPage * pageSize + index)}>{mobileCard(row)}</div>
             ))
           )}
         </div>
@@ -781,7 +788,7 @@ export function GenericTable<T extends Record<string, unknown>>({
               </tr>
             ) : (
               paginated.map((row, i) => {
-                const id = rowId(row, page * pageSize + i);
+                const id = rowId(row, currentPage * pageSize + i);
                 return (
                   <TableRow
                     key={id}
@@ -804,7 +811,7 @@ export function GenericTable<T extends Record<string, unknown>>({
       {/* ── Pagination ───────────────────────────────────────────────────── */}
       {!loading && total > 0 && (
         <TablePagination
-          page={page}
+          page={currentPage}
           pageSize={pageSize}
           total={total}
           totalPages={totalPages}
