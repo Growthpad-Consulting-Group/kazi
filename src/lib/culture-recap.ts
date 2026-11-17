@@ -1,10 +1,8 @@
 // Weekly company culture recap. Names appear only for people who opted in to
 // culture announcements. Everything else is counted. Nothing here reads PIPs,
-// reviews, candidates or private feedback.
+// reviews, candidates, check-in submissions or private feedback.
 
 export type CultureRecapInput = {
-  /** Submitted weekly check-ins, shared only as an aggregate coverage figure. */
-  checkins: { submitted: number; eligibleStaff: number };
   /** Aggregate minutes from daily logs. No individual work data is included. */
   focusedMinutes: number;
   /** Public recognition received this week, with names of opted-in recipients. */
@@ -28,10 +26,12 @@ function pluralise(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function namesLine(names: string[]) {
+/** " — Ama, Kevin and 25 others". Shows up to three names, then counts the rest. */
+function namesSuffix(names: string[]) {
   if (!names.length) return "";
-  if (names.length <= 3) return ` (${names.join(", ")})`;
-  return ` (${names.slice(0, 3).join(", ")} and ${names.length - 3} more)`;
+  if (names.length <= 3) return ` — ${names.join(", ")}`;
+  const others = names.length - 3;
+  return ` — ${names.slice(0, 3).join(", ")} and ${others} ${others === 1 ? "other" : "others"}`;
 }
 
 function durationLabel(minutes: number) {
@@ -47,37 +47,36 @@ export function buildCultureRecap(
 ): CultureRecap | null {
   const lines: string[] = [];
 
-  if (input.checkins.eligibleStaff > 0)
-    lines.push(
-      `*Weekly updates:* ${input.checkins.submitted}/${input.checkins.eligibleStaff} shared`,
-    );
-  if (input.focusedMinutes > 0)
-    lines.push(`*Focused work:* ${durationLabel(input.focusedMinutes)} logged`);
-
-  if (input.recognitions.count > 0)
-    lines.push(
-      `*Recognition:* ${pluralise(input.recognitions.count, "recognition")} shared${namesLine(input.recognitions.optedInNames)}`,
-    );
   if (input.milestones.count > 0)
     lines.push(
-      `*Milestones:* ${pluralise(input.milestones.count, "milestone")} celebrated${namesLine(input.milestones.optedInNames)}`,
+      `🎉 ${pluralise(input.milestones.count, "milestone")} celebrated${namesSuffix(input.milestones.optedInNames)}`,
+    );
+  if (input.recognitions.count > 0)
+    lines.push(
+      `🙌 ${pluralise(input.recognitions.count, "recognition")} shared${namesSuffix(input.recognitions.optedInNames)}`,
     );
   if (input.goalsCompleted.count > 0)
     lines.push(
-      `*Goals completed:* ${pluralise(input.goalsCompleted.count, "goal")}${namesLine(input.goalsCompleted.optedInNames)}`,
+      `✅ ${pluralise(input.goalsCompleted.count, "goal")} completed${namesSuffix(input.goalsCompleted.optedInNames)}`,
     );
   if (input.wallOfFameWinners.count > 0)
     lines.push(
-      `*Wall of Fame:* ${pluralise(input.wallOfFameWinners.count, "winner")} announced${namesLine(input.wallOfFameWinners.optedInNames)}`,
+      `🏆 ${pluralise(input.wallOfFameWinners.count, "Wall of Fame winner")} announced${namesSuffix(input.wallOfFameWinners.optedInNames)}`,
+    );
+  if (input.focusedMinutes > 0)
+    lines.push(
+      `⏱️ The team logged ${durationLabel(input.focusedMinutes)} of focused work`,
     );
   if (input.sideQuests.completedThisWeek > 0)
     lines.push(
-      `*Side Quests:* ${pluralise(input.sideQuests.completedThisWeek, "completion")} approved this week`,
+      `🎯 ${pluralise(input.sideQuests.completedThisWeek, "Side Quest")} completed this week`,
     );
-  if (input.sideQuests.liveTitles.length > 0)
-    lines.push(
-      `*Live now:* ${input.sideQuests.liveTitles.slice(0, 3).join(", ")}${input.sideQuests.liveTitles.length > 3 ? ` and ${input.sideQuests.liveTitles.length - 3} more` : ""}`,
-    );
+  if (input.sideQuests.liveTitles.length > 0) {
+    const titles = input.sideQuests.liveTitles;
+    const shown = titles.slice(0, 3).join(" · ");
+    const more = titles.length > 3 ? ` · and ${titles.length - 3} more` : "";
+    lines.push(`🚀 Live side quests: ${shown}${more}`);
+  }
 
   if (!lines.length) return null;
   return {

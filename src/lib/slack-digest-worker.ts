@@ -1882,7 +1882,6 @@ async function sendWeeklyCultureRecap(
     winners,
     quests,
     completions,
-    checkins,
     dailyLogs,
   ] = await Promise.all([
     supabaseAdmin
@@ -1914,11 +1913,6 @@ async function sendWeeklyCultureRecap(
       .eq("status", "approved")
       .gte("completed_at", from)
       .lt("completed_at", to),
-    supabaseAdmin
-      .from("checkins")
-      .select("user_id")
-      .eq("week_start", lastWeek)
-      .in("status", ["submitted", "reviewed"]),
     db
       .from("daily_activity_logs")
       .select("entries")
@@ -1958,11 +1952,6 @@ async function sendWeeklyCultureRecap(
   const milestoneRows = (milestones.data ?? []) as { user_id: string }[];
   const goalRows = (goals.data ?? []) as { owner_id: string | null }[];
   const winnerRows = (winners.data ?? []) as { nominee_id: string }[];
-  const submittedCheckins = new Set(
-    ((checkins.data ?? []) as { user_id: string }[]).map(
-      (checkin) => checkin.user_id,
-    ),
-  ).size;
   const focusedMinutes = ((dailyLogs.data ?? []) as { entries: unknown }[])
     .flatMap((row) => (Array.isArray(row.entries) ? row.entries : []))
     .reduce(
@@ -1977,7 +1966,6 @@ async function sendWeeklyCultureRecap(
     );
 
   const recap = buildCultureRecap({
-    checkins: { submitted: submittedCheckins, eligibleStaff: byId.size },
     focusedMinutes,
     recognitions: {
       count: recognitionRows.length,

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { buildCultureRecap, type CultureRecapInput } from "./culture-recap";
 
 const empty: CultureRecapInput = {
-  checkins: { submitted: 0, eligibleStaff: 0 },
   focusedMinutes: 0,
   recognitions: { count: 0, optedInNames: [] },
   milestones: { count: 0, optedInNames: [] },
@@ -24,31 +23,37 @@ describe("buildCultureRecap", () => {
     });
     expect(recap).not.toBeNull();
     expect(recap!.lines).toEqual([
-      "*Recognition:* 4 recognitions shared (Amina)",
-      "*Goals completed:* 2 goals",
+      "🙌 4 recognitions shared — Amina",
+      "✅ 2 goals completed",
     ]);
   });
 
-  it("includes only aggregate weekly work signals", () => {
+  it("states focused work as a team total and never shows check-in counts", () => {
     const recap = buildCultureRecap({
       ...empty,
-      checkins: { submitted: 9, eligibleStaff: 11 },
       focusedMinutes: 7_575,
     });
     expect(recap!.lines).toEqual([
-      "*Weekly updates:* 9/11 shared",
-      "*Focused work:* 126h 15m logged",
+      "⏱️ The team logged 126h 15m of focused work",
     ]);
   });
 
-  it("caps long name lists and uses singular wording", () => {
+  it("caps long name lists with a clear count of the others", () => {
     const recap = buildCultureRecap({
       ...empty,
-      milestones: { count: 1, optedInNames: ["A", "B", "C", "D", "E"] },
+      milestones: { count: 28, optedInNames: ["A", "B", "C", "D", "E"] },
     });
     expect(recap!.lines[0]).toBe(
-      "*Milestones:* 1 milestone celebrated (A, B, C and 2 more)",
+      "🎉 28 milestones celebrated — A, B, C and 2 others",
     );
+  });
+
+  it("uses singular wording for one item", () => {
+    const recap = buildCultureRecap({
+      ...empty,
+      milestones: { count: 1, optedInNames: [] },
+    });
+    expect(recap!.lines[0]).toBe("🎉 1 milestone celebrated");
   });
 
   it("lists live Side Quests without exposing completions by person", () => {
@@ -60,8 +65,8 @@ describe("buildCultureRecap", () => {
       },
     });
     expect(recap!.lines).toEqual([
-      "*Side Quests:* 3 completions approved this week",
-      "*Live now:* Lunch and learn, Tidy the kitchen",
+      "🎯 3 Side Quests completed this week",
+      "🚀 Live side quests: Lunch and learn · Tidy the kitchen",
     ]);
   });
 });
