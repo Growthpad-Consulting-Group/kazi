@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
+import GlassPanel from "@/components/layout/GlassPanel";
+import { useTheme } from "@/shared/contexts/ThemeContext";
 import {
   getPushSupport,
   subscribeThisDevice,
@@ -34,6 +36,7 @@ export default function PushPermissionBanner() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { resolvedMode: mode } = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -79,37 +82,54 @@ export default function PushPermissionBanner() {
     <div
       role="region"
       aria-label="Browser notifications"
-      className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+      className="fixed bottom-4 right-3 z-[9999] w-[calc(100%-1.5rem)] max-w-sm sm:right-6 sm:w-full"
     >
-      <div className="flex items-center gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-500">
-          <Icon icon="solar:bell-bing-broken" className="h-4 w-4" />
-        </span>
-        <p className="text-sm text-[var(--text-lo)]">
-          <span className="font-semibold text-[var(--text-hi)]">
-            Get notified on this device.
-          </span>{" "}
-          Know when something needs your attention, even when Kazi is closed.
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={dismiss}
-          disabled={busy}
-          className="rounded-xl px-3 py-1.5 text-xs font-medium text-[var(--text-lo)] hover:bg-[var(--surface-2)] disabled:opacity-60"
-        >
-          Not now
-        </button>
-        <button
-          type="button"
-          onClick={turnOn}
-          disabled={busy}
-          className="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 disabled:cursor-wait disabled:opacity-60"
-        >
-          {busy ? "Turning on…" : "Turn on"}
-        </button>
-      </div>
+      <GlassPanel
+        mode={mode}
+        className="w-full overflow-hidden rounded-2xl bg-[var(--surface)]/80 shadow-2xl"
+        contentClassName="p-4"
+      >
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
+            <Icon icon="solar:bell-bing-broken" className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-[var(--text-hi)]">
+              Turn on notifications
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-lo)]">
+              Get alerted on this device when something needs you.
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={turnOn}
+                disabled={busy}
+                className="flex-1 rounded-lg bg-brand-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-600 active:scale-95 disabled:cursor-wait disabled:opacity-60"
+              >
+                {busy ? "Turning on…" : "Turn on"}
+              </button>
+              <button
+                type="button"
+                onClick={dismiss}
+                disabled={busy}
+                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-xs font-medium text-[var(--text-lo)] transition-all hover:text-[var(--text-hi)] active:scale-95 disabled:opacity-50"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={dismiss}
+            disabled={busy}
+            aria-label="Dismiss"
+            className="-mr-1 -mt-1 rounded-full p-1 text-[var(--text-lo)] transition-colors hover:text-[var(--text-hi)] disabled:opacity-50"
+          >
+            <Icon icon="solar:close-circle-broken" className="h-5 w-5" />
+          </button>
+        </div>
+      </GlassPanel>
     </div>
   );
 }
