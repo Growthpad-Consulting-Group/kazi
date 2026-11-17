@@ -40,7 +40,7 @@ export function buildHomeView(data: HomeData): Record<string, unknown> {
       fields: [
         {
           type: "mrkdwn",
-          text: `*1-on-1s, next 24 hours*\n${data.meetingsNext24h}`,
+          text: `*1-on-1s*\n${data.meetingsNext24h === 0 ? "None in the next 24 hours" : `${data.meetingsNext24h} in the next 24 hours`}`,
         },
         {
           type: "mrkdwn",
@@ -52,7 +52,7 @@ export function buildHomeView(data: HomeData): Record<string, unknown> {
         },
         {
           type: "mrkdwn",
-          text: `*Open goals*\n${data.goalsOpen}${data.goalsDueSoon ? ` · ${data.goalsDueSoon} due within a week` : ""}`,
+          text: `*Goals*\n${data.goalsOpen === 0 ? "None open" : `${data.goalsOpen} open`}${data.goalsDueSoon ? ` · ${data.goalsDueSoon} due within a week` : ""}`,
         },
         {
           type: "mrkdwn",
