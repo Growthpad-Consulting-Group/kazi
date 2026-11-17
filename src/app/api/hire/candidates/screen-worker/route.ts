@@ -15,6 +15,7 @@ import { deliverSlackNotification } from "@/lib/slack";
 import { notifyHireCompanyRecruiters } from "@/lib/notifications";
 import type { CandidateStage } from "@/types/database";
 import { SHORTLIST_THRESHOLD } from "@/features/hire/candidates/types";
+import { getHireCompanyBrand } from "@/lib/hire-company-brand";
 
 // Called by Vercel Cron (vercel.json) or an external scheduler.
 // Processes up to BATCH_SIZE candidates per invocation.
@@ -150,6 +151,10 @@ Score 0–100. Shortlist if ≥ ${shortlistThreshold}. Return ONLY valid JSON:
       ? "AI screening completed — shortlisted"
       : "AI screening completed — review needed";
 
+  const companyLabel = await getHireCompanyBrand(candidate.company_id)
+    .then((brand) => ` at ${brand.displayName}`)
+    .catch(() => "");
+
   // Instant Slack is for shortlisted candidates only. Other results reach the daily digest.
   const shortlistedNow = result.score >= shortlistThreshold;
   const slackRecipients = !shortlistedNow
@@ -176,13 +181,13 @@ Score 0–100. Shortlist if ≥ ${shortlistThreshold}. Return ONLY valid JSON:
         eventKey: `candidate-screened:${candidate.id}:${recipientUserId}`,
         recipientUserId,
         category: "candidate_screened",
-        text: `${candidate.full_name} is shortlisted for ${job.title} (AI score ${result.score}). Review before advancing.`,
+        text: `${candidate.full_name} is shortlisted for ${job.title}${companyLabel} (AI score ${result.score}). Review before advancing.`,
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `*${candidate.full_name}* is shortlisted for *${job.title}* (AI score ${result.score}).\nReview before advancing.`,
+              text: `*${candidate.full_name}* is shortlisted for *${job.title}*${companyLabel} (AI score ${result.score}).\nReview before advancing.`,
             },
           },
           {

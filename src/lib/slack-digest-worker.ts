@@ -524,6 +524,16 @@ async function sendNewApplicantDigests(
     []) as unknown as NewApplicantCandidate[];
   if (!candidates.length) return;
 
+  // Each line names its company, since one recruiter can work across several.
+  const companyIds = [...new Set(candidates.map((c) => c.company_id))];
+  const { data: companyRows } = await supabaseAdmin
+    .from("companies")
+    .select("id, display_name")
+    .in("id", companyIds);
+  const companyNames = new Map(
+    (companyRows ?? []).map((row) => [row.id, row.display_name]),
+  );
+
   const globalRecipients = new Set(
     [...byId.values()]
       .filter((user) => user.role === "admin" || user.role === "hr")
@@ -588,6 +598,7 @@ async function sendNewApplicantDigests(
       candidates: recipientCandidates.map((candidate) => ({
         name: candidate.full_name,
         roleTitle: candidate.jobs?.title ?? "Unassigned role",
+        companyName: companyNames.get(candidate.company_id),
         score: candidate.ai_score,
       })),
       appUrl: appUrl(),

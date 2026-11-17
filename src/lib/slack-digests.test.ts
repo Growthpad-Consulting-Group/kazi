@@ -6,6 +6,7 @@ describe("buildNewApplicantsDigest", () => {
     const candidates = Array.from({ length: 10 }, (_, i) => ({
       name: `Candidate ${i + 1}`,
       roleTitle: "Sales Executive",
+      companyName: i === 0 ? undefined : "CCSA",
       score: i === 0 ? null : 60,
     }));
     const message = buildNewApplicantsDigest({
@@ -19,7 +20,9 @@ describe("buildNewApplicantsDigest", () => {
     );
     const body = JSON.stringify(message.blocks);
     expect(body).toContain("Candidate 1* — Sales Executive · awaiting AI");
-    expect(body).toContain("Candidate 2* — Sales Executive · AI score 60");
+    expect(body).toContain(
+      "Candidate 2* — Sales Executive · CCSA · AI score 60",
+    );
     expect(body).toContain("+2 more");
     expect(body).toContain("https://kazi.example/hire/candidates");
   });

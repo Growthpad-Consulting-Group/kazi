@@ -55,7 +55,12 @@ export function buildHiringFollowUpDigest(input: {
 
 export function buildNewApplicantsDigest(input: {
   firstName?: string;
-  candidates: { name: string; roleTitle: string; score: number | null }[];
+  candidates: {
+    name: string;
+    roleTitle: string;
+    companyName?: string;
+    score: number | null;
+  }[];
   appUrl: string;
 }): SlackMessage {
   const count = input.candidates.length;
@@ -69,7 +74,7 @@ export function buildNewApplicantsDigest(input: {
   const list = preview
     .map(
       (candidate) =>
-        `• *${candidate.name}* — ${candidate.roleTitle}${candidate.score === null ? " · awaiting AI" : ` · AI score ${candidate.score}`}`,
+        `• *${candidate.name}* — ${candidate.roleTitle}${candidate.companyName ? ` · ${candidate.companyName}` : ""}${candidate.score === null ? " · awaiting AI" : ` · AI score ${candidate.score}`}`,
     )
     .join("\n");
   return {
