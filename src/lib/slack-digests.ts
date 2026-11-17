@@ -64,19 +64,38 @@ export function buildNewApplicantsDigest(input: {
   appUrl: string;
 }): SlackMessage {
   const count = input.candidates.length;
-  const preview = input.candidates.slice(0, 8);
-  const remaining = count - preview.length;
   const intro = input.firstName ? `Hi ${input.firstName} — ` : "";
   const countLabel = `${count} new application${count === 1 ? "" : "s"}`;
   // The notification preview carries the greeting and count. The body does not
   // repeat them, so the message reads once.
   const text = `${intro}${countLabel} in the last 24 hours.`;
-  const list = preview
-    .map(
-      (candidate) =>
-        `• *${candidate.name}* — ${candidate.roleTitle}${candidate.companyName ? ` · ${candidate.companyName}` : ""}${candidate.score === null ? " · awaiting AI" : ` · AI score ${candidate.score}`}`,
-    )
-    .join("\n");
+
+  // One group per company, so a recruiter working across companies can tell them apart.
+  const groups = new Map<string, typeof input.candidates>();
+  for (const candidate of input.candidates) {
+    const key = candidate.companyName ?? "";
+    groups.set(key, [...(groups.get(key) ?? []), candidate]);
+  }
+
+  const sections = [...groups.entries()].map(([company, members]) => {
+    const preview = members.slice(0, 8);
+    const remaining = members.length - preview.length;
+    const heading = `*${company ? `${company} ` : ""}${members.length} applicant${members.length === 1 ? "" : "s"}*`;
+    const list = preview
+      .map(
+        (candidate) =>
+          `• *${candidate.name}* — ${candidate.roleTitle}${candidate.score === null ? " · awaiting AI" : ` · AI score ${candidate.score}`}`,
+      )
+      .join("\n");
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${heading}\n${list}${remaining > 0 ? `\n• +${remaining} more` : ""}`,
+      },
+    };
+  });
+
   return {
     text,
     blocks: [
@@ -84,13 +103,7 @@ export function buildNewApplicantsDigest(input: {
         type: "header",
         text: { type: "plain_text", text: `${countLabel} in 24 hours` },
       },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `${list}${remaining > 0 ? `\n• +${remaining} more` : ""}`,
-        },
-      },
+      ...sections,
       {
         type: "context",
         elements: [
