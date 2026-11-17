@@ -49,11 +49,6 @@ export const sidebarNavGroups: NavGroup[] = [
         label: "Campaigns",
       },
       {
-        href: "/pulse/coffee-chats",
-        icon: "solar:cup-hot-broken",
-        label: "Coffee chats",
-      },
-      {
         href: "/pulse/side-quests",
         icon: "solar:cup-star-broken",
         label: "Side Quests",
@@ -85,6 +80,11 @@ export const sidebarNavGroups: NavGroup[] = [
         label: "Performance",
       },
       { href: "/pulse/surveys", icon: "solar:list-broken", label: "Surveys" },
+      {
+        href: "/pulse/coffee-chats",
+        icon: "solar:cup-hot-broken",
+        label: "Coffee chats",
+      },
       {
         href: "/pulse/analytics",
         icon: "solar:graph-new-up-broken",
