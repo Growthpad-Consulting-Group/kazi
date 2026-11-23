@@ -38,7 +38,9 @@ const chromeManifest = JSON.parse(
 );
 
 const rest = Object.fromEntries(
-  Object.entries(chromeManifest).filter(([key]) => key !== "update_url"),
+  Object.entries(chromeManifest).filter(
+    ([key]) => key !== "update_url" && key !== "externally_connectable",
+  ),
 );
 const manifest = {
   ...rest,

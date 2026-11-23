@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Kazi Timer",
   "description": "Track intentional work and save it to Kazi.",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "action": {
     "default_title": "Kazi Timer",
     "default_popup": "popup.html",
@@ -36,6 +36,12 @@
     "activeTab",
     "contextMenus"
   ],
+  "externally_connectable": {
+    "matches": [
+      "https://kazi.growthpad.africa/*",
+      "http://localhost/*"
+    ]
+  },
   "host_permissions": [
     "https://kazi.growthpad.africa/*",
     "https://app.asana.com/*",

@@ -39,6 +39,12 @@ function message(payload) {
   });
 }
 
+function externalMessage(payload, sender = {}) {
+  return new Promise((resolve) => {
+    listeners.externalMessage(payload, sender, resolve);
+  });
+}
+
 beforeEach(() => {
   Object.keys(listeners).forEach((key) => delete listeners[key]);
   local = {};
@@ -53,6 +59,7 @@ beforeEach(() => {
       onInstalled: event("installed"),
       onStartup: event("startup"),
       onMessage: event("message"),
+      onMessageExternal: event("externalMessage"),
     },
     alarms: {
       create: vi.fn().mockResolvedValue(undefined),
@@ -294,6 +301,45 @@ function fakeKazi() {
 }
 
 describe("Kazi Timer shared timer flow", () => {
+  it("immediately refreshes when Kazi changes a shared timer", async () => {
+    session.kaziAccessToken = "token";
+    const kazi = fakeKazi();
+    kazi.timer = {
+      id: TIMER_ID,
+      logDate: "2026-11-05",
+      task: "Review candidate",
+      client: null,
+      category: "Projects",
+      startedAt: new Date(900_000).toISOString(),
+      accumulatedMs: 60_000,
+      running: true,
+      source: "kazi",
+      updatedAt: new Date(1_000_000).toISOString(),
+    };
+    await loadWorker();
+
+    const result = await externalMessage(
+      { type: "kazi-timer-state-changed", timer: kazi.timer },
+      { url: "https://kazi.growthpad.africa/pulse/checkins" },
+    );
+
+    expect(result.timer).toMatchObject({ id: TIMER_ID, task: "Review candidate" });
+    expect(local.timer).toMatchObject({ id: TIMER_ID, source: "kazi" });
+    expect(chromeMock.action.setBadgeText).toHaveBeenLastCalledWith({ text: "2m" });
+    expect(kazi.calls).toHaveLength(0);
+  });
+
+  it("does not accept timer updates from another website", async () => {
+    await loadWorker();
+
+    await expect(
+      externalMessage(
+        { type: "kazi-timer-state-changed", timer: null },
+        { url: "https://example.com" },
+      ),
+    ).resolves.toEqual({ error: "Untrusted timer update" });
+  });
+
   it("starts a timer on Kazi and mirrors it locally", async () => {
     session.kaziAccessToken = "token";
     const kazi = fakeKazi();
@@ -398,7 +444,7 @@ describe("Kazi Timer shared timer flow", () => {
 
   it("keeps the stop queued offline and syncs it once Kazi is reachable", async () => {
     session.kaziAccessToken = "token";
-    const kazi = fakeKazi();
+    fakeKazi();
     await loadWorker();
     const started = await message({
       type: "start",

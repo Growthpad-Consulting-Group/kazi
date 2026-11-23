@@ -16,6 +16,7 @@ import {
 } from "./RecurringWorkManager";
 import { TeamActivity } from "./TeamActivity";
 import { activeTimerTabEvent } from "@/components/providers/ActiveTimerTabIndicator";
+import { notifyKaziTimerExtension } from "@/lib/kazi-timer-bridge";
 import { useUnsavedChanges } from "@/shared/contexts/UnsavedChangesContext";
 import { DailyLogRecap, DailyLogHistory } from "./DailyLogRecap";
 import {
@@ -769,6 +770,7 @@ export function DailyLogPage({
         timer?: SharedActiveTimer;
       } | null;
       if (response?.ok) {
+        notifyKaziTimerExtension(json?.timer ?? shared);
         if (json?.timer)
           setActiveTimer((current) => {
             if (!current || current.id !== id) return current;
@@ -824,6 +826,7 @@ export function DailyLogPage({
         cacheActiveTimer(next);
         return next;
       });
+      notifyKaziTimerExtension(json.timer);
     });
   };
 
@@ -866,6 +869,7 @@ export function DailyLogPage({
         );
         return;
       }
+      notifyKaziTimerExtension(null);
       if (json?.discarded) {
         toast.success(
           "Timer stopped. No time was added because this day is already full.",

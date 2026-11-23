@@ -10,7 +10,12 @@ const OFFLINE_MESSAGE = "Kazi is unreachable. Try again when you are online.";
 // Lifecycle actions still write through immediately, while a new browser
 // session or an expired snapshot refreshes from Kazi.
 const SERVER_TIMER_SNAPSHOT_MS = 30 * 1000;
+// Kazi actively tells Chromium extensions about a timer change. This is only
+// a recovery path for Firefox and an older extension that cannot receive that
+// message, and it runs only while Kazi is open in a browser tab.
+const KAZI_TAB_SYNC_MS = 60 * 1000;
 let messageQueue = Promise.resolve();
+let lastKaziTabSyncAt = 0;
 
 // The timer shape is the same one Kazi stores on the server:
 // { id, logDate, task, client, category, startedAt (ISO|null), accumulatedMs,
@@ -105,6 +110,15 @@ async function refreshBadge() {
       ? `${timer.task} · ${Math.floor(seconds / 60)}m`
       : "Kazi Timer",
   });
+}
+
+async function reconcileWhileKaziIsOpen() {
+  if (Date.now() - lastKaziTabSyncAt < KAZI_TAB_SYNC_MS) return;
+  const tabs = await chrome.tabs.query({});
+  if (!tabs.some((tab) => originOf(tab.url) === KAZI_URL)) return;
+  lastKaziTabSyncAt = Date.now();
+  await refreshFromServer({ force: true });
+  await refreshBadge();
 }
 
 function localDate(iso) {
@@ -476,9 +490,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === TICK_ALARM) {
     await reconnectSilently();
     await refreshBadge();
-    // The elapsed clock is derived locally from startedAt. Polling Kazi here
-    // made every installed browser invoke a Vercel function every 30 seconds.
-    // Only wake the network when there is a completed offline timer to deliver.
+    // Do not poll from every installed browser. Reconcile only while the Kazi
+    // app itself is open; Chromium normally receives an immediate handoff.
+    await reconcileWhileKaziIsOpen();
     if ((await pendingStops()).length) await syncQueue();
   }
 });
@@ -820,6 +834,45 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   enqueueMessage(message)
+    .then(sendResponse)
+    .catch((error) => sendResponse({ error: error.message }));
+  return true;
+});
+
+function isSharedTimerPayload(timer) {
+  return (
+    timer === null ||
+    (timer &&
+      typeof timer === "object" &&
+      typeof timer.id === "string" &&
+      typeof timer.task === "string" &&
+      typeof timer.accumulatedMs === "number" &&
+      typeof timer.running === "boolean")
+  );
+}
+
+// Kazi's web app sends this after a start, pause, resume or stop. The popup
+// cannot be opened by a website under browser security rules, but its badge
+// and the state it renders are immediately kept current.
+chrome.runtime.onMessageExternal?.addListener((message, sender, sendResponse) => {
+  if (
+    message?.type !== "kazi-timer-state-changed" ||
+    originOf(sender.url) !== KAZI_URL ||
+    !isSharedTimerPayload(message.timer)
+  ) {
+    sendResponse({ error: "Untrusted timer update" });
+    return;
+  }
+  messageQueue = messageQueue
+    .then(async () => {
+      // Kazi has already written and confirmed this payload. Saving it locally
+      // makes the update instant without adding a second Vercel invocation.
+      const timer = message.timer;
+      await cacheServerTimer(timer);
+      await writeTimer(timer);
+      await refreshBadge();
+      return { timer, elapsedSeconds: elapsedSeconds(timer) };
+    })
     .then(sendResponse)
     .catch((error) => sendResponse({ error: error.message }));
   return true;
