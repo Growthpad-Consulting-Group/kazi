@@ -1869,17 +1869,10 @@ async function sendWeeklyCultureRecap(
   prefs: Map<string, PrefRow>,
   counts: DigestCounts,
 ) {
+  // Scheduled runs are irregular, so the recap goes out at the first run on
+  // Monday from 09:00 onward. The weekly event key ensures it posts only once.
   const clock = localClock(now, DEFAULT_TIMEZONE);
-  if (
-    clock.weekday !== 1 ||
-    !inCatchUpWindow(
-      clock,
-      9 * 60,
-      WINDOW_MINUTES,
-      QUIET_HOURS_CATCH_UP_MINUTES,
-    )
-  )
-    return;
+  if (clock.weekday !== 1 || clock.minutes < 9 * 60) return;
 
   const thisWeek = weekStartOf(clock.date, clock.weekday);
   const lastWeek = addDays(thisWeek, -7);
@@ -2013,7 +2006,10 @@ async function sendWeeklyCultureRecap(
       { type: "header", text: { type: "plain_text", text: recap.text } },
       {
         type: "section",
-        text: { type: "mrkdwn", text: recap.lines.join("\n") },
+        text: {
+          type: "mrkdwn",
+          text: `${recap.lines.join("\n\n")}\n\n${recap.closing}`,
+        },
       },
       {
         type: "context",
