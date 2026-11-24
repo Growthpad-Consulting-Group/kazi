@@ -6,6 +6,7 @@ const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
 const TIMER_EVENT = "kazi:daily-log:timer-change";
 
 type StoredTimer = {
+  id?: string;
   startedAt: number | null;
   accumulatedMs: number;
   running: boolean;
@@ -19,6 +20,7 @@ function readActiveTimer(): StoredTimer | null {
     ) as Partial<StoredTimer> | null;
     if (!value || typeof value.accumulatedMs !== "number") return null;
     return {
+      id: typeof value.id === "string" ? value.id : undefined,
       startedAt: typeof value.startedAt === "number" ? value.startedAt : null,
       accumulatedMs: value.accumulatedMs,
       running: value.running === true,
@@ -54,6 +56,52 @@ export default function ActiveTimerTabIndicator() {
     return () => {
       window.removeEventListener("storage", sync);
       window.removeEventListener(TIMER_EVENT, sync);
+    };
+  }, []);
+
+  // This indicator runs on every page, but the Daily log is the only place that
+  // reconciles the timer with the server. Without this, a timer stopped on
+  // another device keeps counting in the tab title until the log is opened.
+  useEffect(() => {
+    let inFlight = false;
+    const reconcile = async () => {
+      const cached = readActiveTimer();
+      if (!cached?.id || inFlight || document.visibilityState !== "visible")
+        return;
+      inFlight = true;
+      try {
+        const query = `?stoppedTimerId=${encodeURIComponent(cached.id)}`;
+        const response = await fetch(`/api/pulse/daily-log/timer${query}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const json = (await response.json()) as {
+          timer?: { id?: string } | null;
+          stopped?: unknown;
+        };
+        const serverId = json.timer?.id ?? null;
+        // A different active timer, or this one recorded as stopped, means the
+        // cached copy is stale. An empty server answer alone is not enough: a
+        // timer started a moment ago may not have reached the server yet.
+        const stale =
+          serverId !== cached.id && (serverId !== null || !!json.stopped);
+        if (stale) {
+          window.localStorage.removeItem(TIMER_STORAGE_KEY);
+          window.dispatchEvent(new Event(TIMER_EVENT));
+        }
+      } catch {
+        // Offline or blocked: keep the cached copy until the server can answer.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void reconcile();
+    document.addEventListener("visibilitychange", reconcile);
+    window.addEventListener("focus", reconcile);
+    return () => {
+      document.removeEventListener("visibilitychange", reconcile);
+      window.removeEventListener("focus", reconcile);
     };
   }, []);
 
