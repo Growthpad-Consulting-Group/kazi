@@ -1,0 +1,23 @@
+name: Job Expiry
+
+on:
+  schedule:
+    # Every 30 minutes, so closed jobs leave the careers site soon after their
+    # close date. Each run is safe to repeat.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh-closed-jobs:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: "${{ secrets.APP_URL || vars.APP_URL || 'https://kazi.growthpad.africa' }}"
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - if: env.CRON_SECRET == ''
+        run: echo "::error::CRON_SECRET is not configured in GitHub Actions."
+      - if: env.CRON_SECRET != ''
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/hire/jobs/expiry-worker"

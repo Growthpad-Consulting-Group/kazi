@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { updateJob } from "../actions";
+import { displayJobStatus } from "../types";
 import {
   GenericTable,
   type Column,
@@ -134,8 +135,8 @@ export default function JobsClientView({
     for (const f of filters) {
       if (f.category === "status") {
         if (f.operator === "is")
-          list = list.filter((j) => f.values.includes(j.status));
-        else list = list.filter((j) => !f.values.includes(j.status));
+          list = list.filter((j) => f.values.includes(displayJobStatus(j)));
+        else list = list.filter((j) => !f.values.includes(displayJobStatus(j)));
       }
       if (f.category === "department") {
         if (f.operator === "is")
@@ -267,7 +268,9 @@ export default function JobsClientView({
       header: "Status",
       accessor: "status",
       sortable: true,
-      render: (row) => <StatusPill context="stage" value={row.status} />,
+      render: (row) => (
+        <StatusPill context="stage" value={displayJobStatus(row)} />
+      ),
     },
     {
       header: "Applicants",
@@ -401,7 +404,8 @@ export default function JobsClientView({
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {jobStats.map((stat) => (
-          <StatCard variant="inline"
+          <StatCard
+            variant="inline"
             key={stat.label}
             title={stat.label}
             value={stat.value}
@@ -441,12 +445,15 @@ export default function JobsClientView({
                     "No department or location"}
                 </p>
               </div>
-              <StatusPill context="stage" value={job.status} />
+              <StatusPill context="stage" value={displayJobStatus(job)} />
             </div>
 
             <div className="flex items-center gap-4 text-xs text-[var(--text-lo)]">
               <span className="inline-flex items-center gap-1.5">
-                <Icon icon="solar:users-group-rounded-broken" className="h-4 w-4" />
+                <Icon
+                  icon="solar:users-group-rounded-broken"
+                  className="h-4 w-4"
+                />
                 <strong className="font-semibold text-[var(--text-hi)]">
                   {job.applicants}
                 </strong>
@@ -454,10 +461,13 @@ export default function JobsClientView({
               </span>
               <span>
                 {job.closes_at
-                  ? `Closes ${new Date(job.closes_at).toLocaleDateString("en-KE", {
-                      day: "numeric",
-                      month: "short",
-                    })}`
+                  ? `Closes ${new Date(job.closes_at).toLocaleDateString(
+                      "en-KE",
+                      {
+                        day: "numeric",
+                        month: "short",
+                      },
+                    )}`
                   : "Open-ended"}
               </span>
             </div>

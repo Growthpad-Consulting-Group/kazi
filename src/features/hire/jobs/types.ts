@@ -36,3 +36,19 @@ export interface DraftJdRequest {
   department: string;
   brief: string;
 }
+
+export type DisplayJobStatus = "draft" | "open" | "paused" | "closed";
+
+/**
+ * A job stays "open" in the database until someone edits it, so an open job
+ * whose close date has passed is shown as closed. The public careers page
+ * already hides it by the same date.
+ */
+export function displayJobStatus(
+  job: { status: string; closes_at: string | null },
+  now: Date = new Date(),
+): DisplayJobStatus {
+  if (job.status === "open" && job.closes_at && new Date(job.closes_at) <= now)
+    return "closed";
+  return job.status as DisplayJobStatus;
+}

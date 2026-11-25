@@ -11,6 +11,7 @@ import { Icon } from "@iconify/react";
 import { getJob } from "../actions";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { JobStatus } from "@/types/database";
+import { displayJobStatus } from "../types";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import PageWithSidebar from "@/components/ui/PageWithSidebar";
 import SidebarWidget from "@/components/ui/SidebarWidget";
@@ -115,7 +116,8 @@ export default async function JobDetailPage({ id }: { id: string }) {
     (candidate) => !["hired", "rejected"].includes(candidate.stage),
   ).length;
 
-  const status = STATUS_META[job.status] ?? STATUS_META.draft;
+  const shownStatus = displayJobStatus(job);
+  const status = STATUS_META[shownStatus] ?? STATUS_META.draft;
   const rubricTotal = job.scoring_rubric.reduce(
     (sum, r) => sum + (Number(r.weight) || 0),
     0,
@@ -139,32 +141,36 @@ export default async function JobDetailPage({ id }: { id: string }) {
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${status.chip}`}
             >
               <Icon icon={status.icon} className="h-3.5 w-3.5" />
-              {job.status}
+              {shownStatus}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard variant="inline"
+            <StatCard
+              variant="inline"
               title="Applicants"
               value={candidates.length}
               icon="solar:users-group-two-rounded-broken"
               color="orange"
               compact
             />
-            <StatCard variant="inline"
+            <StatCard
+              variant="inline"
               title="In progress"
               value={activeCandidates}
               icon="solar:sort-horizontal-broken"
               color="blue"
               compact
             />
-            <StatCard variant="inline"
+            <StatCard
+              variant="inline"
               title="Interviews"
               value={stageCounts.interview}
               icon="solar:calendar-broken"
               color="blue"
               compact
             />
-            <StatCard variant="inline"
+            <StatCard
+              variant="inline"
               title="Offers"
               value={stageCounts.offer}
               icon="solar:letter-broken"
@@ -473,7 +479,7 @@ export default async function JobDetailPage({ id }: { id: string }) {
           </div>
           <div>
             <p className={`text-sm font-semibold capitalize ${status.text}`}>
-              {job.status}
+              {shownStatus}
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-lo)]">
               {status.hint}
