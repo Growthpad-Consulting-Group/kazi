@@ -18,9 +18,14 @@ type SignatureProfileDatabase = {
   };
 };
 
-export default async function StaffPage() {
+export default async function StaffPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ fromSignatureProfile?: string }>;
+}) {
   const signatureDatabase =
     supabaseAdmin as unknown as SignatureProfileDatabase;
+  const { fromSignatureProfile } = (await searchParams) ?? {};
   const [staff, session, signatureProfiles] = await Promise.all([
     getCachedStaff(),
     getServerSession(authOptions),
@@ -73,6 +78,37 @@ export default async function StaffPage() {
       job_title: person.job_title,
     }));
 
+  // Opens the Add staff form for a signature profile that has no staff account.
+  // Only the profile id travels in the URL; the details are read here.
+  let pendingProfile: {
+    email: string;
+    full_name: string;
+    role_title: string | null;
+    department: string | null;
+  } | null = null;
+  if (
+    fromSignatureProfile &&
+    session &&
+    can(session.user.role, "manage_people")
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabaseAdmin as any)
+      .from("signature_staff_profiles")
+      .select("email, full_name, role_title, department")
+      .eq("id", fromSignatureProfile)
+      .is("user_id", null)
+      .maybeSingle();
+    pendingProfile = data ?? null;
+  }
+  const pendingPrefill = pendingProfile
+    ? {
+        name: pendingProfile.full_name,
+        email: pendingProfile.email,
+        jobTitle: pendingProfile.role_title ?? "",
+        department: pendingProfile.department ?? "",
+      }
+    : undefined;
+
   return (
     <>
       <SetPageHeader
@@ -85,6 +121,8 @@ export default async function StaffPage() {
               departments={departments}
               managers={managers}
               canCreateAdmin={session.user.role === "admin"}
+              prefill={pendingProfile ? pendingPrefill : undefined}
+              defaultOpen={Boolean(pendingProfile)}
             />
           ) : undefined
         }

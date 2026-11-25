@@ -17,9 +17,11 @@ import { ExtraPermissionsControl } from "./ExtraPermissionsControl";
 import { HireAccessControl } from "./HireAccessControl";
 import type { HireCompanyRole } from "@/lib/hire-company-access";
 import type { UserRole } from "@/types/database";
+import { DeactivatedStaffBanner } from "./DeactivatedStaffBanner";
 
 type User = {
   id: string;
+  is_active?: boolean;
   name: string;
   email: string;
   role: string;
@@ -143,6 +145,7 @@ export default async function EmployeeProfilePage({
         "start_date",
         ...(canViewDateOfBirth ? ["date_of_birth"] : []),
         "avatar_url",
+        "is_active",
       ].join(", "),
     )
     .eq("id", id)
@@ -351,6 +354,9 @@ export default async function EmployeeProfilePage({
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">
+      {user.is_active === false && canManage && (
+        <DeactivatedStaffBanner staffId={user.id} name={user.name} />
+      )}
       <SetPageHeader
         title={user.name}
         description={`${user.job_title ?? "Staff member"}${user.department ? ` · ${user.department}` : ""}`}

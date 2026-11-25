@@ -11,8 +11,24 @@ import { SimpleModal } from "@/components/ui/SimpleModal";
 import { DatePicker } from "@/components/ui/DatePicker";
 import DepartmentSelect from "@/components/ui/DepartmentSelect";
 import { useFileDrop } from "@/lib/useFileDrop";
+import { StaffImportPanel } from "./StaffImportPanel";
 
 type Manager = { id: string; name: string; job_title: string | null };
+const BLANK_FORM = {
+  name: "",
+  email: "",
+  password: "",
+  role: "employee",
+  department: "",
+  jobTitle: "",
+  location: "Nairobi, Kenya",
+  managerId: "",
+  startDate: "",
+};
+
+export type NewPersonPrefill = Partial<
+  Pick<typeof BLANK_FORM, "name" | "email" | "jobTitle" | "department">
+>;
 const ROLES = [
   "employee",
   "manager",
@@ -27,27 +43,23 @@ export function NewPersonButton({
   managers,
   canCreateAdmin,
   size = "sm",
+  prefill,
+  defaultOpen = false,
 }: {
   departments: string[];
   managers: Manager[];
   canCreateAdmin: boolean;
   size?: "sm" | "md";
+  /** Starting values, e.g. from a signature profile that has no staff account yet. */
+  prefill?: NewPersonPrefill;
+  defaultOpen?: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
+  const [mode, setMode] = useState<"single" | "import">("single");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "employee",
-    department: "",
-    jobTitle: "",
-    location: "Nairobi, Kenya",
-    managerId: "",
-    startDate: "",
-  });
+  const [form, setForm] = useState({ ...BLANK_FORM, ...prefill });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -97,17 +109,7 @@ export function NewPersonButton({
       }
       choosePhoto(null);
       setOpen(false);
-      setForm({
-        name: "",
-        email: "",
-        password: "",
-        role: "employee",
-        department: "",
-        jobTitle: "",
-        location: "Nairobi, Kenya",
-        managerId: "",
-        startDate: "",
-      });
+      setForm(BLANK_FORM);
       router.refresh();
     } catch (cause) {
       setError(
@@ -144,142 +146,162 @@ export function NewPersonButton({
           securely with them. Addresses on a configured company email domain are
           also added to Signature staff automatically.
         </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Field label="Full name *">
-            <input
-              autoFocus
-              value={form.name}
-              onChange={(event) => update("name", event.target.value)}
-              placeholder="e.g. Amina Wanjiku"
-              className={inputClass}
-            />
-          </Field>
-          <Field label="Email address *">
-            <input
-              type="email"
-              value={form.email}
-              onChange={(event) => update("email", event.target.value)}
-              placeholder="amina@company.com"
-              className={inputClass}
-            />
-          </Field>
-          <Field label="Temporary password *">
-            <PasswordInput
-              value={form.password}
-              onChange={(event) => update("password", event.target.value)}
-              placeholder="At least 8 characters"
-              className={inputClass}
-            />
-          </Field>
-          <Field label="Profile photo">
-            <div
-              className={`flex items-center gap-3 rounded-xl p-1 ring-2 transition-shadow ${isPhotoDragging ? "ring-brand-500" : "ring-transparent"}`}
-              {...photoDropProps}
+        <div className="mt-4 inline-flex rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-1 text-xs font-semibold">
+          {(["single", "import"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setMode(tab)}
+              className={`rounded-md px-3 py-1.5 ${mode === tab ? "bg-[var(--surface)] text-[var(--text-hi)] shadow-sm" : "text-[var(--text-lo)]"}`}
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--surface-2)] text-[var(--text-lo)]">
-                {photoPreview ? (
-                  <img
-                    src={photoPreview}
-                    alt=""
-                    className="h-full w-full object-cover"
+              {tab === "single" ? "One person" : "Import CSV"}
+            </button>
+          ))}
+        </div>
+        {mode === "import" ? (
+          <StaffImportPanel onImported={() => router.refresh()} />
+        ) : (
+          <>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field label="Full name *">
+                <input
+                  autoFocus
+                  value={form.name}
+                  onChange={(event) => update("name", event.target.value)}
+                  placeholder="e.g. Amina Wanjiku"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Email address *">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => update("email", event.target.value)}
+                  placeholder="amina@company.com"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Temporary password *">
+                <PasswordInput
+                  value={form.password}
+                  onChange={(event) => update("password", event.target.value)}
+                  placeholder="At least 8 characters"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Profile photo">
+                <div
+                  className={`flex items-center gap-3 rounded-xl p-1 ring-2 transition-shadow ${isPhotoDragging ? "ring-brand-500" : "ring-transparent"}`}
+                  {...photoDropProps}
+                >
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--surface-2)] text-[var(--text-lo)]">
+                    {photoPreview ? (
+                      <img
+                        src={photoPreview}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Icon icon="solar:user-broken" className="h-5 w-5" />
+                    )}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      choosePhoto(event.target.files?.[0] ?? null)
+                    }
+                    className="min-w-0 flex-1 text-xs text-[var(--text-lo)] file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-brand-500"
                   />
-                ) : (
-                  <Icon icon="solar:user-broken" className="h-5 w-5" />
-                )}
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) =>
-                  choosePhoto(event.target.files?.[0] ?? null)
-                }
-                className="min-w-0 flex-1 text-xs text-[var(--text-lo)] file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-brand-500"
-              />
+                </div>
+                <p className="mt-1.5 text-xs text-[var(--text-lo)]">
+                  Choose an image or drag one onto this field.
+                </p>
+              </Field>
+              <Field label="Role">
+                <select
+                  value={form.role}
+                  onChange={(event) => update("role", event.target.value)}
+                  className={inputClass}
+                >
+                  {availableRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {role
+                        .replaceAll("_", " ")
+                        .replace(/\b\w/g, (letter) => letter.toUpperCase())}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Job title">
+                <input
+                  value={form.jobTitle}
+                  onChange={(event) => update("jobTitle", event.target.value)}
+                  placeholder="e.g. Product Designer"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Department">
+                <DepartmentSelect
+                  value={form.department}
+                  onChange={(value) => update("department", value)}
+                  departments={departments}
+                  placeholder="Select department"
+                />
+              </Field>
+              <Field label="Manager">
+                <select
+                  value={form.managerId}
+                  onChange={(event) => update("managerId", event.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">No manager assigned</option>
+                  {managers.map((manager) => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.name}
+                      {manager.job_title ? ` · ${manager.job_title}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Location">
+                <input
+                  value={form.location}
+                  onChange={(event) => update("location", event.target.value)}
+                  placeholder="e.g. Nairobi, Kenya"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Start date">
+                <DatePicker
+                  value={form.startDate}
+                  onChange={(value) => update("startDate", value)}
+                  placeholder="Choose date"
+                />
+              </Field>
             </div>
-            <p className="mt-1.5 text-xs text-[var(--text-lo)]">
-              Choose an image or drag one onto this field.
-            </p>
-          </Field>
-          <Field label="Role">
-            <select
-              value={form.role}
-              onChange={(event) => update("role", event.target.value)}
-              className={inputClass}
-            >
-              {availableRoles.map((role) => (
-                <option key={role} value={role}>
-                  {role
-                    .replaceAll("_", " ")
-                    .replace(/\b\w/g, (letter) => letter.toUpperCase())}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Job title">
-            <input
-              value={form.jobTitle}
-              onChange={(event) => update("jobTitle", event.target.value)}
-              placeholder="e.g. Product Designer"
-              className={inputClass}
-            />
-          </Field>
-          <Field label="Department">
-            <DepartmentSelect
-              value={form.department}
-              onChange={(value) => update("department", value)}
-              departments={departments}
-              placeholder="Select department"
-            />
-          </Field>
-          <Field label="Manager">
-            <select
-              value={form.managerId}
-              onChange={(event) => update("managerId", event.target.value)}
-              className={inputClass}
-            >
-              <option value="">No manager assigned</option>
-              {managers.map((manager) => (
-                <option key={manager.id} value={manager.id}>
-                  {manager.name}
-                  {manager.job_title ? ` · ${manager.job_title}` : ""}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Location">
-            <input
-              value={form.location}
-              onChange={(event) => update("location", event.target.value)}
-              placeholder="e.g. Nairobi, Kenya"
-              className={inputClass}
-            />
-          </Field>
-          <Field label="Start date">
-            <DatePicker
-              value={form.startDate}
-              onChange={(value) => update("startDate", value)}
-              placeholder="Choose date"
-            />
-          </Field>
-        </div>
-        {error && (
-          <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600">
-            {error}
-          </p>
+            {error && (
+              <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600">
+                {error}
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+              <Button variant="secondary" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                icon="solar:user-plus-broken"
+                loading={saving}
+                disabled={
+                  !form.name.trim() || !form.email.trim() || !form.password
+                }
+                onClick={create}
+              >
+                {saving ? "Adding" : "Add staff"}
+              </Button>
+            </div>
+          </>
         )}
-        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            icon="solar:user-plus-broken"
-            loading={saving}
-            disabled={!form.name.trim() || !form.email.trim() || !form.password}
-            onClick={create}
-          >
-            {saving ? "Adding" : "Add staff"}
-          </Button>
-        </div>
       </SimpleModal>
     </>
   );
