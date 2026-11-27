@@ -126,6 +126,126 @@ interface CalendarEventOpts {
   attendeeEmails: string[];
 }
 
+export type CompletedCalendarEvent = {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  minutes: number;
+};
+
+type GoogleCalendarEvent = {
+  id?: string;
+  summary?: string;
+  status?: string;
+  visibility?: string;
+  transparency?: string;
+  start?: { dateTime?: string };
+  end?: { dateTime?: string };
+  attendees?: { self?: boolean; responseStatus?: string }[];
+};
+
+function zonedMidnight(date: string, timeZone: string) {
+  const utcMidnight = Date.parse(`${date}T00:00:00.000Z`);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(utcMidnight));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+  const offset =
+    Date.UTC(
+      value("year"),
+      value("month") - 1,
+      value("day"),
+      value("hour"),
+      value("minute"),
+      value("second"),
+    ) - utcMidnight;
+  return new Date(utcMidnight - offset);
+}
+
+function clockInTimeZone(value: Date, timeZone: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(value);
+}
+
+/** Returns completed, visible timed events for one staff member and workday. */
+export async function listCompletedCalendarEvents(
+  userId: string,
+  date: string,
+  timeZone: string,
+): Promise<CompletedCalendarEvent[]> {
+  const [accessToken, calendarId] = await Promise.all([
+    getGoogleAccessToken(userId),
+    getCalendarId(userId),
+  ]);
+  const start = zonedMidnight(date, timeZone);
+  const nextDate = new Date(`${date}T12:00:00.000Z`);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  const end = zonedMidnight(nextDate.toISOString().slice(0, 10), timeZone);
+  const params = new URLSearchParams({
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "100",
+    fields:
+      "items(id,summary,status,visibility,transparency,start(dateTime),end(dateTime),attendees(self,responseStatus))",
+  });
+  const response = await fetch(
+    `${GOOGLE_CALENDAR_BASE}/${encodeURIComponent(calendarId)}/events?${params}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  const payload = (await response.json().catch(() => null)) as {
+    items?: GoogleCalendarEvent[];
+    error?: { message?: string };
+  } | null;
+  if (!response.ok)
+    throw new Error(payload?.error?.message ?? "Could not load calendar events.");
+
+  const now = Date.now();
+  return (payload?.items ?? []).flatMap((event) => {
+    const startAt = event.start?.dateTime ? new Date(event.start.dateTime) : null;
+    const endAt = event.end?.dateTime ? new Date(event.end.dateTime) : null;
+    const self = event.attendees?.find((attendee) => attendee.self);
+    if (
+      !event.id ||
+      !event.summary?.trim() ||
+      !startAt ||
+      !endAt ||
+      Number.isNaN(startAt.getTime()) ||
+      Number.isNaN(endAt.getTime()) ||
+      endAt.getTime() > now ||
+      endAt <= startAt ||
+      event.status === "cancelled" ||
+      event.visibility === "private" ||
+      event.transparency === "transparent" ||
+      self?.responseStatus === "declined"
+    )
+      return [];
+    return [
+      {
+        id: event.id,
+        title: event.summary.trim(),
+        startTime: clockInTimeZone(startAt, timeZone),
+        endTime: clockInTimeZone(endAt, timeZone),
+        minutes: Math.round((endAt.getTime() - startAt.getTime()) / 60_000),
+      },
+    ];
+  });
+}
+
 async function getCalendarId(userId: string): Promise<string> {
   const { data } = await supabaseAdmin
     .from("google_calendar_connections")

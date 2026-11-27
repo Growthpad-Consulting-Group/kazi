@@ -57,6 +57,13 @@ type ActiveTimer = {
   row: Row;
 };
 type AsanaTask = { id: string; name: string; project: string | null };
+type CalendarMeeting = {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  minutes: number;
+};
 // The server owns the active timer. This key is only a recovery cache for
 // when the timer API cannot be reached.
 const TIMER_STORAGE_KEY = "kazi:daily-log:active-timer";
@@ -386,6 +393,19 @@ export function DailyLogPage({
     loading: false,
     connected: false,
     tasks: [],
+    selected: [],
+  });
+  const [calendar, setCalendar] = useState<{
+    open: boolean;
+    loading: boolean;
+    connected: boolean;
+    events: CalendarMeeting[];
+    selected: string[];
+  }>({
+    open: false,
+    loading: false,
+    connected: false,
+    events: [],
     selected: [],
   });
 
@@ -951,6 +971,78 @@ export function DailyLogPage({
     });
     setAsana((prev) => ({ ...prev, open: false }));
     if (picked.length) setIsDirty(true);
+  };
+
+  const openCalendar = async () => {
+    setCalendar((prev) => ({ ...prev, open: true, loading: true, selected: [] }));
+    try {
+      const response = await fetch(`/api/pulse/daily-log/calendar-events?date=${date}`);
+      const json = (await response.json()) as {
+        connected?: boolean;
+        events?: CalendarMeeting[];
+        error?: string;
+      };
+      if (json.error) throw new Error(json.error);
+      const events = json.events ?? [];
+      setCalendar({
+        open: true,
+        loading: false,
+        connected: json.connected === true,
+        events,
+        selected: events.map((event) => event.id),
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not load calendar meetings.",
+      );
+      setCalendar((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const addSelectedFromCalendar = () => {
+    const picked = calendar.events.filter((event) =>
+      calendar.selected.includes(event.id),
+    );
+    const existing = new Set(
+      rows.map(
+        (row) =>
+          `${row.task.trim().toLowerCase()}|${row.startTime}|${row.endTime}`,
+      ),
+    );
+    const additions = picked.flatMap((event) => {
+      const key = `${event.title.toLowerCase()}|${event.startTime}|${event.endTime}`;
+      if (existing.has(key)) return [];
+      existing.add(key);
+      return [
+        {
+          ...emptyRow(),
+          task: event.title,
+          category: "Meetings" as const,
+          showRange: true,
+          startTime: event.startTime,
+          endTime: event.endTime,
+        },
+      ];
+    });
+    setRows((prev) => {
+      const base =
+        prev.length === 1 &&
+        !prev[0].task &&
+        !prev[0].minutes &&
+        !prev[0].startTime
+          ? []
+          : prev;
+      return [...base, ...additions];
+    });
+    setCalendar((prev) => ({ ...prev, open: false }));
+    if (additions.length) {
+      setIsDirty(true);
+      toast.success(
+        `${additions.length} meeting${additions.length === 1 ? "" : "s"} added to your log.`,
+      );
+    } else if (picked.length) {
+      toast("Those meetings are already in your log.");
+    }
   };
 
   const addRecurringWork = (entry: DailyLogEntry) => {
@@ -1626,6 +1718,14 @@ export function DailyLogPage({
                       <Icon icon="solar:import-broken" className="h-4 w-4" />{" "}
                       Import from Asana
                     </button>
+                    <button
+                      type="button"
+                      onClick={openCalendar}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-lo)] hover:text-[var(--text-hi)]"
+                    >
+                      <Icon icon="logos:google-calendar" className="h-4 w-4" />{" "}
+                      Import meetings
+                    </button>
                     <ManageRecurringWorkButton
                       date={date}
                       clients={clients}
@@ -1707,6 +1807,87 @@ export function DailyLogPage({
                         onClick={addSelectedFromAsana}
                       >
                         Add {asana.selected.length || ""}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {calendar.open && (
+              <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--text-hi)]">
+                    Completed Google Calendar meetings
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--text-lo)]">
+                    Review before adding. Private, declined, cancelled and upcoming events are excluded.
+                  </p>
+                </div>
+                {calendar.loading ? (
+                  <p className="text-sm text-[var(--text-lo)]">Loading meetings…</p>
+                ) : !calendar.connected ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-[var(--text-lo)]">
+                      Connect Google Calendar in Settings to import meetings.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        router.push(
+                          `/api/integrations/google-calendar/connect?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`,
+                        );
+                      }}
+                    >
+                      Connect Google Calendar
+                    </Button>
+                  </div>
+                ) : calendar.events.length === 0 ? (
+                  <p className="text-sm text-[var(--text-lo)]">
+                    No completed meetings are available for this day.
+                  </p>
+                ) : (
+                  <>
+                    <div className="max-h-56 space-y-1 overflow-y-auto">
+                      {calendar.events.map((event) => (
+                        <label
+                          key={event.id}
+                          className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-[var(--surface)]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={calendar.selected.includes(event.id)}
+                            onChange={(e) =>
+                              setCalendar((prev) => ({
+                                ...prev,
+                                selected: e.target.checked
+                                  ? [...prev.selected, event.id]
+                                  : prev.selected.filter((id) => id !== event.id),
+                              }))
+                            }
+                            className="h-4 w-4 accent-brand-500"
+                          />
+                          <span className="min-w-0 flex-1 truncate text-sm text-[var(--text-hi)]">
+                            {event.title}
+                          </span>
+                          <span className="shrink-0 text-xs text-[var(--text-lo)]">
+                            {event.startTime}–{event.endTime} · {formatMinutes(event.minutes)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => setCalendar((prev) => ({ ...prev, open: false }))}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        disabled={!calendar.selected.length}
+                        onClick={addSelectedFromCalendar}
+                      >
+                        Add {calendar.selected.length || ""}
                       </Button>
                     </div>
                   </>
