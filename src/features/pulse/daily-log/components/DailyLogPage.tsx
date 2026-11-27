@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { Accordion } from "@/components/ui/Accordion";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { SimpleModal } from "@/components/ui/SimpleModal";
 import SetPageHeader from "@/components/ui/SetPageHeader";
 import { ClientSelect } from "./ClientSelect";
 import {
@@ -989,7 +990,7 @@ export function DailyLogPage({
         loading: false,
         connected: json.connected === true,
         events,
-        selected: events.map((event) => event.id),
+        selected: [],
       });
     } catch (error) {
       toast.error(
@@ -1742,11 +1743,14 @@ export function DailyLogPage({
               </div>
             )}
 
-            {asana.open && (
-              <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-                <p className="text-sm font-semibold text-[var(--text-hi)]">
-                  Completed in Asana
-                </p>
+            <SimpleModal
+              open={asana.open}
+              onClose={() => setAsana((prev) => ({ ...prev, open: false }))}
+              title="Import completed Asana tasks"
+              subtitle="Select the work you completed, then review it in your daily log."
+              icon="logos:asana-icon"
+            >
+              <div className="space-y-3">
                 {asana.loading ? (
                   <p className="text-sm text-[var(--text-lo)]">
                     Loading tasks…
@@ -1812,14 +1816,17 @@ export function DailyLogPage({
                   </>
                 )}
               </div>
-            )}
+            </SimpleModal>
 
-            {calendar.open && (
-              <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+            <SimpleModal
+              open={calendar.open}
+              onClose={() => setCalendar((prev) => ({ ...prev, open: false }))}
+              title="Import completed meetings"
+              subtitle="Choose meetings to add as editable time ranges in your daily log."
+              icon="logos:google-calendar"
+            >
+              <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-semibold text-[var(--text-hi)]">
-                    Completed Google Calendar meetings
-                  </p>
                   <p className="mt-0.5 text-xs text-[var(--text-lo)]">
                     Review before adding. Private, declined, cancelled and upcoming events are excluded.
                   </p>
@@ -1893,7 +1900,7 @@ export function DailyLogPage({
                   </>
                 )}
               </div>
-            )}
+            </SimpleModal>
 
             <Accordion
               title="Daily reflection"
