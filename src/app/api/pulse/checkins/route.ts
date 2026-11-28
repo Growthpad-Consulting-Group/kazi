@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkinMoodLabel } from "@/lib/checkin-mood";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -140,7 +141,7 @@ export async function POST(req: Request) {
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: `*${employee.name}* submitted their weekly check-in for the week of ${weekLabel}.\n*Blockers:* ${hasBlockers ? "Flagged" : "None reported"}${mood ? ` · *Mood:* ${mood}` : ""}`,
+                text: `*${employee.name}* submitted their weekly check-in for the week of ${weekLabel}.\n*Blockers:* ${hasBlockers ? "Flagged" : "None reported"} · *Mood:* ${checkinMoodLabel(mood) ?? "not recorded"}`,
               },
             },
             {

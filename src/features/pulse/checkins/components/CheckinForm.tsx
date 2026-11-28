@@ -60,8 +60,8 @@ export function CheckinForm({
   const [wins, setWins] = useState(existing?.wins ?? dailyWins);
   const [priorities, setPriorities] = useState(existing?.priorities ?? "");
   const [blockers, setBlockers] = useState(existing?.blockers ?? dailyBlockers);
-  // New check-ins start at "Good" (4). Existing entries keep their saved mood.
-  const [mood, setMood] = useState<number>(existing?.mood ?? 4);
+  // Mood starts unset, so it only appears once someone has picked it.
+  const [mood, setMood] = useState<number | null>(existing?.mood ?? null);
   const [moodNote, setMoodNote] = useState(existing?.mood_note ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAction, setSavedAction] = useState<"draft" | "submitted" | null>(
@@ -229,11 +229,12 @@ export function CheckinForm({
           </div>
         </div>
         <p className="mt-3 text-xs font-medium text-[var(--text-lo)]">
-          {MOODS.find((item) => item.value === mood)?.label}
+          {MOODS.find((item) => item.value === mood)?.label ??
+            "Choose how you feel"}
         </p>
       </div>
 
-      {mood <= 2 && (
+      {mood !== null && mood <= 2 && (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
           <div className="flex gap-2.5">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
