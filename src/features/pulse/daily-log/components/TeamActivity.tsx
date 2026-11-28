@@ -494,7 +494,7 @@ export function TeamActivity({ reportId }: { reportId?: string }) {
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4">
               {sortedTeam.map((member) => {
                 const total = member.totalMinutes || 1;
                 const categories = DAILY_LOG_CATEGORIES.filter(
@@ -735,7 +735,7 @@ export function TeamActivity({ reportId }: { reportId?: string }) {
                               </div>
                               <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3">
                                 <p className="text-xs font-semibold capitalize text-[var(--text-lo)]">
-                                  Notes for the employee
+                                  Notes for {member.name.split(" ")[0]}
                                 </p>
                                 {member.comments
                                   .filter((c) => c.date === date)
@@ -778,7 +778,7 @@ export function TeamActivity({ reportId }: { reportId?: string }) {
                                     }
                                     maxLength={1000}
                                     rows={2}
-                                    placeholder="Leave a note for them"
+                                    placeholder={`Leave a note for ${member.name.split(" ")[0]}`}
                                     aria-label={`Note for ${member.name} on ${formatDay(date)}`}
                                     className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-hi)] outline-none focus:ring-2 focus:ring-brand-500/30"
                                   />
